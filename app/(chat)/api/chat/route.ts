@@ -21,10 +21,8 @@ import {
 } from "@/lib/utils";
 
 import { generateTitleFromUserMessage } from "../../actions";
-import { createDocument } from "@/lib/ai/tools/create-document";
-import { updateDocument } from "@/lib/ai/tools/update-document";
-import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { getWeather } from "@/lib/ai/tools/get-weather";
+import { webSearch } from "@/lib/ai/tools/web-search";
 
 export const maxDuration = 60;
 
@@ -67,11 +65,14 @@ export async function POST(request: Request) {
         messages,
         maxSteps: 5,
         experimental_activeTools:
-          selectedChatModel === "chat-model-reasoning" ? [] : ["getWeather"],
+          selectedChatModel === "chat-model-reasoning"
+            ? []
+            : ["getWeather", "webSearch"],
         experimental_transform: smoothStream({ chunking: "word" }),
         experimental_generateMessageId: generateUUID,
         tools: {
           getWeather,
+          webSearch,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {
