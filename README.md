@@ -1,5 +1,7 @@
 # Javin.AI
 
+A focused, no-nonsense AI search engine for crypto and blockchain-related information
+
 ### Installation
 
 _you need to have postgress db up and running at localhost:5432 with database named "postgres"_
