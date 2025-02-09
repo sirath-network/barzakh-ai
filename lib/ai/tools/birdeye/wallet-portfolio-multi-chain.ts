@@ -14,7 +14,7 @@ const supported_chains = [
 ];
 export const getMultiChainWalletPortfolio = tool({
   description:
-    "Fetch the multi-chain token portfolio of a given wallet address. supported chains are  solana, ethereum, arbitrum, avalanche, bsc, optimism, polygon, base, zksync, sui",
+    "Fetch the multi-chain wallet  portfolio of a given wallet address. supported chains are  solana, ethereum, arbitrum, avalanche, bsc, optimism, polygon, base, zksync, sui",
   parameters: z.object({
     wallet_address: z.string().describe("wallet address of user"),
     chain_name: z.string().describe("chain name"),
