@@ -111,7 +111,7 @@ const PurePreviewMessage = ({
                             <MultiSearch result={result} args={args} />
                           </div>
                         ) : (
-                          <pre>Done!</pre>
+                          <div className="text-sm">Done!</div>
                         )}
                       </div>
                     );
@@ -131,7 +131,7 @@ const PurePreviewMessage = ({
                           <MultiSearch result={null} args={args} />
                         </div>
                       ) : (
-                        <pre>Running {toolName}...</pre>
+                        <div className="text-sm">Running {toolName}...</div>
                       )}
                     </div>
                   );
