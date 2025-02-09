@@ -111,7 +111,7 @@ const PurePreviewMessage = ({
                             <MultiSearch result={result} args={args} />
                           </div>
                         ) : (
-                          <pre>{JSON.stringify(result, null, 2)}</pre>
+                          <pre>Done!</pre>
                         )}
                       </div>
                     );
@@ -130,7 +130,9 @@ const PurePreviewMessage = ({
                         <div className="mt-4">
                           <MultiSearch result={null} args={args} />
                         </div>
-                      ) : null}
+                      ) : (
+                        <pre>Running {toolName}...</pre>
+                      )}
                     </div>
                   );
                 })}

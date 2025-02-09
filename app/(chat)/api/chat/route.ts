@@ -21,8 +21,8 @@ import {
 } from "@/lib/utils";
 
 import { generateTitleFromUserMessage } from "../../actions";
-import { getWeather } from "@/lib/ai/tools/get-weather";
 import { webSearch } from "@/lib/ai/tools/web-search";
+import { getMultiChainWalletPortfolio } from "@/lib/ai/tools/birdeye/wallet-portfolio-multi-chain";
 
 export const maxDuration = 60;
 
@@ -67,12 +67,12 @@ export async function POST(request: Request) {
         experimental_activeTools:
           selectedChatModel === "chat-model-reasoning"
             ? []
-            : ["getWeather", "webSearch"],
+            : ["getMultiChainWalletPortfolio", "webSearch"],
         experimental_transform: smoothStream({ chunking: "word" }),
         experimental_generateMessageId: generateUUID,
         tools: {
-          getWeather,
           webSearch,
+          getMultiChainWalletPortfolio,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {
