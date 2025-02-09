@@ -132,6 +132,7 @@ const webSearchPrompt = `You are an AI web search engine called Javin, designed 
   ####  multichain Wallet portfolio:
   - Use this tool for getting the wallet portfolio details of user. if user asked to check his wallet portfolio , use this tool.
   - Pass the users wallet address as input.
+  - also pass the chain name. assume ethereum as default.
   
     ### Prohibited Actions:
   - Do not run tools multiple times, this includes the same tool with different parameters.
