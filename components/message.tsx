@@ -26,6 +26,7 @@ import { MessageEditor } from "./message-editor";
 import { DocumentPreview } from "./document-preview";
 import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
+import PortfolioTable from "./birdeye/PortfolioTable";
 
 const PurePreviewMessage = ({
   chatId,
@@ -104,12 +105,12 @@ const PurePreviewMessage = ({
 
                     return (
                       <div key={toolCallId}>
-                        {toolName === "getWeather" ? (
-                          <Weather weatherAtLocation={result} />
-                        ) : toolName === "webSearch" ? (
+                        {toolName === "webSearch" ? (
                           <div className="mt-4">
                             <MultiSearch result={result} args={args} />
                           </div>
+                        ) : toolName === "getMultiChainWalletPortfolio" ? (
+                          <PortfolioTable result={result} />
                         ) : (
                           <div className="text-sm">Done!</div>
                         )}
@@ -124,11 +125,14 @@ const PurePreviewMessage = ({
                         skeleton: ["getWeather"].includes(toolName),
                       })}
                     >
-                      {toolName === "getWeather" ? (
-                        <Weather />
-                      ) : toolName === "webSearch" ? (
+                      {toolName === "webSearch" ? (
                         <div className="mt-4">
                           <MultiSearch result={null} args={args} />
+                        </div>
+                      ) : toolName === "getMultiChainWalletPortfolio" ? (
+                        <div className="textsm">
+                          {/* <PortfolioTable result={null} args={args} /> */}
+                          Fetching portfolio...
                         </div>
                       ) : (
                         <div className="text-sm">Running {toolName}...</div>
