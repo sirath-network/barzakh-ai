@@ -6,9 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://chat.vercel.ai"),
-  title: "Javin",
-  description: "Javin using the AI SDK.",
+  metadataBase: new URL("https://javin.ai"),
+  title: "Javin.ai",
+  description:
+    "A focused, no-nonsense AI search engine for crypto and blockchain.",
 };
 
 export const viewport = {
