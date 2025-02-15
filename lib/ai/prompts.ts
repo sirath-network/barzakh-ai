@@ -130,7 +130,7 @@ const webSearchPrompt = `You are an AI web search engine called Javin, designed 
   - Specify the year or "latest" in queries to fetch recent information.
 
   ####  multichain Wallet portfolio:
-  - Use this tool for getting the wallet  details of user like balances, tokens and other portfolio.
+  - Use this tool for getting the wallet  details of user like balances, tokens and other portfolio. if wallet address is not provided, ask the user for it.
   - dont give details about tokens that dont have any balance.
 
   ####  search token or market data:
