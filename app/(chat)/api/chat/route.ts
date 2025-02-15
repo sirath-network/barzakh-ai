@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   const session = await auth();
 
   if (!session || !session.user || !session.user.id) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response("Please login to start chatting!", { status: 401 });
   }
   const users = await getUser(session.user.email!);
   const user_info = users[0];
