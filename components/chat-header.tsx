@@ -60,20 +60,16 @@ function PureChatHeader({
       </div>
 
       <div className="">
-        <button
-          className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-          onClick={() => {
-            if (status === "authenticated") {
-              signOut({
-                redirectTo: "/",
-              });
-            } else {
+        {status !== "authenticated" && (
+          <button
+            className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
+            onClick={() => {
               router.push("/login");
-            }
-          }}
-        >
-          {status === "authenticated" ? "Logout" : "Login"}
-        </button>
+            }}
+          >
+            Login
+          </button>
+        )}
       </div>
 
       {/* {!isReadonly && (
