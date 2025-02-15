@@ -53,7 +53,7 @@ export function Chat({
     },
     onError: (error: any) => {
       console.log(error);
-      toast.error("An error occured, please try again!");
+      toast.error(error.message);
     },
   });
 

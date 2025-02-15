@@ -12,6 +12,7 @@ import {
   deleteChatById,
   getChatById,
   getUser,
+  incrementMessageCount,
   saveChat,
   saveMessages,
 } from "@/lib/db/queries";
@@ -49,9 +50,12 @@ export async function POST(request: Request) {
     user_info.messageCount >= Number(process.env.FREE_USER_MESSAGE_LIMIT!)
   ) {
     console.log("totmsg ", user_info.messageCount);
-    return new Response("You have reached your free plan messages limit", {
-      status: 403,
-    });
+    return new Response(
+      "Message limit reached!  Upgrade to PRO for more usage and other perks!",
+      {
+        status: 403,
+      }
+    );
   }
   const userMessage = getMostRecentUserMessage(messages);
 
@@ -111,6 +115,7 @@ export async function POST(request: Request) {
                   };
                 }),
               });
+              await incrementMessageCount(session.user.id);
             } catch (error) {
               console.error("Failed to save chat");
             }
@@ -126,7 +131,8 @@ export async function POST(request: Request) {
         sendReasoning: true,
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.log(error);
       return "Oops, an error occured!";
     },
   });
