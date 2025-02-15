@@ -29,6 +29,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { SuggestedActions } from "./suggested-actions";
 import equal from "fast-deep-equal";
+import { useSession } from "next-auth/react";
 
 function PureMultimodalInput({
   chatId,
@@ -67,7 +68,7 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
-
+  const session = useSession();
   useEffect(() => {
     if (textareaRef.current) {
       adjustHeight();
@@ -119,7 +120,18 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
+  async function isLoggedIn() {
+    await session.update();
+    if (session.status === "authenticated") {
+      return true;
+    }
+    return false;
+  }
   const submitForm = useCallback(() => {
+    if (!isLoggedIn()) {
+      toast.error("Please sign in to continue");
+      return;
+    }
     window.history.replaceState({}, "", `/chat/${chatId}`);
 
     handleSubmit(undefined, {
