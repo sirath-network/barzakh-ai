@@ -38,7 +38,7 @@ const filterPortfolio = (
         (token) =>
           ((token.valueUsd && token.valueUsd > 1) ||
             (!token.valueUsd && token.uiAmount > 0)) &&
-          token.symbol.length <= 10
+          token.symbol?.length <= 10
       );
 
       if (filteredTokens.length) {
@@ -112,19 +112,21 @@ const PortfolioTable: React.FC<{ result: PortfolioResponse | null }> = ({
                     index !== groupedTokens[chain].length - 1 ? " " : "border-b"
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-1">
-                    <Image
-                      src={`/images/chain-logo/${chain}.png`}
-                      alt={token.symbol}
-                      className="w-6 h-6 mr-2"
-                      height={50}
-                      width={50}
-                    />
-                    <div className="flex flex-col text-sm">
-                      <div className="">{token.symbol}</div>
-                      <div className="text-gray-500 capitalize">{chain}</div>
+                  {token.symbol && (
+                    <div className="flex items-center justify-center gap-1">
+                      <Image
+                        src={`/images/chain-logo/${chain}.png`}
+                        alt={token.symbol}
+                        className="w-6 h-6 mr-2"
+                        height={50}
+                        width={50}
+                      />
+                      <div className="flex flex-col text-sm">
+                        <div className="">{token.symbol}</div>
+                        <div className="text-gray-500 capitalize">{chain}</div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="text-right">
                     <div>{token.uiAmount.toFixed(6)}</div>
                     {token.valueUsd !== undefined && (
