@@ -4,7 +4,7 @@ import { birdeye_supported_chains } from "@/lib/constants";
 
 export const getMultiChainWalletPortfolio = tool({
   description:
-    "Fetch the multi-chain wallet portfolio of a given wallet address across all supported chains",
+    "Fetch the multi-chain wallet portfolio of a given wallet address across all supported chains.",
   parameters: z.object({
     wallet_address: z.string().describe("wallet address of user"),
   }),
@@ -30,7 +30,7 @@ export const getMultiChainWalletPortfolio = tool({
         portfolioData[chain] = chainData;
       }
 
-      console.log("portfolio ------------ ", portfolioData);
+      // console.log("portfolio ------------ ", portfolioData);
       return portfolioData;
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);

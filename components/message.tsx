@@ -27,6 +27,7 @@ import { DocumentPreview } from "./document-preview";
 import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
+import MarketTokenTable from "./birdeye/MarketTokenTable";
 
 const PurePreviewMessage = ({
   chatId,
@@ -109,6 +110,8 @@ const PurePreviewMessage = ({
                           <div className="mt-4">
                             <MultiSearch result={result} args={args} />
                           </div>
+                        ) : toolName === "searchTokenMarketData" ? (
+                          <MarketTokenTable result={result} />
                         ) : toolName === "getMultiChainWalletPortfolio" ? (
                           <PortfolioTable result={result} />
                         ) : (
@@ -130,9 +133,9 @@ const PurePreviewMessage = ({
                           <MultiSearch result={null} args={args} />
                         </div>
                       ) : toolName === "getMultiChainWalletPortfolio" ? (
-                        <div className="textsm">
+                        <div className="text-sm">
                           {/* <PortfolioTable result={null} args={args} /> */}
-                          Fetching portfolio...
+                          <p className="py-1">Fetching portfolio...</p>
                         </div>
                       ) : (
                         <div className="text-sm">Running {toolName}...</div>
