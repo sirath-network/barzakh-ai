@@ -15,6 +15,7 @@ import { Messages } from "./messages";
 import { VisibilityType } from "./visibility-selector";
 import { useBlockSelector } from "@/hooks/use-block";
 import { toast } from "sonner";
+import { User } from "next-auth";
 
 export function Chat({
   id,
@@ -22,12 +23,14 @@ export function Chat({
   selectedChatModel,
   selectedVisibilityType,
   isReadonly,
+  user,
 }: {
   id: string;
   initialMessages: Array<Message>;
   selectedChatModel: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  user?: User;
 }) {
   const { mutate } = useSWRConfig();
 
@@ -73,6 +76,7 @@ export function Chat({
           selectedModelId={selectedChatModel}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
+          user={user}
         />
 
         <Messages

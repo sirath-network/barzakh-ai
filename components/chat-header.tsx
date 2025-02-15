@@ -12,24 +12,27 @@ import { useSidebar } from "./ui/sidebar";
 import { memo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VisibilityType, VisibilitySelector } from "./visibility-selector";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { User } from "next-auth";
 
 function PureChatHeader({
   chatId,
   selectedModelId,
   selectedVisibilityType,
   isReadonly,
+  user,
 }: {
   chatId: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  user?: User;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
 
   const { width: windowWidth } = useWindowSize();
-  const { data, status } = useSession();
+  console.log("user in chat header", user);
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2 justify-between">
       <div className="w-fit flex items-center gap-2">
@@ -60,16 +63,21 @@ function PureChatHeader({
       </div>
 
       <div className="">
-        {status !== "authenticated" && (
-          <button
-            className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-            onClick={() => {
+        <button
+          type="button"
+          className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
+          onClick={() => {
+            if (user && user?.email) {
+              signOut({
+                redirectTo: "/",
+              });
+            } else {
               router.push("/login");
-            }}
-          >
-            Login
-          </button>
-        )}
+            }
+          }}
+        >
+          {user && user?.email ? "Logout" : "Login"}
+        </button>
       </div>
 
       {/* {!isReadonly && (
