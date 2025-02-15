@@ -30,6 +30,7 @@ import { Textarea } from "./ui/textarea";
 import { SuggestedActions } from "./suggested-actions";
 import equal from "fast-deep-equal";
 import { useSession } from "next-auth/react";
+import { User } from "next-auth";
 
 function PureMultimodalInput({
   chatId,
@@ -44,6 +45,7 @@ function PureMultimodalInput({
   append,
   handleSubmit,
   className,
+  user,
 }: {
   chatId: string;
   input: string;
@@ -65,6 +67,7 @@ function PureMultimodalInput({
     chatRequestOptions?: ChatRequestOptions
   ) => void;
   className?: string;
+  user?: User;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -120,16 +123,9 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
-  async function isLoggedIn() {
-    await session.update();
-    if (session.status === "authenticated") {
-      return true;
-    }
-    return false;
-  }
   const submitForm = useCallback(() => {
-    if (!isLoggedIn()) {
-      toast.error("Please sign in to continue");
+    if (!user || !user.email) {
+      toast.error("Please login to continue");
       return;
     }
     window.history.replaceState({}, "", `/chat/${chatId}`);

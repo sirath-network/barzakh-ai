@@ -32,7 +32,7 @@ function PureChatHeader({
   const { open } = useSidebar();
 
   const { width: windowWidth } = useWindowSize();
-  console.log("user in chat header", user);
+  // console.log("user in chat header", user);
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2 justify-between">
       <div className="w-fit flex items-center gap-2">
