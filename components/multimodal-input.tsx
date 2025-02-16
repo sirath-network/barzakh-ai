@@ -38,7 +38,6 @@ import {
   HoverCardTrigger,
 } from "@/components/hover-card";
 import { AnimatePresence, motion } from "framer-motion";
-import { saveSearchModeAsCookie } from "@/app/(chat)/actions";
 
 interface GroupSelectorProps {
   selectedGroup: SearchGroupId;
@@ -441,7 +440,6 @@ function PureMultimodalInput({
     async (group: SearchGroup) => {
       console.log("selectd grup", group);
       setSelectedGroup(group.id);
-      await saveSearchModeAsCookie(group.id);
     },
     [setSelectedGroup]
   );
