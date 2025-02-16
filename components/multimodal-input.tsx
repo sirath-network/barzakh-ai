@@ -182,51 +182,6 @@ const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
   );
 };
 
-const ToolbarSelectecdOption = ({ group }: { group: SearchGroup }) => {
-  const Icon = group.icon;
-  return (
-    <HoverCard openDelay={100} closeDelay={50}>
-      <HoverCardTrigger asChild>
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={cn(
-            "relative flex items-center justify-center",
-            "size-8",
-            "rounded-full",
-            "transition-colors duration-300",
-            "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
-          )}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
-          <Icon className="size-4" />
-        </motion.div>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="bottom"
-        align="center"
-        sideOffset={6}
-        className={cn(
-          "z-[100]",
-          "w-44 p-2 rounded-lg",
-          "border border-neutral-200 dark:border-neutral-700",
-          "bg-white dark:bg-neutral-800 shadow-md",
-          "transition-opacity duration-300"
-        )}
-      >
-        <div className="space-y-0.5">
-          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            {group.name}
-          </h4>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-normal">
-            {group.description}
-          </p>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  );
-};
-
 function PureAttachmentsButton({
   fileInputRef,
   isLoading,
@@ -483,10 +438,10 @@ function PureMultimodalInput({
   );
 
   const handleGroupSelect = useCallback(
-    (group: SearchGroup) => {
+    async (group: SearchGroup) => {
       console.log("selectd grup", group);
       setSelectedGroup(group.id);
-      saveSearchModeAsCookie(group.id);
+      await saveSearchModeAsCookie(group.id);
     },
     [setSelectedGroup]
   );
