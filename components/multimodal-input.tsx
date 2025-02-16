@@ -31,6 +31,230 @@ import { SuggestedActions } from "./suggested-actions";
 import equal from "fast-deep-equal";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
+import { cn, SearchGroup, SearchGroupId, searchGroups } from "@/lib/utils";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/hover-card";
+import { AnimatePresence, motion } from "framer-motion";
+
+interface GroupSelectorProps {
+  selectedGroup: SearchGroupId;
+  onGroupSelect: (group: SearchGroup) => void;
+}
+interface ToolbarButtonProps {
+  group: SearchGroup;
+  isSelected: boolean;
+  onClick: () => void;
+}
+const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
+  const Icon = group.icon;
+
+  return (
+    <HoverCard openDelay={100} closeDelay={50}>
+      <HoverCardTrigger asChild>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onClick}
+          className={cn(
+            "relative flex items-center justify-center",
+            "size-8",
+            "rounded-full",
+            "transition-colors duration-300",
+            isSelected
+              ? "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
+              : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
+          )}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <Icon className="size-4" />
+        </motion.button>
+      </HoverCardTrigger>
+      <HoverCardContent
+        side="bottom"
+        align="center"
+        sideOffset={6}
+        className={cn(
+          "z-[100]",
+          "w-44 p-2 rounded-lg",
+          "border border-neutral-200 dark:border-neutral-700",
+          "bg-white dark:bg-neutral-800 shadow-md",
+          "transition-opacity duration-300"
+        )}
+      >
+        <div className="space-y-0.5">
+          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            {group.name}
+          </h4>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-normal">
+            {group.description}
+          </p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
+
+const SelectionContent = ({ ...props }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <motion.div
+      layout
+      initial={false}
+      animate={{
+        width: isExpanded ? "auto" : "30px",
+        gap: isExpanded ? "0.5rem" : 0,
+        paddingRight: isExpanded ? "0.5rem" : 0,
+      }}
+      transition={{
+        layout: { duration: 0.4 },
+        duration: 0.4,
+        ease: [0.4, 0.0, 0.2, 1],
+        width: { type: "spring", stiffness: 300, damping: 30 },
+        gap: { type: "spring", stiffness: 300, damping: 30 },
+        paddingRight: { type: "spring", stiffness: 300, damping: 30 },
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+      }}
+      className={cn(
+        "inline-flex items-center",
+        "min-w-[38px]",
+        "p-0.5",
+        "rounded-full border border-neutral-200 dark:border-neutral-800",
+        "bg-white dark:bg-neutral-900",
+        "shadow-sm overflow-visible",
+        "relative z-10"
+      )}
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
+    >
+      <AnimatePresence>
+        {searchGroups.map((group, index) => {
+          const showItem = isExpanded || props.selectedGroup === group.id;
+          return (
+            <motion.div
+              key={group.id}
+              animate={{
+                width: showItem ? "28px" : 0,
+                opacity: showItem ? 1 : 0,
+                x: showItem ? 0 : -10,
+              }}
+              exit={{ opacity: 1, x: 0, transition: { duration: 0 } }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 30,
+                delay: index * 0.05,
+                opacity: { duration: 0.2, delay: showItem ? index * 0.05 : 0 },
+              }}
+              style={{ margin: 0 }}
+            >
+              <ToolbarButton
+                group={group}
+                isSelected={props.selectedGroup === group.id}
+                onClick={() => props.onGroupSelect(group)}
+              />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+const GroupSelector = ({
+  selectedGroup,
+  onGroupSelect,
+}: GroupSelectorProps) => {
+  return (
+    <SelectionContent
+      selectedGroup={selectedGroup}
+      onGroupSelect={onGroupSelect}
+    />
+  );
+};
+
+function PureAttachmentsButton({
+  fileInputRef,
+  isLoading,
+}: {
+  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
+  isLoading: boolean;
+}) {
+  return (
+    <Button
+      className="rounded-full rounded-bl-full p-2.5 h-fit  bg-white dark:bg-zinc-700  dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
+      onClick={(event) => {
+        event.preventDefault();
+        fileInputRef.current?.click();
+      }}
+      disabled={isLoading}
+      variant="ghost"
+    >
+      <PaperclipIcon size={14} />
+    </Button>
+  );
+}
+
+const AttachmentsButton = memo(PureAttachmentsButton);
+
+function PureStopButton({
+  stop,
+  setMessages,
+}: {
+  stop: () => void;
+  setMessages: Dispatch<SetStateAction<Array<Message>>>;
+}) {
+  return (
+    <Button
+      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      onClick={(event) => {
+        event.preventDefault();
+        stop();
+        setMessages((messages) => sanitizeUIMessages(messages));
+      }}
+    >
+      <StopIcon size={14} />
+    </Button>
+  );
+}
+
+const StopButton = memo(PureStopButton);
+
+function PureSendButton({
+  submitForm,
+  input,
+  uploadQueue,
+}: {
+  submitForm: () => void;
+  input: string;
+  uploadQueue: Array<string>;
+}) {
+  return (
+    <Button
+      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      onClick={(event) => {
+        event.preventDefault();
+        submitForm();
+      }}
+      disabled={input.length === 0 || uploadQueue.length > 0}
+    >
+      <ArrowUpIcon size={14} />
+    </Button>
+  );
+}
+
+const SendButton = memo(PureSendButton, (prevProps, nextProps) => {
+  if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
+    return false;
+  if (prevProps.input !== nextProps.input) return false;
+  return true;
+});
 
 function PureMultimodalInput({
   chatId,
@@ -46,6 +270,8 @@ function PureMultimodalInput({
   handleSubmit,
   className,
   user,
+  selectedGroup,
+  setSelectedGroup,
 }: {
   chatId: string;
   input: string;
@@ -68,6 +294,8 @@ function PureMultimodalInput({
   ) => void;
   className?: string;
   user?: User;
+  selectedGroup: SearchGroupId;
+  setSelectedGroup: React.Dispatch<React.SetStateAction<SearchGroupId>>;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -203,6 +431,13 @@ function PureMultimodalInput({
     [setAttachments]
   );
 
+  const handleGroupSelect = useCallback(
+    (group: SearchGroup) => {
+      setSelectedGroup(group.id);
+    },
+    [setSelectedGroup]
+  );
+
   return (
     <div className="relative w-full flex flex-col gap-4">
       {/* {messages.length === 0 &&
@@ -210,6 +445,29 @@ function PureMultimodalInput({
         uploadQueue.length === 0 && (
           <SuggestedActions append={append} chatId={chatId} />
         )} */}
+      <Textarea
+        ref={textareaRef}
+        placeholder="Ask a question..."
+        value={input}
+        onChange={handleInput}
+        className={cx(
+          "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted p-5 pb-10 dark:border-zinc-700",
+          className
+        )}
+        rows={2}
+        autoFocus
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+
+            if (isLoading) {
+              toast.error("Please wait for the model to finish its response!");
+            } else {
+              submitForm();
+            }
+          }
+        }}
+      />
 
       <input
         type="file"
@@ -240,32 +498,16 @@ function PureMultimodalInput({
         </div>
       )}
 
-      <Textarea
-        ref={textareaRef}
-        placeholder="Ask a question..."
-        value={input}
-        onChange={handleInput}
-        className={cx(
-          "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted p-5 pb-10 dark:border-zinc-700",
-          className
-        )}
-        rows={2}
-        autoFocus
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-
-            if (isLoading) {
-              toast.error("Please wait for the model to finish its response!");
-            } else {
-              submitForm();
-            }
-          }
-        }}
-      />
-
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start gap-2 items-center">
         <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
+        {messages.length === 0 && (
+          <div className="w-full">
+            <GroupSelector
+              selectedGroup={selectedGroup}
+              onGroupSelect={handleGroupSelect}
+            />
+          </div>
+        )}
       </div>
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
@@ -293,80 +535,3 @@ export const MultimodalInput = memo(
     return true;
   }
 );
-
-function PureAttachmentsButton({
-  fileInputRef,
-  isLoading,
-}: {
-  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
-  isLoading: boolean;
-}) {
-  return (
-    <Button
-      className="rounded-md rounded-bl-lg p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
-      onClick={(event) => {
-        event.preventDefault();
-        fileInputRef.current?.click();
-      }}
-      disabled={isLoading}
-      variant="ghost"
-    >
-      <PaperclipIcon size={14} />
-    </Button>
-  );
-}
-
-const AttachmentsButton = memo(PureAttachmentsButton);
-
-function PureStopButton({
-  stop,
-  setMessages,
-}: {
-  stop: () => void;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
-}) {
-  return (
-    <Button
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
-      onClick={(event) => {
-        event.preventDefault();
-        stop();
-        setMessages((messages) => sanitizeUIMessages(messages));
-      }}
-    >
-      <StopIcon size={14} />
-    </Button>
-  );
-}
-
-const StopButton = memo(PureStopButton);
-
-function PureSendButton({
-  submitForm,
-  input,
-  uploadQueue,
-}: {
-  submitForm: () => void;
-  input: string;
-  uploadQueue: Array<string>;
-}) {
-  return (
-    <Button
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
-      onClick={(event) => {
-        event.preventDefault();
-        submitForm();
-      }}
-      disabled={input.length === 0 || uploadQueue.length > 0}
-    >
-      <ArrowUpIcon size={14} />
-    </Button>
-  );
-}
-
-const SendButton = memo(PureSendButton, (prevProps, nextProps) => {
-  if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
-    return false;
-  if (prevProps.input !== nextProps.input) return false;
-  return true;
-});
