@@ -17,7 +17,7 @@ import {
 import useSWR, { useSWRConfig } from "swr";
 import { useDebounceCallback, useWindowSize } from "usehooks-ts";
 import type { Document, Vote } from "@/lib/db/schema";
-import { fetcher } from "@/lib/utils";
+import { fetcher, SearchGroupId } from "@/lib/utils";
 import { MultimodalInput } from "./multimodal-input";
 import { Toolbar } from "./toolbar";
 import { VersionFooter } from "./version-footer";
@@ -65,6 +65,8 @@ function PureBlock({
   reload,
   votes,
   isReadonly,
+  selectedGroup,
+  setSelectedGroup,
 }: {
   chatId: string;
   input: string;
@@ -90,6 +92,8 @@ function PureBlock({
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  selectedGroup: SearchGroupId;
+  setSelectedGroup: React.Dispatch<React.SetStateAction<SearchGroupId>>;
 }) {
   const { block, setBlock, metadata, setMetadata } = useBlock();
 
@@ -343,6 +347,8 @@ function PureBlock({
                     append={append}
                     className="bg-background dark:bg-muted"
                     setMessages={setMessages}
+                    selectedGroup={selectedGroup}
+                    setSelectedGroup={setSelectedGroup}
                   />
                 </form>
               </div>

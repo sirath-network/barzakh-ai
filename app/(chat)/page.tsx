@@ -10,6 +10,7 @@ export default async function Page() {
   const id = generateUUID();
   const [session, cookieStore] = await Promise.all([auth(), cookies()]);
   const modelIdFromCookie = cookieStore.get("chat-model");
+  const searchModeId = cookieStore.get("search-mode");
 
   if (!modelIdFromCookie) {
     return (
@@ -22,6 +23,8 @@ export default async function Page() {
           selectedVisibilityType="private"
           isReadonly={false}
           user={session?.user}
+          //@ts-ignore
+          searchModeId={searchModeId?.value}
         />
         <DataStreamHandler id={id} />
       </>
@@ -38,6 +41,8 @@ export default async function Page() {
         selectedVisibilityType="private"
         isReadonly={false}
         user={session?.user}
+        //@ts-ignore
+        searchModeId={searchModeId?.value}
       />
       <DataStreamHandler id={id} />
     </>

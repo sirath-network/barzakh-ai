@@ -2,12 +2,12 @@
 
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote } from "@/lib/db/schema";
-import { fetcher, generateUUID } from "@/lib/utils";
+import { fetcher, generateUUID, SearchGroup, SearchGroupId } from "@/lib/utils";
 
 import { Block } from "./block";
 import { MultimodalInput } from "./multimodal-input";
@@ -64,9 +64,10 @@ export function Chat({
     `/api/vote?chatId=${id}`,
     fetcher
   );
-
+  // console.log(searchModeId);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
+  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
 
   return (
     <>
@@ -105,6 +106,8 @@ export function Chat({
               setMessages={setMessages}
               append={append}
               user={user}
+              selectedGroup={selectedGroup}
+              setSelectedGroup={setSelectedGroup}
             />
           )}
         </form>
@@ -125,6 +128,8 @@ export function Chat({
         reload={reload}
         votes={votes}
         isReadonly={isReadonly}
+        selectedGroup={selectedGroup}
+        setSelectedGroup={setSelectedGroup}
       />
     </>
   );

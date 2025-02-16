@@ -7,7 +7,7 @@ import {
 
 import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@/lib/ai/models";
-import { systemPrompt } from "@/lib/ai/prompts";
+import { getGroupConfig, systemPrompt } from "@/lib/ai/prompts";
 import {
   deleteChatById,
   getChatById,
@@ -34,10 +34,17 @@ export async function POST(request: Request) {
     id,
     messages,
     selectedChatModel,
-  }: { id: string; messages: Array<Message>; selectedChatModel: string } =
-    await request.json();
+    group,
+  }: {
+    id: string;
+    messages: Array<Message>;
+    selectedChatModel: string;
+    group: any;
+  } = await request.json();
 
+  console.log("search groupe", group);
   const session = await auth();
+  const { tools: activeTools, systemPrompt } = await getGroupConfig(group);
 
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
@@ -49,7 +56,7 @@ export async function POST(request: Request) {
     user_info.tier == "free" &&
     user_info.messageCount >= Number(process.env.FREE_USER_MESSAGE_LIMIT!)
   ) {
-    console.log("totmsg ", user_info.messageCount);
+    // console.log("totmsg ", user_info.messageCount);
     return new Response(
       "Message limit reached!  Upgrade to PRO for more usage and other perks!",
       {
@@ -78,17 +85,11 @@ export async function POST(request: Request) {
     execute: (dataStream) => {
       const result = streamText({
         model: myProvider.languageModel(selectedChatModel),
-        system: systemPrompt({ selectedChatModel }),
+        system: systemPrompt,
         messages,
         maxSteps: 5,
         experimental_activeTools:
-          selectedChatModel === "chat-model-reasoning"
-            ? []
-            : [
-                "getMultiChainWalletPortfolio",
-                "webSearch",
-                "searchTokenMarketData",
-              ],
+          selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
         experimental_transform: smoothStream({ chunking: "word" }),
         experimental_generateMessageId: generateUUID,
         tools: {
