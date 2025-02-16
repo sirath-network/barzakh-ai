@@ -13,9 +13,9 @@ export default async function Page() {
   const modelIdFromCookie = cookieStore.get("chat-model");
   const searchModeId = cookieStore.get("search-mode");
   // console.log("search mode id", searchModeId?.value);
-  if (!searchModeId) {
-    saveSearchModeAsCookie("search");
-  }
+  // if (!searchModeId) {
+  //   saveSearchModeAsCookie("search");
+  // }
 
   if (!modelIdFromCookie) {
     return (
