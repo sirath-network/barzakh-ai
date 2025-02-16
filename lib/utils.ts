@@ -10,12 +10,11 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 import type { Message as DBMessage, Document } from "@/lib/db/schema";
-import { Globe, Book, Pen } from "lucide-react";
+import { Globe, Network } from "lucide-react";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
 interface ApplicationError extends Error {
   info: string;
   status: number;
@@ -231,33 +230,21 @@ export function getDocumentTimestampByIndex(
   return documents[index].createdAt;
 }
 
-export type SearchGroupId =
-  | "web"
-  | "academic"
-  | "youtube"
-  | "x"
-  | "analysis"
-  | "fun";
+export type SearchGroupId = "search" | "on-chain";
 
 export const searchGroups = [
   {
-    id: "web" as const,
+    id: "search" as const,
     name: "Web",
     description: "Search across the entire internet",
     icon: Globe,
   },
 
   {
-    id: "fun" as const,
-    name: "Fun",
-    description: "Talk to Grok like a digital friend",
-    icon: Pen,
-  },
-  {
-    id: "academic" as const,
-    name: "Academic",
-    description: "Search academic papers and research powered by Exa",
-    icon: Book,
+    id: "on-chain" as const,
+    name: "On-chain",
+    description: "Indepth onchain analysis",
+    icon: Network,
   },
 ] as const;
 

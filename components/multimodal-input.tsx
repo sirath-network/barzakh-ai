@@ -48,52 +48,16 @@ interface ToolbarButtonProps {
   isSelected: boolean;
   onClick: () => void;
 }
-const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
-  const Icon = group.icon;
 
+const GroupSelector = ({
+  selectedGroup,
+  onGroupSelect,
+}: GroupSelectorProps) => {
   return (
-    <HoverCard openDelay={100} closeDelay={50}>
-      <HoverCardTrigger asChild>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onClick}
-          className={cn(
-            "relative flex items-center justify-center",
-            "size-8",
-            "rounded-full",
-            "transition-colors duration-300",
-            isSelected
-              ? "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
-              : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
-          )}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
-          <Icon className="size-4" />
-        </motion.button>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="bottom"
-        align="center"
-        sideOffset={6}
-        className={cn(
-          "z-[100]",
-          "w-44 p-2 rounded-lg",
-          "border border-neutral-200 dark:border-neutral-700",
-          "bg-white dark:bg-neutral-800 shadow-md",
-          "transition-opacity duration-300"
-        )}
-      >
-        <div className="space-y-0.5">
-          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            {group.name}
-          </h4>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-normal">
-            {group.description}
-          </p>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
+    <SelectionContent
+      selectedGroup={selectedGroup}
+      onGroupSelect={onGroupSelect}
+    />
   );
 };
 
@@ -167,18 +131,55 @@ const SelectionContent = ({ ...props }) => {
     </motion.div>
   );
 };
-const GroupSelector = ({
-  selectedGroup,
-  onGroupSelect,
-}: GroupSelectorProps) => {
+
+const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
+  const Icon = group.icon;
   return (
-    <SelectionContent
-      selectedGroup={selectedGroup}
-      onGroupSelect={onGroupSelect}
-    />
+    <HoverCard openDelay={100} closeDelay={50}>
+      <HoverCardTrigger asChild>
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={onClick}
+          className={cn(
+            "relative flex items-center justify-center",
+            "size-8",
+            "rounded-full",
+            "transition-colors duration-300",
+            isSelected
+              ? "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
+              : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
+          )}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <Icon className="size-4" />
+        </motion.button>
+      </HoverCardTrigger>
+      <HoverCardContent
+        side="bottom"
+        align="center"
+        sideOffset={6}
+        className={cn(
+          "z-[100]",
+          "w-44 p-2 rounded-lg",
+          "border border-neutral-200 dark:border-neutral-700",
+          "bg-white dark:bg-neutral-800 shadow-md",
+          "transition-opacity duration-300"
+        )}
+      >
+        <div className="space-y-0.5">
+          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            {group.name}
+          </h4>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-normal">
+            {group.description}
+          </p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 };
-
 function PureAttachmentsButton({
   fileInputRef,
   isLoading,
@@ -188,7 +189,7 @@ function PureAttachmentsButton({
 }) {
   return (
     <Button
-      className="rounded-full rounded-bl-full p-2.5 h-fit  bg-white dark:bg-zinc-700  dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
+      className="rounded-full rounded-bl-full p-2 h-fit   dark:bg-neutral-600  dark:border-zinc-700   "
       onClick={(event) => {
         event.preventDefault();
         fileInputRef.current?.click();
@@ -433,6 +434,7 @@ function PureMultimodalInput({
 
   const handleGroupSelect = useCallback(
     (group: SearchGroup) => {
+      console.log("selectd grup", group);
       setSelectedGroup(group.id);
     },
     [setSelectedGroup]
@@ -451,7 +453,7 @@ function PureMultimodalInput({
         value={input}
         onChange={handleInput}
         className={cx(
-          "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted p-5 pb-10 dark:border-zinc-700",
+          "min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted p-5 pb-12 dark:border-zinc-700",
           className
         )}
         rows={2}
@@ -498,7 +500,7 @@ function PureMultimodalInput({
         </div>
       )}
 
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start gap-2 items-center">
+      <div className="absolute bottom-0 p-3 w-fit flex flex-row justify-start gap-2 items-center">
         <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
         {messages.length === 0 && (
           <div className="w-full">
@@ -510,7 +512,7 @@ function PureMultimodalInput({
         )}
       </div>
 
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
+      <div className="absolute bottom-0 right-0 p-3 w-fit flex flex-row justify-end">
         {isLoading ? (
           <StopButton stop={stop} setMessages={setMessages} />
         ) : (
@@ -525,13 +527,4 @@ function PureMultimodalInput({
   );
 }
 
-export const MultimodalInput = memo(
-  PureMultimodalInput,
-  (prevProps, nextProps) => {
-    if (prevProps.input !== nextProps.input) return false;
-    if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (!equal(prevProps.attachments, nextProps.attachments)) return false;
-
-    return true;
-  }
-);
+export const MultimodalInput = PureMultimodalInput;

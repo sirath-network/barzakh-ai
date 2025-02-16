@@ -67,14 +67,7 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
-  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("web");
-
-  const handleGroupSelect = useCallback(
-    (group: SearchGroup) => {
-      setSelectedGroup(group.id);
-    },
-    [setSelectedGroup]
-  );
+  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
 
   return (
     <>
