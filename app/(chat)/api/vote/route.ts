@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get("chatId");
   const userId = (await cookies()).get("userId");
-  console.log(userId);
+  // console.log(userId);
 
   if (!chatId) {
     return new Response("chatId is required", { status: 400 });

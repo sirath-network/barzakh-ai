@@ -38,6 +38,7 @@ import {
   HoverCardTrigger,
 } from "@/components/hover-card";
 import { AnimatePresence, motion } from "framer-motion";
+import { saveSearchModeAsCookie } from "@/app/(chat)/actions";
 
 interface GroupSelectorProps {
   selectedGroup: SearchGroupId;
@@ -180,6 +181,52 @@ const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
     </HoverCard>
   );
 };
+
+const ToolbarSelectecdOption = ({ group }: { group: SearchGroup }) => {
+  const Icon = group.icon;
+  return (
+    <HoverCard openDelay={100} closeDelay={50}>
+      <HoverCardTrigger asChild>
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "relative flex items-center justify-center",
+            "size-8",
+            "rounded-full",
+            "transition-colors duration-300",
+            "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
+          )}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <Icon className="size-4" />
+        </motion.div>
+      </HoverCardTrigger>
+      <HoverCardContent
+        side="bottom"
+        align="center"
+        sideOffset={6}
+        className={cn(
+          "z-[100]",
+          "w-44 p-2 rounded-lg",
+          "border border-neutral-200 dark:border-neutral-700",
+          "bg-white dark:bg-neutral-800 shadow-md",
+          "transition-opacity duration-300"
+        )}
+      >
+        <div className="space-y-0.5">
+          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            {group.name}
+          </h4>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-normal">
+            {group.description}
+          </p>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
+
 function PureAttachmentsButton({
   fileInputRef,
   isLoading,
@@ -360,6 +407,9 @@ function PureMultimodalInput({
     window.history.replaceState({}, "", `/chat/${chatId}`);
 
     handleSubmit(undefined, {
+      body: {
+        group: selectedGroup,
+      },
       experimental_attachments: attachments,
     });
 
@@ -436,12 +486,24 @@ function PureMultimodalInput({
     (group: SearchGroup) => {
       console.log("selectd grup", group);
       setSelectedGroup(group.id);
+      saveSearchModeAsCookie(group.id);
     },
     [setSelectedGroup]
   );
-
+  // console.log("selectedgroup", selectedGroup);
   return (
-    <div className="relative w-full flex flex-col gap-4">
+    <motion.div
+      layout
+      transition={{
+        layout: { duration: 0.4 },
+        duration: 0.4,
+        ease: [0.4, 0.0, 0.2, 1],
+        width: { type: "spring", stiffness: 300, damping: 30 },
+        gap: { type: "spring", stiffness: 300, damping: 30 },
+        padding: { type: "spring", stiffness: 300, damping: 30 },
+      }}
+      className="relative w-full flex flex-col gap-4"
+    >
       {/* {messages.length === 0 &&
         attachments.length === 0 &&
         uploadQueue.length === 0 && (
@@ -502,14 +564,13 @@ function PureMultimodalInput({
 
       <div className="absolute bottom-0 p-3 w-fit flex flex-row justify-start gap-2 items-center">
         <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
-        {messages.length === 0 && (
-          <div className="w-full">
-            <GroupSelector
-              selectedGroup={selectedGroup}
-              onGroupSelect={handleGroupSelect}
-            />
-          </div>
-        )}
+
+        <div className="w-full">
+          <GroupSelector
+            selectedGroup={selectedGroup}
+            onGroupSelect={handleGroupSelect}
+          />
+        </div>
       </div>
 
       <div className="absolute bottom-0 right-0 p-3 w-fit flex flex-row justify-end">
@@ -523,7 +584,7 @@ function PureMultimodalInput({
           />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

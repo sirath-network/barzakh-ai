@@ -35,6 +35,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const cookieStore = await cookies();
   const chatModelFromCookie = cookieStore.get("chat-model");
+  const searchModeId = cookieStore.get("search-mode");
+  // console.log("search mode id", searchModeId?.value);
 
   if (!chatModelFromCookie) {
     return (
@@ -46,6 +48,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           selectedVisibilityType={chat.visibility}
           isReadonly={session?.user?.id !== chat.userId}
           user={session?.user}
+          //@ts-ignore
+          searchModeId={searchModeId?.value}
         />
         <DataStreamHandler id={id} />
       </>
@@ -61,6 +65,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         selectedVisibilityType={chat.visibility}
         isReadonly={session?.user?.id !== chat.userId}
         user={session?.user}
+        //@ts-ignore
+        searchModeId={searchModeId?.value}
       />
       <DataStreamHandler id={id} />
     </>

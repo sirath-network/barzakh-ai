@@ -230,7 +230,7 @@ export function getDocumentTimestampByIndex(
   return documents[index].createdAt;
 }
 
-export type SearchGroupId = "search" | "on-chain";
+export type SearchGroupId = "search" | "on_chain";
 
 export const searchGroups = [
   {
@@ -241,8 +241,8 @@ export const searchGroups = [
   },
 
   {
-    id: "on-chain" as const,
-    name: "On-chain",
+    id: "on_chain" as const,
+    name: "on_chain",
     description: "Indepth onchain analysis",
     icon: Network,
   },

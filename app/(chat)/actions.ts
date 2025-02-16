@@ -10,10 +10,16 @@ import {
 } from "@/lib/db/queries";
 import { VisibilityType } from "@/components/visibility-selector";
 import { myProvider } from "@/lib/ai/models";
+import { SearchGroupId } from "@/lib/utils";
 
 export async function saveChatModelAsCookie(model: string) {
   const cookieStore = await cookies();
   cookieStore.set("chat-model", model);
+}
+
+export async function saveSearchModeAsCookie(mode: SearchGroupId) {
+  const cookieStore = await cookies();
+  cookieStore.set("search-mode", mode);
 }
 
 export async function generateTitleFromUserMessage({

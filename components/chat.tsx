@@ -24,6 +24,7 @@ export function Chat({
   selectedVisibilityType,
   isReadonly,
   user,
+  searchModeId,
 }: {
   id: string;
   initialMessages: Array<Message>;
@@ -31,6 +32,7 @@ export function Chat({
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   user?: User;
+  searchModeId?: SearchGroupId;
 }) {
   const { mutate } = useSWRConfig();
 
@@ -64,10 +66,12 @@ export function Chat({
     `/api/vote?chatId=${id}`,
     fetcher
   );
-
+  // console.log(searchModeId);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
-  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
+  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>(
+    searchModeId!
+  );
 
   return (
     <>
