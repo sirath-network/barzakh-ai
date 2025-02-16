@@ -516,7 +516,7 @@ function PureMultimodalInput({
       )}
 
       <div className="absolute bottom-0 p-3 w-fit flex flex-row justify-start gap-2 items-center">
-        <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
+        {/* <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} /> */}
 
         <div className="w-full">
           <GroupSelector
