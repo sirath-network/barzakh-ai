@@ -132,6 +132,8 @@ export function Chat({
         reload={reload}
         votes={votes}
         isReadonly={isReadonly}
+        selectedGroup={selectedGroup}
+        setSelectedGroup={setSelectedGroup}
       />
     </>
   );
