@@ -2,7 +2,7 @@
 
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 import { ChatHeader } from "@/components/chat-header";
@@ -16,7 +16,6 @@ import { VisibilityType } from "./visibility-selector";
 import { useBlockSelector } from "@/hooks/use-block";
 import { toast } from "sonner";
 import { User } from "next-auth";
-import { saveSearchModeAsCookie } from "@/app/(chat)/actions";
 
 export function Chat({
   id,
@@ -25,7 +24,6 @@ export function Chat({
   selectedVisibilityType,
   isReadonly,
   user,
-  searchModeId,
 }: {
   id: string;
   initialMessages: Array<Message>;
@@ -33,7 +31,6 @@ export function Chat({
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   user?: User;
-  searchModeId?: SearchGroupId;
 }) {
   const { mutate } = useSWRConfig();
 
@@ -71,12 +68,6 @@ export function Chat({
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
-
-  useEffect(() => {
-    if (!searchModeId) {
-      saveSearchModeAsCookie("search");
-    }
-  }, [searchModeId]);
 
   return (
     <>
