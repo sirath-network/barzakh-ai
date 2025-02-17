@@ -79,38 +79,37 @@ export function Chat({
           isReadonly={isReadonly}
           user={user}
         />
-        <div className={`flex flex-col h-full ${messages.length === 0 ? "justify-center pb-20" : ""}`}>
-          <Messages
-            chatId={id}
-            isLoading={isLoading}
-            votes={votes}
-            messages={messages}
-            setMessages={setMessages}
-            reload={reload}
-            isReadonly={isReadonly}
-            isBlockVisible={isBlockVisible}
-          />
-          <form className="flex mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl ">
-            {!isReadonly && (
-              <MultimodalInput
-                chatId={id}
-                input={input}
-                setInput={setInput}
-                handleSubmit={handleSubmit}
-                isLoading={isLoading}
-                stop={stop}
-                attachments={attachments}
-                setAttachments={setAttachments}
-                messages={messages}
-                setMessages={setMessages}
-                append={append}
-                user={user}
-                selectedGroup={selectedGroup}
-                setSelectedGroup={setSelectedGroup}
-              />
-            )}
-          </form>
-        </div>
+        {messages.length == 0 && <div className="md:hidden h-24"></div>}
+        <Messages
+          chatId={id}
+          isLoading={isLoading}
+          votes={votes}
+          messages={messages}
+          setMessages={setMessages}
+          reload={reload}
+          isReadonly={isReadonly}
+          isBlockVisible={isBlockVisible}
+        />
+        <form className="flex mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl ">
+          {!isReadonly && (
+            <MultimodalInput
+              chatId={id}
+              input={input}
+              setInput={setInput}
+              handleSubmit={handleSubmit}
+              isLoading={isLoading}
+              stop={stop}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              messages={messages}
+              setMessages={setMessages}
+              append={append}
+              user={user}
+              selectedGroup={selectedGroup}
+              setSelectedGroup={setSelectedGroup}
+            />
+          )}
+        </form>
       </div>
 
       <Block
