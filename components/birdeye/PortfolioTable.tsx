@@ -14,7 +14,6 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     return <div className="text-white">No portfolio data available.</div>;
 
   const { attributes, currency } = result;
-  console.log("result ", result);
   // Extracting positions distribution by chain
   const chains = Object.entries(attributes.positions_distribution_by_chain);
 
