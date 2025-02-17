@@ -461,6 +461,15 @@ function PureMultimodalInput({
   return (
     <>
       <motion.div
+        layout
+        transition={{
+          layout: { duration: 0.4 },
+          duration: 0.4,
+          ease: [0.4, 0.0, 0.2, 1],
+          width: { type: "spring", stiffness: 300, damping: 30 },
+          gap: { type: "spring", stiffness: 300, damping: 30 },
+          padding: { type: "spring", stiffness: 300, damping: 30 },
+        }}
         className={cn(
           "relative w-full flex flex-col gap-2 rounded-lg transition-all duration-300 !font-sans",
           attachments.length > 0 || uploadQueue.length > 0
