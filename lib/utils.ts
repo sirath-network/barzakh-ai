@@ -270,3 +270,11 @@ export function shortenWalletAddresses(markdownText: string) {
     return `${start}...${end}`;
   });
 }
+
+export const getZerionApiKey = () => {
+  const apiKey = process.env.ZERION_DEV_API_KEY;
+  const password = "";
+  if (!apiKey) throw new Error("Api key not found");
+  const encodedKey = btoa(`${apiKey}:${password}`);
+  return encodedKey;
+};
