@@ -8,3 +8,22 @@ export const birdeye_supported_chains = [
   "base",
   "zksync",
 ];
+
+export const SUPPORTED_CURRENCY = [
+  "eth",
+  "btc",
+  "usd",
+  "eur",
+  "krw",
+  "rub",
+  "gbp",
+  "aud",
+  "cad",
+  "inr",
+  "jpy",
+  "nzd",
+  "try",
+  "zar",
+  "cny",
+  "chf",
+] as const;
