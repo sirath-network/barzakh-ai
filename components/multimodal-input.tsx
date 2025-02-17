@@ -360,7 +360,7 @@ function PureMultimodalInput({
 
   const submitForm = useCallback(() => {
     if (!user || !user.email) {
-      toast.error("Please login to continue");
+      toast.error("Please login to continue", { position: "bottom-center" });
       return;
     }
     window.history.replaceState({}, "", `/chat/${chatId}`);
