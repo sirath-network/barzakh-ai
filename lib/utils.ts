@@ -236,7 +236,7 @@ export function getDocumentTimestampByIndex(
   return documents[index].createdAt;
 }
 
-export type SearchGroupId = "search" | "on_chain";
+export type SearchGroupId = "search" | "on_chain" | "creditcoin";
 
 export const searchGroups = [
   {
@@ -244,6 +244,7 @@ export const searchGroups = [
     name: "Web",
     description: "Search across the entire internet",
     icon: Globe,
+    img: "",
   },
 
   {
@@ -251,6 +252,15 @@ export const searchGroups = [
     name: "On Chain",
     description: "Indepth onchain analysis",
     icon: Network,
+    img: "",
+  },
+
+  {
+    id: "creditcoin" as const,
+    name: "Creditcoin",
+    description: "Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/creditcoin-black.png",
   },
 ] as const;
 
