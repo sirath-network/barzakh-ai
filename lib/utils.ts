@@ -342,7 +342,7 @@ export const transformToZerionPortfolio = (apiResponse: any): PortfolioData => {
 export const filterAndLimitPortfolio = (
   portfolio: PortfolioData,
   valueThreshold: number = 1,
-  limit: number = 20
+  limit: number = 10
 ): PortfolioData => {
   // Step 1: Filter out tokens with value < valueThreshold
   const filteredPositionsDistributionByChain = Object.fromEntries(

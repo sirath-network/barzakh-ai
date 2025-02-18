@@ -2,12 +2,12 @@ import { TokenSearchData } from "@/types/token-search-response";
 import Image from "next/image";
 import React from "react";
 
-const MarketTokenTable: React.FC<{ result: TokenSearchData[] | null }> = ({
-  result,
-}) => {
+const TokenInfoTable: React.FC<{
+  result: TokenSearchData[] | string | null;
+}> = ({ result }) => {
   console.log("token data", result);
 
-  if (!result || result.length === 0)
+  if (!result || result.length === 0 || typeof result == "string")
     return <div className="text-white">No token data available.</div>;
 
   return (
@@ -142,4 +142,4 @@ const MarketTokenTable: React.FC<{ result: TokenSearchData[] | null }> = ({
   );
 };
 
-export default MarketTokenTable;
+export default TokenInfoTable;

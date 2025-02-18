@@ -50,7 +50,7 @@ export const searchEvmTokenMarketData = tool({
     sort_by,
     token_chain_id,
     token_address,
-  }): Promise<TokenSearchData[]> => {
+  }): Promise<TokenSearchData[] | string> => {
     const url = new URL("https://api.zerion.io/v1/fungibles");
     url.searchParams.append("currency", currency);
     if (search_query)
@@ -81,14 +81,17 @@ export const searchEvmTokenMarketData = tool({
 
       if (!data) {
         console.error("API Error Response:", data); // Log API response details
-        throw new Error("Failed to searchTokenMarketData");
+        return "Something went wrong. Please try again";
+      }
+      if (data.data.length === 0) {
+        return "No token found in the market data.";
       }
 
       // console.log("searchTokenMarketData ", data);
       return data.data;
     } catch (error) {
       // console.error("Error searchTokenMarketData:", error);
-      throw new Error("Failed to searchTokenMarketData");
+      return "Something went wrong. Please try again";
     }
   },
 });

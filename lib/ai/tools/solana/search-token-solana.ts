@@ -36,7 +36,7 @@ export const searchSolanaTokenMarketData = tool({
   parameters: z.object({
     address: z.string().describe("the solana token address"),
   }),
-  execute: async ({ address }): Promise<TokenSearchData[]> => {
+  execute: async ({ address }): Promise<TokenSearchData[] | string> => {
     try {
       const response = await fetch(
         `https://public-api.birdeye.so/defi/token_overview?address=${address}`,
@@ -53,7 +53,7 @@ export const searchSolanaTokenMarketData = tool({
       const apiData: BirdeyeTokenSearchResponse = await response.json();
       if (!apiData) {
         console.error("API Error Response:", apiData); // Log API response details
-        throw new Error("Failed to searchTokenMarketData");
+        return "Something went wrong. Please try again";
       }
 
       if (Object.keys(apiData.data).length === 0) {
@@ -67,7 +67,7 @@ export const searchSolanaTokenMarketData = tool({
       return tokenSearchResponse.data;
     } catch (error) {
       // console.error("Error searchTokenMarketData:", error);
-      throw new Error("Failed to searchTokenMarketData");
+      return "Something went wrong. Please try again";
     }
   },
 });
