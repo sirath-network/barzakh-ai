@@ -43,7 +43,7 @@ const MarketTokenTable: React.FC<{ result: APIResponse | null }> = ({
 
   return (
     <div className="bg-black text-white px-4 rounded-lg w-full max-w-4xl border overflow-x-auto">
-      <div className="flex flex-row justify-between items-center border-b p-2 border-gray-700">
+      <div className="flex flex-row justify-between  border-b p-2 border-gray-700">
         <h2 className="text-sm font-semibold">Token Data</h2>
       </div>
       {tokenData && tokenData.length > 0 ? (
@@ -57,67 +57,57 @@ const MarketTokenTable: React.FC<{ result: APIResponse | null }> = ({
                   className="w-10 h-10"
                   height={50}
                   width={50}
+                  onError={(e) =>
+                    (e.currentTarget.src = "/images/token-placeholder.png")
+                  }
                 />
               </div>
             )}
             <table className="w-full text-sm mt-4">
               <tbody>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Name</td>
-                  <td className="p-2">{token.name || "-"}</td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Symbol</td>
-                  <td className="p-2">{token.symbol || "-"}</td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Network</td>
-                  <td className="p-2">{token.network || "-"}</td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Price</td>
-                  <td className="p-2">${token.price?.toFixed(2) || "-"}</td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">24h Change (%)</td>
-                  <td className="p-2">
-                    {token.price_change_24h_percent?.toFixed(2) || "-"}%
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Market Cap</td>
-                  <td className="p-2">
-                    ${token.market_cap?.toLocaleString() || "-"}
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Liquidity</td>
-                  <td className="p-2">
-                    ${token.liquidity?.toLocaleString() || "-"}
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Volume (24h)</td>
-                  <td className="p-2">
-                    ${token.volume_24h_usd?.toLocaleString() || "-"}
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Trades (24h)</td>
-                  <td className="p-2">{token.trade_24h || "-"}</td>
-                </tr>
-                <tr className="border-b border-gray-700">
-                  <td className="p-2 font-semibold">Unique Wallets (24h)</td>
-                  <td className="p-2">{token.unique_wallet_24h || "-"}</td>
-                </tr>
+                {[
+                  ["Name", token.name],
+                  ["Symbol", token.symbol],
+                  ["Network", token.network],
+                  ["Price", token.price ? `$${token.price.toFixed(2)}` : "-"],
+                  [
+                    "24h Change (%)",
+                    token.price_change_24h_percent
+                      ? `${token.price_change_24h_percent.toFixed(2)}%`
+                      : "-",
+                  ],
+                  [
+                    "Market Cap",
+                    token.market_cap?.toLocaleString()
+                      ? `$${token.market_cap.toLocaleString()}`
+                      : "-",
+                  ],
+                  [
+                    "Liquidity",
+                    token.liquidity?.toLocaleString()
+                      ? `$${token.liquidity.toLocaleString()}`
+                      : "-",
+                  ],
+                  [
+                    "Volume (24h)",
+                    token.volume_24h_usd?.toLocaleString()
+                      ? `$${token.volume_24h_usd.toLocaleString()}`
+                      : "-",
+                  ],
+                  ["Trades (24h)", token.trade_24h ?? "-"],
+                  ["Unique Wallets (24h)", token.unique_wallet_24h ?? "-"],
+                ].map(([label, value], idx) => (
+                  <tr key={idx} className="border-b border-gray-700">
+                    <td className="p-2 font-semibold">{label}</td>
+                    <td className="p-2">{value || "-"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         ))
       ) : (
-        <div className="p-2 text-center text-gray-400">
-          No token data available.
-        </div>
+        <div className="p-2  text-gray-400">No token data available.</div>
       )}
     </div>
   );
