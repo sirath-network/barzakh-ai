@@ -35,7 +35,7 @@ export function ModelSelector({
       <DropdownMenuTrigger
         asChild
         className={cn(
-          'w-fit data-[state=open]:bg-accent bg-neutral-800 border border-neutral-700 data-[state=open]:text-accent-foreground',
+          'w-fit data-[state=open]:bg-accent bg-neutral-800 border border-neutral-700 data-[state=open]:text-accent-foreground rounded-full',
           className,
         )}
       >
