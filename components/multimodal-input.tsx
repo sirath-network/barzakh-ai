@@ -89,7 +89,7 @@ const SelectionContent = ({ ...props }) => {
         "min-w-[38px]",
         "p-0.5",
         "rounded-full border border-neutral-200 dark:border-neutral-700",
-        "bg-white dark:bg-neutral-900",
+        "bg-white dark:bg-neutral-800",
         "shadow-sm overflow-visible",
         "relative z-10"
       )}
