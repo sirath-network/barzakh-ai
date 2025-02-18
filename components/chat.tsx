@@ -79,7 +79,7 @@ export function Chat({
           isReadonly={isReadonly}
           user={user}
         />
-        {messages.length == 0 && <div className="md:hidden h-24"></div>}
+        {messages.length == 0 && <div className=" h-[15vh]"></div>}
         <Messages
           chatId={id}
           isLoading={isLoading}
