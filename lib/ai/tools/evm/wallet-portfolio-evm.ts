@@ -14,7 +14,6 @@ export const getEvmMultiChainWalletPortfolio = tool({
     wallet_address: z
       .string()
       .min(1, "Wallet address is required")
-      .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid EVM wallet address format")
       .describe("EVM wallet address of user starting with '0x'"),
     currency: z
       .enum(SUPPORTED_CURRENCY)
