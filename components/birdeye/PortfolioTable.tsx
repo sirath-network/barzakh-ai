@@ -22,18 +22,21 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     : [];
 
   return (
-    <div className="bg-black text-white px-4 py-4 rounded-lg w-full max-w-md border border-gray-700 mt-2 md:mt-0">
+    <div className="bg-neutral-900 text-white px-4 py-4 rounded-lg w-full max-w-md border border-neutral-700 mt-2 md:mt-0">
       {/* Portfolio Header */}
-      <div className="flex flex-col border-b border-gray-700 pb-2">
+      <div className="flex flex-col pb-2 border-b border-neutral-700">
         <div className="flex flex-row gap-1 justify-between">
           <h2 className="text-lg font-semibold">Portfolio</h2>
           {totalPositions > 0 && (
-            <span className="text-xl font-bold">
-              {totalPositions.toFixed(2)} {currency?.toUpperCase() ?? ""}
-            </span>
+            <div className="">
+              <span className="text-xl font-bold">
+                {totalPositions.toFixed(2)}{" "}
+              </span>
+              <span className="text-sm ">{currency?.toUpperCase() ?? ""}</span>
+            </div>
           )}
         </div>
-        {percentChange && (
+        {percentChange > 0 && (
           <span className="text-sm text-gray-400 float-right">
             24h Change: {percentChange.toFixed(2)}% &#x28;
             {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
@@ -43,14 +46,14 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       </div>
 
       {/* Portfolio Breakdown by Chain */}
-      <div className="mt-3 max-h-64 overflow-y-auto pr-2">
+      <div className="max-h-64 overflow-y-auto pr-2">
         {chains.length === 0 ? (
           <div className="text-gray-400">No holdings available.</div>
         ) : (
           chains.map(([chain, value]) => (
             <div
               key={chain}
-              className="flex justify-between items-center py-2 border-b border-gray-700 last:border-none"
+              className="flex justify-between items-center py-2 border-b border-neutral-700 last:border-none"
             >
               <div className="flex gap-2 items-center justify-center">
                 {/* <Image
@@ -65,9 +68,13 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 /> */}
                 <div className="capitalize">{chain}</div>
               </div>
-              <div className="font-semibold">
-                {value ? value.toFixed(2) : "0.00"}{" "}
-                {currency?.toUpperCase() ?? ""}
+              <div className="">
+                <span className="font-semibold">
+                  {value ? value.toFixed(2) : "0.00"}{" "}
+                </span>
+                <span className="text-xs ">
+                  {currency?.toUpperCase() ?? ""}
+                </span>
               </div>
             </div>
           ))
