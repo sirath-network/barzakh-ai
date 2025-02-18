@@ -5,7 +5,7 @@ import React from "react";
 const TokenInfoTable: React.FC<{
   result: TokenSearchData[] | string | null;
 }> = ({ result }) => {
-  console.log("token data", result);
+  // console.log("token data", result);
 
   if (!result || result.length === 0 || typeof result == "string")
     return <div className="text-white">No token data available.</div>;
