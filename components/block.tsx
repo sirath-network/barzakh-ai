@@ -56,6 +56,7 @@ function PureBlock({
   setInput,
   handleSubmit,
   isLoading,
+  selectedModelId,
   stop,
   attachments,
   setAttachments,
@@ -72,6 +73,7 @@ function PureBlock({
   input: string;
   setInput: (input: string) => void;
   isLoading: boolean;
+  selectedModelId: string;
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
@@ -340,6 +342,8 @@ function PureBlock({
                     setInput={setInput}
                     handleSubmit={handleSubmit}
                     isLoading={isLoading}
+                    isReadonly={isReadonly}
+                    selectedModelId={selectedModelId}
                     stop={stop}
                     attachments={attachments}
                     setAttachments={setAttachments}

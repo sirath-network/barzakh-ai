@@ -120,6 +120,7 @@ export function Chat({
         setInput={setInput}
         handleSubmit={handleSubmit}
         isLoading={isLoading}
+        selectedModelId={selectedChatModel}
         stop={stop}
         attachments={attachments}
         setAttachments={setAttachments}
