@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VisibilityType, VisibilitySelector } from "./visibility-selector";
 import { signOut } from "next-auth/react";
 import { User } from "next-auth";
+import { SidebarUserNav } from "./sidebar-user-nav";
 
 function PureChatHeader({
   chatId,
@@ -63,21 +64,32 @@ function PureChatHeader({
       </div>
 
       <div className="">
-        <button
-          type="button"
-          className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-          onClick={() => {
-            if (user && user?.email) {
-              signOut({
-                redirectTo: "/",
-              });
-            } else {
+        {user && user?.email ? (
+          // <button
+          //   type="button"
+          //   className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
+          //   onClick={() => {
+          //     signOut({
+          //       redirectTo: "/",
+          //     });
+          //   }}
+          // >
+          //   Logout
+          // </button>
+          <div>
+            <SidebarUserNav user={user} />
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
+            onClick={() => {
               router.push("/login");
-            }
-          }}
-        >
-          {user && user?.email ? "Logout" : "Login"}
-        </button>
+            }}
+          >
+            Login
+          </button>
+        )}
       </div>
 
       {/* {!isReadonly && (
