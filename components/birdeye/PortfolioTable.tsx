@@ -14,8 +14,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     return <div className="text-white">No portfolio data available.</div>;
 
   const { attributes, currency } = result;
-  // Extracting positions distribution by chain
-  const chains = Object.entries(attributes.positions_distribution_by_chain);
+  const totalPositions = attributes.total?.positions ?? 0;
+  const percentChange = attributes.changes?.percent_1d ?? 0;
+  const absoluteChange = attributes.changes?.absolute_1d ?? 0;
+  const chains = attributes.positions_distribution_by_chain
+    ? Object.entries(attributes.positions_distribution_by_chain)
+    : [];
 
   return (
     <div className="bg-black text-white px-4 py-4 rounded-lg w-full max-w-md border border-gray-700">
@@ -24,12 +28,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         <div className="flex flex-row gap-1 justify-between">
           <h2 className="text-lg font-semibold">Portfolio</h2>
           <span className="text-xl font-bold">
-            {attributes.total.positions.toFixed(2)} {currency?.toUpperCase()}
+            {totalPositions.toFixed(2)} {currency?.toUpperCase() ?? ""}
           </span>
         </div>
         <span className="text-sm text-gray-400 float-right">
-          24h Change: {attributes.changes.percent_1d.toFixed(2)}% &#x28;
-          {attributes.changes.absolute_1d.toFixed(2)} {currency?.toUpperCase()}
+          24h Change: {percentChange.toFixed(2)}% &#x28;
+          {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
           &#x29;
         </span>
       </div>
@@ -51,11 +55,15 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                   className="w-6 h-6 mr-2"
                   height={50}
                   width={50}
+                  onError={(e) =>
+                    (e.currentTarget.src = "/images/chain-logo/default.png")
+                  }
                 />
                 <div className="capitalize">{chain}</div>
               </div>
               <div className="font-semibold">
-                {value?.toFixed(2)} {currency?.toUpperCase()}
+                {value ? value.toFixed(2) : "0.00"}{" "}
+                {currency?.toUpperCase() ?? ""}
               </div>
             </div>
           ))
