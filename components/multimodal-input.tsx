@@ -552,8 +552,8 @@ function PureMultimodalInput({
           </div>
         )}
 
-        <div className="flex items-center w-full">
-          <div className="absolute bottom-0 p-3 w-fit flex flex-row justify-start gap-2 items-center ">
+        <div className="absolute -bottom-1 flex items-end justify-between w-full">
+          <div className="p-3 w-fit flex flex-row justify-start gap-2 items-center">
             {/* <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} /> */}
             <GroupSelector
               selectedGroup={selectedGroup}
@@ -563,8 +563,7 @@ function PureMultimodalInput({
               <ModelSelector selectedModelId={selectedModelId} className=" " />
             )}
           </div>
-
-          <div className="absolute bottom-1 right-0 p-3 w-fit flex flex-row justify-end">
+          <div className="right-0 p-3 w-fit flex flex-row justify-end">
             {isLoading ? (
               <StopButton stop={stop} setMessages={setMessages} />
             ) : (
