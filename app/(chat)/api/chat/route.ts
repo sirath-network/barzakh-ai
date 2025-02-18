@@ -24,9 +24,10 @@ import {
 
 import { generateTitleFromUserMessage } from "../../actions";
 import { webSearch } from "@/lib/ai/tools/web-search";
-import { getSolanaChainWalletPortfolio } from "@/lib/ai/tools/birdeye/wallet-portfolio-solana";
-import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/zerion/wallet-portfolio-evm";
-import { searchTokenMarketData } from "@/lib/ai/tools/birdeye/search-token-market-data";
+import { getSolanaChainWalletPortfolio } from "@/lib/ai/tools/solana/wallet-portfolio-solana";
+import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/evm/wallet-portfolio-evm";
+import { searchSolanaTokenMarketData } from "@/lib/ai/tools/solana/search-token-solana";
+import { searchEvmTokenMarketData } from "@/lib/ai/tools/evm/search-token-evm";
 
 export const maxDuration = 60;
 
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
           webSearch,
           getEvmMultiChainWalletPortfolio,
           getSolanaChainWalletPortfolio,
-          searchTokenMarketData,
+          searchSolanaTokenMarketData,
+          searchEvmTokenMarketData,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {

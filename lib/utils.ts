@@ -12,6 +12,11 @@ import { twMerge } from "tailwind-merge";
 import type { Message as DBMessage, Document } from "@/lib/db/schema";
 import { Globe, Network } from "lucide-react";
 import { PortfolioData, TokenItem } from "@/types/wallet-actions-response";
+import {
+  BirdeyeTokenSearchResponse,
+  TokenSearchData,
+  TokenSearchResponse,
+} from "@/types/token-search-response";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -359,5 +364,107 @@ export const filterAndLimitPortfolio = (
         positions: totalFilteredValue,
       },
     },
+  };
+};
+
+export const transformBirdeyeToTokenSearchResponse = (
+  apiResponse: BirdeyeTokenSearchResponse
+): TokenSearchResponse => {
+  if (!apiResponse.success || !apiResponse.data) {
+    throw new Error("Invalid Birdeye API response format");
+  }
+
+  const token = apiResponse.data;
+
+  const transformedToken: TokenSearchData = {
+    type: "fungibles",
+    id: token.address,
+    attributes: {
+      name: token.name,
+      symbol: token.symbol,
+      description: token.extensions?.description || "",
+      icon: {
+        url: token.logoURI || "",
+      },
+      flags: {
+        verified: false, // No verification info in API
+      },
+      external_links: [
+        ...(token.extensions?.website
+          ? [
+              {
+                type: "website",
+                name: "Website",
+                url: token.extensions.website,
+              },
+            ]
+          : []),
+        ...(token.extensions?.twitter
+          ? [
+              {
+                type: "twitter",
+                name: "Twitter",
+                url: token.extensions.twitter,
+              },
+            ]
+          : []),
+      ],
+      implementations: [
+        {
+          chain_id: "solana", // Assuming Solana (modify if necessary)
+          address: token.address,
+          decimals: token.decimals,
+        },
+      ],
+      market_data: {
+        total_supply: token.totalSupply ?? 0,
+        circulating_supply: token.circulatingSupply ?? 0,
+        market_cap: token.marketCap ?? 0,
+        fully_diluted_valuation: token.fdv ?? 0,
+        price: token.price ?? 0,
+        changes: {
+          percent_1d: token.priceChange24hPercent ?? 0,
+          percent_30d: 0, // Not provided
+          percent_90d: 0, // Not provided
+          percent_365d: 0, // Not provided
+        },
+      },
+    },
+    relationships: {
+      chart_day: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-day` },
+      },
+      chart_hour: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-hour` },
+      },
+      chart_max: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-max` },
+      },
+      chart_month: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-month` },
+      },
+      chart_week: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-week` },
+      },
+      chart_year: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-year` },
+      },
+    },
+    links: {
+      self: ``,
+    },
+  };
+
+  return {
+    links: {
+      self: "",
+    },
+    data: [transformedToken],
   };
 };

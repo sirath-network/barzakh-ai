@@ -1,114 +1,143 @@
+import { TokenSearchData } from "@/types/token-search-response";
 import Image from "next/image";
 import React from "react";
 
-interface TokenData {
-  name?: string;
-  symbol?: string;
-  address?: string;
-  decimals?: number;
-  fdv?: number;
-  market_cap?: number;
-  liquidity?: number;
-  volume_24h_change_percent?: number;
-  price?: number;
-  price_change_24h_percent?: number;
-  network?: string;
-  buy_24h?: number;
-  sell_24h?: number;
-  trade_24h?: number;
-  trade_24h_change_percent?: number;
-  unique_wallet_24h?: number;
-  volume_24h_usd?: number;
-  logo_uri?: string;
-}
-
-interface APIResponse {
-  data: {
-    items: {
-      type: "token";
-      result: TokenData[];
-    }[];
-  };
-  success: boolean;
-}
-
-const MarketTokenTable: React.FC<{ result: APIResponse | null }> = ({
+const MarketTokenTable: React.FC<{ result: TokenSearchData[] | null }> = ({
   result,
 }) => {
-  if (!result || !result.success)
-    return <div className="text-white">No token data available.</div>;
+  console.log("token data", result);
 
-  const tokenData = result.data.items.find((item) => item.type === "token")
-    ?.result as TokenData[] | undefined;
+  if (!result || result.length === 0)
+    return <div className="text-white">No token data available.</div>;
 
   return (
     <div className="bg-black text-white px-4 rounded-lg w-full max-w-4xl border overflow-x-auto">
-      <div className="flex flex-row justify-between  border-b p-2 border-gray-700">
-        <h2 className="text-sm font-semibold">Token Data</h2>
-      </div>
-      {tokenData && tokenData.length > 0 ? (
-        tokenData.map((token, index) => (
-          <div key={index} className="border-b border-gray-700 py-4">
-            {token.logo_uri && (
-              <div className="flex justify-center">
-                <Image
-                  src={token.logo_uri}
-                  alt={token.symbol || "Token"}
-                  className="w-10 h-10"
-                  height={50}
-                  width={50}
-                  onError={(e) =>
-                    (e.currentTarget.src = "/images/token-placeholder.png")
-                  }
-                />
-              </div>
-            )}
-            <table className="w-full text-sm mt-4">
-              <tbody>
-                {[
-                  ["Name", token.name],
-                  ["Symbol", token.symbol],
-                  ["Network", token.network],
-                  ["Price", token.price ? `$${token.price.toFixed(2)}` : "-"],
-                  [
-                    "24h Change (%)",
-                    token.price_change_24h_percent
-                      ? `${token.price_change_24h_percent.toFixed(2)}%`
-                      : "-",
-                  ],
-                  [
-                    "Market Cap",
-                    token.market_cap?.toLocaleString()
-                      ? `$${token.market_cap.toLocaleString()}`
-                      : "-",
-                  ],
-                  [
-                    "Liquidity",
-                    token.liquidity?.toLocaleString()
-                      ? `$${token.liquidity.toLocaleString()}`
-                      : "-",
-                  ],
-                  [
-                    "Volume (24h)",
-                    token.volume_24h_usd?.toLocaleString()
-                      ? `$${token.volume_24h_usd.toLocaleString()}`
-                      : "-",
-                  ],
-                  ["Trades (24h)", token.trade_24h ?? "-"],
-                  ["Unique Wallets (24h)", token.unique_wallet_24h ?? "-"],
-                ].map(([label, value], idx) => (
-                  <tr key={idx} className="border-b border-gray-700">
-                    <td className="p-2 font-semibold">{label}</td>
-                    <td className="p-2">{value || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {result.map((token, index) => (
+        <div key={index} className="border-b border-gray-700 py-4">
+          {/* Token Header */}
+          <div className="flex flex-row justify-between border-b p-2 border-gray-700">
+            <h2 className="text-sm font-semibold">
+              {token.attributes.name} ({token.attributes.symbol})
+            </h2>
           </div>
-        ))
-      ) : (
-        <div className="p-2  text-gray-400">No token data available.</div>
-      )}
+
+          {/* Token Icon */}
+          <div className="flex justify-center mt-4">
+            {token.attributes.icon?.url && (
+              <Image
+                src={token.attributes.icon.url}
+                alt={token.attributes.symbol || "Token"}
+                className="w-10 h-10"
+                height={50}
+                width={50}
+                onError={(e) =>
+                  (e.currentTarget.src = "/images/token-placeholder.png")
+                }
+              />
+            )}
+          </div>
+
+          {/* Token Data Table */}
+          <table className="w-full text-sm mt-4">
+            <tbody>
+              {[
+                ["Name", token.attributes.name],
+                ["Symbol", token.attributes.symbol],
+                [
+                  "Price",
+                  token.attributes.market_data.price
+                    ? `$${token.attributes.market_data.price.toFixed(8)}`
+                    : "-",
+                ],
+                [
+                  "24h Change (%)",
+                  token.attributes.market_data.changes.percent_1d
+                    ? `${token.attributes.market_data.changes.percent_1d.toFixed(
+                        2
+                      )}%`
+                    : "-",
+                ],
+                [
+                  "Market Cap",
+                  token.attributes.market_data.market_cap
+                    ? `$${token.attributes.market_data.market_cap.toLocaleString()}`
+                    : "-",
+                ],
+                [
+                  "Fully Diluted Valuation",
+                  token.attributes.market_data.fully_diluted_valuation
+                    ? `$${token.attributes.market_data.fully_diluted_valuation.toLocaleString()}`
+                    : "-",
+                ],
+                [
+                  "Circulating Supply",
+                  token.attributes.market_data.circulating_supply
+                    ? token.attributes.market_data.circulating_supply.toLocaleString()
+                    : "-",
+                ],
+                [
+                  "Total Supply",
+                  token.attributes.market_data.total_supply
+                    ? token.attributes.market_data.total_supply.toLocaleString()
+                    : "-",
+                ],
+              ].map(([label, value], idx) => (
+                <tr key={idx} className="border-b border-gray-700">
+                  <td className="p-2 font-semibold">{label}</td>
+                  <td className="p-2">{value || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Blockchain Implementations */}
+          {token.attributes.implementations.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold border-b border-gray-700 p-2">
+                Blockchain Implementations
+              </h3>
+              <table className="w-full text-sm mt-2">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="p-2">Chain</th>
+                    <th className="p-2">Contract Address</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {token.attributes.implementations.map((impl, index) => (
+                    <tr key={index} className="border-b border-gray-700">
+                      <td className="p-2">{impl.chain_id}</td>
+                      <td className="p-2 break-all">{impl.address}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* External Links */}
+          {token.attributes.external_links.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold border-b border-gray-700 p-2">
+                External Links
+              </h3>
+              <ul className="text-sm text-blue-400">
+                {token.attributes.external_links.map((link, index) => (
+                  <li key={index} className="p-2">
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {link.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

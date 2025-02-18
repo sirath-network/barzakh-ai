@@ -110,7 +110,8 @@ const PurePreviewMessage = ({
                           <div className="mt-4">
                             <MultiSearch result={result} args={args} />
                           </div>
-                        ) : toolName === "searchTokenMarketData" ? (
+                        ) : toolName === "searchEvmTokenMarketData" ||
+                          toolName === "searchSolanaTokenMarketData" ? (
                           <MarketTokenTable result={result} />
                         ) : toolName === "getSolanaChainWalletPortfolio" ||
                           toolName === "getEvmMultiChainWalletPortfolio" ? (
@@ -140,7 +141,7 @@ const PurePreviewMessage = ({
                           <p className="py-1">Fetching portfolio...</p>
                         </div>
                       ) : (
-                        <div className="text-sm">Running {toolName}...</div>
+                        <div className="text-sm">Finding info...</div>
                       )}
                     </div>
                   );
