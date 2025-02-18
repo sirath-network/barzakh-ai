@@ -35,7 +35,7 @@ export function ModelSelector({
       <DropdownMenuTrigger
         asChild
         className={cn(
-          'w-fit data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
+          'w-fit data-[state=open]:bg-accent bg-neutral-800 border border-neutral-700 data-[state=open]:text-accent-foreground',
           className,
         )}
       >
@@ -44,7 +44,7 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px]">
+      <DropdownMenuContent align="start" className="min-w-[300px] bg-neutral-800 border border-neutral-700">
         {chatModels.map((chatModel) => {
           const { id } = chatModel;
 

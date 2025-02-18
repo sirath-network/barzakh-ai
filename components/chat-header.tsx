@@ -35,61 +35,69 @@ function PureChatHeader({
   const { width: windowWidth } = useWindowSize();
   // console.log("user in chat header", user);
   return (
-    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2 justify-between">
-      <div className="w-fit flex items-center gap-2">
+    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
+      <div className="flex items-center justify-start gap-2 w-full">
         <SidebarToggle />
 
-        {(!open || windowWidth < 768) && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
-                onClick={() => {
-                  router.push("/");
-                  router.refresh();
-                }}
-              >
-                <PlusIcon />
-                <span className="sr-only md:not-sr-only">New Chat</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>New Chat</TooltipContent>
-          </Tooltip>
-        )}
+        <div className="">
+          {(!open || windowWidth < 768) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
+                  onClick={() => {
+                    router.push("/");
+                    router.refresh();
+                  }}
+                >
+                  <PlusIcon />
+                  <span className="sr-only md:not-sr-only">New Chat</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>New Chat</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
 
-        {!isReadonly && (
+        {/* {!isReadonly && (
           <ModelSelector selectedModelId={selectedModelId} className=" " />
-        )}
+        )} */}
       </div>
 
-      <div className="">
-        {user && user?.email ? (
-          // <button
-          //   type="button"
-          //   className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-          //   onClick={() => {
-          //     signOut({
-          //       redirectTo: "/",
-          //     });
-          //   }}
-          // >
-          //   Logout
-          // </button>
-          <div>
-            <SidebarUserNav user={user} />
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-            onClick={() => {
-              router.push("/login");
-            }}
-          >
-            Login
-          </button>
-        )}
+      <Link href={"/"} className="font-semibold">Javin.ai</Link>
+      {/* REPLACE TEXT WITH THE ACTUAL LOGO WHEN YOU GET ONE WITH WHITE TEXT */}
+      {/* <Image src={"/javin-logo.png"} width={100} height={30} alt="Javin.ai" /> */}
+
+      <div className="flex justify-end w-full">
+        <div className="">
+          {user && user?.email ? (
+            // <button
+            //   type="button"
+            //   className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
+            //   onClick={() => {
+            //     signOut({
+            //       redirectTo: "/",
+            //     });
+            //   }}
+            // >
+            //   Logout
+            // </button>
+            <div>
+              <SidebarUserNav user={user} />
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
+              onClick={() => {
+                router.push("/login");
+              }}
+            >
+              Login
+            </button>
+          )}
+        </div>
       </div>
 
       {/* {!isReadonly && (

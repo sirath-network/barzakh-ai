@@ -6,7 +6,6 @@ import type {
   CreateMessage,
   Message,
 } from "ai";
-import cx from "classnames";
 import type React from "react";
 import {
   useRef,
@@ -27,8 +26,6 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
-import { SuggestedActions } from "./suggested-actions";
-import equal from "fast-deep-equal";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
 import { cn, SearchGroup, SearchGroupId, searchGroups } from "@/lib/utils";
@@ -38,7 +35,7 @@ import {
   HoverCardTrigger,
 } from "@/components/hover-card";
 import { AnimatePresence, motion } from "framer-motion";
-
+import { ModelSelector } from "./model-selector";
 interface GroupSelectorProps {
   selectedGroup: SearchGroupId;
   onGroupSelect: (group: SearchGroup) => void;
@@ -90,7 +87,7 @@ const SelectionContent = ({ ...props }) => {
         "inline-flex items-center",
         "min-w-[38px]",
         "p-0.5",
-        "rounded-full border border-neutral-200 dark:border-neutral-800",
+        "rounded-full border border-neutral-200 dark:border-neutral-700",
         "bg-white dark:bg-neutral-900",
         "shadow-sm overflow-visible",
         "relative z-10"
@@ -263,6 +260,8 @@ function PureMultimodalInput({
   input,
   setInput,
   isLoading,
+  isReadonly,
+  selectedModelId,
   stop,
   attachments,
   setAttachments,
@@ -279,6 +278,8 @@ function PureMultimodalInput({
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
+  isReadonly: boolean;
+  selectedModelId: string;
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
@@ -551,27 +552,29 @@ function PureMultimodalInput({
           </div>
         )}
 
-        <div className="absolute bottom-0 p-3 w-fit flex flex-row justify-start gap-2 items-center">
-          {/* <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} /> */}
-
-          <div className="w-full">
+        <div className="flex items-center w-full">
+          <div className="absolute bottom-0 p-3 w-fit flex flex-row justify-start gap-2 items-center ">
+            {/* <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} /> */}
             <GroupSelector
               selectedGroup={selectedGroup}
               onGroupSelect={handleGroupSelect}
             />
+            {!isReadonly && (
+              <ModelSelector selectedModelId={selectedModelId} className=" " />
+            )}
           </div>
-        </div>
 
-        <div className="absolute bottom-0 right-0 p-3 w-fit flex flex-row justify-end">
-          {isLoading ? (
-            <StopButton stop={stop} setMessages={setMessages} />
-          ) : (
-            <SendButton
-              input={input}
-              submitForm={submitForm}
-              uploadQueue={uploadQueue}
-            />
-          )}
+          <div className="absolute bottom-1 right-0 p-3 w-fit flex flex-row justify-end">
+            {isLoading ? (
+              <StopButton stop={stop} setMessages={setMessages} />
+            ) : (
+              <SendButton
+                input={input}
+                submitForm={submitForm}
+                uploadQueue={uploadQueue}
+              />
+            )}
+          </div>
         </div>
       </motion.div>
     </>
