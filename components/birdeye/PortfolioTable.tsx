@@ -22,7 +22,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     : [];
 
   return (
-    <div className="bg-black text-white px-4 py-4 rounded-lg w-full max-w-md border border-gray-700">
+    <div className="bg-black text-white px-4 py-4 rounded-lg w-full max-w-md border border-gray-700 mt-2 md:mt-0">
       {/* Portfolio Header */}
       <div className="flex flex-col border-b border-gray-700 pb-2">
         <div className="flex flex-row gap-1 justify-between">
@@ -39,7 +39,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       </div>
 
       {/* Portfolio Breakdown by Chain */}
-      <div className="mt-3">
+      <div className="mt-3 max-h-64 overflow-y-scroll pr-2">
         {chains.length === 0 ? (
           <div className="text-gray-400">No holdings available.</div>
         ) : (

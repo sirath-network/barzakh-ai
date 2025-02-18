@@ -73,6 +73,7 @@ export function Chat({
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
+          messages={messages}
           chatId={id}
           selectedModelId={selectedChatModel}
           selectedVisibilityType={selectedVisibilityType}
