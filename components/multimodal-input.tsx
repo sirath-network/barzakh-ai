@@ -36,6 +36,7 @@ import {
 } from "@/components/hover-card";
 import { AnimatePresence, motion } from "framer-motion";
 import { ModelSelector } from "./model-selector";
+import Image from "next/image";
 interface GroupSelectorProps {
   selectedGroup: SearchGroupId;
   onGroupSelect: (group: SearchGroup) => void;
@@ -131,6 +132,7 @@ const SelectionContent = ({ ...props }) => {
 
 const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
   const Icon = group.icon;
+  const iconImg = group.img;
   return (
     <HoverCard openDelay={100} closeDelay={50}>
       <HoverCardTrigger asChild>
@@ -143,6 +145,7 @@ const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
             "relative flex items-center justify-center",
             "size-8",
             "rounded-full",
+            "overflow-clip",
             "transition-colors duration-300",
             isSelected
               ? "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
@@ -150,7 +153,13 @@ const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
           )}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          <Icon className="size-4" />
+          {iconImg ? (
+            <div className="w-7 h-7 rounded-full p-0 m-0 object-cover object-center overflow-clip">
+              <Image src={iconImg} alt={iconImg} width={50} height={50} />
+            </div>
+          ) : (
+            <Icon className="size-4" />
+          )}
         </motion.button>
       </HoverCardTrigger>
       <HoverCardContent
