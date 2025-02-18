@@ -11,6 +11,12 @@ import { twMerge } from "tailwind-merge";
 
 import type { Message as DBMessage, Document } from "@/lib/db/schema";
 import { Globe, Network } from "lucide-react";
+import { PortfolioData, TokenItem } from "@/types/wallet-actions-response";
+import {
+  BirdeyeTokenSearchResponse,
+  TokenSearchData,
+  TokenSearchResponse,
+} from "@/types/token-search-response";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -277,4 +283,188 @@ export const getZerionApiKey = () => {
   if (!apiKey) throw new Error("Api key not found");
   const encodedKey = btoa(`${apiKey}:${password}`);
   return encodedKey;
+};
+
+// transform birdeye portfolio to zerion portfolio
+export const transformToZerionPortfolio = (apiResponse: any): PortfolioData => {
+  const { wallet, totalUsd, items } = apiResponse.data;
+
+  // Compute positions distribution by chain
+  const positions_distribution_by_chain: { [key: string]: number } =
+    items.reduce((acc: any, item: TokenItem) => {
+      acc[item.symbol] = (acc[item.symbol] || 0) + item.valueUsd;
+      return acc;
+    }, {} as { [key: string]: number });
+
+  // Define positions distribution by type (all funds assumed in wallet)
+  const positions_distribution_by_type = {
+    wallet: totalUsd,
+    deposited: 0,
+    borrowed: 0,
+    locked: 0,
+    staked: 0,
+  };
+
+  const total = {
+    positions: totalUsd,
+  };
+
+  // Placeholder changes (would require historical data to compute actual values)
+  const changes = {
+    absolute_1d: 0, // Set to actual absolute change
+    percent_1d: 0, // Set to actual percent change
+  };
+
+  return {
+    type: "portfolio",
+    id: wallet,
+    attributes: {
+      positions_distribution_by_type,
+      positions_distribution_by_chain,
+      total,
+      changes,
+    },
+    currency: "usd",
+  };
+};
+
+// fileter tokens with value less than 1 usd, and only top 20 tokens by value
+export const filterAndLimitPortfolio = (
+  portfolio: PortfolioData,
+  valueThreshold: number = 1,
+  limit: number = 20
+): PortfolioData => {
+  // Step 1: Filter out tokens with value < valueThreshold
+  const filteredPositionsDistributionByChain = Object.fromEntries(
+    Object.entries(portfolio.attributes.positions_distribution_by_chain).filter(
+      ([_, value]) => value !== undefined && value >= valueThreshold
+    )
+  );
+
+  // Step 2: Sort tokens by value and keep only the top `limit`
+  const topPositionsDistributionByChain = Object.fromEntries(
+    Object.entries(filteredPositionsDistributionByChain)
+      .sort(([, valueA], [, valueB]) => (valueB ?? 0) - (valueA ?? 0)) // Sort descending
+      .slice(0, limit) // Limit to top N
+  );
+
+  // Step 3: Recalculate total positions value after filtering and sorting
+  const totalFilteredValue =
+    Object.values(topPositionsDistributionByChain).reduce(
+      (acc, value) => acc! + (value ?? 0),
+      0
+    ) || 0;
+
+  return {
+    ...portfolio,
+    attributes: {
+      ...portfolio.attributes,
+      positions_distribution_by_chain: topPositionsDistributionByChain,
+      total: {
+        positions: totalFilteredValue,
+      },
+    },
+  };
+};
+
+export const transformBirdeyeToTokenSearchResponse = (
+  apiResponse: BirdeyeTokenSearchResponse
+): TokenSearchResponse => {
+  if (!apiResponse.success || !apiResponse.data) {
+    throw new Error("Invalid Birdeye API response format");
+  }
+
+  const token = apiResponse.data;
+
+  const transformedToken: TokenSearchData = {
+    type: "fungibles",
+    id: token.address,
+    attributes: {
+      name: token.name,
+      symbol: token.symbol,
+      description: token.extensions?.description || "",
+      icon: {
+        url: token.logoURI || "",
+      },
+      flags: {
+        verified: false, // No verification info in API
+      },
+      external_links: [
+        ...(token.extensions?.website
+          ? [
+              {
+                type: "website",
+                name: "Website",
+                url: token.extensions.website,
+              },
+            ]
+          : []),
+        ...(token.extensions?.twitter
+          ? [
+              {
+                type: "twitter",
+                name: "Twitter",
+                url: token.extensions.twitter,
+              },
+            ]
+          : []),
+      ],
+      implementations: [
+        {
+          chain_id: "solana", // Assuming Solana (modify if necessary)
+          address: token.address,
+          decimals: token.decimals,
+        },
+      ],
+      market_data: {
+        total_supply: token.totalSupply ?? 0,
+        circulating_supply: token.circulatingSupply ?? 0,
+        market_cap: token.marketCap ?? 0,
+        fully_diluted_valuation: token.fdv ?? 0,
+        price: token.price ?? 0,
+        changes: {
+          percent_1d: token.priceChange24hPercent ?? 0,
+          percent_30d: 0, // Not provided
+          percent_90d: 0, // Not provided
+          percent_365d: 0, // Not provided
+        },
+      },
+    },
+    relationships: {
+      chart_day: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-day` },
+      },
+      chart_hour: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-hour` },
+      },
+      chart_max: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-max` },
+      },
+      chart_month: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-month` },
+      },
+      chart_week: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-week` },
+      },
+      chart_year: {
+        links: { related: "" },
+        data: { type: "fungible_charts", id: `${token.address}-year` },
+      },
+    },
+    links: {
+      self: ``,
+    },
+  };
+
+  return {
+    links: {
+      self: "",
+    },
+    data: [transformedToken],
+  };
 };

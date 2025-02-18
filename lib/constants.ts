@@ -1,4 +1,5 @@
-export const birdeye_supported_chains = [
+export const BIRDEYE_SUPPORTED_CHAINS = [
+  "all",
   "ethereum",
   "arbitrum",
   "avalanche",
@@ -7,7 +8,7 @@ export const birdeye_supported_chains = [
   "polygon",
   "base",
   "zksync",
-];
+] as const;
 
 export const SUPPORTED_CURRENCY = [
   "eth",

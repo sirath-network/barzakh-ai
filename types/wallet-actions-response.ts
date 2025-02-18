@@ -28,3 +28,26 @@ export type PortfolioResponse = {
   };
   data: PortfolioData;
 };
+
+export type TokenItem = {
+  address: string;
+  decimals: number;
+  balance: number;
+  uiAmount: number;
+  chainId: string;
+  name: string;
+  symbol: string;
+  logoURI?: string;
+  icon?: string;
+  priceUsd: number;
+  valueUsd: number;
+};
+
+export type BirdeyePortfolioResponse = {
+  success: boolean;
+  data: {
+    wallet: string;
+    totalUsd: number;
+    items: TokenItem[];
+  };
+};

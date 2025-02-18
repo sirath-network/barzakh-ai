@@ -4,14 +4,16 @@ import {
   PortfolioData,
   PortfolioResponse,
 } from "@/types/wallet-actions-response";
-import { getZerionApiKey } from "@/lib/utils";
+import { filterAndLimitPortfolio, getZerionApiKey } from "@/lib/utils";
 import { SUPPORTED_CURRENCY } from "@/lib/constants";
 
-export const getMultiChainWalletPortfolio = tool({
+export const getEvmMultiChainWalletPortfolio = tool({
   description:
-    "Fetch the multi-chain wallet portfolio of a given wallet address across all supported chains.",
+    "Fetch the multi-chain wallet portfolio of a given wallet address across all EVM  chains.",
   parameters: z.object({
-    wallet_address: z.string().describe("wallet address of user"),
+    wallet_address: z
+      .string()
+      .describe("EVM wallet address of user starting with '0x'"),
     currency: z
       .enum(SUPPORTED_CURRENCY)
       .default("usd")
@@ -40,7 +42,9 @@ export const getMultiChainWalletPortfolio = tool({
       );
 
       const portfolioData: PortfolioResponse = await response.json();
-      return { ...portfolioData.data, currency };
+      const filteredPortfolio = filterAndLimitPortfolio(portfolioData.data);
+
+      return { ...filteredPortfolio, currency };
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);
       throw new Error("Failed to fetch wallet portfolio");

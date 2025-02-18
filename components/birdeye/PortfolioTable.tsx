@@ -10,9 +10,9 @@ interface PortfolioProps {
 }
 
 const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
+  // console.log("portfolio resoult", result);
   if (!result || !result.attributes)
     return <div className="text-white">No portfolio data available.</div>;
-
   const { attributes, currency } = result;
   const totalPositions = attributes.total?.positions ?? 0;
   const percentChange = attributes.changes?.percent_1d ?? 0;
@@ -49,7 +49,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
               className="flex justify-between items-center py-2 border-b border-gray-700 last:border-none"
             >
               <div className="flex gap-2 items-center justify-center">
-                <Image
+                {/* <Image
                   src={`/images/chain-logo/${chain.toLowerCase()}.png`}
                   alt={chain}
                   className="w-6 h-6 mr-2"
@@ -58,7 +58,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                   onError={(e) =>
                     (e.currentTarget.src = "/images/chain-logo/default.png")
                   }
-                />
+                /> */}
                 <div className="capitalize">{chain}</div>
               </div>
               <div className="font-semibold">
