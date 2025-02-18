@@ -21,7 +21,7 @@ export const getSolanaChainWalletPortfolio = tool({
     wallet_address,
   }: {
     wallet_address: string;
-  }): Promise<PortfolioData> => {
+  }): Promise<PortfolioData | string> => {
     const options = (chain: string) => ({
       method: "GET",
       headers: {
@@ -36,7 +36,13 @@ export const getSolanaChainWalletPortfolio = tool({
         `https://public-api.birdeye.so/v1/wallet/token_list?wallet=${wallet_address}`,
         options("solana")
       );
-      const portfolioData = await response.json();
+      const portfolioData: BirdeyePortfolioResponse = await response.json();
+      if (!portfolioData || !portfolioData.success) {
+        return "No results found. Check address and try again.";
+      }
+      if (portfolioData.data.items.length === 0) {
+        return "Wallet has no balances";
+      }
       const transformedPortfolio = transformToZerionPortfolio(portfolioData);
       const filteredPortfolio = filterAndLimitPortfolio(transformedPortfolio);
       // console.log(transformedPortfolio);
@@ -44,7 +50,7 @@ export const getSolanaChainWalletPortfolio = tool({
       return filteredPortfolio;
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);
-      throw new Error("Failed to fetch wallet portfolio");
+      return "Failed to fetch wallet portfolio";
     }
   },
 });

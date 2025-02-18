@@ -27,7 +27,7 @@ import { DocumentPreview } from "./document-preview";
 import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
-import MarketTokenTable from "./birdeye/MarketTokenTable";
+import TokenInfoTable from "./birdeye/TokenInfoTable";
 
 const PurePreviewMessage = ({
   chatId,
@@ -112,7 +112,7 @@ const PurePreviewMessage = ({
                           </div>
                         ) : toolName === "searchEvmTokenMarketData" ||
                           toolName === "searchSolanaTokenMarketData" ? (
-                          <MarketTokenTable result={result} />
+                          <TokenInfoTable result={result} />
                         ) : toolName === "getSolanaChainWalletPortfolio" ||
                           toolName === "getEvmMultiChainWalletPortfolio" ? (
                           <PortfolioTable result={result} />

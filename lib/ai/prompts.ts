@@ -97,6 +97,7 @@ const groupTools = {
     "searchEvmTokenMarketData",
   ] as const,
   on_chain: [] as const,
+  creditcoin: [] as const,
 } as const;
 
 const groupPrompts = {
@@ -133,6 +134,7 @@ Stick to crypto and blockchain related responses until asked specifically by the
   If the user provides an evm address, starting with "0x", run searchEvmTokenMarketData tool.
   If the user provides an solana address, NOT starting with "0x",run searchSolanaTokenMarketData tool.
   Always run these tools first if user had not metioned what to do with the address provided.
+  if no token data is found, then proceed to get the portfolio of the address
 
 ## Get multi chain wallet portfolio:
   If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
@@ -163,6 +165,8 @@ You are an AI on chain search engine called Javin.
   })}
 
   `,
+
+  creditcoin: ``,
 };
 
 export const systemPrompt = ({

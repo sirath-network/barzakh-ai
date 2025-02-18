@@ -13,6 +13,8 @@ export const getEvmMultiChainWalletPortfolio = tool({
   parameters: z.object({
     wallet_address: z
       .string()
+      .min(1, "Wallet address is required")
+      .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid EVM wallet address format")
       .describe("EVM wallet address of user starting with '0x'"),
     currency: z
       .enum(SUPPORTED_CURRENCY)
@@ -25,7 +27,7 @@ export const getEvmMultiChainWalletPortfolio = tool({
   }: {
     wallet_address: string;
     currency: string;
-  }): Promise<PortfolioData> => {
+  }): Promise<PortfolioData | string> => {
     const apiKey = getZerionApiKey();
     const options = {
       method: "GET",
@@ -42,12 +44,23 @@ export const getEvmMultiChainWalletPortfolio = tool({
       );
 
       const portfolioData: PortfolioResponse = await response.json();
+      if (!portfolioData || !portfolioData.data.attributes) {
+        //@ts-ignore
+        return "No results found. Check address and try again.";
+      }
+
+      if (portfolioData.data.attributes.total.positions == 0) {
+        //@ts-ignore
+        return "Wallet has no balances.";
+      }
+
+      // filter for tokens with < 1 usd and only show top 10
       const filteredPortfolio = filterAndLimitPortfolio(portfolioData.data);
 
       return { ...filteredPortfolio, currency };
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);
-      throw new Error("Failed to fetch wallet portfolio");
+      return "Failed to fetch wallet portfolio";
     }
   },
 });

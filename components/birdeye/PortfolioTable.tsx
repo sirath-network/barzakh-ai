@@ -14,9 +14,9 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   if (!result || !result.attributes)
     return <div className="text-white">No portfolio data available.</div>;
   const { attributes, currency } = result;
-  const totalPositions = attributes.total?.positions ?? 0;
-  const percentChange = attributes.changes?.percent_1d ?? 0;
-  const absoluteChange = attributes.changes?.absolute_1d ?? 0;
+  const totalPositions = attributes.total?.positions;
+  const percentChange = attributes.changes?.percent_1d;
+  const absoluteChange = attributes.changes?.absolute_1d;
   const chains = attributes.positions_distribution_by_chain
     ? Object.entries(attributes.positions_distribution_by_chain)
     : [];
@@ -27,15 +27,19 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       <div className="flex flex-col border-b border-gray-700 pb-2">
         <div className="flex flex-row gap-1 justify-between">
           <h2 className="text-lg font-semibold">Portfolio</h2>
-          <span className="text-xl font-bold">
-            {totalPositions.toFixed(2)} {currency?.toUpperCase() ?? ""}
-          </span>
+          {totalPositions > 0 && (
+            <span className="text-xl font-bold">
+              {totalPositions.toFixed(2)} {currency?.toUpperCase() ?? ""}
+            </span>
+          )}
         </div>
-        <span className="text-sm text-gray-400 float-right">
-          24h Change: {percentChange.toFixed(2)}% &#x28;
-          {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
-          &#x29;
-        </span>
+        {percentChange && (
+          <span className="text-sm text-gray-400 float-right">
+            24h Change: {percentChange.toFixed(2)}% &#x28;
+            {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
+            &#x29;
+          </span>
+        )}
       </div>
 
       {/* Portfolio Breakdown by Chain */}
