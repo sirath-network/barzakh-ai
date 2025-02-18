@@ -1,44 +1,22 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-const sortByOptions = [
-  "fdv",
-  "marketcap",
-  "liquidity",
-  "price",
-  "price_change_24h_percent",
-  "trade_24h",
-  "trade_24h_change_percent",
-  "buy_24h",
-  "buy_24h_change_percent",
-  "sell_24h",
-  "sell_24h_change_percent",
-  "unique_wallet_24h",
-  "unique_view_24h_change_percent",
-  "last_trade_unix_time",
-  "volume_24h_usd",
-  "volume_24h_change_percent",
-] as const;
-
-const targetOptions = ["all", "token", "market"] as const;
-
-const sortTypeOptions = ["asc", "desc"] as const;
-
 export const searchTokenMarketData = tool({
   description:
     "Search for token and market data for any chain providing specific token address or market address",
   parameters: z.object({
+    chain: z.string().default("all").describe("Blockchain network to query"),
     keyword: z.string().describe("Token  address to search for"),
     target: z
-      .enum(targetOptions)
+      .string()
       .default("token")
       .describe("Search target type (token, market, etc.)"),
     sort_by: z
-      .enum(sortByOptions)
+      .string()
       .default("price")
       .describe("Sort results by (e.g., price, volume_24h_usd)"),
     sort_type: z
-      .enum(sortTypeOptions)
+      .string()
       .default("desc")
       .describe("Sorting order (asc or desc)"),
     verify_token: z
@@ -53,11 +31,12 @@ export const searchTokenMarketData = tool({
     limit: z
       .number()
       .min(1)
-      .max(20)
+      .max(1)
       .default(1)
       .describe("Number of results to return"),
   }),
   execute: async ({
+    chain,
     keyword,
     target,
     sort_by,
@@ -68,7 +47,7 @@ export const searchTokenMarketData = tool({
     limit,
   }) => {
     const url = new URL("https://public-api.birdeye.so/defi/v3/search");
-    url.searchParams.append("chain", "solana"); // setting chain as solana
+    url.searchParams.append("chain", chain);
     url.searchParams.append("keyword", keyword);
     url.searchParams.append("target", target);
     url.searchParams.append("sort_by", sort_by);

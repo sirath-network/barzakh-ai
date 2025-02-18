@@ -11,6 +11,7 @@ import { twMerge } from "tailwind-merge";
 
 import type { Message as DBMessage, Document } from "@/lib/db/schema";
 import { Globe, Network } from "lucide-react";
+import { PortfolioData, TokenItem } from "@/types/wallet-actions-response";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -277,4 +278,86 @@ export const getZerionApiKey = () => {
   if (!apiKey) throw new Error("Api key not found");
   const encodedKey = btoa(`${apiKey}:${password}`);
   return encodedKey;
+};
+
+// transform birdeye portfolio to zerion portfolio
+export const transformToZerionPortfolio = (apiResponse: any): PortfolioData => {
+  const { wallet, totalUsd, items } = apiResponse.data;
+
+  // Compute positions distribution by chain
+  const positions_distribution_by_chain: { [key: string]: number } =
+    items.reduce((acc: any, item: TokenItem) => {
+      acc[item.symbol] = (acc[item.symbol] || 0) + item.valueUsd;
+      return acc;
+    }, {} as { [key: string]: number });
+
+  // Define positions distribution by type (all funds assumed in wallet)
+  const positions_distribution_by_type = {
+    wallet: totalUsd,
+    deposited: 0,
+    borrowed: 0,
+    locked: 0,
+    staked: 0,
+  };
+
+  const total = {
+    positions: totalUsd,
+  };
+
+  // Placeholder changes (would require historical data to compute actual values)
+  const changes = {
+    absolute_1d: 0, // Set to actual absolute change
+    percent_1d: 0, // Set to actual percent change
+  };
+
+  return {
+    type: "portfolio",
+    id: wallet,
+    attributes: {
+      positions_distribution_by_type,
+      positions_distribution_by_chain,
+      total,
+      changes,
+    },
+    currency: "usd",
+  };
+};
+
+// fileter tokens with value less than 1 usd, and only top 20 tokens by value
+export const filterAndLimitPortfolio = (
+  portfolio: PortfolioData,
+  valueThreshold: number = 1,
+  limit: number = 20
+): PortfolioData => {
+  // Step 1: Filter out tokens with value < valueThreshold
+  const filteredPositionsDistributionByChain = Object.fromEntries(
+    Object.entries(portfolio.attributes.positions_distribution_by_chain).filter(
+      ([_, value]) => value !== undefined && value >= valueThreshold
+    )
+  );
+
+  // Step 2: Sort tokens by value and keep only the top `limit`
+  const topPositionsDistributionByChain = Object.fromEntries(
+    Object.entries(filteredPositionsDistributionByChain)
+      .sort(([, valueA], [, valueB]) => (valueB ?? 0) - (valueA ?? 0)) // Sort descending
+      .slice(0, limit) // Limit to top N
+  );
+
+  // Step 3: Recalculate total positions value after filtering and sorting
+  const totalFilteredValue =
+    Object.values(topPositionsDistributionByChain).reduce(
+      (acc, value) => acc! + (value ?? 0),
+      0
+    ) || 0;
+
+  return {
+    ...portfolio,
+    attributes: {
+      ...portfolio.attributes,
+      positions_distribution_by_chain: topPositionsDistributionByChain,
+      total: {
+        positions: totalFilteredValue,
+      },
+    },
+  };
 };

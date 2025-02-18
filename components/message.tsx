@@ -112,7 +112,8 @@ const PurePreviewMessage = ({
                           </div>
                         ) : toolName === "searchTokenMarketData" ? (
                           <MarketTokenTable result={result} />
-                        ) : toolName === "getMultiChainWalletPortfolio" ? (
+                        ) : toolName === "getSolanaChainWalletPortfolio" ||
+                          toolName === "getEvmMultiChainWalletPortfolio" ? (
                           <PortfolioTable result={result} />
                         ) : (
                           <div className="text-sm">Done!</div>
@@ -132,7 +133,8 @@ const PurePreviewMessage = ({
                         <div className="mt-4">
                           <MultiSearch result={null} args={args} />
                         </div>
-                      ) : toolName === "getMultiChainWalletPortfolio" ? (
+                      ) : toolName === "getSolanaChainWalletPortfolio" ||
+                        toolName === "getEvmMultiChainWalletPortfolio" ? (
                         <div className="text-sm">
                           {/* <PortfolioTable result={null} args={args} /> */}
                           <p className="py-1">Fetching portfolio...</p>

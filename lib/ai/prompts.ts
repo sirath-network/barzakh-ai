@@ -91,7 +91,8 @@ export const regularPrompt = "You are Javin, a friendly assistant!.";
 const groupTools = {
   search: [
     "webSearch",
-    "getMultiChainWalletPortfolio",
+    "getEvmMultiChainWalletPortfolio",
+    "getSolanaChainWalletPortfolio",
     "searchTokenMarketData",
   ] as const,
   on_chain: [] as const,
@@ -133,7 +134,8 @@ Stick to crypto and blockchain related responses until asked specifically by the
   If the tool returns no data, assume the input is a wallet address and proceed to get the portfolio of the wallet address.
 
 ## Get multi chain wallet portfolio:
-  Use getMultiChainWalletPortfolio tool to retrieve a wallet's balances, tokens, and other portfolio details.
+  If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
+  If the user provides an solana address, NOT starting with "0x", Use getSolanaChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
   If a wallet address is not provided, ask the user for it.
   If the tool returns no data, assume the input is a token address and proceed to get the token data using searchTokenMarketData tool.
 

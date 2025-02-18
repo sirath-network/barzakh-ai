@@ -24,7 +24,8 @@ import {
 
 import { generateTitleFromUserMessage } from "../../actions";
 import { webSearch } from "@/lib/ai/tools/web-search";
-import { getMultiChainWalletPortfolio } from "@/lib/ai/tools/birdeye/wallet-portfolio-multi-chain";
+import { getSolanaChainWalletPortfolio } from "@/lib/ai/tools/birdeye/wallet-portfolio-solana";
+import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/zerion/wallet-portfolio-evm";
 import { searchTokenMarketData } from "@/lib/ai/tools/birdeye/search-token-market-data";
 
 export const maxDuration = 60;
@@ -94,7 +95,8 @@ export async function POST(request: Request) {
         experimental_generateMessageId: generateUUID,
         tools: {
           webSearch,
-          getMultiChainWalletPortfolio,
+          getEvmMultiChainWalletPortfolio,
+          getSolanaChainWalletPortfolio,
           searchTokenMarketData,
         },
         onFinish: async ({ response, reasoning }) => {
