@@ -15,18 +15,21 @@ import { VisibilityType, VisibilitySelector } from "./visibility-selector";
 import { signOut } from "next-auth/react";
 import { User } from "next-auth";
 import { SidebarUserNav } from "./sidebar-user-nav";
+import { Message } from "ai";
 
 function PureChatHeader({
   chatId,
   selectedModelId,
   selectedVisibilityType,
   isReadonly,
+  messages,
   user,
 }: {
   chatId: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  messages: Message[];
   user?: User;
 }) {
   const router = useRouter();
@@ -64,8 +67,11 @@ function PureChatHeader({
           <ModelSelector selectedModelId={selectedModelId} className=" " />
         )} */}
       </div>
-
-      <Link href={"/"} className="font-semibold">Javin.ai</Link>
+      {messages.length > 0 && (
+        <Link href={"/"} className="font-semibold">
+          Javin.ai
+        </Link>
+      )}
       {/* REPLACE TEXT WITH THE ACTUAL LOGO WHEN YOU GET ONE WITH WHITE TEXT */}
       {/* <Image src={"/javin-logo.png"} width={100} height={30} alt="Javin.ai" /> */}
 
