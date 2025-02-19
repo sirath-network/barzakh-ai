@@ -236,23 +236,31 @@ export function getDocumentTimestampByIndex(
   return documents[index].createdAt;
 }
 
-export type SearchGroupId = "search" | "on_chain";
+export type SearchGroupId = "search" | "on_chain" | "creditcoin";
 
 export const searchGroups = [
   {
     id: "search" as const,
     name: "Web",
-    description: "Search across the entire internet",
+    description: "Search across the entire internet and blockchains",
     icon: Globe,
     img: "",
   },
 
+  // {
+  //   id: "on_chain" as const,
+  //   name: "On Chain",
+  //   description: "Indepth onchain analysis",
+  //   icon: Network,
+  //   img: "",
+  // },
+
   {
-    id: "on_chain" as const,
-    name: "On Chain",
-    description: "Indepth onchain analysis",
+    id: "creditcoin" as const,
+    name: "Creditcoin",
+    description: "Everything Creditcoin. Search, transactions and more.",
     icon: Network,
-    img: "",
+    img: "/images/icon/creditcoin-white.png",
   },
 ] as const;
 
