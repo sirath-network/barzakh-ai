@@ -72,6 +72,13 @@ const config: Config = {
       },
     },
   },
+  // safelist means to not exclude these classes from the buncled code even if they are not used anywhere.
+  // this is dont so that classes used in getPercentChangeColor dont get excluded from the final bundle
+  safelist: [
+    'text-green-700',
+    'text-red-700',
+    'text-gray-400'
+  ],
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 };
 export default config;

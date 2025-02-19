@@ -1,3 +1,4 @@
+import { getPercentChangeColor } from "@/lib/utils";
 import {
   PortfolioData,
   PortfolioResponse,
@@ -36,13 +37,14 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             </div>
           )}
         </div>
-        {percentChange > 0 && (
-          <span className="text-sm text-gray-400 float-right">
-            24h Change: {percentChange.toFixed(2)}% &#x28;
+        <span className="text-sm text-gray-400 float-right">
+          24h Change:{" "}
+          <span className={getPercentChangeColor(percentChange)}>
+            {percentChange.toFixed(2)}% &#x28;
             {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
             &#x29;
           </span>
-        )}
+        </span>
       </div>
 
       {/* Portfolio Breakdown by Chain */}

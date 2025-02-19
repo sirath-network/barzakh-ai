@@ -470,3 +470,10 @@ export const transformBirdeyeToTokenSearchResponse = (
     data: [transformedToken],
   };
 };
+
+
+export const getPercentChangeColor = (percentChange: number) => {
+  if (percentChange > 0) return "text-green-700";
+  if (percentChange < 0) return "text-red-700";
+  return "text-gray-400";
+};
