@@ -140,9 +140,7 @@ export async function POST(request: Request) {
     },
     onError: (error: any) => {
       console.log(error);
-      if (error.message.includes("ToolInvocation must have a result"))
-        return "Please try again in new chat!";
-      return error.message;
+      return "Oops, something went wrong!. Please try again in new chat";
     },
   });
 }
