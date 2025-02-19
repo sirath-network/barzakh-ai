@@ -30,6 +30,8 @@ export default function Page() {
       toast.error("Failed to create account");
     } else if (state.status === "invalid_data") {
       toast.error("Failed validating your submission!");
+    } else if (state.status === "too_small") {
+      toast.error("Password should be at least 6 characters long.");
     } else if (state.status === "success") {
       toast.success("Account created successfully");
       setIsSuccessful(true);
