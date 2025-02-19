@@ -9,7 +9,7 @@ const TokenInfoTable: React.FC<{
 
   if (!result || result.length === 0 || typeof result == "string")
     return <div className="text-white">No token data available.</div>;
-  console.log("result ", result[0].attributes.external_links);
+  // console.log("result ", result[0].attributes.external_links);
   return (
     <div>
       {/* <div className=" p-2">
