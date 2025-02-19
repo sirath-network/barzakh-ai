@@ -138,9 +138,11 @@ export async function POST(request: Request) {
         sendReasoning: true,
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.log(error);
-      return "Oops, an error occured!";
+      if (error.message.includes("ToolInvocation must have a result"))
+        return "Please try again in new chat!";
+      return error.message;
     },
   });
 }
