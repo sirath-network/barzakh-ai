@@ -97,7 +97,6 @@ const groupTools = {
     "searchEvmTokenMarketData",
   ] as const,
   on_chain: [] as const,
-  creditcoin: [] as const,
 } as const;
 
 const groupPrompts = {
@@ -165,8 +164,6 @@ You are an AI on chain search engine called Javin.
   })}
 
   `,
-
-  creditcoin: ``,
 };
 
 export const systemPrompt = ({
