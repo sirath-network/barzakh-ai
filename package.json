@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "devt": "next dev --turbo",
+    "deve": "next dev --experimental-https",
     "build": "tsx lib/db/migrate && next build",
     "start": "next start",
     "lint": "next lint && biome lint --write --unsafe",
