@@ -114,7 +114,8 @@ const PurePreviewMessage = ({
                           toolName === "searchSolanaTokenMarketData" ? (
                           <TokenInfoTable result={result} />
                         ) : toolName === "getSolanaChainWalletPortfolio" ||
-                          toolName === "getEvmMultiChainWalletPortfolio" ? (
+                          toolName === "getEvmMultiChainWalletPortfolio" ||
+                          toolName === "getTokenBalances" ? (
                           <PortfolioTable result={result} />
                         ) : (
                           <div className="text-sm">Done!</div>

@@ -11,7 +11,7 @@ interface PortfolioProps {
 }
 
 const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
-  // console.log("portfolio resoult", result);
+  console.log("portfolio resoult", result);
   if (!result || !result.attributes)
     return <div className="text-white">No portfolio data available.</div>;
   const { attributes, currency } = result;
@@ -28,23 +28,29 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       <div className="flex flex-col pb-2 border-b border-neutral-700">
         <div className="flex flex-row gap-1 justify-between">
           <h2 className="text-lg font-semibold">Portfolio</h2>
-          {totalPositions > 0 && (
+          {totalPositions && totalPositions > 0 && (
             <div className="">
               <span className="text-xl font-bold">
                 {totalPositions.toFixed(2)}{" "}
               </span>
-              <span className="text-sm ">{currency?.toUpperCase() ?? ""}</span>
+              {currency == "units" ? null : (
+                <span className="text-sm ">
+                  {currency?.toUpperCase() ?? ""}
+                </span>
+              )}
             </div>
           )}
         </div>
-        <span className="text-sm text-gray-400 float-right">
-          24h Change:{" "}
-          <span className={getPercentChangeColor(percentChange)}>
-            {percentChange.toFixed(2)}% &#x28;
-            {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
-            &#x29;
+        {percentChange ? (
+          <span className="text-sm text-gray-400 float-right">
+            24h Change:{" "}
+            <span className={getPercentChangeColor(percentChange)}>
+              {percentChange.toFixed(2)}% &#x28;
+              {absoluteChange.toFixed(2)} {currency?.toUpperCase() ?? ""}
+              &#x29;
+            </span>
           </span>
-        </span>
+        ) : null}
       </div>
 
       {/* Portfolio Breakdown by Chain */}
@@ -72,11 +78,13 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
               </div>
               <div className="">
                 <span className="font-semibold">
-                  {value ? value.toFixed(2) : "0.00"}{" "}
+                  {value ? value.toFixed(5) : "0.00"}{" "}
                 </span>
-                <span className="text-xs ">
-                  {currency?.toUpperCase() ?? ""}
-                </span>
+                {currency == "units" ? null : (
+                  <span className="text-xs ">
+                    {currency?.toUpperCase() ?? ""}
+                  </span>
+                )}
               </div>
             </div>
           ))

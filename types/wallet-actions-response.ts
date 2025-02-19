@@ -14,7 +14,7 @@ export type PortfolioData = {
       [key: string]: number | undefined; // For additional chains
     };
     total: {
-      positions: number;
+      positions: number | null;
     };
     changes: {
       absolute_1d: number;
