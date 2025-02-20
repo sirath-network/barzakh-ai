@@ -1,191 +1,95 @@
-"use client";
-import { useState, useEffect } from "react";
-import { subscribeUser, unsubscribeUser, sendNotification } from "./actions";
+"DONT DELETE THIS FILE. WILL BE USEFULL IN FUTURE."
+// "use client";
+// import { useState, useEffect } from "react";
+// import { subscribeUser, unsubscribeUser, sendNotification } from "./actions";
+// import { Share, SquarePlus } from "lucide-react";
 
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+// function urlBase64ToUint8Array(base64String: string) {
+//   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+//   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
 
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+//   const rawData = window.atob(base64);
+//   const outputArray = new Uint8Array(rawData.length);
 
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
+//   for (let i = 0; i < rawData.length; ++i) {
+//     outputArray[i] = rawData.charCodeAt(i);
+//   }
+//   return outputArray;
+// }
 
-export function PushNotificationManager() {
-  const [isSupported, setIsSupported] = useState(false);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(
-    null
-  );
-  const [message, setMessage] = useState("");
+// export function PushNotificationManager() {
+//   const [isSupported, setIsSupported] = useState(false);
+//   const [subscription, setSubscription] = useState<PushSubscription | null>(
+//     null
+//   );
+//   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setIsSupported(true);
-      registerServiceWorker();
-    }
-  }, []);
+//   useEffect(() => {
+//     if ("serviceWorker" in navigator && "PushManager" in window) {
+//       setIsSupported(true);
+//       registerServiceWorker();
+//     }
+//   }, []);
 
-  async function registerServiceWorker() {
-    const registration = await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
-      updateViaCache: "none",
-    });
-    const sub = await registration.pushManager.getSubscription();
-    setSubscription(sub);
-  }
+//   async function registerServiceWorker() {
+//     const registration = await navigator.serviceWorker.register("/sw.js", {
+//       scope: "/",
+//       updateViaCache: "none",
+//     });
+//     const sub = await registration.pushManager.getSubscription();
+//     setSubscription(sub);
+//   }
 
-  async function subscribeToPush() {
-    const registration = await navigator.serviceWorker.ready;
-    const sub = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-      ),
-    });
-    setSubscription(sub);
-    const serializedSub = JSON.parse(JSON.stringify(sub));
-    await subscribeUser(serializedSub);
-  }
+//   async function subscribeToPush() {
+//     const registration = await navigator.serviceWorker.ready;
+//     const sub = await registration.pushManager.subscribe({
+//       userVisibleOnly: true,
+//       applicationServerKey: urlBase64ToUint8Array(
+//         process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+//       ),
+//     });
+//     setSubscription(sub);
+//     const serializedSub = JSON.parse(JSON.stringify(sub));
+//     await subscribeUser(serializedSub);
+//   }
 
-  async function unsubscribeFromPush() {
-    await subscription?.unsubscribe();
-    setSubscription(null);
-    await unsubscribeUser();
-  }
+//   async function unsubscribeFromPush() {
+//     await subscription?.unsubscribe();
+//     setSubscription(null);
+//     await unsubscribeUser();
+//   }
 
-  async function sendTestNotification() {
-    if (subscription) {
-      await sendNotification(message);
-      setMessage("");
-    }
-  }
+//   async function sendTestNotification() {
+//     if (subscription) {
+//       await sendNotification(message);
+//       setMessage("");
+//     }
+//   }
 
-  if (!isSupported) {
-    return <p>Push notifications are not supported in this browser.</p>;
-  }
+//   if (!isSupported) {
+//     return <p>Push notifications are not supported in this browser.</p>;
+//   }
 
-  return (
-    <div className="bg-neutral-700 border border-white mb-2">
-      <h3>Push Notifications div</h3>
-      {subscription ? (
-        <>
-          <p>You are subscribed to push notifications.</p>
-          <button onClick={unsubscribeFromPush}>Unsubscribe</button>
-          <input
-            type="text"
-            placeholder="Enter notification message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button onClick={sendTestNotification}>Send Test</button>
-        </>
-      ) : (
-        <>
-          <p>You are not subscribed to push notifications.</p>
-          <button onClick={subscribeToPush}>Subscribe</button>
-        </>
-      )}
-    </div>
-  );
-}
-
-export function InstallPrompt() {
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    setIsIOS(
-      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
-    );
-    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
-
-    // Listen for the beforeinstallprompt event
-    window.addEventListener("beforeinstallprompt", (e) => {
-      // Prevent Chrome 67 and earlier from automatically showing the prompt
-      e.preventDefault();
-      // Stash the event so it can be triggered later
-      setDeferredPrompt(e);
-    });
-  }, []);
-
-  const handleInstallClick = async () => {
-    console.log("Install button clicked");
-    if (!deferredPrompt) return;
-
-    // Show the install prompt
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-
-    // Clear the saved prompt since it can't be used again
-    setDeferredPrompt(null);
-  };
-
-  useEffect(() => {
-    try {
-      // @ts-ignore
-      window.AddToHomeScreenInstance = window.AddToHomeScreen({
-        appName: "Javin.ai", // Name of the app.
-        // Required.
-        appNameDisplay: "standalone", // If set to 'standalone' (the default), the app name will be diplayed
-        // on it's own, beneath the "Install App" header. If set to 'inline', the
-        // app name will be displayed on a single line like "Install MyApp"
-        // Optional. Default 'standalone'
-        appIconUrl: "apple-touch-icon.png", // App icon link (square, at least 40 x 40 pixels).
-        // Required.
-        assetUrl:
-          "https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/assets/img/", // Link to directory of library image assets.
-
-        maxModalDisplayCount: -1, // If set, the modal will only show this many times.
-        // [Optional] Default: -1 (no limit).  (Debugging: Use this.clearModalDisplayCount() to reset the count)
-        displayOptions: { showMobile: true, showDesktop: true }, // show on mobile/desktop [Optional] Default: show everywhere
-        allowClose: true, // allow the user to close the modal by tapping outside of it [Optional. Default: true]
-      });
-    } catch (err) {
-      console.log("Error while window.AddToHomeScreenInstance", err);
-    }
-  }, []);
-
-  if (isStandalone) {
-    return null; // Don't show install button if already installed
-  }
-
-  return (
-    <div className="bg-neutral-700 border border-white">
-      <h3>Install App DIV</h3>
-      {!isIOS && deferredPrompt && (
-        <button onClick={handleInstallClick}>Add to Home Screen</button>
-      )}
-      <button
-        onClick={() => {
-          // @ts-ignore
-          window.AddToHomeScreenInstance.show("en");
-        }}
-      >
-        INstall try
-      </button>
-      {isIOS && (
-        <p>
-          To install this app on your iOS device, tap the share button
-          <span role="img" aria-label="share icon">
-            {" "}
-            ⎋{" "}
-          </span>
-          and then &quotAdd to Home Screen&quot
-          <span role="img" aria-label="plus icon">
-            {" "}
-            ➕{" "}
-          </span>
-          .
-        </p>
-      )}
-    </div>
-  );
-}
+//   return (
+//     <div className="bg-neutral-700 border border-white mb-2">
+//       {subscription ? (
+//         <>
+//           <p>You are subscribed to push notifications.</p>
+//           <button onClick={unsubscribeFromPush}>Unsubscribe</button>
+//           <input
+//             type="text"
+//             placeholder="Enter notification message"
+//             value={message}
+//             onChange={(e) => setMessage(e.target.value)}
+//           />
+//           <button onClick={sendTestNotification}>Send Test</button>
+//         </>
+//       ) : (
+//         <>
+//           <p>You are not subscribed to push notifications.</p>
+//           <button onClick={subscribeToPush}>Subscribe</button>
+//         </>
+//       )}
+//     </div>
+//   );
+// }

@@ -91,7 +91,7 @@ const SelectionContent = ({ ...props }) => {
         "rounded-full border border-neutral-200 dark:border-neutral-700",
         "bg-white dark:bg-neutral-800",
         "shadow-sm overflow-visible",
-        "relative z-10"
+        "relative"
       )}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}

@@ -1,8 +1,7 @@
 "use client";
-
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 import { ChatHeader } from "@/components/chat-header";
@@ -64,7 +63,6 @@ export function Chat({
     `/api/vote?chatId=${id}`,
     fetcher
   );
-  // console.log(searchModeId);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");

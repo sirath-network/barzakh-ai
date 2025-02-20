@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
-
 import { ThemeProvider } from "@/components/theme-provider";
-
-import "./globals.css";
 import { SessionProvider } from "next-auth/react";
-import Script from "next/script";
+import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://javin.ai"),
@@ -60,24 +57,22 @@ export default async function RootLayout({
           }}
         />
         <link rel="icon" href="/icon/j_white.png" type="image/png" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.css"
-        />
-        <Script src="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.js"></Script>
       </head>
       <body className="antialiased">
-        <SessionProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <Toaster position="top-center" />
-            {children}
-          </ThemeProvider>
-        </SessionProvider>
+        {/* dont remove below div. it is for modal */}
+        <div id="rootElement">
+          <SessionProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <Toaster position="top-center" />
+              {children}
+            </ThemeProvider>
+          </SessionProvider>
+        </div>
       </body>
     </html>
   );
