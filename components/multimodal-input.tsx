@@ -120,7 +120,10 @@ const SelectionContent = ({ ...props }) => {
               <ToolbarButton
                 group={group}
                 isSelected={props.selectedGroup === group.id}
-                onClick={() => props.onGroupSelect(group)}
+                onClick={() => {
+                  props.onGroupSelect(group);
+                  console.log();
+                }}
               />
             </motion.div>
           );
@@ -311,7 +314,6 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
-  const session = useSession();
 
   const MIN_HEIGHT = 72;
   const MAX_HEIGHT = 400;
@@ -347,6 +349,9 @@ function PureMultimodalInput({
     ""
   );
 
+  const [localStorageChatMode, setLocalStorageChatMode] =
+    useLocalStorage<SearchGroupId>("chatMode", "search");
+
   useEffect(() => {
     if (textareaRef.current) {
       const domValue = textareaRef.current.value;
@@ -362,6 +367,12 @@ function PureMultimodalInput({
   useEffect(() => {
     setLocalStorageInput(input);
   }, [input, setLocalStorageInput]);
+
+  useEffect(() => {
+    if (localStorageChatMode) {
+      setSelectedGroup(localStorageChatMode);
+    }
+  }, [selectedGroup, setLocalStorageChatMode]);
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
@@ -455,8 +466,9 @@ function PureMultimodalInput({
     async (group: SearchGroup) => {
       console.log("selectd grup", group);
       setSelectedGroup(group.id);
+      setLocalStorageChatMode(group.id);
     },
-    [setSelectedGroup]
+    [setSelectedGroup, setLocalStorageChatMode]
   );
 
   const handleFocus = () => {
