@@ -45,7 +45,13 @@ const groupTools = {
     "searchEvmTokenMarketData",
   ] as const,
   on_chain: [] as const,
-  creditcoin: ["webSearch", "getTokenBalances"] as const,
+  creditcoin: [
+    "webSearch",
+    "getTokenBalances",
+    "getScrapJobData",
+    "creditCoinApiFetch",
+    "getCreditcoinApiDoc",
+  ] as const,
 } as const;
 
 const groupPrompts = {
@@ -122,10 +128,10 @@ You have web search and web crawling capabilities, allowing you to fetch the lat
 Your goal is to simplify complex blockchain and DeFi concepts for users, ensuring they can access Creditcoin-related information instantly and effortlessly.
 
 # Core Capabilities & Data Sources
-### On-Chain Data Access: Use https://creditcoin.blockscout.com/ to fetch real-time transaction details, wallet holdings, and gas prices.
+
 ### Web Search & Crawling: Retrieve up-to-date information from Creditcoin's official site, community forums, and news updates.
 Creditcoin Knowledgebase: Provide structured answers based on pre-indexed Creditcoin documentation, FAQs, and use cases.
-### Instant Query Resolution: Answer ecosystem, token, lending, security, and roadmap-related queries with AI-driven explanations.
+
 ### User-Friendly Interface: Respond concisely and guide users with actionable insights.
 
 # Tool-Specific Guidelines:
@@ -137,6 +143,13 @@ Creditcoin Knowledgebase: Provide structured answers based on pre-indexed Credit
 
 ## Get token balance
   use getTokenBalances tool to get the token balances of users wallet. if wallet address is not provided, ask for it. 
+
+## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. 
+
+## get creditcoin blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getCreditcoinApiDoc tool to get all the information about creditcoin apis. use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to creditCoinApiFetch tool to get results that can help anwer user query.
+
+## Make api calls: Use the creditCoinApiFetch tool to make api calls and get various on chain data on creditcoin chain. pass the query string with appropriate query parameters and their values, according to user query and api documentation,  to get the results. summarise the results for the user. 
+for example, if you want to fetch information abotu USDT token pass the url : https://creditcoin.blockscout.com/api/v2/search?q=USDT to the tool.
 
 
 # User Query Categories & Response Guidelines

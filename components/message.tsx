@@ -140,7 +140,7 @@ const PurePreviewMessage = ({
                           <p className="py-1">Fetching portfolio...</p>
                         </div>
                       ) : (
-                        <div className="text-sm">Finding info...</div>
+                        <div className="text-sm">Running {toolName}</div>
                       )}
                     </div>
                   );
