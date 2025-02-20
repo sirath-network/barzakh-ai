@@ -69,8 +69,8 @@ export function PushNotificationManager() {
   }
 
   return (
-    <div>
-      <h3>Push Notifications</h3>
+    <div className="bg-neutral-700 border border-white mb-2">
+      <h3>Push Notifications div</h3>
       {subscription ? (
         <>
           <p>You are subscribed to push notifications.</p>
@@ -96,23 +96,48 @@ export function PushNotificationManager() {
 export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     setIsIOS(
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
     );
-
     setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+
+    // Listen for the beforeinstallprompt event
+    window.addEventListener("beforeinstallprompt", (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      setDeferredPrompt(e);
+    });
   }, []);
+
+  const handleInstallClick = async () => {
+    console.log("Install button clicked");
+    if (!deferredPrompt) return;
+
+    // Show the install prompt
+    deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+
+    // Clear the saved prompt since it can't be used again
+    setDeferredPrompt(null);
+  };
 
   if (isStandalone) {
     return null; // Don't show install button if already installed
   }
 
   return (
-    <div>
-      <h3>Install App</h3>
-      <button>Add to Home Screen</button>
+    <div className="bg-neutral-700 border border-white">
+      <h3>Install App DIV</h3>
+      {!isIOS && deferredPrompt && (
+        <button onClick={handleInstallClick}>Add to Home Screen</button>
+      )}
       {isIOS && (
         <p>
           To install this app on your iOS device, tap the share button
@@ -120,7 +145,7 @@ export function InstallPrompt() {
             {" "}
             ⎋{" "}
           </span>
-          and then &quotAdd to Home Screen&quot
+          and then "Add to Home Screen"
           <span role="img" aria-label="plus icon">
             {" "}
             ➕{" "}
