@@ -6,8 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
+const baseUrl = "https://javin.ai";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://javin.ai"),
+  metadataBase: new URL(baseUrl),
   title: "Javin.ai",
   description:
     "A focused, no-nonsense AI search engine for crypto and blockchain.",
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
       "A focused, no-nonsense AI search engine for crypto and blockchain.",
     images: [
       {
-        url: "/images/javin/preview/javin_preview.jpg",
+        url: new URL(`${baseUrl}/images/javin/preview/javin_preview.jpg`),
         width: 1200,
         height: 630,
         alt: "Javin.ai",
@@ -71,18 +73,6 @@ export default async function RootLayout({
           }}
         />
         <link rel="icon" href="/icon/j_white.png" type="image/png" />
-        <meta property="og:title" content="Javin.ai" />
-        <meta
-          property="og:description"
-          content="A focused, no-nonsense AI search engine for crypto and blockchain."
-        />
-        <meta
-          property="og:image"
-          content="/images/javin/preview/javin_preview.jpg"
-        />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:url" content="https://javin.ai" />
       </head>
       <body className="antialiased">
         <SessionProvider>
