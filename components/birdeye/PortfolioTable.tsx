@@ -11,7 +11,7 @@ interface PortfolioProps {
 }
 
 const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
-  console.log("portfolio resoult", result);
+  // console.log("portfolio resoult", result);
   if (!result || !result.attributes)
     return <div className="text-white">No portfolio data available.</div>;
   const { attributes, currency } = result;
