@@ -173,6 +173,9 @@ dependencies:
   react-markdown:
     specifier: ^9.0.1
     version: 9.0.1(@types/react@18.3.12)(react@19.0.0-rc-45804af1-20241021)
+  react-pwa-add-to-homescreen:
+    specifier: ^1.1.8
+    version: 1.1.8(react-dom@19.0.0-rc-45804af1-20241021)(react@19.0.0-rc-45804af1-20241021)
   react-resizable-panels:
     specifier: ^2.1.7
     version: 2.1.7(react-dom@19.0.0-rc-45804af1-20241021)(react@19.0.0-rc-45804af1-20241021)
@@ -6234,6 +6237,16 @@ packages:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /react-pwa-add-to-homescreen@1.1.8(react-dom@19.0.0-rc-45804af1-20241021)(react@19.0.0-rc-45804af1-20241021):
+    resolution: {integrity: sha512-hbrCTOqWMrOpp04havUHnRzXFF1EISY2JLo+V/EIru67gamPui5Vt+SIT4sEA0jy6TzvEqWt/SJodG3mykg+fA==}
+    peerDependencies:
+      react: '>= 17.0.0'
+      react-dom: '>= 17.0.0'
+    dependencies:
+      react: 19.0.0-rc-45804af1-20241021
+      react-dom: 19.0.0-rc-45804af1-20241021(react@19.0.0-rc-45804af1-20241021)
     dev: false
 
   /react-remove-scroll-bar@2.3.8(@types/react@18.3.12)(react@19.0.0-rc-45804af1-20241021):

@@ -59,6 +59,11 @@ export default async function RootLayout({
           }}
         />
         <link rel="icon" href="/icon/j_white.png" type="image/png" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.js"></script>
       </head>
       <body className="antialiased">
         <SessionProvider>

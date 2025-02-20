@@ -132,12 +132,41 @@ export function InstallPrompt() {
     return null; // Don't show install button if already installed
   }
 
+  useEffect(() => {
+    // @ts-ignore
+    window.AddToHomeScreenInstance = window.AddToHomeScreen({
+      appName: "Javin.ai", // Name of the app.
+      // Required.
+      appNameDisplay: "standalone", // If set to 'standalone' (the default), the app name will be diplayed
+      // on it's own, beneath the "Install App" header. If set to 'inline', the
+      // app name will be displayed on a single line like "Install MyApp"
+      // Optional. Default 'standalone'
+      appIconUrl: "apple-touch-icon.png", // App icon link (square, at least 40 x 40 pixels).
+      // Required.
+      assetUrl:
+        "https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/assets/img/", // Link to directory of library image assets.
+
+      maxModalDisplayCount: -1, // If set, the modal will only show this many times.
+      // [Optional] Default: -1 (no limit).  (Debugging: Use this.clearModalDisplayCount() to reset the count)
+      displayOptions: { showMobile: true, showDesktop: true }, // show on mobile/desktop [Optional] Default: show everywhere
+      allowClose: true, // allow the user to close the modal by tapping outside of it [Optional. Default: true]
+    });
+  }, []);
+
   return (
     <div className="bg-neutral-700 border border-white">
       <h3>Install App DIV</h3>
       {!isIOS && deferredPrompt && (
         <button onClick={handleInstallClick}>Add to Home Screen</button>
       )}
+      <button
+        onClick={() => {
+          // @ts-ignore
+          window.AddToHomeScreenInstance.show("en");
+        }}
+      >
+        INstall try
+      </button>
       {isIOS && (
         <p>
           To install this app on your iOS device, tap the share button
