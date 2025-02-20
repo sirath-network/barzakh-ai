@@ -6,11 +6,26 @@ import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
+const baseUrl = "https://javin.ai";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://javin.ai"),
+  metadataBase: new URL(baseUrl),
   title: "Javin.ai",
   description:
     "A focused, no-nonsense AI search engine for crypto and blockchain.",
+  openGraph: {
+    title: "Javin.ai",
+    description:
+      "A focused, no-nonsense AI search engine for crypto and blockchain.",
+    images: [
+      {
+        url: new URL(`${baseUrl}/images/javin/preview/javin_preview.jpg`),
+        width: 1200,
+        height: 630,
+        alt: "Javin.ai",
+      },
+    ],
+  },
 };
 
 export const viewport = {
