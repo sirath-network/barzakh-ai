@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://javin.ai"),
@@ -63,7 +64,7 @@ export default async function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.css"
         />
-        <script src="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.js"></script>
+        <Script src="https://cdn.jsdelivr.net/gh/philfung/add-to-homescreen@2.991/dist/add-to-homescreen.min.js"></Script>
       </head>
       <body className="antialiased">
         <SessionProvider>

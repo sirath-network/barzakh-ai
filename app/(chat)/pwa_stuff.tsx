@@ -128,10 +128,6 @@ export function InstallPrompt() {
     setDeferredPrompt(null);
   };
 
-  if (isStandalone) {
-    return null; // Don't show install button if already installed
-  }
-
   useEffect(() => {
     // @ts-ignore
     window.AddToHomeScreenInstance = window.AddToHomeScreen({
@@ -152,6 +148,10 @@ export function InstallPrompt() {
       allowClose: true, // allow the user to close the modal by tapping outside of it [Optional. Default: true]
     });
   }, []);
+
+  if (isStandalone) {
+    return null; // Don't show install button if already installed
+  }
 
   return (
     <div className="bg-neutral-700 border border-white">
