@@ -72,7 +72,7 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
-        <link rel="icon" href="/icon/j_white.png" type="image/png" />
+        <link rel="icon" href="images/icon/j_white.png" type="image/png" />
       </head>
       <body className="antialiased">
         <SessionProvider>
