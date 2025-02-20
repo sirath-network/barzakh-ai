@@ -57,11 +57,13 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
-        <link
-          rel="icon"
-          href="/icon/j_white.png"
-          type="image/png"
-        />
+        <link rel="icon" href="/icon/j_white.png" type="image/png" />
+        <meta property="og:title" content="Javin.ai" />
+        <meta property="og:description" content="A focused, no-nonsense AI search engine for crypto and blockchain." />
+        <meta property="og:image" content="/images/javin/preview/javin_preview.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content="https://javin.ai" />
       </head>
       <body className="antialiased">
         <SessionProvider>
