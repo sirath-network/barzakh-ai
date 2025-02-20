@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Javin.ai",
   description:
     "A focused, no-nonsense AI search engine for crypto and blockchain.",
+  manifest: "/manifest.json",
 };
 
 export const viewport = {
@@ -57,11 +58,7 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
-        <link
-          rel="icon"
-          href="/icon/j_white.png"
-          type="image/png"
-        />
+        <link rel="icon" href="/icon/j_white.png" type="image/png" />
       </head>
       <body className="antialiased">
         <SessionProvider>
