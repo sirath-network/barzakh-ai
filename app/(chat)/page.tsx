@@ -5,6 +5,7 @@ import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
 import { generateUUID } from "@/lib/utils";
 import { DataStreamHandler } from "@/components/data-stream-handler";
 import { auth } from "@/app/(auth)/auth";
+import { InstallPrompt, PushNotificationManager } from "./pwa_stuff";
 
 export default async function Page() {
   const id = generateUUID();
@@ -14,6 +15,8 @@ export default async function Page() {
   if (!modelIdFromCookie) {
     return (
       <>
+        <PushNotificationManager />
+        <InstallPrompt />
         <Chat
           key={id}
           id={id}
@@ -30,6 +33,8 @@ export default async function Page() {
 
   return (
     <>
+      <PushNotificationManager />
+      <InstallPrompt />
       <Chat
         key={id}
         id={id}

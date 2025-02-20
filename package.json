@@ -85,10 +85,12 @@
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
     "vaul": "^1.1.2",
+    "web-push": "^3.6.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
     "@tailwindcss/typography": "^0.5.15",
     "@types/d3-scale": "^4.0.8",
     "@types/node": "^22.8.6",
@@ -96,7 +98,7 @@
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.25.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",
