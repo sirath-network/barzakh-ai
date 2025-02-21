@@ -9,14 +9,14 @@ const TokenInfoTable: React.FC<{
   // console.log("token data", result);
 
   if (!result || result.length === 0 || typeof result == "string")
-    return <div className="text-white">No token data available.</div>;
+    return <div className="text-black dark:text-white">No token data available.</div>;
   // console.log("result ", result[0].attributes.external_links);
   return (
-    <div className="bg-neutral-900 border border-neutral-700 text-white rounded-lg p-4 w-full max-w-4xl overflow-x-auto">
+    <div className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-white rounded-lg p-4 w-full max-w-4xl overflow-x-auto">
       {result.map((token, index) => (
         <div key={index} className="">
           {/* Token Header */}
-          <div className="flex flex-row justify-between border-b p-2 border-neutral-700">
+          <div className="flex flex-row justify-between border-b p-2 border-neutral-200 dark:border-neutral-700">
             <h2 className="text-lg font-semibold">
               {token.attributes.name} ({token.attributes.symbol})
             </h2>
@@ -92,7 +92,7 @@ const TokenInfoTable: React.FC<{
                     : "-",
                 ],
               ].map(([label, value], idx) => (
-                <tr key={idx} className="border-b border-neutral-700">
+                <tr key={idx} className="border-b border-neutral-200 dark:border-neutral-700">
                   <td className="p-2 font-semibold">{label}</td>
                   <td className="p-2">{value || "-"}</td>
                 </tr>
@@ -103,19 +103,19 @@ const TokenInfoTable: React.FC<{
           {/* Blockchain Implementations */}
           {token.attributes.implementations.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg font-semibold border-b border-neutral-700 p-2">
+              <h3 className="text-lg font-semibold border-b border-neutral-200 dark:border-neutral-700 p-2">
                 Blockchain Implementations
               </h3>
               <table className="w-full text-sm mt-2">
                 <thead>
-                  <tr className="border-b border-neutral-700">
+                  <tr className="border-b border-neutral-200 dark:border-neutral-700">
                     <th className="p-2 text-start">Chain</th>
                     <th className="p-2 text-start">Contract Address</th>
                   </tr>
                 </thead>
                 <tbody>
                   {token.attributes.implementations.map((impl, index) => (
-                    <tr key={index} className="border-b border-neutral-700">
+                    <tr key={index} className="border-b border-neutral-200 dark:border-neutral-700">
                       <td className="p-2">{impl.chain_id}</td>
                       <td className="p-2 break-all">{impl.address}</td>
                     </tr>
@@ -128,10 +128,10 @@ const TokenInfoTable: React.FC<{
           {/* External Links */}
           {token.attributes.external_links.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg font-semibold border-b border-neutral-700 p-2">
+              <h3 className="text-lg font-semibold border-b border-neutral-200 dark:border-neutral-700 p-2">
                 Social Links
               </h3>
-              <div className="text-sm text-blue-400 flex flex-row flex-wrap gap-2 m-2">
+              <div className="text-sm text-blue-600 flex flex-row flex-wrap gap-2 m-2">
                 {token.attributes.external_links.map((link, index) => (
                   <a
                     href={link.url}
@@ -140,7 +140,7 @@ const TokenInfoTable: React.FC<{
                     key={index}
                     className="flex flex-row items-center gap-2"
                   >
-                    <div className=" h-1 w-1 bg-blue-400 rounded-full" />
+                    <div className=" h-1 w-1 bg-blue-600 rounded-full" />
                     {link.name}
                   </a>
                 ))}

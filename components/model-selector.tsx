@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { startTransition, useMemo, useOptimistic, useState } from 'react';
+import { startTransition, useMemo, useOptimistic, useState } from "react";
 
-import { saveChatModelAsCookie } from '@/app/(chat)/actions';
-import { Button } from '@/components/ui/button';
+import { saveChatModelAsCookie } from "@/app/(chat)/actions";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { chatModels } from '@/lib/ai/models';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dropdown-menu";
+import { chatModels } from "@/lib/ai/models";
+import { cn } from "@/lib/utils";
 
-import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
+import { CheckCircleFillIcon, ChevronDownIcon } from "./icons";
 
 export function ModelSelector({
   selectedModelId,
@@ -27,7 +27,7 @@ export function ModelSelector({
 
   const selectedChatModel = useMemo(
     () => chatModels.find((chatModel) => chatModel.id === optimisticModelId),
-    [optimisticModelId],
+    [optimisticModelId]
   );
 
   return (
@@ -35,8 +35,8 @@ export function ModelSelector({
       <DropdownMenuTrigger
         asChild
         className={cn(
-          'w-fit data-[state=open]:bg-accent bg-neutral-800 border border-neutral-700 data-[state=open]:text-accent-foreground rounded-full',
-          className,
+          "w-fit data-[state=open]:bg-accent bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-200 data-[state=open]:text-accent-foreground rounded-full",
+          className
         )}
       >
         <Button variant="outline" className="md:px-2 md:h-[34px]">
@@ -44,7 +44,10 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px] bg-neutral-800 border border-neutral-700">
+      <DropdownMenuContent
+        align="start"
+        className="min-w-[300px] bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-200"
+      >
         {chatModels.map((chatModel) => {
           const { id } = chatModel;
 

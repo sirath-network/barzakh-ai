@@ -91,7 +91,7 @@ const SelectionContent = ({ ...props }) => {
         "rounded-full border border-neutral-200 dark:border-neutral-700",
         "bg-white dark:bg-neutral-800",
         "shadow-sm overflow-visible",
-        "relative z-10"
+        "relative"
       )}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
@@ -151,7 +151,7 @@ const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
             "overflow-clip",
             "transition-colors duration-300",
             isSelected
-              ? "bg-neutral-500 dark:bg-neutral-600 text-white dark:text-neutral-300"
+              ? "bg-neutral-300 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-300"
               : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
           )}
           transition={{ duration: 0.3, ease: "easeInOut" }}

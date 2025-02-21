@@ -18,6 +18,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export function SidebarUserNav({ user }: { user: User }) {
   const { setTheme, theme } = useTheme();
@@ -53,6 +54,13 @@ export function SidebarUserNav({ user }: { user: User }) {
               {`Toggle ${theme === "light" ? "dark" : "light"} mode`}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {/* <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={handleInstallClick}
+            >
+              <span className="truncate">Install</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator /> */}
             <DropdownMenuItem
               className="cursor-pointer"
               onSelect={() =>
