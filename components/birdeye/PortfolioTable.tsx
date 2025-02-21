@@ -13,7 +13,11 @@ interface PortfolioProps {
 const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   // console.log("portfolio resoult", result);
   if (!result || !result.attributes)
-    return <div className="text-white">No portfolio data available.</div>;
+    return (
+      <div className="text-black dark:text-white">
+        No portfolio data available.
+      </div>
+    );
   const { attributes, currency } = result;
   const totalPositions = attributes.total?.positions;
   const percentChange = attributes.changes?.percent_1d;
@@ -23,9 +27,9 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     : [];
 
   return (
-    <div className="bg-neutral-900 text-white px-4 py-4 rounded-lg w-full max-w-md border border-neutral-700 mt-2 md:mt-0">
+    <div className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-white px-4 py-4 rounded-lg w-full max-w-md mt-2 md:mt-0">
       {/* Portfolio Header */}
-      <div className="flex flex-col pb-2 border-b border-neutral-700">
+      <div className="flex flex-col pb-2 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex flex-row gap-1 justify-between">
           <h2 className="text-lg font-semibold">Portfolio</h2>
           {totalPositions > 0 && (
@@ -37,7 +41,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             </div>
           )}
         </div>
-        <span className="text-sm text-gray-400 float-right">
+        <span className="text-sm text-gray-600 dark:text-gray-400 float-right">
           24h Change:{" "}
           <span className={getPercentChangeColor(percentChange)}>
             {percentChange.toFixed(2)}% &#x28;
@@ -50,12 +54,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       {/* Portfolio Breakdown by Chain */}
       <div className="max-h-64 overflow-y-auto pr-2">
         {chains.length === 0 ? (
-          <div className="text-gray-400">No holdings available.</div>
+          <div className="text-gray-600 dark:text-gray-400">No holdings available.</div>
         ) : (
           chains.map(([chain, value]) => (
             <div
               key={chain}
-              className="flex justify-between items-center py-2 border-b border-neutral-700 last:border-none"
+              className="flex justify-between items-center py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-none"
             >
               <div className="flex gap-2 items-center justify-center">
                 {/* <Image

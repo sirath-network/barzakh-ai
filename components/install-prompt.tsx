@@ -42,8 +42,8 @@ export function InstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // const time = 24 * 60 * 60 * 1000 // 24 hour
-    const time = 10 * 1000 // 10 seconds
+    const time = 24 * 60 * 60 * 1000 // 24 hour
+    // const time = 10 * 1000 // 10 seconds
     setWithExpiry('installPromptDismissed', 'true', time);
   };
 
