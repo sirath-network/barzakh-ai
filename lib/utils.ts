@@ -236,13 +236,13 @@ export function getDocumentTimestampByIndex(
   return documents[index].createdAt;
 }
 
-export type SearchGroupId = "search" | "on_chain";
+export type SearchGroupId = "search" | "on_chain" | "creditcoin";
 
 export const searchGroups = [
   {
     id: "search" as const,
     name: "Web",
-    description: "Search across the entire internet",
+    description: "Search across the entire internet and blockchains",
     icon: Globe,
     img: "",
   },
@@ -253,6 +253,14 @@ export const searchGroups = [
     description: "Indepth onchain analysis",
     icon: Network,
     img: "",
+  },
+
+  {
+    id: "creditcoin" as const,
+    name: "Creditcoin",
+    description: "Everything Creditcoin. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/creditcoin-white.png",
   },
 ] as const;
 
@@ -485,7 +493,7 @@ export const setWithExpiry = (key: string, value: string, ttl: number) => {
   localStorage.setItem(key, JSON.stringify(item));
 };
 
-export const getWithExpiry = (key:string) => {
+export const getWithExpiry = (key: string) => {
   const itemStr = localStorage.getItem(key);
 
   // Return null if item doesn't exist

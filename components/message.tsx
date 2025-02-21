@@ -103,7 +103,11 @@ const PurePreviewMessage = ({
 
                   if (state === "result") {
                     const { result } = toolInvocation;
-
+                    // console.log(
+                    //   toolName,
+                    //   " -- tool result ------------ ",
+                    //   result
+                    // );
                     return (
                       <div key={toolCallId}>
                         {toolName === "webSearch" ? (
@@ -112,7 +116,8 @@ const PurePreviewMessage = ({
                           toolName === "searchSolanaTokenMarketData" ? (
                           <TokenInfoTable result={result} />
                         ) : toolName === "getSolanaChainWalletPortfolio" ||
-                          toolName === "getEvmMultiChainWalletPortfolio" ? (
+                          toolName === "getEvmMultiChainWalletPortfolio" ||
+                          toolName === "getTokenBalances" ? (
                           <PortfolioTable result={result} />
                         ) : (
                           <div className="text-sm">Done!</div>
@@ -135,8 +140,15 @@ const PurePreviewMessage = ({
                       ) : toolName === "getSolanaChainWalletPortfolio" ||
                         toolName === "getEvmMultiChainWalletPortfolio" ? (
                         <div className="text-sm">
-                          {/* <PortfolioTable result={null} args={args} /> */}
                           <p className="py-1">Fetching portfolio...</p>
+                        </div>
+                      ) : toolName === "getCreditcoinApiDoc" ? (
+                        <div className="text-sm">
+                          <p className="py-1">Exploring the blockchain...</p>
+                        </div>
+                      ) : toolName === "creditCoinApiFetch" ? (
+                        <div className="text-sm">
+                          <p className="py-1">Fetching data...</p>
                         </div>
                       ) : (
                         <div className="text-sm">Finding info...</div>
