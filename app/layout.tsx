@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
-
 import { ThemeProvider } from "@/components/theme-provider";
-
-import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import "./globals.css";
 
 const baseUrl = "https://javin.ai";
 
@@ -13,6 +11,7 @@ export const metadata: Metadata = {
   title: "Javin.ai",
   description:
     "A focused, no-nonsense AI search engine for crypto and blockchain.",
+  manifest: "/manifest.json",
   openGraph: {
     title: "Javin.ai",
     description:
@@ -75,6 +74,7 @@ export default async function RootLayout({
         <link rel="icon" href="images/icon/j_white.png" type="image/png" />
       </head>
       <body className="antialiased">
+        {/* dont remove below div. it is for modal */}
         <SessionProvider>
           <ThemeProvider
             attribute="class"

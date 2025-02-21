@@ -1,8 +1,7 @@
 "use client";
-
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 import { ChatHeader } from "@/components/chat-header";
@@ -16,6 +15,7 @@ import { VisibilityType } from "./visibility-selector";
 import { useBlockSelector } from "@/hooks/use-block";
 import { toast } from "sonner";
 import { User } from "next-auth";
+import { InstallPrompt } from "./install-prompt";
 
 export function Chat({
   id,
@@ -64,7 +64,6 @@ export function Chat({
     `/api/vote?chatId=${id}`,
     fetcher
   );
-  // console.log(searchModeId);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
@@ -72,6 +71,7 @@ export function Chat({
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
+        <InstallPrompt />
         <ChatHeader
           messages={messages}
           chatId={id}

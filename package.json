@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "devt": "next dev --turbo",
+    "deve": "next dev --experimental-https",
     "build": "tsx lib/db/migrate && next build",
     "start": "next start",
     "lint": "next lint && biome lint --write --unsafe",
@@ -97,6 +98,7 @@
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.25.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5",

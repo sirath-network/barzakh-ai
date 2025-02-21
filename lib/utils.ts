@@ -479,9 +479,35 @@ export const transformBirdeyeToTokenSearchResponse = (
   };
 };
 
-
 export const getPercentChangeColor = (percentChange: number) => {
   if (percentChange > 0) return "text-green-700";
   if (percentChange < 0) return "text-red-700";
   return "text-gray-400";
+};
+
+export const setWithExpiry = (key: string, value: string, ttl: number) => {
+  const item = {
+    value: value,
+    expiry: new Date().getTime() + ttl,
+  };
+  localStorage.setItem(key, JSON.stringify(item));
+};
+
+export const getWithExpiry = (key:string) => {
+  const itemStr = localStorage.getItem(key);
+
+  // Return null if item doesn't exist
+  if (!itemStr) return null;
+
+  const item = JSON.parse(itemStr);
+  const now = new Date().getTime();
+
+  // Compare expiry time with current time
+  if (now > item.expiry) {
+    // Item has expired, remove it from localStorage
+    localStorage.removeItem(key);
+    return null;
+  }
+
+  return item.value;
 };
