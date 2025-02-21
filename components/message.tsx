@@ -107,9 +107,7 @@ const PurePreviewMessage = ({
                     return (
                       <div key={toolCallId}>
                         {toolName === "webSearch" ? (
-                          <div className="mt-4">
-                            <MultiSearch result={result} args={args} />
-                          </div>
+                          <MultiSearch result={result} args={args} />
                         ) : toolName === "searchEvmTokenMarketData" ||
                           toolName === "searchSolanaTokenMarketData" ? (
                           <TokenInfoTable result={result} />
@@ -152,20 +150,18 @@ const PurePreviewMessage = ({
             {(message.content || message.reasoning) && mode === "view" && (
               <div className="flex flex-row gap-2 items-start">
                 {message.role === "user" && !isReadonly && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                        onClick={() => {
-                          setMode("edit");
-                        }}
-                      >
-                        <PencilEditIcon />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit message</TooltipContent>
-                  </Tooltip>
+                  <Button
+                    type="button"
+                    title="Edit message"
+                    variant="ghost"
+                    className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setMode("edit");
+                    }}
+                  >
+                    <PencilEditIcon />
+                  </Button>
                 )}
 
                 <div

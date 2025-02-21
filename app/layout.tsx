@@ -2,14 +2,28 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
-import "./globals.css";
+
+const baseUrl = "https://javin.ai";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://javin.ai"),
+  metadataBase: new URL(baseUrl),
   title: "Javin.ai",
   description:
     "A focused, no-nonsense AI search engine for crypto and blockchain.",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Javin.ai",
+    description:
+      "A focused, no-nonsense AI search engine for crypto and blockchain.",
+    images: [
+      {
+        url: new URL(`${baseUrl}/images/javin/preview/javin_preview.jpg`),
+        width: 1200,
+        height: 630,
+        alt: "Javin.ai",
+      },
+    ],
+  },
 };
 
 export const viewport = {
@@ -56,7 +70,7 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
-        <link rel="icon" href="/icon/j_white.png" type="image/png" />
+        <link rel="icon" href="images/icon/j_white.png" type="image/png" />
       </head>
       <body className="antialiased">
         {/* dont remove below div. it is for modal */}
