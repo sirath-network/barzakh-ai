@@ -76,7 +76,6 @@
     "react-data-grid": "7.0.0-beta.47",
     "react-dom": "19.0.0-rc-45804af1-20241021",
     "react-markdown": "^9.0.1",
-    "react-pwa-add-to-homescreen": "^1.1.8",
     "react-resizable-panels": "^2.1.7",
     "remark-gfm": "^4.0.0",
     "server-only": "^0.0.1",
@@ -86,7 +85,6 @@
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
     "vaul": "^1.1.2",
-    "web-push": "^3.6.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
