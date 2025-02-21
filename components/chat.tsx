@@ -15,6 +15,7 @@ import { VisibilityType } from "./visibility-selector";
 import { useBlockSelector } from "@/hooks/use-block";
 import { toast } from "sonner";
 import { User } from "next-auth";
+import { InstallPrompt } from "./install-prompt";
 
 export function Chat({
   id,
@@ -70,6 +71,7 @@ export function Chat({
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
+        <InstallPrompt />
         <ChatHeader
           messages={messages}
           chatId={id}
