@@ -16,11 +16,20 @@ if (!FIRECRAWL_API_KEY || !FIRECRAWL_API_ENDPOINT) {
 const app = new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY });
 
 // extract only the relevant api endpoint information
-function extractParametersSection(text: string): string | null {
-  // Case-insensitive regex to match from "parameters" to "bad input parameter"
-  const regex = /parameters[\s\S]*?bad input parameter/i;
+function extractParametersSection(text: string): string {
+  // Convert to lowercase for case-insensitive search
+  const lowerText = text.toLowerCase();
+
+  // Check if both "parameters" and "get" exist in the text
+  if (!lowerText.includes("parameters") || !lowerText.includes("get")) {
+    return text; // Return the original text if either keyword is missing
+  }
+
+  // Case-insensitive regex to match from "parameters" to "get"
+  const regex = /parameters[\s\S]*?get/i;
   const match = text.match(regex);
-  return match ? match[0] : null;
+
+  return match ? match[0] : text;
 }
 
 export const getCreditcoinApiDoc = tool({
@@ -78,12 +87,17 @@ export const getCreditcoinApiDoc = tool({
       if (!scrapeResult.success) {
         throw new Error(`Failed to scrape: ${scrapeResult.error}`);
       }
-      // const extractedApiEndpointInfo = extractParametersSection(
-      //   scrapeResult.markdown?.toString()!
-      // );
+      const extractedApiEndpointInfo = extractParametersSection(
+        scrapeResult.markdown?.toString()!
+      );
 
-      // console.log("markdown is ------------ ", scrapeResult.markdown);
-      return scrapeResult.markdown;
+      console.log("markdown is ------------ ", extractedApiEndpointInfo);
+      //
+      console.log("markdown length is ", extractedApiEndpointInfo?.length);
+      if (extractedApiEndpointInfo.length > 50000) {
+        return "Result is too big to display!";
+      }
+      return extractedApiEndpointInfo;
     } catch (error) {
       console.error("Error in getCreditcoinApiDoc:", error);
       throw error;
