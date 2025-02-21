@@ -103,7 +103,11 @@ const PurePreviewMessage = ({
 
                   if (state === "result") {
                     const { result } = toolInvocation;
-
+                    // console.log(
+                    //   toolName,
+                    //   " -- tool result ------------ ",
+                    //   result
+                    // );
                     return (
                       <div key={toolCallId}>
                         {toolName === "webSearch" ? (
