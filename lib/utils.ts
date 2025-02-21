@@ -247,13 +247,13 @@ export const searchGroups = [
     img: "",
   },
 
-  // {
-  //   id: "on_chain" as const,
-  //   name: "On Chain",
-  //   description: "Indepth onchain analysis",
-  //   icon: Network,
-  //   img: "",
-  // },
+  {
+    id: "on_chain" as const,
+    name: "On Chain",
+    description: "Indepth onchain analysis",
+    icon: Network,
+    img: "",
+  },
 
   {
     id: "creditcoin" as const,
@@ -493,7 +493,7 @@ export const setWithExpiry = (key: string, value: string, ttl: number) => {
   localStorage.setItem(key, JSON.stringify(item));
 };
 
-export const getWithExpiry = (key:string) => {
+export const getWithExpiry = (key: string) => {
   const itemStr = localStorage.getItem(key);
 
   // Return null if item doesn't exist

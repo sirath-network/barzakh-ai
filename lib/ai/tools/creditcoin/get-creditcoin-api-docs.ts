@@ -82,7 +82,7 @@ export const getCreditcoinApiDoc = tool({
       //   scrapeResult.markdown?.toString()!
       // );
 
-      console.log("markdown is ------------ ", scrapeResult.markdown);
+      // console.log("markdown is ------------ ", scrapeResult.markdown);
       return scrapeResult.markdown;
     } catch (error) {
       console.error("Error in getCreditcoinApiDoc:", error);

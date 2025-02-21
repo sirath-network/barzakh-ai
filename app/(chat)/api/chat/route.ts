@@ -104,7 +104,6 @@ export async function POST(request: Request) {
           getSolanaChainWalletPortfolio,
           searchSolanaTokenMarketData,
           searchEvmTokenMarketData,
-          getTokenBalances,
           getScrapJobData,
           creditCoinApiFetch,
           getCreditcoinApiDoc,

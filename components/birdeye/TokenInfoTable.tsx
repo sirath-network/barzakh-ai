@@ -9,7 +9,9 @@ const TokenInfoTable: React.FC<{
   // console.log("token data", result);
 
   if (!result || result.length === 0 || typeof result == "string")
-    return <div className="text-black dark:text-white">No token data available.</div>;
+    return (
+      <div className="text-black dark:text-white">No token data available.</div>
+    );
   // console.log("result ", result[0].attributes.external_links);
   return (
     <div className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-white rounded-lg p-4 w-full max-w-4xl overflow-x-auto">
@@ -92,7 +94,10 @@ const TokenInfoTable: React.FC<{
                     : "-",
                 ],
               ].map(([label, value], idx) => (
-                <tr key={idx} className="border-b border-neutral-200 dark:border-neutral-700">
+                <tr
+                  key={idx}
+                  className="border-b border-neutral-200 dark:border-neutral-700"
+                >
                   <td className="p-2 font-semibold">{label}</td>
                   <td className="p-2">{value || "-"}</td>
                 </tr>
@@ -115,7 +120,10 @@ const TokenInfoTable: React.FC<{
                 </thead>
                 <tbody>
                   {token.attributes.implementations.map((impl, index) => (
-                    <tr key={index} className="border-b border-neutral-200 dark:border-neutral-700">
+                    <tr
+                      key={index}
+                      className="border-b border-neutral-200 dark:border-neutral-700"
+                    >
                       <td className="p-2">{impl.chain_id}</td>
                       <td className="p-2 break-all">{impl.address}</td>
                     </tr>
