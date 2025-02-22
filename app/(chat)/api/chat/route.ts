@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         model: myProvider.languageModel(selectedChatModel),
         system: systemPrompt,
         messages,
-        maxSteps: 5,
+        maxSteps: 10,
         experimental_activeTools:
           selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
         experimental_transform: smoothStream({ chunking: "word" }),

@@ -24,6 +24,7 @@ export const creditCoinApiFetch = tool({
     };
 
     try {
+      console.log("fetching data ------ ", url);
       const response = await fetch(url, options);
 
       const apiResult = await response.json();
@@ -37,7 +38,7 @@ export const creditCoinApiFetch = tool({
       return apiResult;
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);
-      return "Failed to fetch wallet portfolio";
+      return `Failed to fetch wallet portfolio. Error: ${error}`;
     }
   },
 });
