@@ -29,6 +29,7 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
+import { Check } from "lucide-react";
 
 const PurePreviewMessage = ({
   chatId,
@@ -120,6 +121,22 @@ const PurePreviewMessage = ({
                           toolName === "getEvmMultiChainWalletPortfolio" ||
                           toolName === "getTokenBalances" ? (
                           <PortfolioTable result={result} />
+                        ) : toolName === "getCreditcoinApiDoc" ||
+                          toolName === "getVanaApiDoc" ? (
+                          <div className="text-sm">
+                            <p className="flex flex-row gap-1 items-center">
+                              Exploring the blockchain
+                              <Check size={14} className="text-green-500" />
+                            </p>
+                          </div>
+                        ) : toolName === "creditCoinApiFetch" ||
+                          toolName === "vanaApiFetch" ? (
+                          <div className="text-sm">
+                            <p className="flex flex-row gap-1 items-center">
+                              Fetching data
+                              <Check size={14} className="text-green-500" />
+                            </p>
+                          </div>
                         ) : (
                           <div className="text-sm">Done!</div>
                         )}

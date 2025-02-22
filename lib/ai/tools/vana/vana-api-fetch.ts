@@ -35,9 +35,15 @@ export const vanaApiFetch = tool({
       // console.log("api result", apiResult);
 
       return apiResult;
-    } catch (error) {
-      console.error("Error fetching wallet portfolio:", error);
-      return `Failed to fetch wallet portfolio. Error: ${error}`;
+    } catch (error: any) {
+      console.error("Error in vanaApiFetch:", error);
+
+      // Returning error details so AI can adapt its next action
+      return {
+        success: false,
+        message: "Error in making api request.",
+        error: error.message || "Unknown error",
+      };
     }
   },
 });

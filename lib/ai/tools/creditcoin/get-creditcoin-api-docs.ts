@@ -33,10 +33,21 @@ export const getCreditcoinApiDoc = tool({
       const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
       // console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
 
-      return `the api endpoint you should call is-  https://creditcoin.blockscout.com/api/v2${apiEndpointName}  - and info about the endpoint is - ${apiEndpointInfoString}`;
-    } catch (error) {
+      return {
+        success: true,
+        message: `The API endpoint you should call is: https://creditcoin.blockscout.com/api/v2${apiEndpointName}.`,
+        endpoint: `https://creditcoin.blockscout.com/api/v2${apiEndpointName}`,
+        details: apiEndpointInfoString,
+      };
+    } catch (error: any) {
       console.error("Error in getCreditcoinApiDoc:", error);
-      throw error;
+
+      // Returning error details so AI can adapt its next action
+      return {
+        success: false,
+        message: "Error retrieving API documentation.",
+        error: error.message || "Unknown error",
+      };
     }
   },
 });
