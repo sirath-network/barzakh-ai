@@ -28,10 +28,11 @@ import { getSolanaChainWalletPortfolio } from "@/lib/ai/tools/solana/wallet-port
 import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/evm/wallet-portfolio-evm";
 import { searchSolanaTokenMarketData } from "@/lib/ai/tools/solana/search-token-solana";
 import { searchEvmTokenMarketData } from "@/lib/ai/tools/evm/search-token-evm";
-import { getTokenBalances } from "@/lib/ai/tools/creditcoin/token-balances";
 import { getScrapJobData } from "@/lib/ai/tools/scrap-site";
 import { creditCoinApiFetch } from "@/lib/ai/tools/creditcoin/creditcoin-api-fetch";
 import { getCreditcoinApiDoc } from "@/lib/ai/tools/creditcoin/get-creditcoin-api-docs";
+import { vanaApiFetch } from "@/lib/ai/tools/vana/vana-api-fetch";
+import { getVanaApiDoc } from "@/lib/ai/tools/vana/get-vana-api-docs";
 
 export const maxDuration = 60;
 
@@ -107,6 +108,8 @@ export async function POST(request: Request) {
           getScrapJobData,
           creditCoinApiFetch,
           getCreditcoinApiDoc,
+          vanaApiFetch,
+          getVanaApiDoc,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {

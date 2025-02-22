@@ -1,9 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-export const creditCoinApiFetch = tool({
-  description:
-    "Make fetch calls to the creditcoin apis to get various onchain data.",
+export const vanaApiFetch = tool({
+  description: "Make fetch calls to the vana apis to get various onchain data.",
   parameters: z.object({
     url: z
       .string()
@@ -13,7 +12,7 @@ export const creditCoinApiFetch = tool({
   execute: async ({ url }: { url: string }) => {
     const apiKey = process.env.BLOCKSCOUT_API_KEY;
     if (!apiKey) {
-      throw Error("creditcoin api key not found");
+      throw Error("blockscout api key not found");
     }
     const options = {
       method: "GET",

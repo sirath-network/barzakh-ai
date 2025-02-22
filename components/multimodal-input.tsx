@@ -157,8 +157,14 @@ const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
           {iconImg ? (
-            <div className="w-7 h-7 rounded-full p-0 m-0 object-cover object-center overflow-clip">
-              <Image src={iconImg} alt={iconImg} width={50} height={50} />
+            <div className="w-7 h-7 rounded-full  p-0 m-0 object-cover object-center overflow-clip">
+              <Image
+                src={iconImg}
+                alt={iconImg}
+                width={50}
+                height={50}
+                className="bg-white w-full h-full "
+              />
             </div>
           ) : (
             <Icon className="size-4" />
