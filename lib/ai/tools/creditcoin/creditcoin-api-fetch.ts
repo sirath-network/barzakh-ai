@@ -24,7 +24,11 @@ export const creditCoinApiFetch = tool({
     };
 
     try {
-      const response = await fetch(url, options);
+      console.log("fetching data ------ ", url);
+      const response = await fetch(
+        "https://creditcoin.blockscout.com/api/v2/search?q=shibu",
+        options
+      );
 
       const apiResult = await response.json();
       if (!apiResult) {
@@ -37,7 +41,7 @@ export const creditCoinApiFetch = tool({
       return apiResult;
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);
-      return "Failed to fetch wallet portfolio";
+      return `Failed to fetch wallet portfolio. Error: ${error}`;
     }
   },
 });
