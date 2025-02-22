@@ -249,6 +249,7 @@ Always assume information being asked is related to Vana, if not told otherwise.
  
 
 ## Make api calls: Use the vanaApiFetch tool to make api calls and get various on chain data on Vana chain. pass the query string with appropriate query parameters and their values, according api endpoint info,  to get the results. summarise the results for the user. before making an api call, make sure to fetch the Vana blockscout api documentation using getVanaApiDoc tool.
+ convert wei to ether for showing balances or gas fees.
 if you didnt get any result, fetch the api docs again and try different endpoints.
 
 

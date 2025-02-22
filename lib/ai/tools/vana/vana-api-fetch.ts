@@ -1,6 +1,13 @@
 import { tool } from "ai";
 import { z } from "zod";
 
+function scaleLargeNumbersInJson(jsonString: string): string {
+  return jsonString.replace(/"(\d{19,})"/g, (_match, num) => {
+    const scaledNum = (Number(num) / 1e18).toFixed(8) + " (scaled)";
+    return `"${scaledNum} (scaled)"`;
+  });
+}
+
 export const vanaApiFetch = tool({
   description: "Make fetch calls to the vana apis to get various onchain data.",
   parameters: z.object({
@@ -33,8 +40,10 @@ export const vanaApiFetch = tool({
       }
       // console.log("portfoliodata", portfolioData[0])
       // console.log("api result", apiResult);
-
-      return apiResult;
+      console.log(JSON.stringify(apiResult));
+      const apiResultString = JSON.stringify(apiResult);
+      const result = scaleLargeNumbersInJson(apiResultString);
+      return result;
     } catch (error: any) {
       console.error("Error in vanaApiFetch:", error);
 
