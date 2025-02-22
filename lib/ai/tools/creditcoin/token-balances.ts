@@ -84,7 +84,7 @@ export const getTokenBalances = tool({
   }: {
     wallet_address: string;
   }): Promise<PortfolioData | string> => {
-    const apiKey = process.env.CREDITCOIN_BLOCKSCOUT_API_KEY;
+    const apiKey = process.env.BLOCKSCOUT_API_KEY;
     if (!apiKey) {
       throw Error("creditcoin api key not found");
     }
