@@ -21,8 +21,21 @@ export async function loadOpenAPI(url: string) {
   return await $RefParser.dereference(openapiData);
 }
 
+// returns a list of all paths and their summaries in a json string
 export async function getAllPaths(openapiData: any) {
-  return Object.keys(openapiData.paths || {});
+  return JSON.stringify(
+    Object.entries(openapiData.paths || {}).map(
+      ([path, methods]: [string, any]) => {
+        // Get the first available HTTP method (e.g., GET, POST, etc.)
+        const firstMethod = Object.keys(methods)[0];
+        const summary = firstMethod
+          ? methods[firstMethod]?.summary || "No summary available"
+          : "No summary available";
+
+        return { path, summary };
+      }
+    )
+  );
 }
 
 export async function getPathInfo(openapiData: any, path: string) {
