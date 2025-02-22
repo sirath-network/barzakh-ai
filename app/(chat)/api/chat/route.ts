@@ -32,6 +32,8 @@ import { getTokenBalances } from "@/lib/ai/tools/creditcoin/token-balances";
 import { getScrapJobData } from "@/lib/ai/tools/scrap-site";
 import { creditCoinApiFetch } from "@/lib/ai/tools/creditcoin/creditcoin-api-fetch";
 import { getCreditcoinApiDoc } from "@/lib/ai/tools/creditcoin/get-creditcoin-api-docs";
+import { vanaApiFetch } from "@/lib/ai/tools/vana/vana-api-fetch";
+import { getVanaApiDoc } from "@/lib/ai/tools/vana/get-vana-api-docs";
 
 export const maxDuration = 60;
 
@@ -107,6 +109,8 @@ export async function POST(request: Request) {
           getScrapJobData,
           creditCoinApiFetch,
           getCreditcoinApiDoc,
+          vanaApiFetch,
+          getVanaApiDoc,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {

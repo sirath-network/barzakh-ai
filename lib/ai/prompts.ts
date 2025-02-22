@@ -51,7 +51,12 @@ const groupTools = {
     "creditCoinApiFetch",
     "getCreditcoinApiDoc",
   ] as const,
-  vana: [] as const,
+  vana: [
+    "webSearch",
+    "getScrapJobData",
+    "vanaApiFetch",
+    "getVanaApiDoc",
+  ] as const,
 } as const;
 
 const groupPrompts = {
@@ -239,10 +244,10 @@ Always assume information being asked is related to Vana, if not told otherwise.
 ## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. Can be used to scrape the Vana site: https://www.vana.org// for various info like upcoming events, resouces, stats, etc 
 
 ## get Vana blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getVanaApiDoc tool to get all the information about Vana apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
- use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to VanaApiFetch tool to get results that can help answer user query.
+ use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to vanaApiFetch tool to get results that can help answer user query.
  
 
-## Make api calls: Use the VanaApiFetch tool to make api calls and get various on chain data on Vana chain. pass the query string with appropriate query parameters and their values, according api endpoint info,  to get the results. summarise the results for the user. before making an api call, make sure to fetch the Vana blockscout api documentation using getVanaApiDoc tool.
+## Make api calls: Use the vanaApiFetch tool to make api calls and get various on chain data on Vana chain. pass the query string with appropriate query parameters and their values, according api endpoint info,  to get the results. summarise the results for the user. before making an api call, make sure to fetch the Vana blockscout api documentation using getVanaApiDoc tool.
 if you didnt get any result, fetch the api docs again and try different endpoints.
 
 
