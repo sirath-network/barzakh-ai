@@ -25,10 +25,7 @@ export const creditCoinApiFetch = tool({
 
     try {
       console.log("fetching data ------ ", url);
-      const response = await fetch(
-        "https://creditcoin.blockscout.com/api/v2/search?q=shibu",
-        options
-      );
+      const response = await fetch(url, options);
 
       const apiResult = await response.json();
       if (!apiResult) {
