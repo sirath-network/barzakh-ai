@@ -11,11 +11,13 @@ const components: Partial<Components> = {
   pre: ({ children }) => <>{children}</>,
 
   span: ({ children }) => <span className="break-long-words">{children}</span>,
-  p: ({ children }) => <p className="break-long-words">{children}</p>,
 
   ol: ({ node, children, ...props }) => {
     return (
-      <ol className="break-long-words list-decimal list-outside ml-4" {...props}>
+      <ol
+        className="break-long-words list-decimal list-outside ml-4"
+        {...props}
+      >
         {children}
       </ol>
     );
@@ -56,42 +58,60 @@ const components: Partial<Components> = {
   },
   h1: ({ node, children, ...props }) => {
     return (
-      <h1 className="break-long-words text-3xl font-semibold mt-6 mb-2" {...props}>
+      <h1
+        className="break-long-words text-3xl font-semibold mt-6 mb-2"
+        {...props}
+      >
         {children}
       </h1>
     );
   },
   h2: ({ node, children, ...props }) => {
     return (
-      <h2 className="break-long-words text-2xl font-semibold mt-6 mb-2" {...props}>
+      <h2
+        className="break-long-words text-2xl font-semibold mt-6 mb-2"
+        {...props}
+      >
         {children}
       </h2>
     );
   },
   h3: ({ node, children, ...props }) => {
     return (
-      <h3 className="break-long-words text-xl font-semibold mt-6 mb-2" {...props}>
+      <h3
+        className="break-long-words text-xl font-semibold mt-6 mb-2"
+        {...props}
+      >
         {children}
       </h3>
     );
   },
   h4: ({ node, children, ...props }) => {
     return (
-      <h4 className="break-long-words text-lg font-semibold mt-6 mb-2" {...props}>
+      <h4
+        className="break-long-words text-lg font-semibold mt-6 mb-2"
+        {...props}
+      >
         {children}
       </h4>
     );
   },
   h5: ({ node, children, ...props }) => {
     return (
-      <h5 className="break-long-words text-base font-semibold mt-6 mb-2" {...props}>
+      <h5
+        className="break-long-words text-base font-semibold mt-6 mb-2"
+        {...props}
+      >
         {children}
       </h5>
     );
   },
   h6: ({ node, children, ...props }) => {
     return (
-      <h6 className="break-long-words text-sm font-semibold mt-6 mb-2" {...props}>
+      <h6
+        className="break-long-words text-sm font-semibold mt-6 mb-2"
+        {...props}
+      >
         {children}
       </h6>
     );
