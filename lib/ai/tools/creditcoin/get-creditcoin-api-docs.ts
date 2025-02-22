@@ -15,6 +15,7 @@ export const getCreditcoinApiDoc = tool({
       );
       const allPaths = await getAllPaths(openapidata);
       const allPathString = allPaths.join(", ");
+
       const response = await generateText({
         model: myProvider.languageModel("chat-model-small"),
         system: `\n
@@ -24,11 +25,17 @@ export const getCreditcoinApiDoc = tool({
         ),
       });
       const apiEndpointName = response.steps[0].text;
-      console.log("api endpoint name choosen ------------ ", apiEndpointName);
-      const ApiEndpointInfo = await getPathInfo(openapidata, apiEndpointName);
-      const ApiEndpointInfoString = JSON.stringify(ApiEndpointInfo);
-      console.log("ApiEndpointInfoString -------- ",ApiEndpointInfoString);
-      return ApiEndpointInfoString;
+      // console.log("api endpoint name choosen ------------ ", apiEndpointName);
+
+      const apiEndpointInfo = await getPathInfo(openapidata, apiEndpointName);
+      const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
+      // console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
+
+      console.log(
+        `the api endpoint selected is https://creditcoin.blockscout.com/api/v2${apiEndpointName}`
+      );
+
+      return `the api endpoint you should call is-  https://creditcoin.blockscout.com/api/v2${apiEndpointName}  - and info about the endpoint is - ${apiEndpointInfoString}`;
     } catch (error) {
       console.error("Error in getCreditcoinApiDoc:", error);
       throw error;
