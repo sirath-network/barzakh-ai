@@ -14,7 +14,7 @@ export const getVanaApiDoc = tool({
         "https://raw.githubusercontent.com/blockscout/blockscout-api-v2-swagger/main/swagger.yaml"
       );
       const allPaths = await getAllPaths(openapidata);
-
+      console.log("use prompt is -- ", userQuery);
       const response = await generateText({
         model: myProvider.languageModel("chat-model-small"),
         system: `\n

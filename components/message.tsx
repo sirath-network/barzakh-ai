@@ -143,11 +143,13 @@ const PurePreviewMessage = ({
                         <div className="text-sm">
                           <p className="py-1">Fetching portfolio...</p>
                         </div>
-                      ) : toolName === "getCreditcoinApiDoc" ? (
+                      ) : toolName === "getCreditcoinApiDoc" ||
+                        toolName === "getVanaApiDoc" ? (
                         <div className="text-sm">
                           <p className="py-1">Exploring the blockchain...</p>
                         </div>
-                      ) : toolName === "creditCoinApiFetch" ? (
+                      ) : toolName === "creditCoinApiFetch" ||
+                        toolName === "vanaApiFetch" ? (
                         <div className="text-sm">
                           <p className="py-1">Fetching data...</p>
                         </div>

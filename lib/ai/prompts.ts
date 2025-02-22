@@ -243,7 +243,8 @@ Always assume information being asked is related to Vana, if not told otherwise.
 
 ## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. Can be used to scrape the Vana site: https://www.vana.org// for various info like upcoming events, resouces, stats, etc 
 
-## get Vana blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getVanaApiDoc tool to get all the information about Vana apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
+## get Vana blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getVanaApiDoc tool to get all the information about Vana apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool.
+ it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
  use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to vanaApiFetch tool to get results that can help answer user query.
  
 

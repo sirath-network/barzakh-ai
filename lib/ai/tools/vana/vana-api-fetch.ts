@@ -32,7 +32,7 @@ export const vanaApiFetch = tool({
         return "No results found.";
       }
       // console.log("portfoliodata", portfolioData[0])
-      console.log("api result", apiResult);
+      // console.log("api result", apiResult);
 
       return apiResult;
     } catch (error) {
