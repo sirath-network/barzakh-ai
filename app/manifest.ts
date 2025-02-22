@@ -12,13 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#000000",
     icons: [
       {
-        src: "/images/javin/javin_192px_text.jpg",
+        src: "/images/javin/javin_192px_text1.jpg",
         sizes: "192x192",
         type: "image/jpg",
         purpose: "maskable",
       },
       {
-        src: "/images/javin/javin_512px_text.jpg",
+        src: "/images/javin/javin_512px_text1.jpg",
         sizes: "512x512",
         type: "image/jpg",
         purpose: "maskable",
