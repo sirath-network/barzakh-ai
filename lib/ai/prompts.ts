@@ -48,12 +48,14 @@ const groupTools = {
   creditcoin: [
     "webSearch",
     "getScrapJobData",
+    "getCreditcoinStats",
     "creditCoinApiFetch",
     "getCreditcoinApiDoc",
   ] as const,
   vana: [
     "webSearch",
     "getScrapJobData",
+    "getVanaStats",
     "vanaApiFetch",
     "getVanaApiDoc",
   ] as const,
@@ -157,6 +159,9 @@ Always assume information being asked is related to creditcoin, if not told othe
 
 ## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. Can be used to scrape the creditcoin site: https://creditcoin.org// for various info like upcoming events, resouces, stats, etc 
 
+## Get Creditcoin statistics: if user asks about the Creditcoin statistics like Average block time, Completed txns, Number of deployed contracts today, Number of verified contracts today, Total addresses, Total blocks, Total contracts, Total Creditcoin transfers, Total tokens, Total txns, Total verified contracts, then use the getCreditcoinStats tool. 
+
+
 ## get creditcoin blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getCreditcoinApiDoc tool to get all the information about creditcoin apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
  use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to creditCoinApiFetch tool to get results that can help answer user query.
  
@@ -242,6 +247,8 @@ Always assume information being asked is related to Vana, if not told otherwise.
   Stick to Vana and blockchain related responses until asked specifically by the user. you can use the scrape url tool if user asks a specific quesiton and relevant data is not found on internet.
 
 ## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. Can be used to scrape the Vana site: https://www.vana.org// for various info like upcoming events, resouces, stats, etc 
+
+## Get vana statistics: if user asks about the vana statistics like Average block time, Completed txns, Number of deployed contracts today, Number of verified contracts today, Total addresses, Total blocks, Total contracts, Total VANA transfers, Total tokens, Total txns, Total verified contracts, then use the getVanaStats tool. 
 
 ## get Vana blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getVanaApiDoc tool to get all the information about Vana apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool.
  it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 

@@ -138,7 +138,12 @@ const PurePreviewMessage = ({
                             </p>
                           </div>
                         ) : (
-                          <div className="text-sm">Done!</div>
+                          <div className="text-sm">
+                            <p className="flex flex-row gap-1 items-center">
+                              Finding info
+                              <Check size={14} className="text-green-500" />
+                            </p>
+                          </div>
                         )}
                       </div>
                     );

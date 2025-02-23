@@ -50,7 +50,7 @@ export const getScrapJobData = tool({
       return data.data.markdown;
     } catch (error) {
       console.error("Error in getCrawlJobData:", error);
-      throw error; // Re-throw to allow handling by the caller
+      return error; // Re-throw to allow handling by the caller
     }
   },
 });
