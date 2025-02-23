@@ -29,7 +29,7 @@ export function CodeBlock({
 
   if (!inline) {
     return (
-      <div className="not-prose flex flex-col">
+      <div className="not-prose flex flex-col overflow-x-scroll break-long-words">
         {tab === 'code' && (
           <pre
             {...props}
