@@ -26,7 +26,10 @@ export const getOnchainApiDoc = tool({
           `The list of api endpoints and their summary are ${allPaths} and user Query is ${userQuery}`
         ),
       });
-      const apiEndpointName = response.steps[0].text;
+      let apiEndpointName = response.steps[0].text;
+      if (apiEndpointName.startsWith('"') && apiEndpointName.endsWith('"')) {
+        apiEndpointName = apiEndpointName.slice(1, -1);
+      }
       console.log(
         `AI selected the api endpoint as https://api.zerion.io${apiEndpointName}`
       );
@@ -35,13 +38,13 @@ export const getOnchainApiDoc = tool({
       // console.log("apiEndpointInfo is -------- ", apiEndpointInfo);
       const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
       // console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
-      console.log("api details length ", apiEndpointInfoString.length);
+      // console.log("api details length ", apiEndpointInfoString.length);
 
       return {
         success: true,
         endpoint: `The API endpoint you should call is: https://api.zerion.io${apiEndpointName}`,
         baseUrl: "https://api.zerion.io",
-        // detailsAboutEndpoint: apiEndpointInfoString,
+        detailsAboutEndpoint: apiEndpointInfoString,
       };
     } catch (error: any) {
       console.error("Error in getOnchainApiDoc:", error);

@@ -43,6 +43,16 @@ export async function getAllPaths(openapiData: any) {
   );
 }
 
+// get info of the path with the name from the open api spec
+// delete the repsonses because it is irrelevant and too big
 export async function getPathInfo(openapiData: any, path: string) {
-  return openapiData.paths?.[path] || {};
+  const pathInfo = { ...openapiData.paths?.[path] };
+  if (pathInfo) {
+    for (const method of Object.keys(pathInfo)) {
+      if (typeof pathInfo[method] === "object") {
+        delete pathInfo[method].responses;
+      }
+    }
+  }
+  return pathInfo;
 }
