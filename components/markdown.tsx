@@ -7,10 +7,11 @@ import { CodeBlock } from "./code-block";
 const components: Partial<Components> = {
   // @ts-expect-error
   code: CodeBlock,
-  small: ({ children }) => <small className="break-words">{children}</small>,
+  small: ({ children }) => <small className="break-long-words">{children}</small>,
   pre: ({ children }) => <>{children}</>,
 
   span: ({ children }) => <span className="break-long-words">{children}</span>,
+  p: ({ children }) => <p className="break-long-words">{children}</p>,
 
   ol: ({ node, children, ...props }) => {
     return (
