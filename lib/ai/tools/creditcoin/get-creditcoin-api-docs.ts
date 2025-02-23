@@ -9,6 +9,7 @@ export const getCreditcoinApiDoc = tool({
     userQuery: z.string().describe("Query of user."),
   }),
   execute: async ({ userQuery }: { userQuery?: string }) => {
+    console.log("user query is ---- ", userQuery);
     try {
       const openapidata = await loadOpenAPI(
         "https://raw.githubusercontent.com/blockscout/blockscout-api-v2-swagger/main/swagger.yaml"
@@ -18,25 +19,24 @@ export const getCreditcoinApiDoc = tool({
       const response = await generateText({
         model: myProvider.languageModel("chat-model-small"),
         system: `\n
-        You will just return the name of the api endpoint in the given list of api endpoint and their summary, which can be helpfull to answers user query. Do not modify it in any way.`,
+        You will just return the name of the api endpoint in the given list of api endpoint and their summary, which can be helpfull to answers user query. Do not modify it in any way. if the query is about a transaction, also return the transaction summary endpoint`,
         prompt: JSON.stringify(
           `The list of api endpoints and their summary are ${allPaths} and user Query is ${userQuery}`
         ),
       });
-      const apiEndpointName = response.steps[0].text;
-      console.log(
-        `AI selected the api endpoint as https://creditcoin.blockscout.com/api/v2${apiEndpointName}`
-      );
+      const apiEndpointNames = response.steps[0].text;
+      console.log(`AI selected the api endpoints as :  ${apiEndpointNames}`);
 
-      const apiEndpointInfo = await getPathInfo(openapidata, apiEndpointName);
+      const apiEndpointInfo = await getPathInfo(openapidata, apiEndpointNames);
       // console.log("apiEndpointInfo is -------- ", apiEndpointInfo);
       const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
       // console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
 
       return {
         success: true,
-        message: `The API endpoint you should call is: https://creditcoin.blockscout.com/api/v2${apiEndpointName}.`,
-        endpoint: `https://creditcoin.blockscout.com/api/v2${apiEndpointName}`,
+        message: `The API endpoints you should call are: ${apiEndpointNames}.`,
+        endpoint: `${apiEndpointNames}`,
+        baseUrl: "https://creditcoin.blockscout.com/api/v2",
         details: apiEndpointInfoString,
       };
     } catch (error: any) {
