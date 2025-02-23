@@ -21,6 +21,11 @@ export async function loadOpenAPI(url: string) {
   return await $RefParser.dereference(openapiData);
 }
 
+export async function loadOpenAPIFromJson(json: any) {
+  // Resolve $ref references
+  return await $RefParser.dereference(json);
+}
+
 // returns a list of all paths and their summaries in a json string
 export async function getAllPaths(openapiData: any) {
   return JSON.stringify(
@@ -38,6 +43,16 @@ export async function getAllPaths(openapiData: any) {
   );
 }
 
+// get info of the path with the name from the open api spec
+// delete the repsonses because it is irrelevant and too big
 export async function getPathInfo(openapiData: any, path: string) {
-  return openapiData.paths?.[path] || {};
+  const pathInfo = { ...openapiData.paths?.[path] };
+  if (pathInfo) {
+    for (const method of Object.keys(pathInfo)) {
+      if (typeof pathInfo[method] === "object") {
+        delete pathInfo[method].responses;
+      }
+    }
+  }
+  return pathInfo;
 }

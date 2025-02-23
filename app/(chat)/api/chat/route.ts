@@ -35,6 +35,8 @@ import { vanaApiFetch } from "@/lib/ai/tools/vana/vana-api-fetch";
 import { getVanaApiDoc } from "@/lib/ai/tools/vana/get-vana-api-docs";
 import { getVanaStats } from "@/lib/ai/tools/vana/get-stats";
 import { getCreditcoinStats } from "@/lib/ai/tools/creditcoin/get-stats";
+import { getOnchainApiDoc } from "@/lib/ai/tools/onchain/get-zerion-api-docs";
+import { onChainQuery } from "@/lib/ai/tools/onchain/zerion-api-fetch";
 
 export const maxDuration = 60;
 
@@ -114,6 +116,8 @@ export async function POST(request: Request) {
           getVanaApiDoc,
           getVanaStats,
           getCreditcoinStats,
+          getOnchainApiDoc,
+          onChainQuery,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {

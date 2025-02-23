@@ -105,11 +105,11 @@ const PurePreviewMessage = ({
 
                   if (state === "result") {
                     const { result } = toolInvocation;
-                    // console.log(
-                    //   toolName,
-                    //   " -- tool result ------------ ",
-                    //   result
-                    // );
+                    console.log(
+                      toolName,
+                      " -- tool result ------------ ",
+                      result
+                    );
                     return (
                       <div key={toolCallId}>
                         {toolName === "webSearch" ? (
@@ -122,7 +122,8 @@ const PurePreviewMessage = ({
                           toolName === "getTokenBalances" ? (
                           <PortfolioTable result={result} />
                         ) : toolName === "getCreditcoinApiDoc" ||
-                          toolName === "getVanaApiDoc" ? (
+                          toolName === "getVanaApiDoc" ||
+                          toolName === "getOnchainApiDoc" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
                               Exploring the blockchain
@@ -130,7 +131,8 @@ const PurePreviewMessage = ({
                             </p>
                           </div>
                         ) : toolName === "creditCoinApiFetch" ||
-                          toolName === "vanaApiFetch" ? (
+                          toolName === "vanaApiFetch" ||
+                          toolName === "onChainQuery" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
                               Fetching data
@@ -166,12 +168,14 @@ const PurePreviewMessage = ({
                           <p className="py-1">Fetching portfolio...</p>
                         </div>
                       ) : toolName === "getCreditcoinApiDoc" ||
-                        toolName === "getVanaApiDoc" ? (
+                        toolName === "getVanaApiDoc" ||
+                        toolName === "getOnchainApiDoc" ? (
                         <div className="text-sm">
                           <p className="py-1">Exploring the blockchain...</p>
                         </div>
                       ) : toolName === "creditCoinApiFetch" ||
-                        toolName === "vanaApiFetch" ? (
+                        toolName === "vanaApiFetch" ||
+                        toolName === "onChainQuery" ? (
                         <div className="text-sm">
                           <p className="py-1">Fetching data...</p>
                         </div>
