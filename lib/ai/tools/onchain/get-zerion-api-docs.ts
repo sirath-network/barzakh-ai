@@ -37,7 +37,7 @@ export const getOnchainApiDoc = tool({
       const apiEndpointInfo = await getPathInfo(openapidata, apiEndpointName);
       // console.log("apiEndpointInfo is -------- ", apiEndpointInfo);
       const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
-      // console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
+      console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
       // console.log("api details length ", apiEndpointInfoString.length);
 
       return {

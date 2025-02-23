@@ -37,6 +37,7 @@ import { getVanaStats } from "@/lib/ai/tools/vana/get-stats";
 import { getCreditcoinStats } from "@/lib/ai/tools/creditcoin/get-stats";
 import { getOnchainApiDoc } from "@/lib/ai/tools/onchain/get-zerion-api-docs";
 import { onChainQuery } from "@/lib/ai/tools/onchain/zerion-api-fetch";
+import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
 
 export const maxDuration = 60;
 
@@ -118,6 +119,7 @@ export async function POST(request: Request) {
           getCreditcoinStats,
           getOnchainApiDoc,
           onChainQuery,
+          ensToAddress,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {

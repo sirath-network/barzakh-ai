@@ -35,7 +35,7 @@ export const getEvmMultiChainWalletPortfolio = tool({
         authorization: `Basic ${apiKey}`,
       },
     };
-
+    console.log("fetching portfoio of -", wallet_address);
     try {
       const response = await fetch(
         `https://api.zerion.io/v1/wallets/${wallet_address}/portfolio?currency=${currency}`,
