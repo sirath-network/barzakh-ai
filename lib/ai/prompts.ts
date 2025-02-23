@@ -44,7 +44,7 @@ const groupTools = {
     "searchSolanaTokenMarketData",
     "searchEvmTokenMarketData",
   ] as const,
-  on_chain: [] as const,
+  on_chain: ["webSearch", "getOnchainApiFetch", "onchainApiFetch"] as const,
   creditcoin: [
     "webSearch",
     "getScrapJobData",

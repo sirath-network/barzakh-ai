@@ -21,6 +21,11 @@ export async function loadOpenAPI(url: string) {
   return await $RefParser.dereference(openapiData);
 }
 
+export async function loadOpenAPIFromJson(json: any) {
+  // Resolve $ref references
+  return await $RefParser.dereference(json);
+}
+
 // returns a list of all paths and their summaries in a json string
 export async function getAllPaths(openapiData: any) {
   return JSON.stringify(
