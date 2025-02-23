@@ -22,10 +22,10 @@ import { useLocalStorage, useWindowSize } from "usehooks-ts";
 
 import { sanitizeUIMessages } from "@/lib/utils";
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
-import { PreviewAttachment } from "./preview-attachment";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from "../icons";
+import { PreviewAttachment } from "../preview-attachment";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
 import { cn, SearchGroup, SearchGroupId, searchGroups } from "@/lib/utils";
@@ -37,164 +37,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import Image from "next/image";
-interface GroupSelectorProps {
-  selectedGroup: SearchGroupId;
-  onGroupSelect: (group: SearchGroup) => void;
-}
-interface ToolbarButtonProps {
-  group: SearchGroup;
-  isSelected: boolean;
-  onClick: () => void;
-}
-
-const GroupSelector = ({
-  selectedGroup,
-  onGroupSelect,
-}: GroupSelectorProps) => {
-  return (
-    <SelectionContent
-      selectedGroup={selectedGroup}
-      onGroupSelect={onGroupSelect}
-    />
-  );
-};
-
-const SelectionContent = ({ ...props }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <motion.div
-      layout
-      initial={false}
-      animate={{
-        width: isExpanded ? "auto" : "30px",
-        gap: isExpanded ? "0.5rem" : 0,
-        paddingRight: isExpanded ? "0.5rem" : 0,
-      }}
-      transition={{
-        layout: { duration: 0.4 },
-        duration: 0.4,
-        ease: [0.4, 0.0, 0.2, 1],
-        width: { type: "spring", stiffness: 300, damping: 30 },
-        gap: { type: "spring", stiffness: 300, damping: 30 },
-        paddingRight: { type: "spring", stiffness: 300, damping: 30 },
-      }}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-start",
-      }}
-      className={cn(
-        "inline-flex items-center",
-        "min-w-[38px]",
-        "p-0.5",
-        "rounded-full border border-neutral-200 dark:border-neutral-700",
-        "bg-white dark:bg-neutral-800",
-        "shadow-sm overflow-visible",
-        "relative"
-      )}
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
-    >
-      <AnimatePresence>
-        {searchGroups.map((group, index) => {
-          const showItem = isExpanded || props.selectedGroup === group.id;
-          return (
-            <motion.div
-              key={group.id}
-              animate={{
-                width: showItem ? "28px" : 0,
-                opacity: showItem ? 1 : 0,
-                x: showItem ? 0 : -10,
-              }}
-              exit={{ opacity: 1, x: 0, transition: { duration: 0 } }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 30,
-                delay: index * 0.05,
-                opacity: { duration: 0.2, delay: showItem ? index * 0.05 : 0 },
-              }}
-              style={{ margin: 0 }}
-            >
-              <ToolbarButton
-                group={group}
-                isSelected={props.selectedGroup === group.id}
-                onClick={() => {
-                  props.onGroupSelect(group);
-                  console.log();
-                }}
-              />
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </motion.div>
-  );
-};
-
-const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
-  const Icon = group.icon;
-  const iconImg = group.img;
-  return (
-    <HoverCard openDelay={100} closeDelay={50}>
-      <HoverCardTrigger asChild>
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onClick}
-          className={cn(
-            "relative flex items-center justify-center",
-            "size-8",
-            "rounded-full",
-            "overflow-clip",
-            "transition-colors duration-300",
-            isSelected
-              ? "bg-neutral-300 dark:bg-neutral-600 text-neutral-600 dark:text-neutral-300"
-              : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
-          )}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
-          {iconImg ? (
-            <div className="w-7 h-7 rounded-full  p-0 m-0 object-cover object-center overflow-clip">
-              <Image
-                src={iconImg}
-                alt={iconImg}
-                width={50}
-                height={50}
-                className="bg-white w-full h-full "
-              />
-            </div>
-          ) : (
-            <Icon className="size-4" />
-          )}
-        </motion.button>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="bottom"
-        align="center"
-        sideOffset={6}
-        className={cn(
-          "z-[100]",
-          "w-44 p-2 rounded-lg",
-          "border border-neutral-200 dark:border-neutral-700",
-          "bg-white dark:bg-neutral-800 shadow-md",
-          "transition-opacity duration-300"
-        )}
-      >
-        <div className="space-y-0.5">
-          <h4 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            {group.name}
-          </h4>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-normal">
-            {group.description}
-          </p>
-        </div>
-      </HoverCardContent>
-    </HoverCard>
-  );
-};
+import { GroupSelector } from "./GroupSelector";
 
 function PureAttachmentsButton({
   fileInputRef,
