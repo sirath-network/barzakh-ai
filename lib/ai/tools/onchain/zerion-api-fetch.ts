@@ -2,7 +2,7 @@ import { getZerionApiKey } from "@/lib/utils";
 import { tool } from "ai";
 import { z } from "zod";
 
-export const onchainApiFetch = tool({
+export const onChainQuery = tool({
   description:
     "Make fetch calls to the zerion apis to get various onchain data.",
   parameters: z.object({
@@ -34,11 +34,11 @@ export const onchainApiFetch = tool({
         return "No results found.";
       }
       // console.log("portfoliodata", portfolioData[0])
-      console.log("api result", apiResult);
+      // console.log("api result", apiResult);
 
       return apiResult;
     } catch (error: any) {
-      console.error("Error in onchainApiFetch:", error);
+      console.error("Error in onChainQuery:", error);
 
       // Returning error details so AI can adapt its next action
       return {
