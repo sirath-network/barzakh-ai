@@ -18,7 +18,7 @@ export const metadata: Metadata = {
       "A focused, no-nonsense AI search engine for crypto and blockchain.",
     images: [
       {
-        url: new URL(`${baseUrl}/images/javin/preview/javin_preview.jpg`),
+        url: new URL(`${baseUrl}/images/javin/preview/javin_preview.jpg?v=v2`),
         width: 1200,
         height: 630,
         alt: "Javin.ai",
