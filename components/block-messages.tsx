@@ -31,7 +31,7 @@ function PureBlockMessages({
   isReadonly,
 }: BlockMessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
+    useScrollToBottom<HTMLDivElement>([messages]);
 
   return (
     <div
