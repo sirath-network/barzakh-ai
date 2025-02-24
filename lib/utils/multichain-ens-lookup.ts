@@ -11,7 +11,9 @@ const client = createEnsPublicClient({
 
 // Use the client
 export const multichainEnsLookup = async (name: string) => {
-  const ethAddress = await client.getAddressRecord({ name });
+  const lowerCaseEnsName = name.toLowerCase();
+  console.log("ens name:, ", lowerCaseEnsName);
+  const ethAddress = await client.getAddressRecord({ name: lowerCaseEnsName });
   if (!ethAddress) {
     return "not found";
   }
