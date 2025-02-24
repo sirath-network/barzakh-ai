@@ -9,7 +9,7 @@ import type { Vote } from "@/lib/db/schema";
 import { fetcher, generateUUID, SearchGroup, SearchGroupId } from "@/lib/utils";
 
 import { Block } from "./block";
-import { MultimodalInput } from "./multimodal-input";
+import { MultimodalInput } from "./Input/multimodal-input";
 import { Messages } from "./messages";
 import { VisibilityType } from "./visibility-selector";
 import { useBlockSelector } from "@/hooks/use-block";
