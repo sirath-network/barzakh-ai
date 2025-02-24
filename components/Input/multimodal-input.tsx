@@ -368,7 +368,7 @@ function PureMultimodalInput({
             "text-neutral-900 dark:text-neutral-100",
             "focus:!ring-1 focus:!ring-neutral-300 dark:focus:!ring-neutral-600",
             "px-4 pt-4 pb-16",
-            "overflow-y-auto",
+            "overflow-y-auto custom-scrollbar",
             "touch-manipulation"
           )}
           style={{
@@ -403,7 +403,7 @@ function PureMultimodalInput({
         />
 
         {(attachments.length > 0 || uploadQueue.length > 0) && (
-          <div className="flex flex-row gap-2 overflow-x-scroll items-end">
+          <div className="flex flex-row gap-2 overflow-x-scroll custom-scrollbar items-end">
             {attachments.map((attachment) => (
               <PreviewAttachment key={attachment.url} attachment={attachment} />
             ))}

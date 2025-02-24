@@ -100,6 +100,51 @@
   max-width: 100%;
 }
 
+/* Custom scrollbar only for elements with 'custom-scrollbar' class */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px; /* Vertical scrollbar width */
+  height: 8px; /* Horizontal scrollbar height */
+}
+
+/* Track (background of scrollbar) */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6; /* Light mode track */
+  border-radius: 4px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e1e1e; /* Dark mode track */
+}
+
+/* Scrollbar thumb (draggable part) */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #a1a1aa; /* Light mode thumb */
+  border-radius: 4px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #52525b; /* Dark mode thumb */
+}
+
+/* Thumb hover effect */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #71717a; /* Light mode hover */
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46; /* Dark mode hover */
+}
+
+/* Firefox scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #a1a1aa #f3f4f6; /* Light mode colors */
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #52525b #1e1e1e; /* Dark mode colors */
+}
+
 @layer base {
   * {
     @apply border-border;

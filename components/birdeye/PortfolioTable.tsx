@@ -58,7 +58,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       </div>
 
       {/* Portfolio Breakdown by Chain */}
-      <div className="max-h-64 overflow-y-auto pr-2">
+      <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar">
         {chains.length === 0 ? (
           <div className="text-gray-600 dark:text-gray-400">No holdings available.</div>
         ) : (
