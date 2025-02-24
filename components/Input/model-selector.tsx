@@ -36,7 +36,12 @@ export function ModelSelector({
 
   return (
     <>
-      <DropdownMenu open={open && width > tailwindMd} onOpenChange={setOpen}>
+      <DropdownMenu
+        open={open && width > tailwindMd}
+        onOpenChange={() => {
+          setTimeout(() => setOpen((prev) => !prev), 300);
+        }}
+      >
         <DropdownMenuTrigger
           asChild
           className={cn(

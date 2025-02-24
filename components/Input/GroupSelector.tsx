@@ -45,7 +45,7 @@ const SelectionContent = ({
 }: GroupSelectorProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { width } = useWindowSize();
-  
+
   const selectedGroup = searchGroups.find(
     (group) => group.id === selectedGroupId
   );
@@ -56,7 +56,9 @@ const SelectionContent = ({
     <>
       <DropdownMenu
         open={isExpanded && width > tailwindMd}
-        onOpenChange={setIsExpanded}
+        onOpenChange={() => {
+          setTimeout(() => setIsExpanded((prev) => !prev), 300);
+        }}
       >
         <DropdownMenuTrigger
           asChild
