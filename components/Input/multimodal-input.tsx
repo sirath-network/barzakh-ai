@@ -426,7 +426,7 @@ function PureMultimodalInput({
           <div className="p-3 w-fit flex flex-row justify-start gap-2 items-center">
             {/* <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} /> */}
             <GroupSelector
-              selectedGroup={selectedGroup}
+              selectedGroupId={selectedGroup}
               onGroupSelect={handleGroupSelect}
             />
             {!isReadonly && (
