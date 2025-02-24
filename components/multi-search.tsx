@@ -106,7 +106,7 @@ const SearchLoadingState = ({ queries }: { queries: string[] }) => (
         </AccordionTrigger>
         <AccordionContent className="mt-0 pt-0 border-0">
           <div className="py-3 px-4 bg-white dark:bg-neutral-900 rounded-b-xl border-t-0 border border-neutral-200 dark:border-neutral-800 shadow-sm">
-            <div className="flex overflow-x-auto gap-2 mb-3 no-scrollbar pb-1">
+            <div className="flex overflow-x-auto custom-scrollbar gap-2 mb-3 no-scrollbar pb-1">
               {queries.map((query, i) => (
                 <Badge
                   key={i}

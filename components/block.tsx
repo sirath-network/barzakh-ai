@@ -18,7 +18,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { useDebounceCallback, useWindowSize } from "usehooks-ts";
 import type { Document, Vote } from "@/lib/db/schema";
 import { fetcher, SearchGroupId } from "@/lib/utils";
-import { MultimodalInput } from "./multimodal-input";
+import { MultimodalInput } from "./Input/multimodal-input";
 import { Toolbar } from "./toolbar";
 import { VersionFooter } from "./version-footer";
 import { BlockActions } from "./block-actions";
