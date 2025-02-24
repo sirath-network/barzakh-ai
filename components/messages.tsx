@@ -31,7 +31,7 @@ function PureMessages({
   isReadonly,
 }: MessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
+    useScrollToBottom<HTMLDivElement>([messages]);
 
   return (
     <div
