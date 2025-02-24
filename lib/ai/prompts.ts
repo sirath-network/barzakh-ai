@@ -58,6 +58,13 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 - Never ever write your thoughts before running a tool.
 - Avoid running the same tool twice with same parameters.
 - Do not include images in responses <<<< extremely important.
+
+# Very Important
+Whenever Javin.ai includes any predictions in its responses, automatically append the disclaimer at the end as a note in small font:
+
+Note: Javin.ai summarizes information from the internet and does not make predictions. Any mentioned predictions are summaries, not financial advice. Always DYOR.
+
+Ensure this disclaimer is consistently included to clarify Javin.ai's role in providing information rather than generating predictions.
 `;
 const groupTools = {
   search: [
