@@ -91,10 +91,10 @@ const SelectionContent = ({
               <DropdownMenuItem
                 key={group.id}
                 onSelect={() => {
-                  startTransition(() => {
-                    onGroupSelect(group);
-                    setIsExpanded(false);
-                  });
+                  // startTransition(() => {
+                  onGroupSelect(group);
+                  setIsExpanded(false);
+                  // });
                 }}
                 className="gap-4 group/item flex flex-row justify-start items-center"
                 data-active={selectedGroupId === group.id}

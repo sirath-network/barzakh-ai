@@ -355,7 +355,7 @@ function PureMultimodalInput({
           }
           value={input}
           onChange={handleInput}
-          disabled={isLoading}
+          // disabled={isLoading}
           onFocus={handleFocus}
           onBlur={handleBlur}
           className={cn(
