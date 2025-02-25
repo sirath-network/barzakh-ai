@@ -29,17 +29,13 @@ import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/evm/wallet-portf
 import { searchSolanaTokenMarketData } from "@/lib/ai/tools/solana/search-token-solana";
 import { searchEvmTokenMarketData } from "@/lib/ai/tools/evm/search-token-evm";
 import { getSiteContent } from "@/lib/ai/tools/scrap-site";
-import { creditCoinApiFetch } from "@/lib/ai/tools/creditcoin/creditcoin-api-fetch";
-import { getCreditcoinApiDoc } from "@/lib/ai/tools/creditcoin/get-creditcoin-api-docs";
-import { vanaApiFetch } from "@/lib/ai/tools/vana/vana-api-fetch";
-import { getVanaApiDoc } from "@/lib/ai/tools/vana/get-vana-api-docs";
 import { getVanaStats } from "@/lib/ai/tools/vana/get-stats";
+import { getVanaApiData } from "@/lib/ai/tools/vana/get-vana-api-data";
 import { getCreditcoinStats } from "@/lib/ai/tools/creditcoin/get-stats";
+import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-api-data";
 import { getOnchainApiDoc } from "@/lib/ai/tools/onchain/get-zerion-api-docs";
 import { onChainQuery } from "@/lib/ai/tools/onchain/zerion-api-fetch";
 import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
-import { getVanaApiData } from "@/lib/ai/tools/vana/get-vana-api-data";
-import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-api-data";
 
 export const maxDuration = 60;
 
@@ -113,11 +109,7 @@ export async function POST(request: Request) {
           searchSolanaTokenMarketData,
           searchEvmTokenMarketData,
           getSiteContent,
-          creditCoinApiFetch,
-          getCreditcoinApiDoc,
           getCreditcoinApiData,
-          vanaApiFetch,
-          getVanaApiDoc,
           getVanaApiData,
           getVanaStats,
           getCreditcoinStats,

@@ -130,15 +130,6 @@ const PurePreviewMessage = ({
                               <Check size={14} className="text-green-500" />
                             </p>
                           </div>
-                        ) : toolName === "creditCoinApiFetch" ||
-                          toolName === "vanaApiFetch" ||
-                          toolName === "onChainQuery" ? (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Fetching data
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
                         ) : toolName === "ensToAddress" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
