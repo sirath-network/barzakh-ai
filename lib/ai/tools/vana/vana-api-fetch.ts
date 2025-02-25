@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 
 function scaleLargeNumbersInJson(jsonString: string): string {
-  return jsonString.replace(/"(\d{19,})"/g, (_match, num) => {
+  return jsonString.replace(/"(\d{15,})"/g, (_match, num) => {
     const scaledNum = (Number(num) / 1e18).toFixed(8) + " (scaled)";
     return `"${scaledNum} (scaled)"`;
   });
@@ -40,7 +40,7 @@ export const vanaApiFetch = tool({
       }
       // console.log("portfoliodata", portfolioData[0])
       // console.log("api result", apiResult);
-      console.log(JSON.stringify(apiResult));
+      // console.log(JSON.stringify(apiResult));
       const apiResultString = JSON.stringify(apiResult);
       const result = scaleLargeNumbersInJson(apiResultString);
       return result;
