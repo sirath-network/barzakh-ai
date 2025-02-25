@@ -38,6 +38,8 @@ import { getCreditcoinStats } from "@/lib/ai/tools/creditcoin/get-stats";
 import { getOnchainApiDoc } from "@/lib/ai/tools/onchain/get-zerion-api-docs";
 import { onChainQuery } from "@/lib/ai/tools/onchain/zerion-api-fetch";
 import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
+import { getVanaApiData } from "@/lib/ai/tools/vana/get-vana-api-data";
+import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-api-data";
 
 export const maxDuration = 60;
 
@@ -113,8 +115,10 @@ export async function POST(request: Request) {
           getSiteContent,
           creditCoinApiFetch,
           getCreditcoinApiDoc,
+          getCreditcoinApiData,
           vanaApiFetch,
           getVanaApiDoc,
+          getVanaApiData,
           getVanaStats,
           getCreditcoinStats,
           getOnchainApiDoc,

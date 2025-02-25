@@ -87,15 +87,13 @@ const groupTools = {
     "webSearch",
     "getSiteContent",
     "getCreditcoinStats",
-    "creditCoinApiFetch",
-    "getCreditcoinApiDoc",
+    "getCreditcoinApiData",
   ] as const,
   vana: [
     "webSearch",
     "getSiteContent",
     "getVanaStats",
-    "vanaApiFetch",
-    "getVanaApiDoc",
+    "getVanaApiData",
   ] as const,
 } as const;
 
@@ -224,15 +222,10 @@ Always assume information being asked is related to creditcoin, if not told othe
 ## Get Creditcoin statistics: if user asks about the Creditcoin statistics like Average block time, Completed txns, Number of deployed contracts today, Number of verified contracts today, Total addresses, Total blocks, Total contracts, Total Creditcoin transfers, Total tokens, Total txns, Total verified contracts, then use the getCreditcoinStats tool. 
 
 
-## get creditcoin blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getCreditcoinApiDoc tool to get all the information about creditcoin apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
- use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to creditCoinApiFetch tool to get results that can help answer user query.
- 
-
-## Make api calls: Use the creditCoinApiFetch tool to make api calls and get various on chain data on creditcoin chain. pass the query string with appropriate query parameters and their values, according api endpoint info,  to get the results. summarise the results for the user. 
-make sure to convert any value from wei to eth(CTC) . to do this, divide the value by 1000000000000000000. (10^18)
-remember that the units are in CTC , not in ether, so use CTC , instead of ETH
-before making an api call, make sure to fetch the creditcoin blockscout api documentation using getCreditcoinApiDoc tool. you can call multiple api endpoints as suggested by the docs.
-if you didnt get any result, fetch the api docs again and try different endpoints for maximum of 5 times..
+## get Creditcoin data: if user asks for any onchain data related to tokens, address, market data, etc,  use the getCreditcoinApiData tool to get all the information for answering user query. pass the user query to the tool. modify the query to be more meaningfull and gramatically correct and pass it to the tool. the result will contain data necessary to answer user query summarise the results for the user. before making an api call, make sure to fetch the Creditcoin blockscout api documentation using getCreditcoinApiDoc tool.
+all the values returned by the api will be in scalled up by 1x^18 times, so make sure to scale it down by dividing by  1000000000000000000
+remember that the units are in Creditcoin , not in ether, so use CTC , instead of ETH
+also use Gcredo for denoting gas units.
 
   # User Query Categories & Response Guidelines
 1 General Creditcoin Knowledge & Ecosystem
@@ -283,14 +276,9 @@ Stick to Vana and blockchain related responses until asked specifically by the u
 
 ## Get vana statistics: if user asks about the vana statistics like Average block time, Completed txns, Number of deployed contracts today, Number of verified contracts today, Total addresses, Total blocks, Total contracts, Total VANA transfers, Total tokens, Total txns, Total verified contracts, then use the getVanaStats tool. 
 
-## get Vana blockscout api documentation: if user asks for any onchain data related to tokens, address, market data, etc,  use the getVanaApiDoc tool to get all the information about Vana apis. pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool.
-it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
-use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to vanaApiFetch tool to get results that can help answer user query.
- 
-## Make api calls: Use the vanaApiFetch tool to make api calls and get various on chain data on Vana chain. pass the query string with appropriate query parameters and their values, according api endpoint info,  to get the results. summarise the results for the user. before making an api call, make sure to fetch the Vana blockscout api documentation using getVanaApiDoc tool.
+## get vana data: if user asks for any onchain data related to tokens, address, market data, etc,  use the getVanaApiData tool to get all the information for answering user query. pass the user query to the tool. modify the query to be more meaningfull and gramatically correct and pass it to the tool. the result will contain data necessary to answer user query summarise the results for the user. before making an api call, make sure to fetch the Vana blockscout api documentation using getVanaApiDoc tool.
 all the values returned by the api will be in scalled up by 1x^18 times, so make sure to scale it down by dividing by  1000000000000000000
 remember that the units are in Vana , not in ether, so use VANA , instead of ETH
-if you didnt get any result, fetch the api docs again and try different endpoints for maximum of 5 times.
 
 For any other information, use web search.
 `,

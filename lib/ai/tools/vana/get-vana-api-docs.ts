@@ -1,7 +1,8 @@
-import { generateText, tool } from "ai";
+import { generateObject, generateText, tool } from "ai";
 import { z } from "zod";
 import { myProvider } from "../../models";
 import { getAllPaths, getPathInfo, loadOpenAPI } from "@/lib/utils/openapi";
+import { makeBlockscoutApiRequest } from "@/lib/utils/make-blockscout-api-request";
 
 export const getVanaApiDoc = tool({
   description: "Get real-time Vana Blockscout API documentation.",
@@ -15,29 +16,31 @@ export const getVanaApiDoc = tool({
       );
       const allPaths = await getAllPaths(openapidata);
       console.log("use prompt is -- ", userQuery);
-      const response = await generateText({
+      const { object: apiEndpointsArray } = await generateObject({
         model: myProvider.languageModel("chat-model-small"),
+        output: "array",
+        schema: z.string().describe("the api endpoint"),
         system: `\n
-        You will just return the name of the api endpoint in the given list of api endpoint and their summary, which can be helpfull to answers user query. Do not modify it in any way.`,
+        You will return the array of the  api endpoints in the given list of available api endpoints, which can be helpfull to answers user query. Do not modify it in any way.`,
         prompt: JSON.stringify(
           `The list of api endpoints and their summary are ${allPaths} and user Query is ${userQuery}`
         ),
       });
-      const apiEndpointName = response.steps[0].text;
-      console.log(
-        `AI selected the api endpoint as https://api.vanascan.io/api/v2${apiEndpointName}`
-      );
+      console.log(`AI selected the api endpoints as `, apiEndpointsArray);
 
-      const apiEndpointInfo = await getPathInfo(openapidata, apiEndpointName);
-      // console.log("apiEndpointInfo is -------- ", apiEndpointInfo);
-      const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
-      // console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
-      return {
-        success: true,
-        message: `The API endpoint you should call is: https://api.vanascan.io/api/v2${apiEndpointName}.`,
-        endpoint: `https://api.vanascan.io/api/v2${apiEndpointName}`,
-        details: apiEndpointInfoString,
-      };
+      // the apiEndpointsArray is like
+      // apiEndpointsArray = [
+      //   '/addresses/0x7492933BB94F79df306FeB86A4ed1927a0a51B31/token-balances',
+      //   '/addresses/0x7492933BB94F79df306FeB86A4ed1927a0a51B31/tokens'
+      // ]
+
+      // make the api calls
+      const requests = apiEndpointsArray.map((endpoint) => {
+        const fullUrl = `https://api.vanascan.io/api/v2${endpoint}`;
+        makeBlockscoutApiRequest(fullUrl);
+      });
+      const results = await Promise.all(requests);
+      return results;
     } catch (error: any) {
       console.error("Error in getVanaApiDoc:", error);
 

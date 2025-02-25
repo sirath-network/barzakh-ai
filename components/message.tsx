@@ -121,8 +121,8 @@ const PurePreviewMessage = ({
                           toolName === "getEvmMultiChainWalletPortfolio" ||
                           toolName === "getTokenBalances" ? (
                           <PortfolioTable result={result} />
-                        ) : toolName === "getCreditcoinApiDoc" ||
-                          toolName === "getVanaApiDoc" ||
+                        ) : toolName === "getCreditcoinApiData" ||
+                          toolName === "getVanaApiData" ||
                           toolName === "getOnchainApiDoc" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
@@ -174,8 +174,8 @@ const PurePreviewMessage = ({
                         <div className="text-sm">
                           <p className="py-1">Fetching portfolio...</p>
                         </div>
-                      ) : toolName === "getCreditcoinApiDoc" ||
-                        toolName === "getVanaApiDoc" ||
+                      ) : toolName === "getCreditcoinApiData" ||
+                        toolName === "getVanaApiData" ||
                         toolName === "getOnchainApiDoc" ? (
                         <div className="text-sm">
                           <p className="py-1">Exploring the blockchain...</p>
