@@ -33,6 +33,8 @@ export const getVanaApiData = tool({
           `The list of api endpoints and their summary are ${allPaths} and user Query is ${userQuery}`
         ),
       });
+      const limitedApiEndpointsArray = apiEndpointsArray.slice(0, 5);
+
       console.log(`AI selected the api endpoints as `, apiEndpointsArray);
 
       // the apiEndpointsArray is like
@@ -42,16 +44,16 @@ export const getVanaApiData = tool({
       // ]
 
       // make the api calls
-      const requests = apiEndpointsArray.map((endpoint) => {
+      const requests = limitedApiEndpointsArray.map((endpoint) => {
         const fullUrl = `https://api.vanascan.io/api/v2${endpoint}`;
         return makeBlockscoutApiRequest(fullUrl); // Return the promise
       });
 
       const results = await Promise.all(requests); // Wait for all requests to complete
       // console.log("API Results:", results);
-      const apiResultString = JSON.stringify(results);
-      const scaledResults = scaleLargeNumbersInJson(apiResultString);
-      return scaledResults;
+      // const apiResultString = JSON.stringify(results);
+      // const scaledResults = scaleLargeNumbersInJson(apiResultString);
+      return results;
     } catch (error: any) {
       console.error("Error in getVanaApiData:", error);
 

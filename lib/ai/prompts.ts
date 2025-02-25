@@ -223,7 +223,7 @@ Always assume information being asked is related to creditcoin, if not told othe
 
 
 ## get Creditcoin data: if user asks for any onchain data related to tokens, address, market data, etc,  use the getCreditcoinApiData tool to get all the information for answering user query. pass the user query to the tool. modify the query to be more meaningfull and gramatically correct and pass it to the tool. the result will contain data necessary to answer user query summarise the results for the user. before making an api call, make sure to fetch the Creditcoin blockscout api documentation using getCreditcoinApiDoc tool.
-all the values returned by the api will be in scalled up by 1x^18 times, so make sure to scale it down by dividing by  1000000000000000000
+all the values returned by the api will be in scaled up by 1x^18 times, so make sure to scale it down by dividing by  1000000000000000000
 remember that the units are in Creditcoin , not in ether, so use CTC , instead of ETH
 also use Gcredo for denoting gas units.
 
