@@ -28,7 +28,7 @@ import { getSolanaChainWalletPortfolio } from "@/lib/ai/tools/solana/wallet-port
 import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/evm/wallet-portfolio-evm";
 import { searchSolanaTokenMarketData } from "@/lib/ai/tools/solana/search-token-solana";
 import { searchEvmTokenMarketData } from "@/lib/ai/tools/evm/search-token-evm";
-import { getScrapJobData } from "@/lib/ai/tools/scrap-site";
+import { getSiteContent } from "@/lib/ai/tools/scrap-site";
 import { creditCoinApiFetch } from "@/lib/ai/tools/creditcoin/creditcoin-api-fetch";
 import { getCreditcoinApiDoc } from "@/lib/ai/tools/creditcoin/get-creditcoin-api-docs";
 import { vanaApiFetch } from "@/lib/ai/tools/vana/vana-api-fetch";
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
           getSolanaChainWalletPortfolio,
           searchSolanaTokenMarketData,
           searchEvmTokenMarketData,
-          getScrapJobData,
+          getSiteContent,
           creditCoinApiFetch,
           getCreditcoinApiDoc,
           vanaApiFetch,

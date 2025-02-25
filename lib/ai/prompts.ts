@@ -85,14 +85,14 @@ const groupTools = {
   ] as const,
   creditcoin: [
     "webSearch",
-    "getScrapJobData",
+    "getSiteContent",
     "getCreditcoinStats",
     "creditCoinApiFetch",
     "getCreditcoinApiDoc",
   ] as const,
   vana: [
     "webSearch",
-    "getScrapJobData",
+    "getSiteContent",
     "getVanaStats",
     "vanaApiFetch",
     "getVanaApiDoc",
@@ -219,7 +219,7 @@ Always assume information being asked is related to creditcoin, if not told othe
   Specify the year or "latest" in queries to fetch recent information.
   Stick to Creditcoin and blockchain related responses until asked specifically by the user. you can use the scrape url tool if user asks a specific quesiton and relevant data is not found on internet.
 
-## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. Can be used to scrape the creditcoin site: https://creditcoin.org// for various info like upcoming events, resouces, stats, etc 
+## Scrape url to get the site content: use  getSiteContent to scrap any website. pass the url to scrape. Can be used to scrape the creditcoin site: https://creditcoin.org// for various info like upcoming events, resouces, stats, etc 
 
 ## Get Creditcoin statistics: if user asks about the Creditcoin statistics like Average block time, Completed txns, Number of deployed contracts today, Number of verified contracts today, Total addresses, Total blocks, Total contracts, Total Creditcoin transfers, Total tokens, Total txns, Total verified contracts, then use the getCreditcoinStats tool. 
 
@@ -276,7 +276,7 @@ Always assume information being asked is related to Vana, if not told otherwise.
   Specify the year or "latest" in queries to fetch recent information.
   Stick to Vana and blockchain related responses until asked specifically by the user. you can use the scrape url tool if user asks a specific quesiton and relevant data is not found on internet.
 
-## Scrape url to get the site content: use  getScrapJobData to scrap any website. pass the url to scrape. Can be used to scrape the Vana site: https://www.vana.org// for various info like upcoming events, resouces, stats, etc 
+## Scrape url to get the site content: use  getSiteContent to scrap any website. pass the url to scrape. Can be used to scrape the Vana site: https://www.vana.org// for various info like upcoming events, resouces, stats, etc 
 
 ## Get vana statistics: if user asks about the vana statistics like Average block time, Completed txns, Number of deployed contracts today, Number of verified contracts today, Total addresses, Total blocks, Total contracts, Total VANA transfers, Total tokens, Total txns, Total verified contracts, then use the getVanaStats tool. 
 

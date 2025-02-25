@@ -10,19 +10,7 @@ if (!FIRECRAWL_API_KEY || !FIRECRAWL_API_ENDPOINT) {
 
 const app = new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY });
 
-type FirecrawlData = {
-  success: string;
-  error: string;
-  data: {
-    markdown: string;
-  };
-  details: {
-    code: string;
-    message: string;
-  };
-};
-
-export async function getCrawlJobData(linkToCrawl: string) {
+export async function crawlSite(linkToCrawl: string) {
   try {
     console.log("crawling link : ", linkToCrawl);
 
@@ -40,7 +28,7 @@ export async function getCrawlJobData(linkToCrawl: string) {
     console.log(crawlResponse.data);
     return crawlResponse.data;
   } catch (error) {
-    console.error("Error in getCrawlJobData:", error);
+    console.error("Error in crawlSite:", error);
     throw error; // Re-throw to allow handling by the caller
   }
 }
