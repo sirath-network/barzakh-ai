@@ -45,7 +45,7 @@ export const getVanaApiData = tool({
 
       // make the api calls
       const requests = limitedApiEndpointsArray.map((endpoint) => {
-        const fullUrl = `https://api.vanascan.io/api/v2${endpoint}`;
+        const fullUrl = `https://vanascan.io/api/v2${endpoint}`;
         return makeBlockscoutApiRequest(fullUrl); // Return the promise
       });
 
