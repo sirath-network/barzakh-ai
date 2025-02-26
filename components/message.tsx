@@ -39,6 +39,7 @@ const PurePreviewMessage = ({
   setMessages,
   reload,
   isReadonly,
+  showIcon = true,
 }: {
   chatId: string;
   message: Message;
@@ -51,6 +52,7 @@ const PurePreviewMessage = ({
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  showIcon?: boolean;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -73,9 +75,11 @@ const PurePreviewMessage = ({
         >
           {message.role === "assistant" && (
             <div className="size-8 flex items-center rounded-full justify-center  bg-background">
-              <div className="">
-                <JavinMan size={24} />
-              </div>
+              {showIcon && (
+                <div className="">
+                  <JavinMan size={24} />
+                </div>
+              )}
             </div>
           )}
 
