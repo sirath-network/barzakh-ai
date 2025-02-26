@@ -1,40 +1,74 @@
-import { generateText, tool } from "ai";
+import { generateObject, generateText, tool } from "ai";
 import { z } from "zod";
 import { myProvider } from "../../models";
 import {
   getAllPaths,
   getPathInfo,
+  loadOpenAPI,
   loadOpenAPIFromJson,
 } from "@/lib/utils/openapi";
 import zerionJson from "./zerion-openapi.json";
+import { etherscanBaseURL, zerionBaseURL } from "./constant";
 
 export const getOnchainApiDoc = tool({
-  description: "Get real-time Zerion Blockscout API documentation.",
+  description:
+    "Get real-time Ethereum and Zerion Blockscout API documentation.",
   parameters: z.object({
     userQuery: z.string().describe("Query of user."),
   }),
   execute: async ({ userQuery }: { userQuery?: string }) => {
+    console.log("EXECUTING GET API DOCS");
     try {
-      const openapidata = await loadOpenAPIFromJson(zerionJson);
-      const allPaths = await getAllPaths(openapidata);
       console.log("user query ", userQuery);
-      const response = await generateText({
+      const zerionOpenapidata = await loadOpenAPIFromJson(zerionJson);
+      const zerionAllPaths = await getAllPaths(zerionOpenapidata);
+
+      const etherscanOpenapidata = await loadOpenAPI(
+        "https://raw.githubusercontent.com/PurrProof/etherscan-openapi/refs/heads/main/etherscan-openapi31-bundled.yml"
+      );
+      const etherscanAllPaths = await getAllPaths(etherscanOpenapidata);
+      console.log("etherscanAllPaths is ", etherscanAllPaths);
+      console.log("zerionAllPaths is ", zerionAllPaths);
+
+      const prompt = JSON.stringify(
+        `The list of api endpoints and their summary for the api provider zerion is ${zerionAllPaths} and for the api provider etherscan is ${etherscanAllPaths} and user Query is ${userQuery}`
+      );
+      const { object } = await generateObject({
         model: myProvider.languageModel("chat-model-small"),
-        system: `\n
-        You will just return the name of the api endpoint in the given list of api endpoint and their summary, which can be helpfull to answers user query. Do not modify it in any way. only give one api endpoint at a time`,
-        prompt: JSON.stringify(
-          `The list of api endpoints and their summary are ${allPaths} and user Query is ${userQuery}`
-        ),
+        system: `You will just return the name of the api and its respective endpoint in the given list of api endpoint and their summary, which can be helpfull to answers user query. Do not modify it in any way. only give one api endpoint at a time`,
+        prompt: prompt,
+        schema: z.object({
+          apiProvider: z.enum(["zerion", "etherscan"]),
+          apiPath: z.string(),
+        }),
       });
-      let apiEndpointName = response.steps[0].text;
+      console.log("OBJECT IS ", object);
+      let apiEndpointName = object.apiPath;
+      console.log("apiEndpointName is ", apiEndpointName);
       if (apiEndpointName.startsWith('"') && apiEndpointName.endsWith('"')) {
         apiEndpointName = apiEndpointName.slice(1, -1);
       }
+      let baseUrl = "";
+      switch (object.apiProvider) {
+        case "etherscan":
+          baseUrl = etherscanBaseURL;
+          break;
+        case "zerion":
+          baseUrl = zerionBaseURL;
+          break;
+        default:
+          break;
+      }
       console.log(
-        `AI selected the api endpoint as https://api.zerion.io${apiEndpointName}`
+        `AI selected the api endpoint as ${baseUrl}${apiEndpointName}`
       );
 
-      const apiEndpointInfo = await getPathInfo(openapidata, apiEndpointName);
+      const apiEndpointInfo = await getPathInfo(
+        object.apiProvider === "zerion"
+          ? zerionOpenapidata
+          : etherscanOpenapidata,
+        apiEndpointName
+      );
       // console.log("apiEndpointInfo is -------- ", apiEndpointInfo);
       const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
       console.log("apiEndpointInfoString -------- ", apiEndpointInfoString);
@@ -42,8 +76,8 @@ export const getOnchainApiDoc = tool({
 
       return {
         success: true,
-        endpoint: `The API endpoint you should call is: https://api.zerion.io${apiEndpointName}`,
-        baseUrl: "https://api.zerion.io",
+        endpoint: `The API endpoint you should call is: ${baseUrl}${apiEndpointName}`,
+        baseUrl: baseUrl,
         detailsAboutEndpoint: apiEndpointInfoString,
       };
     } catch (error: any) {

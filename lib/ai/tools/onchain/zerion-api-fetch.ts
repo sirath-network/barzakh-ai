@@ -1,41 +1,62 @@
 import { getZerionApiKey } from "@/lib/utils";
 import { tool } from "ai";
 import { z } from "zod";
+import { etherscanBaseURL } from "./constant";
 
 export const onChainQuery = tool({
   description:
-    "Make fetch calls to the zerion apis to get various onchain data.",
+    "Make fetch calls to the blockchain scan apis to get various onchain data.",
   parameters: z.object({
-    url: z
-      .string()
-
-      .describe("Api url to make fetch call"),
+    url: z.string().describe("Api url to make fetch call"),
   }),
   execute: async ({ url }: { url: string }) => {
-    const apiKey = getZerionApiKey();
-    if (!apiKey) {
-      throw Error("zerion api key not found");
-    }
-    const options = {
-      method: "GET",
-      headers: {
-        accept: "application/json",
-        authorization: `Basic ${apiKey}`,
-      },
-    };
-
     try {
-      console.log("fetching data ------ ", url);
-      const response = await fetch(url, options);
+      console.log("EXECUTING API FETCH");
+      console.log("url is ", url);
+      let apiName = "";
+      if (url.includes(etherscanBaseURL)) {
+        apiName = "etherscan";
+      } else {
+        apiName = "zerion";
+      }
 
-      const apiResult = await response.json();
+      let apiKey;
+      if (apiName === "etherscan") {
+        apiKey = process.env.ETHERSCAN_API_KEY;
+      } else {
+        apiKey = getZerionApiKey();
+      }
+      if (!apiKey) {
+        throw Error(apiName + " api key not found");
+      }
+      console.log("api key is ", apiName, " = ", apiKey);
+
+      console.log("fetching data ------ ", url);
+
+      let apiResult = undefined;
+
+      if (apiName === "etherscan") {
+        url = url.replace(/apikey=[^&]+/, `apikey=${apiKey}`);
+        const response = await fetch(`${url}`);
+        const t = await response.json();
+        apiResult = t.result;
+        console.log("apiResult ==== ", apiResult);
+      } else {
+        const options = {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            authorization: `Basic ${apiKey}`,
+          },
+        };
+        console.log(options);
+        const response = await fetch(url, options);
+        apiResult = await response.json();
+      }
       if (!apiResult) {
         //@ts-ignore
         return "No results found.";
       }
-      // console.log("portfoliodata", portfolioData[0])
-      // console.log("api result", apiResult);
-
       return apiResult;
     } catch (error: any) {
       console.error("Error in onChainQuery:", error);
