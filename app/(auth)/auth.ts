@@ -1,6 +1,7 @@
 import { compare } from "bcrypt-ts";
 import NextAuth, { type User, type Session } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { RainbowKitSiweNextAuthProvider } from "@rainbow-me/rainbowkit-siwe-next-auth";
 
 import { getUser } from "@/lib/db/queries";
 

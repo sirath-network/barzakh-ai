@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -49,26 +50,37 @@ export default function Page() {
           A focused, no-nonsense AI search engine for crypto and blockchain.
         </p>
       </div>
-      <div className="w-fit overflow-hidden rounded-2xl gap-5 flex flex-col border m-2 p-5">
+      <div className="w-fit overflow-hidden rounded-2xl gap-4 flex flex-col border m-2 p-5">
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">Sign In</h3>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Use your email and password to sign in
-          </p>
+          <div>
+            <ConnectButton label="Sign in with wallet" />
+          </div>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail={email}>
-          <SubmitButton isSuccessful={isSuccessful}>Sign In</SubmitButton>
-          <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
-            {"Don't have an account? "}
-            <Link
-              href="/register"
-              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
-            >
-              Sign Up
-            </Link>
-            {" for free."}
-          </p>
-        </AuthForm>
+        <div className="flex flex-row gap-2 items-center justify-center w-full">
+          <div className="w-1/3 border"></div>
+          <div className="text-sm font-semibold">OR</div>
+          <div className="w-1/3 border"></div>
+        </div>
+
+        <div>
+          <div className="text-sm font-semibold text-gray-500 dark:text-zinc-400 w-full text-center mb-3">
+            Use your email and password to sign in
+          </div>
+
+          <AuthForm action={handleSubmit} defaultEmail={email}>
+            <SubmitButton isSuccessful={isSuccessful}>Sign In</SubmitButton>
+            <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
+              {"Don't have an account? "}
+              <Link
+                href="/register"
+                className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
+              >
+                Sign Up
+              </Link>
+              {" for free."}
+            </p>
+          </AuthForm>
+        </div>
       </div>
     </div>
   );

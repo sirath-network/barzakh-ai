@@ -3,6 +3,8 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import "@rainbow-me/rainbowkit/styles.css";
+import Providers from "@/components/providers/providers";
 
 const baseUrl = "https://javin.ai";
 
@@ -75,17 +77,10 @@ export default async function RootLayout({
       </head>
       <body className="antialiased">
         {/* dont remove below div. it is for modal */}
-        <SessionProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <Toaster position="top-center" />
-            {children}
-          </ThemeProvider>
-        </SessionProvider>
+        <Providers>
+          <Toaster position="top-center" />
+          {children}
+        </Providers>
       </body>
     </html>
   );
