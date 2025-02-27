@@ -8,21 +8,29 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
-
+import { useAccount } from "wagmi";
 import { login, type LoginActionState } from "../actions";
+import { useSession } from "next-auth/react";
 
 export default function Page() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
-
+  const account = useAccount();
+  const session = useSession();
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     login,
     {
       status: "idle",
     }
   );
+
+  useEffect(() => {
+    if (session.status == "authenticated") {
+      router.push("/");
+    }
+  }, [session]);
 
   useEffect(() => {
     if (state.status === "failed") {

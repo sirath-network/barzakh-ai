@@ -15,7 +15,6 @@ import { SidebarUserNav } from "./sidebar-user-nav";
 import { Message } from "ai";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ConnectWalletButton } from "./connect-wallet-button";
-import { useSession } from "next-auth/react";
 import { useAccount } from "wagmi";
 
 function PureChatHeader({
@@ -35,11 +34,8 @@ function PureChatHeader({
 }) {
   const router = useRouter();
   const { open } = useSidebar();
-  const session = useSession();
-  // console.log(session);
   const { width: windowWidth } = useWindowSize();
   const { address } = useAccount();
-  console.log("user in chat header", user);
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
       <div className="flex items-center justify-start gap-2 w-full">
@@ -108,7 +104,7 @@ function PureChatHeader({
           )}
         </div>
       </div>
-      <ConnectButton />
+      {/* <ConnectButton /> */}
 
       {/* {!isReadonly && (
         <VisibilitySelector

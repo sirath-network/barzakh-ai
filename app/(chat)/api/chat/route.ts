@@ -11,7 +11,7 @@ import { getGroupConfig, systemPrompt } from "@/lib/ai/prompts";
 import {
   deleteChatById,
   getChatById,
-  getUserByEmail,
+  getUserById,
   incrementMessageCount,
   saveChat,
   saveMessages,
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
   }
-  const users = await getUserByEmail(session.user.email!);
+  const users = await getUserById(session.user.id!);
   const user_info = users[0];
   console.log("user infor ", session.user);
   if (

@@ -26,6 +26,14 @@ import { BlockKind } from "@/components/block";
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
 
+export async function getUserById(id: string): Promise<Array<User>> {
+  try {
+    return await db.select().from(user).where(eq(user.id, id));
+  } catch (error) {
+    console.error("Failed to get user from database");
+    throw error;
+  }
+}
 export async function getUserByEmail(email: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.email, email));

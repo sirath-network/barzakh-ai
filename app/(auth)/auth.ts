@@ -50,10 +50,10 @@ export const {
         },
       },
       async authorize(credentials, req) {
-        console.log(
-          "credentials.message --------------- ",
-          typeof credentials.signature
-        );
+        // console.log(
+        //   "credentials.message --------------- ",
+        //   typeof credentials.signature
+        // );
         try {
           const siwe = new SiweMessage(credentials?.message || "{}");
           const nextAuthUrl = new URL(process.env.NEXTAUTH_URL!);
@@ -67,25 +67,29 @@ export const {
             domain: nextAuthUrl.host,
             nonce: csrf, // Use extracted nonce
           });
-          console.log("result -------------- ", result);
+          // console.log("result -------------- ", result);
           if (result.success) {
             console.log("sign in success with wallet", siwe.address);
             const walletAddress = siwe.address;
             const users = await getUserByWalletAddress(walletAddress);
 
-            // create user
-            let newUser;
-            let id = generateUUID();
             if (users.length === 0) {
-              newUser = await createUserByWalletAddress(id, walletAddress);
+              let id = generateUUID();
+              await createUserByWalletAddress(id, walletAddress);
+              return {
+                id: id,
+                walletAddress: siwe.address,
+                tier: "free",
+                messageCount: 0,
+              };
+            } else {
+              return {
+                id: users[0].id,
+                walletAddress: siwe.address,
+                tier: "free",
+                messageCount: 0,
+              };
             }
-            console.log("new user ---- ", newUser);
-            return {
-              id: id,
-              walletAddress: siwe.address,
-              tier: "free",
-              messageCount: 0,
-            };
           }
           return null;
         } catch (e) {
@@ -97,11 +101,12 @@ export const {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      console.log("user", token);
+      // console.log("user", token)
       if (user) {
         token.id = user.id;
         token.tier = user.tier; // Add tier to the token
         token.messageCount = user.messageCount as number; // Add tier to the token
+        token.walletAddress = user.walletAddress as string;
       }
 
       return token;
@@ -111,6 +116,7 @@ export const {
         session.user.id = token.id as string;
         session.user.tier = token.tier as string; // Assign tier from token to session
         session.user.messageCount = token.messageCount as number; // Assign tier from token to session
+        session.user.walletAddress = token.walletAddress as string;
       }
       return session;
     },
