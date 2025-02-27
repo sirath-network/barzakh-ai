@@ -20,7 +20,13 @@ import {
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
-export function SidebarUserNav({ user }: { user: User }) {
+export function SidebarUserNav({
+  user,
+  address,
+}: {
+  user: User;
+  address?: string;
+}) {
   const { setTheme, theme } = useTheme();
 
   return (
@@ -28,17 +34,32 @@ export function SidebarUserNav({ user }: { user: User }) {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-              <Image
-                src={`https://avatar.vercel.sh/${user.email}`}
-                alt={user.email ?? "User Avatar"}
-                width={24}
-                height={24}
-                className="rounded-full"
-              />
-              <span className="hidden md:block truncate">{user?.email}</span>
-              <ChevronDown className="ml-auto" />
-            </SidebarMenuButton>
+            {user.email && (
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={`https://avatar.vercel.sh/${user.email}`}
+                  alt={user.email ?? "User Avatar"}
+                  width={24}
+                  height={24}
+                  className="rounded-full"
+                />
+                <span className="hidden md:block truncate">{user?.email}</span>
+                <ChevronDown className="ml-auto" />
+              </SidebarMenuButton>
+            )}
+            {address && (
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={`https://avatar.vercel.sh/${address}`}
+                  alt={address ?? "User Avatar"}
+                  width={24}
+                  height={24}
+                  className="rounded-full"
+                />
+                <span className="hidden md:block truncate">{address}</span>
+                <ChevronDown className="ml-auto" />
+              </SidebarMenuButton>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" className="w-full" sideOffset={4}>
             <div className="block md:hidden">

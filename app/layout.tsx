@@ -77,10 +77,20 @@ export default async function RootLayout({
       </head>
       <body className="antialiased">
         {/* dont remove below div. it is for modal */}
-        <Providers>
-          <Toaster position="top-center" />
-          {children}
-        </Providers>
+
+        <SessionProvider>
+          <Providers>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <Toaster position="top-center" />
+              {children}
+            </ThemeProvider>
+          </Providers>
+        </SessionProvider>
       </body>
     </html>
   );
