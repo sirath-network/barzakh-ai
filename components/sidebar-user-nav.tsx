@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { User } from "next-auth";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 
 import {
   DropdownMenu,
@@ -19,31 +20,66 @@ import {
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import { useAccount, useDisconnect } from "wagmi";
+import { useRouter } from "next/navigation";
 
-export function SidebarUserNav({ user }: { user: User }) {
+export const shortenAddress = (address: string): string => {
+  if (!address || address.length < 10) return address; // Handle invalid addresses
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+export function SidebarUserNav({
+  user,
+  address,
+}: {
+  user: User;
+  address?: string;
+}) {
   const { setTheme, theme } = useTheme();
-
+  const { disconnect } = useDisconnect();
+  const router = useRouter();
+  const { update } = useSession();
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-              <Image
-                src={`https://avatar.vercel.sh/${user.email}`}
-                alt={user.email ?? "User Avatar"}
-                width={24}
-                height={24}
-                className="rounded-full"
-              />
-              <span className="hidden md:block truncate">{user?.email}</span>
-              <ChevronDown className="ml-auto" />
-            </SidebarMenuButton>
+            {user.email ? (
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={`https://avatar.vercel.sh/${user.email}`}
+                  alt={user.email ?? "User Avatar"}
+                  width={24}
+                  height={24}
+                  className="rounded-full"
+                />
+                <span className="hidden md:block truncate">{user?.email}</span>
+                <ChevronDown className="ml-auto" />
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
+                <Image
+                  src={`https://avatar.vercel.sh/${address}`}
+                  alt={address ?? "User Avatar"}
+                  width={24}
+                  height={24}
+                  className="rounded-full"
+                />
+                <span className="hidden md:block truncate">
+                  {shortenAddress(address!)}
+                </span>
+                <ChevronDown className="ml-auto" />
+              </SidebarMenuButton>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" className="w-full" sideOffset={4}>
             <div className="block md:hidden">
               <DropdownMenuItem>
-                <span className="truncate">{user?.email}</span>
+                {user.email ? (
+                  <span className="truncate">{user?.email}</span>
+                ) : (
+                  <span className="truncate">{shortenAddress(address!)}</span>
+                )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </div>
@@ -74,10 +110,14 @@ export function SidebarUserNav({ user }: { user: User }) {
               <button
                 type="button"
                 className="w-full cursor-pointer"
-                onClick={() => {
-                  signOut({
-                    redirectTo: "/",
-                  });
+                onClick={async () => {
+                  if (address) {
+                    disconnect();
+                  } else {
+                    signOut({
+                      redirectTo: "/",
+                    });
+                  }
                 }}
               >
                 Sign out
