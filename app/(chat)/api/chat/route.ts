@@ -1,3 +1,4 @@
+// app/(chat)/api/chat/route.ts
 import {
   type Message,
   createDataStreamResponse,

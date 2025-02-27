@@ -59,7 +59,7 @@ export const onChainQuery = tool({
       }
       return apiResult;
     } catch (error: any) {
-      console.error("Error in onChainQuery:", error);
+      console.error("Error in onChainQuery while fetching "+url+" : ", error);
 
       // Returning error details so AI can adapt its next action
       return {

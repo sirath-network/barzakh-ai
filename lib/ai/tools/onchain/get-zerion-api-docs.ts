@@ -12,7 +12,7 @@ import { etherscanBaseURL, zerionBaseURL } from "./constant";
 
 export const getOnchainApiDoc = tool({
   description:
-    "Get real-time Ethereum and Zerion Blockscout API documentation.",
+    "Get real-time Ethereum and Zerion API documentation.",
   parameters: z.object({
     userQuery: z.string().describe("Query of user."),
   }),
@@ -35,7 +35,7 @@ export const getOnchainApiDoc = tool({
       );
       const { object } = await generateObject({
         model: myProvider.languageModel("chat-model-small"),
-        system: `You will just return the name of the api and its respective endpoint in the given list of api endpoint and their summary, which can be helpfull to answers user query. Do not modify it in any way. only give one api endpoint at a time`,
+        system: `there are 2 different api providers to fetch information about ethereum based blockchain. one is zerion and one is etherscan. you will just return the name of the api provider and its respective endpoint path in the given list of endpoint path and their summary, which can be helpfull to answers user query. do not modify it in any way. and only choose one of the following.`,
         prompt: prompt,
         schema: z.object({
           apiProvider: z.enum(["zerion", "etherscan"]),
