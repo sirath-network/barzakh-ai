@@ -79,8 +79,9 @@ const groupTools = {
     "webSearch",
     "searchSolanaTokenMarketData",
     "searchEvmTokenMarketData",
-    "getOnchainApiDoc",
-    "onChainQuery",
+    // "getOnchainApiDoc",
+    // "onChainQuery",
+    "getOnchainApiData",
     "ensToAddress",
   ] as const,
   creditcoin: [
@@ -156,14 +157,7 @@ Always assume information being asked is related to ethereum and other evm based
   ## Search token or market data:
   If the user wants to fetch token information, use this tool.
 
-## Get on-chain api documentation: use the getOnchainApiDoc tool to get all the information about on chain apis if user asks for any onchain data related to wallets, fungibles, chains, swaps, gas, nfts, . pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool.
- it will return an openapi swagger spec of the endpoint, which will help you make better decisions. 
- use the information to decide which api to call, and the query params to pass and also the result to expect. After checking with the docs, pass the appropriate query string to onChainQuery tool to get results that can help answer user query.
- 
-
-## Make api query: Use the onChainQuery tool to make api calls and get various on chain data. pass the query string with appropriate query parameters and their values, according api endpoint info,  to get the results. summarise the results for the user. before making an api call, make sure to fetch the on chain api documentation using getOnchainApiDoc tool.
- convert wei to ether for showing balances or gas fees.
-if you didnt get any result, fetch the api docs again and try different endpoints for maximum of 5 times..
+## Get realtime On-chain Data: use the getOnchainApiData tool to get all the information about on chain apis if user asks for any onchain data related to wallets, fungibles, chains, swaps, gas, nfts, . pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool. summarise the output results for the user. convert wei to ether for showing balances or gas fees. if you didnt get expected result, use the tool again and try different queries for maximum of 5 times..
 
 
 ## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
