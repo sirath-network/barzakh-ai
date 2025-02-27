@@ -39,6 +39,7 @@ const PurePreviewMessage = ({
   setMessages,
   reload,
   isReadonly,
+  showIcon = true,
 }: {
   chatId: string;
   message: Message;
@@ -51,6 +52,7 @@ const PurePreviewMessage = ({
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  showIcon?: boolean;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
 
@@ -73,9 +75,11 @@ const PurePreviewMessage = ({
         >
           {message.role === "assistant" && (
             <div className="size-8 flex items-center rounded-full justify-center  bg-background">
-              <div className="">
-                <JavinMan size={24} />
-              </div>
+              {showIcon && (
+                <div className="">
+                  <JavinMan size={24} />
+                </div>
+              )}
             </div>
           )}
 
@@ -121,21 +125,12 @@ const PurePreviewMessage = ({
                           toolName === "getEvmMultiChainWalletPortfolio" ||
                           toolName === "getTokenBalances" ? (
                           <PortfolioTable result={result} />
-                        ) : toolName === "getCreditcoinApiDoc" ||
-                          toolName === "getVanaApiDoc" ||
+                        ) : toolName === "getCreditcoinApiData" ||
+                          toolName === "getVanaApiData" ||
                           toolName === "getOnchainApiDoc" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
                               Exploring the blockchain
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
-                        ) : toolName === "creditCoinApiFetch" ||
-                          toolName === "vanaApiFetch" ||
-                          toolName === "onChainQuery" ? (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Fetching data
                               <Check size={14} className="text-green-500" />
                             </p>
                           </div>
@@ -174,8 +169,8 @@ const PurePreviewMessage = ({
                         <div className="text-sm">
                           <p className="py-1">Fetching portfolio...</p>
                         </div>
-                      ) : toolName === "getCreditcoinApiDoc" ||
-                        toolName === "getVanaApiDoc" ||
+                      ) : toolName === "getCreditcoinApiData" ||
+                        toolName === "getVanaApiData" ||
                         toolName === "getOnchainApiDoc" ? (
                         <div className="text-sm">
                           <p className="py-1">Exploring the blockchain...</p>

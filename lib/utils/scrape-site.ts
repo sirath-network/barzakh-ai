@@ -10,23 +10,26 @@ if (!FIRECRAWL_API_KEY || !FIRECRAWL_API_ENDPOINT) {
 
 const app = new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY });
 
-// visits stat page, clicks on fullscreen mode and takes a screenshot
-export async function getStatPageScreenshot(statsPageUrl: string) {
+export async function scrapeSite(linkToScrape: string) {
   try {
-    console.log("visiting link : ", statsPageUrl);
+    console.log("scraping link : ", linkToScrape);
 
-    const scrapeResult = (await app.scrapeUrl(statsPageUrl, {
-      formats: ["markdown"],
+    const scrapeResult = (await app.scrapeUrl(linkToScrape, {
+      formats: ["markdown", "links"],
     })) as ScrapeResponse;
 
     if (!scrapeResult.success) {
-      return `Failed to scrape: ${scrapeResult.error}`;
+      throw new Error(`Failed to scrape: ${scrapeResult.error}`);
     }
 
-    console.log("scrape result ----- ", scrapeResult.markdown);
-    return scrapeResult.markdown;
+    console.log("scrapeResult.markdown----------------", scrapeResult.markdown);
+    console.log("scrapeResult.links----------------", scrapeResult.links);
+    return {
+      pageContent: scrapeResult.markdown,
+      pageLinks: scrapeResult.links,
+    };
   } catch (error) {
-    console.error("Error in getStatPageScreenshot:", error);
+    console.error("Error in scrapeSite:", error);
     throw error; // Re-throw to allow handling by the caller
   }
 }

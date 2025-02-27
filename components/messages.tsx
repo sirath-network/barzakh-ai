@@ -56,6 +56,7 @@ function PureMessages({
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
+          showIcon={index > 0 && messages[index - 1].role == "user"}
         />
       ))}
 
