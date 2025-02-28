@@ -1,7 +1,4 @@
 import { getZerionApiKey } from "@/lib/utils";
-import { tool } from "ai";
-import { z } from "zod";
-import { etherscanBaseURL } from "./constant";
 
 export const fetchApi = async ({
   url,

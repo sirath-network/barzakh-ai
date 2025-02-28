@@ -69,20 +69,20 @@ Ensure this disclaimer is consistently included to clarify Javin.ai's role in pr
 const groupTools = {
   search: [
     "webSearch",
-    "getEvmMultiChainWalletPortfolio",
     "getSolanaChainWalletPortfolio",
     "searchSolanaTokenMarketData",
+    "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
     "ensToAddress",
   ] as const,
   on_chain: [
     "webSearch",
+    "getSolanaChainWalletPortfolio",
     "searchSolanaTokenMarketData",
+    "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
-    // "getOnchainApiDoc",
-    // "onChainQuery",
-    "getOnchainApiData",
     "ensToAddress",
+    "getEvmOnchainData"
   ] as const,
   creditcoin: [
     "webSearch",
@@ -129,7 +129,7 @@ Comply with user requests to the best of your abilities using the appropriate to
   if no token data is found, then proceed to get the portfolio of the address
 
 ## Get multi chain wallet portfolio:
-  If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
+  If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then retry it once more.
   If the user provides an solana address, NOT starting with "0x", Use getSolanaChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
   If a wallet address is not provided, ask the user for it.
   If the tool returns no data, assume the input is a token address and proceed to get the token data using searchTokenMarketData tool.
@@ -157,10 +157,7 @@ Always assume information being asked is related to ethereum and other evm based
   ## Search token or market data:
   If the user wants to fetch token information, use this tool.
 
-## Get realtime On-chain Data: use the getOnchainApiData tool to get all the information about on chain apis if user asks for any onchain data related to wallets, fungibles, chains, swaps, gas, nfts, . pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool. summarise the output results for the user. convert wei to ether for showing balances or gas fees. if you didnt get expected result, use the tool again and try different queries for maximum of 5 times..
-
-
-## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
+## Get realtime On-chain Data: use the getEvmOnchainData tool to get all the information about on chain apis if user asks for any onchain data related to wallets, fungibles, chains, swaps, gas, nfts, . pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool. summarise the output results for the user. convert wei to ether for showing balances or gas fees. if you didnt get expected result, use the tool again and try different queries for maximum of 5 times.
 
 # various information you can fetch
 ## Wallets
@@ -177,7 +174,6 @@ Always assume information being asked is related to ethereum and other evm based
 -Get fungible asset by ID
 -Get a chart for a fungible asset
 
-
 ## chains
 -Get list of all chains
 -Get chain by ID
@@ -193,6 +189,14 @@ Get list of all available gas prices
 -Get list of NFTs
 -Get single NFT by ID
 
+## Get multi chain wallet portfolio:
+If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then retry it once more.
+If the user provides an solana address, NOT starting with "0x", Use getSolanaChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
+If a wallet address is not provided, ask the user for it.
+If the tool returns no data, assume the input is a token address and proceed to get the token data using searchTokenMarketData tool.
+
+
+## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
   `,
 
   creditcoin: `Role & Functionality
