@@ -241,7 +241,8 @@ export type SearchGroupId =
   | "on_chain"
   | "creditcoin"
   | "vana"
-  | "wormhole";
+  | "wormhole"
+  | "flow";
 
 export const searchGroups = [
   {
@@ -281,6 +282,13 @@ export const searchGroups = [
     description: "Everything Vana. Search, transactions and more.",
     icon: Network,
     img: "/images/icon/vana/vana-icon-black.png",
+  },
+  {
+    id: "flow" as const,
+    name: "Flow",
+    description: "Everything Flow. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/flow-logo.png",
   },
 ] as const;
 

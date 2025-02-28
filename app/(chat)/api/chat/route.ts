@@ -36,6 +36,8 @@ import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-ap
 import { getEvmOnchainData } from "@/lib/ai/tools/onchain/get_onchain_api_data";
 import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
 import { getWormholeApiData } from "@/lib/ai/tools/wormhole/get-wormhole-api-data";
+import { getFlowApiData } from "@/lib/ai/tools/flow/get-vana-api-data";
+import { getFlowStats } from "@/lib/ai/tools/flow/get-stats";
 
 export const maxDuration = 60;
 
@@ -116,6 +118,8 @@ export async function POST(request: Request) {
           getEvmOnchainData,
           ensToAddress,
           getWormholeApiData,
+          getFlowApiData,
+          getFlowStats,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {
