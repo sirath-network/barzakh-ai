@@ -26,30 +26,9 @@ import { BlockKind } from "@/components/block";
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
 
-export async function getUserById(id: string): Promise<Array<User>> {
-  try {
-    return await db.select().from(user).where(eq(user.id, id));
-  } catch (error) {
-    console.error("Failed to get user from database");
-    throw error;
-  }
-}
-export async function getUserByEmail(email: string): Promise<Array<User>> {
+export async function getUser(email: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.email, email));
-  } catch (error) {
-    console.error("Failed to get user from database");
-    throw error;
-  }
-}
-export async function getUserByWalletAddress(
-  walletAddress: string
-): Promise<Array<User>> {
-  try {
-    return await db
-      .select()
-      .from(user)
-      .where(eq(user.walletAddress, walletAddress));
   } catch (error) {
     console.error("Failed to get user from database");
     throw error;
@@ -62,19 +41,6 @@ export async function createUser(email: string, password: string) {
 
   try {
     return await db.insert(user).values({ email, password: hash });
-  } catch (error) {
-    console.error("Failed to create user in database");
-    throw error;
-  }
-}
-export async function createUserByWalletAddress(
-  id: string,
-  walletAddress: string
-) {
-  try {
-    return await db
-      .insert(user)
-      .values({ id: id, walletAddress: walletAddress });
   } catch (error) {
     console.error("Failed to create user in database");
     throw error;

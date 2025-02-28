@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useWindowSize } from "usehooks-ts";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,10 @@ import { useSidebar } from "./ui/sidebar";
 import { memo } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VisibilityType, VisibilitySelector } from "./visibility-selector";
+import { signOut } from "next-auth/react";
 import { User } from "next-auth";
 import { SidebarUserNav } from "./sidebar-user-nav";
 import { Message } from "ai";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { ConnectWalletButton } from "./connect-wallet-button";
-import { useAccount } from "wagmi";
 
 function PureChatHeader({
   chatId,
@@ -34,8 +32,9 @@ function PureChatHeader({
 }) {
   const router = useRouter();
   const { open } = useSidebar();
+
   const { width: windowWidth } = useWindowSize();
-  const { address } = useAccount();
+  // console.log("user in chat header", user);
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
       <div className="flex items-center justify-start gap-2 w-full">
@@ -76,7 +75,7 @@ function PureChatHeader({
 
       <div className="flex justify-end w-full">
         <div className="">
-          {user && (user?.email || address) ? (
+          {user && user?.email ? (
             // <button
             //   type="button"
             //   className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
@@ -89,7 +88,7 @@ function PureChatHeader({
             //   Logout
             // </button>
             <div>
-              <SidebarUserNav user={user} address={address} />
+              <SidebarUserNav user={user} />
             </div>
           ) : (
             <button
@@ -104,7 +103,6 @@ function PureChatHeader({
           )}
         </div>
       </div>
-      {/* <ConnectButton /> */}
 
       {/* {!isReadonly && (
         <VisibilitySelector

@@ -229,7 +229,7 @@ function PureMultimodalInput({
   };
 
   const submitForm = useCallback(() => {
-    if (!user) {
+    if (!user || !user.email) {
       toast.error("Please login to continue", { position: "bottom-center" });
       return;
     }
