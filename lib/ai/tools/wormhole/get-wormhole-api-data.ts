@@ -35,7 +35,7 @@ export const getWormholeApiData = tool({
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n
-        You will return the array of the  urls to call in the given list of available api endpoints, which can be helpfull to answers user query. Do not modify it in any way. give the actual query url, by inserting appropriates values in placeholders`,
+        You will return the array of the  urls to call in the given list of available api endpoints, which can be helpfull to answers user query. Do not modify it in any way. give the actual query url, by inserting appropriates values in placeholders do not use. do not user deprecated apis. use /api/v1/operations for looking up addresses `,
         prompt: JSON.stringify(
           `The list of api endpoints and their summary are ${wormholeAllPaths} and user Query is ${userQuery}`
         ),
@@ -57,6 +57,16 @@ export const getWormholeApiData = tool({
       });
 
       const results = await Promise.all(requests); // Wait for all requests to complete
+
+      const { text } = await generateText({
+        model: myProvider.languageModel("chat-model-small"),
+        system: `you will be provided with the response from wormhole. summarize the response. do not modify it in any way.`,
+        prompt: `User query was = ${userQuery}. The apis were = ${limitedApiEndpointsArray}. The api response is = ${JSON.stringify(
+          results
+        )}.`,
+      });
+
+      return { result: text };
       // console.log("API Results:", results);
       // const apiResultString = JSON.stringify(results);
       // const scaledResults = scaleLargeNumbersInJson(apiResultString);
