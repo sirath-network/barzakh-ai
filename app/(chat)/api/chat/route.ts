@@ -1,10 +1,10 @@
+// app/(chat)/api/chat/route.ts
 import {
   type Message,
   createDataStreamResponse,
   smoothStream,
   streamText,
 } from "ai";
-
 import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@/lib/ai/models";
 import { getGroupConfig, systemPrompt } from "@/lib/ai/prompts";
@@ -33,8 +33,7 @@ import { getVanaStats } from "@/lib/ai/tools/vana/get-stats";
 import { getVanaApiData } from "@/lib/ai/tools/vana/get-vana-api-data";
 import { getCreditcoinStats } from "@/lib/ai/tools/creditcoin/get-stats";
 import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-api-data";
-import { getOnchainApiDoc } from "@/lib/ai/tools/onchain/get-zerion-api-docs";
-import { onChainQuery } from "@/lib/ai/tools/onchain/zerion-api-fetch";
+import { getEvmOnchainData } from "@/lib/ai/tools/onchain/get_onchain_api_data";
 import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
 
 export const maxDuration = 60;
@@ -113,8 +112,7 @@ export async function POST(request: Request) {
           getVanaApiData,
           getVanaStats,
           getCreditcoinStats,
-          getOnchainApiDoc,
-          onChainQuery,
+          getEvmOnchainData,
           ensToAddress,
         },
         onFinish: async ({ response, reasoning }) => {

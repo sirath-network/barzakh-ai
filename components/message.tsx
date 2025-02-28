@@ -127,7 +127,7 @@ const PurePreviewMessage = ({
                           <PortfolioTable result={result} />
                         ) : toolName === "getCreditcoinApiData" ||
                           toolName === "getVanaApiData" ||
-                          toolName === "getOnchainApiDoc" ? (
+                          toolName === "getEvmOnchainData" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
                               Exploring the blockchain
@@ -171,7 +171,7 @@ const PurePreviewMessage = ({
                         </div>
                       ) : toolName === "getCreditcoinApiData" ||
                         toolName === "getVanaApiData" ||
-                        toolName === "getOnchainApiDoc" ? (
+                        toolName === "getEvmOnchainData" ? (
                         <div className="text-sm">
                           <p className="py-1">Exploring the blockchain...</p>
                         </div>

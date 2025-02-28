@@ -54,5 +54,5 @@ export async function getPathInfo(openapiData: any, path: string) {
       }
     }
   }
-  return pathInfo;
+  return { path: pathInfo };
 }
