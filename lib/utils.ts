@@ -236,7 +236,12 @@ export function getDocumentTimestampByIndex(
   return documents[index].createdAt;
 }
 
-export type SearchGroupId = "search" | "on_chain" | "creditcoin" | "vana";
+export type SearchGroupId =
+  | "search"
+  | "on_chain"
+  | "creditcoin"
+  | "vana"
+  | "wormhole";
 
 export const searchGroups = [
   {
@@ -253,6 +258,14 @@ export const searchGroups = [
     description: "Indepth onchain analysis",
     icon: Network,
     img: "",
+  },
+  {
+    id: "wormhole" as const,
+    name: "Wormhole",
+    description:
+      "Access all the information you need to develop secure multichain applications powered by Wormhole",
+    icon: Network,
+    img: "/images/icon/wormhole-logo.png",
   },
 
   {
