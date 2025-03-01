@@ -93,19 +93,20 @@ export const getEvmOnchainData = tool({
             url: urlToCall.apiUrl,
             apiProvider: obj.apiProvider,
           });
-          console.log("summarizeing the response...");
-          // summarize the response
-          const { text } = await generateText({
-            model: myProvider.languageModel("chat-model-small"),
-            system: `you will be provided with the response from a ethereum based blockchain api. summarize the response. do not modify it in any way.`,
-            prompt: `User query was = ${userQuery}. The api was = ${url}. The api response is = ${JSON.stringify(
-              result
-            )}.`,
-          });
 
-          console.log("summarised text --- ", text);
+          // console.log("summarizeing the response...");
+          // // summarize the response
+          // const { text } = await generateText({
+          //   model: myProvider.languageModel("chat-model-small"),
+          //   system: `you will be provided with the response from a ethereum based blockchain api. summarize the response. do not modify it in any way.`,
+          //   prompt: `User query was = ${userQuery}. The api was = ${url}. The api response is = ${JSON.stringify(
+          //     result
+          //   )}.`,
+          // });
 
-          return { apiEndpointName: apiEndpointName, result: text };
+          // console.log("summarised text --- ", text);
+
+          return { apiEndpointName: apiEndpointName, result: result };
         })
       );
 

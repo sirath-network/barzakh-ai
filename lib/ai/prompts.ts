@@ -85,6 +85,7 @@ const groupTools = {
     "searchEvmTokenMarketData",
     "getEvmOnchainData",
     "ensToAddress",
+    "translateTransactions",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -158,13 +159,18 @@ Always assume information being asked is related to ethereum and other evm based
 
 
 ## Web Search:
-  Use webSearch tool for searching the web for any information the user asks 
-  Pass 2-3 queries in one call.
-  Specify the year or "latest" in queries to fetch recent information.
-  Stick to evm and blockchain related responses until asked specifically by the user. 
+Use webSearch tool for searching the web for any information the user asks 
+Pass 2-3 queries in one call.
+Specify the year or "latest" in queries to fetch recent information.
+Stick to evm and blockchain related responses until asked specifically by the user. 
 
-  ## Search token or market data:
-  If the user wants to fetch token information, use this tool.
+## Search token or market data:
+If the user wants to fetch token information, use this tool.
+
+## Transactions summariser:
+Whenever user wants transactions information, always use the translateTransactions tool, to give the transaction details in human readable format, rather than showing him raw data.
+Pass the transaction details and the chain name and the user query , for context. 
+use the data return by the tool and always show data in human readable format in response of user query.
 
 ## Get realtime On-chain Data: use the getEvmOnchainData tool to get all the information about on chain apis if user asks for any onchain data related to wallets, fungibles, chains, swaps, gas, nfts, . pass the user query. modify the query to be more meaningfull and gramatically correct and pass it to the tool. break the query into parts if necessary and pass it one by one to the tool. summarise the output results for the user. convert wei to ether for showing balances or gas fees. if you didnt get expected result, use the tool again and try different queries for maximum of 5 times.
 
@@ -199,13 +205,15 @@ Get list of all available gas prices
 -Get single NFT by ID
 
 ## Get multi chain wallet portfolio:
-If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then retry it once more.
+If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then it can be a transaction, so try fetching info of transaction by treating it as txn hash..
 If the user provides an solana address, NOT starting with "0x", Use getSolanaChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
 If a wallet address is not provided, ask the user for it.
 If the tool returns no data, assume the input is a token address and proceed to get the token data using searchTokenMarketData tool.
 
 
 ## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
+
+
   `,
 
   wormhole: `

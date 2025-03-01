@@ -42,6 +42,25 @@ export async function getAllPaths(openapiData: any) {
     )
   );
 }
+export async function getAllPathsAndDesc(openapiData: any) {
+  return JSON.stringify(
+    Object.entries(openapiData.paths || {})
+      .filter(([_, methods]: [string, any]) => !methods.POST) // Skip paths with POST method
+      .map(([path, methods]: [string, any]) => {
+        // Get the first available non-POST HTTP method (e.g., GET, PUT, etc.)
+        const availableMethods = Object.keys(methods).filter(
+          (method) => method !== "post"
+        );
+        const firstMethod = availableMethods[0];
+
+        const desc = firstMethod
+          ? methods[firstMethod]?.description || "No desc available"
+          : "No desc available";
+
+        return { path, desc };
+      })
+  );
+}
 
 // get info of the path with the name from the open api spec
 // delete the repsonses because it is irrelevant and too big

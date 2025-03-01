@@ -38,6 +38,7 @@ import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
 import { getWormholeApiData } from "@/lib/ai/tools/wormhole/get-wormhole-api-data";
 import { getFlowApiData } from "@/lib/ai/tools/flow/get-flow-api-data";
 import { getFlowStats } from "@/lib/ai/tools/flow/get-stats";
+import { translateTransactions } from "@/lib/ai/tools/translate-transactions";
 
 export const maxDuration = 60;
 
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
           getWormholeApiData,
           getFlowApiData,
           getFlowStats,
+          translateTransactions,
         },
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {
