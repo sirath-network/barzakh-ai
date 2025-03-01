@@ -10,6 +10,7 @@ import {
 import zerionJson from "./zerion-openapi.json";
 import { etherscanBaseURL, zerionBaseURL } from "./constant";
 import { fetchApi } from "./api-fetch";
+import { xai } from "@ai-sdk/xai";
 
 export const getEvmOnchainData = tool({
   description: "Get real-time data from Ethereum based blockchains.",
@@ -39,12 +40,12 @@ export const getEvmOnchainData = tool({
           apiPath: z.string(),
         }),
       });
-      console.log("OBJECT IS ", object);
+      // console.log("OBJECT IS ", object);
 
       const allResponses = await Promise.all(
         object.map(async (obj) => {
           let apiEndpointName = obj.apiPath;
-          console.log("apiEndpointName is ", apiEndpointName);
+          // console.log("apiEndpointName is ", apiEndpointName);
           if (
             apiEndpointName.startsWith('"') &&
             apiEndpointName.endsWith('"')
@@ -72,7 +73,7 @@ export const getEvmOnchainData = tool({
             apiEndpointName
           );
           if (apiEndpointInfo) {
-            console.log("found api info for = ", url, apiEndpointInfo);
+            // console.log("found api info for = ", url, apiEndpointInfo);
           }
           const apiEndpointInfoString = JSON.stringify(apiEndpointInfo);
 
@@ -92,7 +93,8 @@ export const getEvmOnchainData = tool({
             url: urlToCall.apiUrl,
             apiProvider: obj.apiProvider,
           });
-
+          console.log("summarizeing the response...");
+          // summarize the response
           const { text } = await generateText({
             model: myProvider.languageModel("chat-model-small"),
             system: `you will be provided with the response from a ethereum based blockchain api. summarize the response. do not modify it in any way.`,
@@ -101,11 +103,13 @@ export const getEvmOnchainData = tool({
             )}.`,
           });
 
+          console.log("summarised text --- ", text);
+
           return { apiEndpointName: apiEndpointName, result: text };
         })
       );
 
-      console.log("allResponses is ", allResponses);
+      // console.log("allResponses is ", allResponses);
       //   const allResponsesString = JSON.stringify(allResponses);
 
       return {
