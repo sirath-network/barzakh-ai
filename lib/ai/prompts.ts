@@ -80,7 +80,6 @@ const groupTools = {
     //solana
     "getSolanaChainWalletPortfolio",
     "searchSolanaTokenMarketData",
-    "getSolanaOnchainData",
     //evm
     "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",

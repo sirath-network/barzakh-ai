@@ -127,8 +127,7 @@ const PurePreviewMessage = ({
                           <PortfolioTable result={result} />
                         ) : toolName === "getCreditcoinApiData" ||
                           toolName === "getVanaApiData" ||
-                          toolName === "getEvmOnchainData" ||
-                          toolName === "getSolanaOnchainData" ? (
+                          toolName === "getEvmOnchainData" ? (
                           <div className="text-sm">
                             <p className="flex flex-row gap-1 items-center">
                               Exploring the blockchain

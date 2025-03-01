@@ -38,7 +38,6 @@ import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
 import { getWormholeApiData } from "@/lib/ai/tools/wormhole/get-wormhole-api-data";
 import { getFlowApiData } from "@/lib/ai/tools/flow/get-vana-api-data";
 import { getFlowStats } from "@/lib/ai/tools/flow/get-stats";
-import { getSolanaOnchainData } from "@/lib/ai/tools/onchain/get_solana_onchain-data";
 
 export const maxDuration = 60;
 
@@ -117,7 +116,6 @@ export async function POST(request: Request) {
           getVanaStats,
           getCreditcoinStats,
           getEvmOnchainData,
-          getSolanaOnchainData,
           ensToAddress,
           getWormholeApiData,
           getFlowApiData,
