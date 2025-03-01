@@ -77,12 +77,15 @@ const groupTools = {
   ] as const,
   on_chain: [
     "webSearch",
+    //solana
     "getSolanaChainWalletPortfolio",
     "searchSolanaTokenMarketData",
+    "getSolanaOnchainData",
+    //evm
     "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
-    "ensToAddress",
     "getEvmOnchainData",
+    "ensToAddress",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
