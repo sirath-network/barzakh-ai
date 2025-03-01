@@ -36,7 +36,7 @@ import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-ap
 import { getEvmOnchainData } from "@/lib/ai/tools/onchain/get_evm_onchain_data";
 import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
 import { getWormholeApiData } from "@/lib/ai/tools/wormhole/get-wormhole-api-data";
-import { getFlowApiData } from "@/lib/ai/tools/flow/get-vana-api-data";
+import { getFlowApiData } from "@/lib/ai/tools/flow/get-flow-api-data";
 import { getFlowStats } from "@/lib/ai/tools/flow/get-stats";
 
 export const maxDuration = 60;
