@@ -28,7 +28,7 @@ export const getVanaApiData = tool({
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n
-        You will return the array of the  urls to call in the given list of available api endpoints, which can be helpfull to answers user query. Do not modify it in any way. give the actual query url, by inserting appropriates values in placeholders`,
+        You will return the array of the  urls to call in the given list of available api endpoints, which can be helpfull to answers user query. Do not modify it in any way. give the actual query url, by inserting appropriates values in placeholders. give only top 3 most helpfull ones`,
         prompt: JSON.stringify(
           `The list of api endpoints and their summary are ${allPaths} and user Query is ${userQuery}`
         ),
