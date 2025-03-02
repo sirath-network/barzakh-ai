@@ -26,6 +26,11 @@ export async function loadOpenAPIFromJson(json: any) {
   return await $RefParser.dereference(json);
 }
 
+// returns a list of all paths as an array
+export async function getAllPathsUrl(openapiData: any): Promise<string[]> {
+  return Object.keys(openapiData.paths || {});
+}
+
 // returns a list of all paths and their summaries in a json string
 export async function getAllPaths(openapiData: any) {
   return JSON.stringify(
@@ -60,6 +65,44 @@ export async function getAllPathsAndDesc(openapiData: any) {
         return { path, desc };
       })
   );
+}
+
+export async function getPathDetails(openapiData: any, pathUrl: string) {
+  //give all the parameters for a path
+  const pathObj = openapiData.paths?.[pathUrl];
+
+  if (!pathObj) {
+    throw new Error(`Path '${pathUrl}' not found in the OpenAPI spec.`);
+  }
+
+  const details = Object.entries(pathObj).map(
+    ([method, methodDetails]: [string, any]) => {
+      const description =
+        methodDetails?.description || "No description available";
+
+      // Extract parameters (inline and referenced)
+      const parameters = (methodDetails.parameters || []).map((param: any) => {
+        if (param.$ref) {
+          // Resolve the referenced parameter
+          const refKey = param.$ref.replace("#/components/parameters/", "");
+          return (
+            openapiData.components?.parameters?.[refKey] || {
+              error: "Reference not found",
+            }
+          );
+        }
+        return param;
+      });
+
+      return {
+        method: method.toUpperCase(),
+        description,
+        parameters,
+      };
+    }
+  );
+
+  return details;
 }
 
 // get info of the path with the name from the open api spec
