@@ -83,8 +83,8 @@ const groupTools = {
     "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
     "getEvmOnchainDataUsingZerion",
+    "getEvmOnchainDataUsingEtherscan",
     "ensToAddress",
-    "translateTransactions",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -170,7 +170,7 @@ Always run these tools first if user had not metioned what to do with the addres
 if no token data is found, then proceed to get the portfolio of the address.
 
 ## Get multi chain wallet portfolio:
-If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then it can be a transaction, so try fetching info of transaction by treating it as txn hash..
+If the user provides an evm wallet address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then it can be a transaction, so try fetching info of transaction by treating it as txn hash..
 If the user provides an solana address, NOT starting with "0x", Use getSolanaChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details.
 If a wallet address is not provided, ask the user for it.
 If the tool returns no data, assume the input is a token address and proceed to get the token data using searchTokenMarketData tool.
@@ -208,10 +208,8 @@ Get list of all available gas prices
 -Get single NFT by ID
 
 
-## Transactions summariser:
-Whenever you are showing transaction information, always translate them using the translateTransactions tool, It will give the transaction details in human readable format, rather than showing him raw data.
-Pass the transaction details fetched from other tools and the chain name and the user query, for context. 
-use the data return by the tool and always show data in human readable format in response of user query.
+## getEvmOnchainDataUsingEtherscan: get various info about on chain data like API Endpoints, Accounts, Contracts, Transactions, Blocks, Logs, Geth/Parity Proxy, Tokens, Gas Tracker, Stats, Chain Specific, Usage, . just pass the user query . 
+
 
 ## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
 
