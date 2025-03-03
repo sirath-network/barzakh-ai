@@ -101,7 +101,7 @@ export const translateTransactions = tool({
       const novesOpenapidata = await loadOpenAPIFromJson(openapidata);
       const novesAllPathsAndDesc = await getAllPathsAndDesc(novesOpenapidata);
 
-      console.log("transaction data is  ----------- ", transactionDetails);
+      // console.log("transaction data is  ----------- ", transactionDetails);
 
       const { object: apiEndpointsArray } = await generateObject({
         model: myProvider.languageModel("chat-model-small"),
