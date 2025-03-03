@@ -108,7 +108,7 @@ export const translateTransactions = tool({
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n
-        You are provided the list of Translate APIs endpoints. The Translate APIs categorize transactions, standardizing them across chains and across protocols to produce a rich set of data that allows you to easily answer the question "what did this transaction do?". They readily support accounting and finance scenarios, along with any system that benefits from structured and tagged data
+        You are provided the list of Translate APIs endpoints. The Translate APIs categorize transactions, standardizing them across chains and across protocols to produce a rich set of data that allows you to translate the transactions in to human readable format. They readily support accounting and finance scenarios, along with any system that benefits from structured and tagged data.supported chains are ${supportedChains}. use these chain names in the query url.
         You will give the actual query urls, by inserting appropriates values in placeholders. Use the transaction details and the chain name provided to form the query url.`,
         prompt: JSON.stringify(
           `The list of api endpoints and their descriptions are ${novesAllPathsAndDesc} and user Query is ${userQuery} and the chain is ${chain} and the transaction details are ${transactionDetails}`

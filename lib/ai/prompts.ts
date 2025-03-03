@@ -213,8 +213,7 @@ Get list of all available gas prices
 
 ## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
 
-
-  `,
+`,
 
   wormhole: `
 Role & Functionality
