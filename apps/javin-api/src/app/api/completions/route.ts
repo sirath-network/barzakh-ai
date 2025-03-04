@@ -30,8 +30,6 @@ import {
   createDataStream,
 } from "ai";
 
-import {} from "packages/shared/src/"
-
 export const maxDuration = 60;
 
 // export async function POST(request: Request) {
