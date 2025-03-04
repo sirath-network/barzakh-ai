@@ -8,7 +8,7 @@ import { generateObject, tool } from "ai";
 import { z } from "zod";
 import { myProvider } from "../models";
 
-export const novesSupportedChains = [
+const supportedChains = [
   "arbitrum",
   "arbitrum-nova",
   "artela",
@@ -84,7 +84,7 @@ export const translateTransactions = tool({
     "Translate raw blockchain transactions into human-friendly, enriched form.",
   parameters: z.object({
     transactionDetails: z.string().describe("Details of the transaction."),
-    chain: z.enum(novesSupportedChains).describe("Evm chain name"),
+    chain: z.enum(supportedChains).describe("Evm chain name"),
     userQuery: z.string().describe("query of the user"),
   }),
   execute: async ({ transactionDetails, chain, userQuery }) => {
@@ -101,14 +101,14 @@ export const translateTransactions = tool({
       const novesOpenapidata = await loadOpenAPIFromJson(openapidata);
       const novesAllPathsAndDesc = await getAllPathsAndDesc(novesOpenapidata);
 
-      // console.log("transaction data is  ----------- ", transactionDetails);
+      console.log("transaction data is  ----------- ", transactionDetails);
 
       const { object: apiEndpointsArray } = await generateObject({
         model: myProvider.languageModel("chat-model-small"),
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n
-        You are provided the list of Translate APIs endpoints. The Translate APIs categorize transactions, standardizing them across chains and across protocols to produce a rich set of data that allows you to translate the transactions in to human readable format. They readily support accounting and finance scenarios, along with any system that benefits from structured and tagged data.supported chains are ${novesSupportedChains}. use these chain names in the query url.
+        You are provided the list of Translate APIs endpoints. The Translate APIs categorize transactions, standardizing them across chains and across protocols to produce a rich set of data that allows you to easily answer the question "what did this transaction do?". They readily support accounting and finance scenarios, along with any system that benefits from structured and tagged data
         You will give the actual query urls, by inserting appropriates values in placeholders. Use the transaction details and the chain name provided to form the query url.`,
         prompt: JSON.stringify(
           `The list of api endpoints and their descriptions are ${novesAllPathsAndDesc} and user Query is ${userQuery} and the chain is ${chain} and the transaction details are ${transactionDetails}`

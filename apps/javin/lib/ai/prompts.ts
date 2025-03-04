@@ -1,6 +1,5 @@
 import { BlockKind } from "@/components/block";
 import { SearchGroupId } from "../utils";
-import { novesSupportedChains } from "./tools/translate-transactions";
 
 export const codePrompt = ``;
 
@@ -54,8 +53,6 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
   - Follow the tool guidelines below for each tool as per the user's request.
   - Calling the same tool multiple times with different parameters is allowed.
   - Always mandatory to run the tool first before writing the response to ensure accuracy and relevance <<< extermely important.
-  - always translate the transactions information to human readable format using the translateTransactions tool. 
-  
 
 # Prohibited Actions:
 - Never ever write your thoughts before running a tool.
@@ -88,7 +85,6 @@ const groupTools = {
     "getEvmOnchainDataUsingZerion",
     "getEvmOnchainDataUsingEtherscan",
     "ensToAddress",
-    "translateTransactions",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -189,30 +185,36 @@ If the tool returns no data, assume the input is a token address and proceed to 
 -Get a list of a wallet's NFT positions
 -Get a list of NFT collections held by a wallet
 -Get wallet's NFT portfolio
+
 ### fungibles
 -Get list of fungible assets
 -Get fungible asset by ID
 -Get a chart for a fungible asset
+
+
 ### chains
 -Get list of all chains
 -Get chain by ID
+
 ### swap
 -Get fungibles available for bridge.
 -Get available swap offers
+
 ### gas
 Get list of all available gas prices
+
 ### nfts
 -Get list of NFTs
 -Get single NFT by ID
 
+
 ## getEvmOnchainDataUsingEtherscan: get various info about on chain data like API Endpoints, Accounts, Contracts, Transactions, Blocks, Logs, Geth/Parity Proxy, Tokens, Gas Tracker, Stats, Chain Specific, Usage, . just pass the user query . 
 
-## translate transactions to human readable format: 
-always use the translateTransactions tool to convert the raw transaction details into human readable format. pass the transaction details, chain name and user query to the tool. the supported chain names are ${novesSupportedChains}.
 
 ## Ens lookup: If user enters a ENS name, like somename.eth or someName.someChain.eth then use the ensToAddress tool to get the corresponding address. use this address for further queries.
 
-`,
+
+  `,
 
   wormhole: `
 Role & Functionality
