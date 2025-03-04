@@ -7,7 +7,7 @@ import {
   PortfolioResponse,
   BirdeyePortfolioResponse,
   TokenItem,
-} from "@javin/shared/types/wallet-actions-response";
+} from "../../../../types/wallet-actions-response";
 import { tool } from "ai";
 import { z } from "zod";
 

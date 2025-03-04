@@ -3,7 +3,7 @@ import {
   BirdeyeTokenData,
   BirdeyeTokenSearchResponse,
   TokenSearchData,
-} from "@javin/shared/types/token-search-response";
+} from "../../../../types/token-search-response";
 import { tool } from "ai";
 import { z } from "zod";
 

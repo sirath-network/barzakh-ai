@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   PortfolioData,
   PortfolioResponse,
-} from "@javin/shared/types/wallet-actions-response";
+} from "../../../../types/wallet-actions-response";
 import { filterAndLimitPortfolio, getZerionApiKey } from "../../../utils/utils";
 import { SUPPORTED_CURRENCY } from "../../../constants";
 
