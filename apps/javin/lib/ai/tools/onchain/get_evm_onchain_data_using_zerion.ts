@@ -50,15 +50,9 @@ export const getEvmOnchainDataUsingZerion = tool({
            - Form a complete API URL using the **base URL** (${zerionBaseURL}) and the retrieved parameters.  
            - Use the **makeApiCall** tool to fetch data.
         
-        4. **translate Data Output to human readable format**:  
-          - use the **translateTransactions** tool to transalte the transaction in a human friendly format.  
-          - Always return **human-readable information** instead of raw JSON.  
-
-
         ## **Final Response Format:**  
         - Always provide a **clear, structured, human-readable answer** to the user.  
         - Do **not** return raw JSON unless explicitly requested.  
-        - If transactions are involved, ensure they are **translated for readability** by using translateTransactions.  
         - If no relevant data is found, respond appropriately instead of returning an empty result.  
         `,
         prompt: JSON.stringify(
@@ -113,7 +107,6 @@ export const getEvmOnchainDataUsingZerion = tool({
               }
             },
           }),
-          translateTransactions,
         },
         maxSteps: 5,
       });
