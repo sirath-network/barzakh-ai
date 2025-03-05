@@ -15,7 +15,8 @@
       ],
       "env": [
         "FIRECRAWL_API_KEY",
-        "FIRECRAWL_API_ENDPOINT"
+        "FIRECRAWL_API_ENDPOINT",
+        "POSTGRES_URL"
       ]
     },
     "lint": {},
