@@ -2,7 +2,7 @@ import { getPercentChangeColor } from "@/lib/utils";
 import {
   PortfolioData,
   PortfolioResponse,
-} from "@/types/wallet-actions-response";
+} from "@javin/shared/types/wallet-actions-response";
 import Image from "next/image";
 import React from "react";
 

@@ -1,9 +1,8 @@
 import { auth } from '@/app/(auth)/auth';
-import { BlockKind } from '@/components/block';
 import {
   deleteDocumentsByIdAfterTimestamp,
   getDocumentsById,
-  saveDocument,
+  
 } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
@@ -35,39 +34,39 @@ export async function GET(request: Request) {
   return Response.json(documents, { status: 200 });
 }
 
-export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
+// export async function POST(request: Request) {
+//   const { searchParams } = new URL(request.url);
+//   const id = searchParams.get('id');
 
-  if (!id) {
-    return new Response('Missing id', { status: 400 });
-  }
+//   if (!id) {
+//     return new Response('Missing id', { status: 400 });
+//   }
 
-  const session = await auth();
+//   const session = await auth();
 
-  if (!session) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+//   if (!session) {
+//     return new Response('Unauthorized', { status: 401 });
+//   }
 
-  const {
-    content,
-    title,
-    kind,
-  }: { content: string; title: string; kind: BlockKind } = await request.json();
+//   const {
+//     content,
+//     title,
+//     kind,
+//   }: { content: string; title: string; kind: any } = await request.json();
 
-  if (session.user?.id) {
-    const document = await saveDocument({
-      id,
-      content,
-      title,
-      kind,
-      userId: session.user.id,
-    });
+//   if (session.user?.id) {
+//     const document = await saveDocument({
+//       id,
+//       content,
+//       title,
+//       kind,
+//       userId: session.user.id,
+//     });
 
-    return Response.json(document, { status: 200 });
-  }
-  return new Response('Unauthorized', { status: 401 });
-}
+//     return Response.json(document, { status: 200 });
+//   }
+//   return new Response('Unauthorized', { status: 401 });
+// }
 
 export async function PATCH(request: Request) {
   const { searchParams } = new URL(request.url);

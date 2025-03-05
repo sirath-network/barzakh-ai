@@ -6,8 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { memo, useMemo, useState } from "react";
 
 import type { Vote } from "@/lib/db/schema";
-
-import { DocumentToolCall, DocumentToolResult } from "./document";
 import {
   ChevronDownIcon,
   LoaderIcon,
@@ -24,7 +22,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { MessageEditor } from "./message-editor";
-import { DocumentPreview } from "./document-preview";
 import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";

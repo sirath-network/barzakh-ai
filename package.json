@@ -10,6 +10,7 @@
     "dev:javin": "turbo run dev --filter=javin",
     "dev:api": "turbo run dev --filter=javin-api",
     "build": "turbo run build",
+    "build:javin": "turbo run build --filter=javin",
     "build:api": "turbo run build --filter=javin-api",
     "start": "turbo run start",
     "start:api": "turbo run start --filter=javin-api",

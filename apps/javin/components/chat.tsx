@@ -3,16 +3,12 @@ import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
 import { useCallback, useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
-
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote } from "@/lib/db/schema";
 import { fetcher, generateUUID, SearchGroup, SearchGroupId } from "@/lib/utils";
-
-import { Block } from "./block";
 import { MultimodalInput } from "./Input/multimodal-input";
 import { Messages } from "./messages";
 import { VisibilityType } from "./visibility-selector";
-import { useBlockSelector } from "@/hooks/use-block";
 import { toast } from "sonner";
 import { User } from "next-auth";
 import { InstallPrompt } from "./install-prompt";
@@ -65,7 +61,6 @@ export function Chat({
     fetcher
   );
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-  const isBlockVisible = useBlockSelector((state) => state.isVisible);
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
 
   return (
@@ -89,7 +84,6 @@ export function Chat({
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
-          isBlockVisible={isBlockVisible}
         />
         <form className="flex mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl ">
           {!isReadonly && (
@@ -115,7 +109,7 @@ export function Chat({
         </form>
       </div>
 
-      <Block
+      {/* <Block
         chatId={id}
         input={input}
         setInput={setInput}
@@ -133,7 +127,7 @@ export function Chat({
         isReadonly={isReadonly}
         selectedGroup={selectedGroup}
         setSelectedGroup={setSelectedGroup}
-      />
+      /> */}
     </>
   );
 }

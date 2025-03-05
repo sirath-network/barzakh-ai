@@ -8,7 +8,7 @@ import {
   updateChatVisiblityById,
 } from "@/lib/db/queries";
 import { VisibilityType } from "@/components/visibility-selector";
-import { myProvider } from "@/lib/ai/models";
+import { myProvider } from "@javin/shared/lib/ai/models";
 import { SearchGroupId } from "@/lib/utils";
 // import webpush from 'web-push'
 

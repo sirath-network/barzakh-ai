@@ -1,5 +1,5 @@
 import { getPercentChangeColor } from "@/lib/utils";
-import { TokenSearchData } from "@/types/token-search-response";
+import { TokenSearchData } from "@javin/shared/types/token-search-response";
 import Image from "next/image";
 import React from "react";
 
