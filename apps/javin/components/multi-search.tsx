@@ -33,7 +33,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { cn } from "@/lib/utils";
+import { cn } from "@javin/shared/lib/utils/utils";
 
 type SearchImage = {
   url: string;

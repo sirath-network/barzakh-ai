@@ -4,7 +4,7 @@ import React, { memo, useEffect, useMemo, useState } from 'react';
 import DataGrid, { textEditor } from 'react-data-grid';
 import { parse, unparse } from 'papaparse';
 import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
+import { cn } from "@javin/shared/lib/utils/utils";
 
 import 'react-data-grid/lib/styles.css';
 

@@ -1,4 +1,4 @@
-import { getPercentChangeColor } from "@/lib/utils";
+import { getPercentChangeColor } from "@javin/shared/lib/utils/utils";
 import { TokenSearchData } from "@javin/shared/types/token-search-response";
 import Image from "next/image";
 import React from "react";

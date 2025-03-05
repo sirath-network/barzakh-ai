@@ -20,7 +20,7 @@ import {
   generateUUID,
   getMostRecentUserMessage,
   sanitizeResponseMessages,
-} from "@/lib/utils";
+} from "@javin/shared/lib/utils/utils";
 
 import { generateTitleFromUserMessage } from "../../actions";
 import { webSearch } from "@javin/shared/lib/ai/tools/web-search";

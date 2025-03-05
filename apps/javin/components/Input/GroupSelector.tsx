@@ -1,4 +1,9 @@
-import { cn, SearchGroup, SearchGroupId, searchGroups } from "@/lib/utils";
+import {
+  cn,
+  SearchGroup,
+  SearchGroupId,
+  searchGroups,
+} from "@javin/shared/lib/utils/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ForwardRefExoticComponent,

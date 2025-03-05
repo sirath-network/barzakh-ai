@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { chatModels } from "@javin/shared/lib/ai/models";
-import { cn } from "@/lib/utils";
+import { cn } from "@javin/shared/lib/utils/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
 import { CheckCircleFillIcon, ChevronDownIcon } from "@/components/icons";

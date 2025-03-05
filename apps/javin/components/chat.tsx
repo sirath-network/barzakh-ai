@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote } from "@/lib/db/schema";
-import { fetcher, generateUUID, SearchGroup, SearchGroupId } from "@/lib/utils";
+import { fetcher, generateUUID, SearchGroup, SearchGroupId } from "@javin/shared/lib/utils/utils";
 import { MultimodalInput } from "./Input/multimodal-input";
 import { Messages } from "./messages";
 import { VisibilityType } from "./visibility-selector";
