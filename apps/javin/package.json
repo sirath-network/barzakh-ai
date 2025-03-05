@@ -6,7 +6,7 @@
     "dev": "next dev",
     "devt": "next dev --turbopack",
     "deve": "next dev --experimental-https",
-    "build": "next build",
+    "build": "tsx lib/db/migrate && next build",
     "start": "next start",
     "lint": "next lint && biome lint --write --unsafe",
     "lint:fix": "next lint --fix && biome lint --write --unsafe",
