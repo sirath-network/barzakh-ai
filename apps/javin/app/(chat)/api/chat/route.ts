@@ -6,8 +6,8 @@ import {
   streamText,
 } from "ai";
 import { auth } from "@/app/(auth)/auth";
-import { myProvider } from "@/lib/ai/models";
-import { getGroupConfig, systemPrompt } from "@/lib/ai/prompts";
+import { myProvider } from "@javin/shared/lib/ai/models";
+import { getGroupConfig, systemPrompt } from "@javin/shared/lib/ai/prompts";
 import {
   deleteChatById,
   getChatById,
@@ -20,26 +20,26 @@ import {
   generateUUID,
   getMostRecentUserMessage,
   sanitizeResponseMessages,
-} from "@/lib/utils";
+} from "@javin/shared/lib/utils/utils";
 
 import { generateTitleFromUserMessage } from "../../actions";
-import { webSearch } from "@/lib/ai/tools/web-search";
-import { getSolanaChainWalletPortfolio } from "@/lib/ai/tools/solana/wallet-portfolio-solana";
-import { getEvmMultiChainWalletPortfolio } from "@/lib/ai/tools/evm/wallet-portfolio-evm";
-import { searchSolanaTokenMarketData } from "@/lib/ai/tools/solana/search-token-solana";
-import { searchEvmTokenMarketData } from "@/lib/ai/tools/evm/search-token-evm";
-import { getSiteContent } from "@/lib/ai/tools/scrap-site";
-import { getVanaStats } from "@/lib/ai/tools/vana/get-stats";
-import { getVanaApiData } from "@/lib/ai/tools/vana/get-vana-api-data";
-import { getCreditcoinStats } from "@/lib/ai/tools/creditcoin/get-stats";
-import { getCreditcoinApiData } from "@/lib/ai/tools/creditcoin/get-creditcon-api-data";
-import { getEvmOnchainDataUsingZerion } from "@/lib/ai/tools/onchain/get_evm_onchain_data_using_zerion";
-import { ensToAddress } from "@/lib/ai/tools/ens-to-address";
-import { getWormholeApiData } from "@/lib/ai/tools/wormhole/get-wormhole-api-data";
-import { getFlowApiData } from "@/lib/ai/tools/flow/get-flow-api-data";
-import { getFlowStats } from "@/lib/ai/tools/flow/get-stats";
-import { translateTransactions } from "@/lib/ai/tools/translate-transactions";
-import { getEvmOnchainDataUsingEtherscan } from "@/lib/ai/tools/onchain/get_evm_onchain_data_using_etherscan";
+import { webSearch } from "@javin/shared/lib/ai/tools/web-search";
+import { getSolanaChainWalletPortfolio } from "@javin/shared/lib/ai/tools/solana/wallet-portfolio-solana";
+import { getEvmMultiChainWalletPortfolio } from "@javin/shared/lib/ai/tools/evm/wallet-portfolio-evm";
+import { searchSolanaTokenMarketData } from "@javin/shared/lib/ai/tools/solana/search-token-solana";
+import { searchEvmTokenMarketData } from "@javin/shared/lib/ai/tools/evm/search-token-evm";
+import { getSiteContent } from "@javin/shared/lib/ai/tools/scrap-site";
+import { getVanaStats } from "@javin/shared/lib/ai/tools/vana/get-stats";
+import { getVanaApiData } from "@javin/shared/lib/ai/tools/vana/get-vana-api-data";
+import { getCreditcoinStats } from "@javin/shared/lib/ai/tools/creditcoin/get-stats";
+import { getCreditcoinApiData } from "@javin/shared/lib/ai/tools/creditcoin/get-creditcon-api-data";
+import { getEvmOnchainDataUsingZerion } from "@javin/shared/lib/ai/tools/onchain/get_evm_onchain_data_using_zerion";
+import { ensToAddress } from "@javin/shared/lib/ai/tools/ens-to-address";
+import { getWormholeApiData } from "@javin/shared/lib/ai/tools/wormhole/get-wormhole-api-data";
+import { getFlowApiData } from "@javin/shared/lib/ai/tools/flow/get-flow-api-data";
+import { getFlowStats } from "@javin/shared/lib/ai/tools/flow/get-stats";
+import { translateTransactions } from "@javin/shared/lib/ai/tools/translate-transactions";
+import { getEvmOnchainDataUsingEtherscan } from "@javin/shared/lib/ai/tools/onchain/get_evm_onchain_data_using_etherscan";
 
 export const maxDuration = 60;
 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Share, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getWithExpiry, setWithExpiry } from "@/lib/utils";
+import { getWithExpiry, setWithExpiry } from "@javin/shared/lib/utils/utils";
 
 export function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);

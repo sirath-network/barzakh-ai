@@ -16,7 +16,6 @@ import {
   message,
   vote,
 } from "./schema";
-import { BlockKind } from "@/components/block";
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -167,33 +166,33 @@ export async function getVotesByChatId({ id }: { id: string }) {
   }
 }
 
-export async function saveDocument({
-  id,
-  title,
-  kind,
-  content,
-  userId,
-}: {
-  id: string;
-  title: string;
-  kind: BlockKind;
-  content: string;
-  userId: string;
-}) {
-  try {
-    return await db.insert(document).values({
-      id,
-      title,
-      kind,
-      content,
-      userId,
-      createdAt: new Date(),
-    });
-  } catch (error) {
-    console.error("Failed to save document in database");
-    throw error;
-  }
-}
+// export async function saveDocument({
+//   id,
+//   title,
+//   kind,
+//   content,
+//   userId,
+// }: {
+//   id: string;
+//   title: string;
+//   kind: BlockKind;
+//   content: string;
+//   userId: string;
+// }) {
+//   try {
+//     return await db.insert(document).values({
+//       id,
+//       title,
+//       kind,
+//       content,
+//       userId,
+//       createdAt: new Date(),
+//     });
+//   } catch (error) {
+//     console.error("Failed to save document in database");
+//     throw error;
+//   }
+// }
 
 export async function getDocumentsById({ id }: { id: string }) {
   try {

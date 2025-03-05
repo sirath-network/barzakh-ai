@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 
-import { sanitizeUIMessages } from "@/lib/utils";
+import { sanitizeUIMessages } from "@javin/shared/lib/utils/utils";
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from "../icons";
 import { PreviewAttachment } from "../preview-attachment";
@@ -28,7 +28,7 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { useSession } from "next-auth/react";
 import { User } from "next-auth";
-import { cn, SearchGroup, SearchGroupId, searchGroups } from "@/lib/utils";
+import { cn, SearchGroup, SearchGroupId, searchGroups } from "@javin/shared/lib/utils/utils";
 import {
   HoverCard,
   HoverCardContent,

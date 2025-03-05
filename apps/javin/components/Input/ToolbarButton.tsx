@@ -3,7 +3,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/hover-card";
-import { cn, SearchGroup } from "@/lib/utils";
+import { cn, SearchGroup } from "@javin/shared/lib/utils/utils";
 import {motion} from "framer-motion";
 import Image from "next/image";
 

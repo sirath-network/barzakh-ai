@@ -1,34 +1,9 @@
-// import { BlockKind } from "@/components/block";
 import { SearchGroupId } from "../utils/utils";
 import { novesSupportedChains } from "./tools/translate-transactions";
 
 export const codePrompt = ``;
 
 export const sheetPrompt = ``;
-
-// export const updateDocumentPrompt = (
-//   currentContent: string | null,
-//   type: BlockKind
-// ) =>
-//   type === "text"
-//     ? `\
-// Improve the following contents of the document based on the given prompt.
-
-// ${currentContent}
-// `
-//     : type === "code"
-//     ? `\
-// Improve the following code snippet based on the given prompt.
-
-// ${currentContent}
-// `
-//     : type === "sheet"
-//     ? `\
-// Improve the following spreadsheet based on the given prompt.
-
-// ${currentContent}
-// `
-//     : "";
 
 export const regularPrompt = `You are Javin, A focused, no-nonsense AI search engine for crypto and blockchain!.
 

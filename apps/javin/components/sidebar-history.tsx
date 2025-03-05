@@ -47,7 +47,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { Chat } from "@/lib/db/schema";
-import { fetcher } from "@/lib/utils";
+import { fetcher } from "@javin/shared/lib/utils/utils";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 
 type GroupedChats = {

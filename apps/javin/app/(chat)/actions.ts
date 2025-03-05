@@ -8,8 +8,8 @@ import {
   updateChatVisiblityById,
 } from "@/lib/db/queries";
 import { VisibilityType } from "@/components/visibility-selector";
-import { myProvider } from "@/lib/ai/models";
-import { SearchGroupId } from "@/lib/utils";
+import { myProvider } from "@javin/shared/lib/ai/models";
+import { SearchGroupId } from "@javin/shared/lib/utils/utils";
 // import webpush from 'web-push'
 
 export async function saveChatModelAsCookie(model: string) {

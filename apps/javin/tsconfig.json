@@ -21,6 +21,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
+      "@javin/shared": ["../../packages/shared/src/index.ts"],
       "@javin/shared/*": ["../../packages/shared/src/*"]
     },
     "baseUrl": "."

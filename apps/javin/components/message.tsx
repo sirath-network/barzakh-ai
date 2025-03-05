@@ -6,8 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { memo, useMemo, useState } from "react";
 
 import type { Vote } from "@/lib/db/schema";
-
-import { DocumentToolCall, DocumentToolResult } from "./document";
 import {
   ChevronDownIcon,
   LoaderIcon,
@@ -20,11 +18,10 @@ import { MessageActions } from "./message-actions";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "./weather";
 import equal from "fast-deep-equal";
-import { cn } from "@/lib/utils";
+import { cn } from "@javin/shared/lib/utils/utils";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { MessageEditor } from "./message-editor";
-import { DocumentPreview } from "./document-preview";
 import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
