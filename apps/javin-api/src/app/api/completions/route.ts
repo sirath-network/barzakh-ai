@@ -209,6 +209,9 @@ export async function POST(request: Request) {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(stopMessage)}\n\n`)
           );
+          controller.enqueue(
+            encoder.encode(`data: [DONE]\n\n`)
+          );
           controller.close();
         } catch (error) {
           console.error("Streaming error:", error);
