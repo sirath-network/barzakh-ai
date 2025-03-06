@@ -1,15 +1,28 @@
+import { FinishReason, LanguageModelUsage } from "ai";
 import { z } from "zod";
+
+export type ChoiceType = {
+  index: number;
+  logprobs: null;
+  finish_reason: FinishReason | null; // null only if streaming still going on
+  text: string | null;
+};
+
+export type TextCompletion = {
+  id: string;
+  object: "text_completion";
+  created: number;
+  model: string;
+  system_fingerprint: string;
+  choices: ChoiceType[];
+  usage: LanguageModelUsage;
+};
 
 export type TextCompletionStreaming = {
   id: string;
   object: "text_completion";
   created: number;
-  choices: {
-    index: number;
-    logprobs: number | null;
-    finish_reason: "stop" | null; // Allows both "stop" and null
-    text: string | null; // Allows both string and null
-  }[];
+  choices: ChoiceType[];
   model: string;
   system_fingerprint: string;
 };

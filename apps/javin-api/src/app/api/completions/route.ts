@@ -28,13 +28,16 @@ import {
   smoothStream,
   streamText,
   createDataStream,
+  generateText,
 } from "ai";
 import {
   PromptRequest,
   PromptRequestSchema,
+  TextCompletion,
   TextCompletionStreaming,
 } from "./type";
 import { z } from "zod";
+import crypto from "crypto";
 
 export const maxDuration = 60;
 
@@ -124,18 +127,71 @@ export async function POST(request: Request) {
       stream: StreamingTrue,
     } = validatedData;
 
-    if (!StreamingTrue) {
-      return new Response(
-        JSON.stringify({ error: "only streaming is suported as of now. use stream:true." }),
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"
     );
+
+    // const system_fingerprint = crypto
+    //   .createHash("sha256")
+    //   .update(systemPrompt)
+    //   .digest("hex");
+
+    const system_fingerprint = process.env.VERCEL_GIT_COMMIT_SHA || "";
+
+    if (!StreamingTrue) {
+      // NON STREAMING
+      const result = await generateText({
+        model: openai(model),
+        system: systemPrompt,
+        prompt: prompt,
+        maxSteps: 10,
+        experimental_activeTools:
+          model === "chat-model-reasoning" ? [] : [...activeTools],
+        tools: {
+          webSearch,
+          getEvmMultiChainWalletPortfolio,
+          getSolanaChainWalletPortfolio,
+          searchSolanaTokenMarketData,
+          searchEvmTokenMarketData,
+          getSiteContent,
+          getCreditcoinApiData,
+          getVanaApiData,
+          getVanaStats,
+          getCreditcoinStats,
+          getEvmOnchainDataUsingZerion,
+          getEvmOnchainDataUsingEtherscan,
+          ensToAddress,
+          getWormholeApiData,
+          getFlowApiData,
+          getFlowStats,
+          translateTransactions,
+        },
+        maxTokens: max_tokens,
+        temperature: temperature,
+        experimental_generateMessageId: generateUUID,
+      });
+      const responseMessage: TextCompletion = {
+        id: generateUUID(),
+        object: "text_completion",
+        created: Math.floor(Date.now() / 1000),
+        choices: [
+          {
+            text: result.text,
+            index: 0,
+            finish_reason: result.finishReason,
+            logprobs: null,
+          },
+        ],
+        model,
+        system_fingerprint: system_fingerprint,
+        usage: result.usage,
+      };
+      return new Response(JSON.stringify(responseMessage), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // STREAMING
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -150,6 +206,7 @@ export async function POST(request: Request) {
               model === "chat-model-reasoning" ? [] : [...activeTools],
             onChunk: async ({ chunk }) => {
               // MAKE THIS INTO OPENAI API STANDARD MESSAGE AND PUSH IN CONTROLLER
+              // IF YOU WANT TO SEND TOOL INFORMATION
               console.log("onChunk = ", chunk);
             },
             tools: {
@@ -186,7 +243,7 @@ export async function POST(request: Request) {
                 { text: chunk, index: 0, finish_reason: null, logprobs: null },
               ],
               model,
-              system_fingerprint: "",
+              system_fingerprint: system_fingerprint,
             };
 
             controller.enqueue(
@@ -194,7 +251,6 @@ export async function POST(request: Request) {
             );
           }
 
-          // Send stop signal
           const stopMessage: TextCompletionStreaming = {
             id: generateUUID(),
             object: "text_completion",
@@ -203,15 +259,13 @@ export async function POST(request: Request) {
               { text: null, index: 0, finish_reason: "stop", logprobs: null },
             ],
             model,
-            system_fingerprint: "",
+            system_fingerprint: system_fingerprint,
           };
 
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify(stopMessage)}\n\n`)
           );
-          controller.enqueue(
-            encoder.encode(`data: [DONE]\n\n`)
-          );
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
           controller.close();
         } catch (error) {
           console.error("Streaming error:", error);
