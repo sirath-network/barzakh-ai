@@ -7,7 +7,7 @@ import {
 } from "ai";
 import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@javin/shared/lib/ai/models";
-import { getGroupConfig, systemPrompt } from "@javin/shared/lib/ai/prompts";
+import { allTools, getGroupConfig } from "@javin/shared/lib/ai/prompts";
 import {
   deleteChatById,
   getChatById,
@@ -21,25 +21,7 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from "@javin/shared/lib/utils/utils";
-
 import { generateTitleFromUserMessage } from "../../actions";
-import { webSearch } from "@javin/shared/lib/ai/tools/web-search";
-import { getSolanaChainWalletPortfolio } from "@javin/shared/lib/ai/tools/solana/wallet-portfolio-solana";
-import { getEvmMultiChainWalletPortfolio } from "@javin/shared/lib/ai/tools/evm/wallet-portfolio-evm";
-import { searchSolanaTokenMarketData } from "@javin/shared/lib/ai/tools/solana/search-token-solana";
-import { searchEvmTokenMarketData } from "@javin/shared/lib/ai/tools/evm/search-token-evm";
-import { getSiteContent } from "@javin/shared/lib/ai/tools/scrap-site";
-import { getVanaStats } from "@javin/shared/lib/ai/tools/vana/get-stats";
-import { getVanaApiData } from "@javin/shared/lib/ai/tools/vana/get-vana-api-data";
-import { getCreditcoinStats } from "@javin/shared/lib/ai/tools/creditcoin/get-stats";
-import { getCreditcoinApiData } from "@javin/shared/lib/ai/tools/creditcoin/get-creditcon-api-data";
-import { getEvmOnchainDataUsingZerion } from "@javin/shared/lib/ai/tools/onchain/get_evm_onchain_data_using_zerion";
-import { ensToAddress } from "@javin/shared/lib/ai/tools/ens-to-address";
-import { getWormholeApiData } from "@javin/shared/lib/ai/tools/wormhole/get-wormhole-api-data";
-import { getFlowApiData } from "@javin/shared/lib/ai/tools/flow/get-flow-api-data";
-import { getFlowStats } from "@javin/shared/lib/ai/tools/flow/get-stats";
-import { translateTransactions } from "@javin/shared/lib/ai/tools/translate-transactions";
-import { getEvmOnchainDataUsingEtherscan } from "@javin/shared/lib/ai/tools/onchain/get_evm_onchain_data_using_etherscan";
 
 export const maxDuration = 60;
 
@@ -106,25 +88,7 @@ export async function POST(request: Request) {
           selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
         experimental_transform: smoothStream({ chunking: "word" }),
         experimental_generateMessageId: generateUUID,
-        tools: {
-          webSearch,
-          getEvmMultiChainWalletPortfolio,
-          getSolanaChainWalletPortfolio,
-          searchSolanaTokenMarketData,
-          searchEvmTokenMarketData,
-          getSiteContent,
-          getCreditcoinApiData,
-          getVanaApiData,
-          getVanaStats,
-          getCreditcoinStats,
-          getEvmOnchainDataUsingZerion,
-          getEvmOnchainDataUsingEtherscan,
-          ensToAddress,
-          getWormholeApiData,
-          getFlowApiData,
-          getFlowStats,
-          translateTransactions,
-        },
+        tools: allTools,
         onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {
             try {
