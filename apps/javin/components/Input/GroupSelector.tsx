@@ -1,17 +1,16 @@
+"use client";
 import {
   cn,
   SearchGroup,
   SearchGroupId,
   searchGroups,
 } from "@javin/shared/lib/utils/utils";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   ForwardRefExoticComponent,
   RefAttributes,
   startTransition,
   useState,
 } from "react";
-import { ToolbarButton } from "./ToolbarButton";
 import BottomSheet from "../bottom-sheet";
 import { useWindowSize } from "usehooks-ts";
 import {
@@ -71,17 +70,21 @@ const SelectionContent = ({
             "w-fit data-[state=open]:bg-accent bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-200 data-[state=open]:text-accent-foreground rounded-full"
           )}
         >
-          <Button variant="outline" className="px-3 md:px-2  md:h-[34px]">
+          <Button variant="outline" className="px-3 md:px-1 md:h-[34px]">
             {selectedGroup?.img ? (
               <Image
                 src={selectedGroup.img || ""}
                 alt="icon"
-                width={24}
-                height={24}
+                width={25}
+                height={25}
                 className="bg-white rounded-full"
               />
             ) : (
-              <Icon />
+              Icon && (
+                <div className="px-1">
+                  <Icon />
+                </div>
+              )
             )}
           </Button>
         </DropdownMenuTrigger>
@@ -111,7 +114,7 @@ const SelectionContent = ({
                     alt="icon"
                     width={20}
                     height={20}
-                    className="bg-white rounded-full "
+                    className="bg-white rounded-full"
                   />
                 ) : (
                   <IconLocal className="size-4" />

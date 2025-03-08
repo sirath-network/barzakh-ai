@@ -1,43 +1,13 @@
-import { getGroupConfig, systemPrompt } from "@javin/shared/src/lib/ai/prompts";
-import { myProvider } from "@javin/shared/src/lib/ai/models";
-import {
-  generateUUID,
-  getMostRecentUserMessage,
-  sanitizeResponseMessages,
-} from "@javin/shared/src/lib/utils/utils";
-import { webSearch } from "@javin/shared/src//lib/ai/tools/web-search";
-import { getSolanaChainWalletPortfolio } from "@javin/shared/src/lib/ai/tools/solana/wallet-portfolio-solana";
-import { getEvmMultiChainWalletPortfolio } from "@javin/shared/src/lib/ai/tools/evm/wallet-portfolio-evm";
-import { searchSolanaTokenMarketData } from "@javin/shared/src/lib/ai/tools/solana/search-token-solana";
-import { searchEvmTokenMarketData } from "@javin/shared/src/lib/ai/tools/evm/search-token-evm";
-import { getSiteContent } from "@javin/shared/src/lib/ai/tools/scrap-site";
-import { getVanaStats } from "@javin/shared/src/lib/ai/tools/vana/get-stats";
-import { getVanaApiData } from "@javin/shared/src/lib/ai/tools/vana/get-vana-api-data";
-import { getCreditcoinStats } from "@javin/shared/src/lib/ai/tools/creditcoin/get-stats";
-import { getCreditcoinApiData } from "@javin/shared/src/lib/ai/tools/creditcoin/get-creditcon-api-data";
-import { ensToAddress } from "@javin/shared/src/lib/ai/tools/ens-to-address";
-import { getWormholeApiData } from "@javin/shared/src/lib/ai/tools/wormhole/get-wormhole-api-data";
-import { getFlowApiData } from "@javin/shared/src/lib/ai/tools/flow/get-flow-api-data";
-import { getFlowStats } from "@javin/shared/src/lib/ai/tools/flow/get-stats";
-import { translateTransactions } from "@javin/shared/src/lib/ai/tools/translate-transactions";
-import { getEvmOnchainDataUsingZerion } from "@javin/shared/src/lib/ai/tools/onchain/get_evm_onchain_data_using_zerion";
-import { getEvmOnchainDataUsingEtherscan } from "@javin/shared/src/lib/ai/tools/onchain/get_evm_onchain_data_using_etherscan";
+import { allTools, getGroupConfig } from "@javin/shared/src/lib/ai/prompts";
+import { generateUUID } from "@javin/shared/src/lib/utils/utils";
 import { openai } from "@ai-sdk/openai";
+import { smoothStream, streamText, generateText } from "ai";
 import {
-  createDataStreamResponse,
-  smoothStream,
-  streamText,
-  createDataStream,
-  generateText,
-} from "ai";
-import {
-  PromptRequest,
   PromptRequestSchema,
   TextCompletion,
   TextCompletionStreaming,
 } from "./type";
 import { z } from "zod";
-import crypto from "crypto";
 
 export const maxDuration = 60;
 
@@ -147,25 +117,7 @@ export async function POST(request: Request) {
         maxSteps: 10,
         experimental_activeTools:
           model === "chat-model-reasoning" ? [] : [...activeTools],
-        tools: {
-          webSearch,
-          getEvmMultiChainWalletPortfolio,
-          getSolanaChainWalletPortfolio,
-          searchSolanaTokenMarketData,
-          searchEvmTokenMarketData,
-          getSiteContent,
-          getCreditcoinApiData,
-          getVanaApiData,
-          getVanaStats,
-          getCreditcoinStats,
-          getEvmOnchainDataUsingZerion,
-          getEvmOnchainDataUsingEtherscan,
-          ensToAddress,
-          getWormholeApiData,
-          getFlowApiData,
-          getFlowStats,
-          translateTransactions,
-        },
+        tools: allTools,
         maxTokens: max_tokens,
         temperature: temperature,
         experimental_generateMessageId: generateUUID,
@@ -209,25 +161,7 @@ export async function POST(request: Request) {
               // IF YOU WANT TO SEND TOOL INFORMATION
               console.log("onChunk = ", chunk);
             },
-            tools: {
-              webSearch,
-              getEvmMultiChainWalletPortfolio,
-              getSolanaChainWalletPortfolio,
-              searchSolanaTokenMarketData,
-              searchEvmTokenMarketData,
-              getSiteContent,
-              getCreditcoinApiData,
-              getVanaApiData,
-              getVanaStats,
-              getCreditcoinStats,
-              getEvmOnchainDataUsingZerion,
-              getEvmOnchainDataUsingEtherscan,
-              ensToAddress,
-              getWormholeApiData,
-              getFlowApiData,
-              getFlowStats,
-              translateTransactions,
-            },
+            tools: allTools,
             maxTokens: max_tokens,
             temperature: temperature,
             experimental_transform: smoothStream({ chunking: "word" }),
