@@ -70,7 +70,7 @@ const SelectionContent = ({
             "w-fit data-[state=open]:bg-accent bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-200 data-[state=open]:text-accent-foreground rounded-full"
           )}
         >
-          <Button variant="outline" className="px-3 md:px-1 md:h-[34px]">
+          <Button variant="outline" className="px-2 md:px-1 md:h-[34px]">
             {selectedGroup?.img ? (
               <Image
                 src={selectedGroup.img || ""}
@@ -81,7 +81,7 @@ const SelectionContent = ({
               />
             ) : (
               Icon && (
-                <div className="px-1">
+                <div className="md:px-1">
                   <Icon />
                 </div>
               )
@@ -90,7 +90,7 @@ const SelectionContent = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
-          className="min-w-[300px] bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-200"
+          className="min-w-[300px] max-h-72 overflow-scroll custom-scrollbar bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-neutral-200"
         >
           {searchGroups.map((group) => {
             const IconLocal = group.icon;

@@ -1,21 +1,14 @@
-import { generateObject, generateText, tool } from "ai";
+import { generateText, tool } from "ai";
 import { z } from "zod";
 import { myProvider } from "../../models";
 import {
-  getAllPaths,
   getAllPathsAndDesc,
-  getAllPathsUrl,
   getPathDetails,
-  getPathInfo,
-  loadOpenAPI,
   loadOpenAPIFromJson,
 } from "../../../utils/openapi";
 import zerionJson from "./zerion-openapi.json";
-import { etherscanBaseURL, zerionBaseURL } from "./constant";
+import { zerionBaseURL } from "./constant";
 import { getZerionApiKey } from "../../../utils/utils";
-import { groq } from "@ai-sdk/groq";
-import { translateTransactions } from "../translate-transactions";
-
 export const getEvmOnchainDataUsingZerion = tool({
   description: "Get real-time data from Ethereum based blockchains.",
   parameters: z.object({
