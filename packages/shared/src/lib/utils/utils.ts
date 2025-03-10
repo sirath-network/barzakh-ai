@@ -257,7 +257,7 @@ export const searchGroups = [
     name: "Aptos",
     description: "Everything Aptos. Search, transactions and more.",
     icon: Network,
-    img: "/images/icon/zeta/zetachain-logo.png",
+    img: "/images/icon/aptos/aptos-logo.png",
   },
   {
     id: "monad",
