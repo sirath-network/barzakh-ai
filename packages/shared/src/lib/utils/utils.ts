@@ -194,7 +194,10 @@ export type SearchGroupId =
   | "creditcoin"
   | "vana"
   | "wormhole"
-  | "flow";
+  | "flow"
+  | "zeta"
+  | "monad"
+  | "aptos";
 
 export const searchGroups = [
   {
@@ -241,6 +244,27 @@ export const searchGroups = [
     description: "Everything Flow. Search, transactions and more.",
     icon: Network,
     img: "/images/icon/flow-logo.png",
+  },
+  {
+    id: "zeta",
+    name: "Zeta",
+    description: "Everything Zeta. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/zeta/zetachain-logo.png",
+  },
+  {
+    id: "aptos",
+    name: "Aptos",
+    description: "Everything Aptos. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/aptos/aptos-logo.png",
+  },
+  {
+    id: "monad",
+    name: "Monad",
+    description: "Everything Monad. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/monad/monad-logo.jpg",
   },
 ] as const;
 

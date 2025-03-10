@@ -1,33 +1,39 @@
-import { generateText, tool } from "ai";
+import { generateObject, generateText, tool } from "ai";
 import { z } from "zod";
 import { myProvider } from "../../models";
 import {
+  getAllPaths,
   getAllPathsAndDesc,
   getPathDetails,
-  loadOpenAPIFromJson,
+  getPathInfo,
+  loadOpenAPI,
 } from "../../../utils/openapi";
-import zerionJson from "./zerion-openapi.json";
-import { zerionBaseURL } from "./constant";
-import { getZerionApiKey } from "../../../utils/utils";
-export const getEvmOnchainDataUsingZerion = tool({
-  description: "Get real-time data from Ethereum based blockchains.",
+
+function scaleLargeNumbersInJson(jsonString: string): string {
+  return jsonString.replace(/"(\d{10,})"/g, (_match, num) => {
+    const scaledNum = (Number(num) / 1e18).toFixed(8) + " (scaled)";
+    return `"${scaledNum} (scaled)"`;
+  });
+}
+
+export const getAptosApiData = tool({
+  description: "Get real-time Aptos blockchain data.",
   parameters: z.object({
     userQuery: z.string().describe("Query of user."),
   }),
   execute: async ({ userQuery }: { userQuery?: string }) => {
     try {
-      console.log("user query ", userQuery);
-      const apiKey = getZerionApiKey();
-      if (!apiKey) {
-        throw Error("zerion api key not found");
-      }
+      console.log("use prompt is -- ", userQuery);
+      const aptosOpenapidata = await loadOpenAPI(
+        "https://fullnode.mainnet.aptoslabs.com/v1/spec.yaml"
+      );
+      const allPathsAndDesc = await getAllPathsAndDesc(aptosOpenapidata);
 
-      const zerionOpenapidata = await loadOpenAPIFromJson(zerionJson);
-      const zerionAllPathsAndDesc = await getAllPathsAndDesc(zerionOpenapidata);
+      const aptosBaseUrl = "https://api.mainnet.aptoslabs.com/v1";
 
       const aiAgentResponse = await generateText({
         model: myProvider.languageModel("chat-model-small"),
-        system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
+        system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant aptos blockchain data in a user-friendly format.
       
         ## How to Process User Queries:
         1. **Match User Query to API Path**:  
@@ -36,11 +42,12 @@ export const getEvmOnchainDataUsingZerion = tool({
       
         2. **Retrieve Required Parameters**:  
            - Use the **getPathParameters** tool to fetch all necessary parameters.  
-           - pass The API path, e.g., '/v1/wallets/{address}/charts/{chart_period}'
-           - If any required parameters are missing, prompt the user for input.  
+           - pass The API path, e.g., '/accounts/{address}'
+           - If any required parameters are missing, prompt the user for input.
+           - make sure to use all the parameters needed to get user answer for the API path like limit, offset, etc.  
       
         3. **Construct and Execute API Call**:  
-           - Form a complete API URL using the **base URL** (${zerionBaseURL}) and the retrieved parameters.  
+           - Form a complete API URL using the **base URL** (${aptosBaseUrl}) and the retrieved parameters.  
            - Use the **makeApiCall** tool to fetch data.
         
         ## **Final Response Format:**  
@@ -49,7 +56,7 @@ export const getEvmOnchainDataUsingZerion = tool({
         - If no relevant data is found, respond appropriately instead of returning an empty result.  
         `,
         prompt: JSON.stringify(
-          `User query: "${userQuery}". Available API paths and descriptions: ${zerionAllPathsAndDesc}. Base URL: ${zerionBaseURL}`
+          `User query: "${userQuery}". Available API paths and descriptions: ${allPathsAndDesc}. Base URL: ${aptosBaseUrl}`
         ),
         tools: {
           getPathParameters: tool({
@@ -58,21 +65,20 @@ export const getEvmOnchainDataUsingZerion = tool({
             parameters: z.object({
               path: z
                 .string()
-                .describe(
-                  "The API path, e.g., '/v1/wallets/{address}/charts/{chart_period}'"
-                ),
+                .describe("The API path, e.g., '/accounts/{address}'"),
             }),
             execute: async ({ path }) => {
               console.log("Fetching parameters for path:", path);
-              const zerionPathsDetails = await getPathDetails(
-                zerionOpenapidata,
+              const aptosPathDetails = await getPathDetails(
+                aptosOpenapidata,
                 path
               );
-              return zerionPathsDetails;
+              // console.log("aptosPathDetails", aptosPathDetails[0].parameters);
+              return aptosPathDetails;
             },
           }),
           makeApiCall: tool({
-            description: "Fetch real-time blockchain data from Zerion API.",
+            description: "Fetch real-time blockchain data from Aptos API.",
             parameters: z.object({
               url: z.string().describe("The full API query URL."),
             }),
@@ -83,7 +89,6 @@ export const getEvmOnchainDataUsingZerion = tool({
                   method: "GET",
                   headers: {
                     accept: "application/json",
-                    authorization: `Basic ${apiKey}`,
                   },
                 };
                 const response = await fetch(url, options);
@@ -92,10 +97,10 @@ export const getEvmOnchainDataUsingZerion = tool({
                     `API call failed with status ${response.status}`
                   );
                 const json = await response.json();
-                console.log("Fetched API response:", json);
+                console.log("Fetched API response");
                 return json; // Return parsed JSON data for further processing
               } catch (error) {
-                console.error("Error fetching API data:", error);
+                console.error("Error fetching aptos API data:", error);
                 return { error: "Failed to fetch data from the API." };
               }
             },
@@ -105,14 +110,15 @@ export const getEvmOnchainDataUsingZerion = tool({
       });
 
       console.log(`AI response is `, aiAgentResponse.text);
+
       return aiAgentResponse.text;
     } catch (error: any) {
-      console.error("Error in getEvmOnchainDataUsingZerion:", error);
+      console.error("Error in getAptosApiData:", error);
 
       // Returning error details so AI can adapt its next action
       return {
         success: false,
-        message: "Error retrieving API documentation.",
+        message: "Error fetching aptos blockchain data.",
         error: error.message || "Unknown error",
       };
     }
