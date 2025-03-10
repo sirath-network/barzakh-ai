@@ -67,6 +67,17 @@ export async function getAllPathsAndDesc(openapiData: any) {
   );
 }
 
+export async function getAllPathDetails(openapiData: any) {
+  const pathDetailsPromises = Object.entries(openapiData.paths || {}).map(
+    async ([path, methods]: [string, any]) => {
+      const t = await getPathDetails(openapiData, path);
+      return { path: path, details: t };
+    }
+  );
+
+  return await Promise.all(pathDetailsPromises);
+}
+
 export async function getPathDetails(openapiData: any, pathUrl: string) {
   //give all the parameters for a path
   const pathObj = openapiData.paths?.[pathUrl];

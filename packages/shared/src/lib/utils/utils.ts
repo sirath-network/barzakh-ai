@@ -195,7 +195,8 @@ export type SearchGroupId =
   | "vana"
   | "wormhole"
   | "flow"
-  | "zeta";
+  | "zeta"
+  | "monad";
 
 export const searchGroups = [
   {
@@ -249,6 +250,13 @@ export const searchGroups = [
     description: "Everything Zeta. Search, transactions and more.",
     icon: Network,
     img: "/images/icon/zeta/zetachain-logo.png",
+  },
+  {
+    id: "monad",
+    name: "Monad",
+    description: "Everything Monad. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/monad/monad-logo.jpg",
   },
 ] as const;
 
