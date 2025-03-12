@@ -9,13 +9,6 @@ import {
   loadOpenAPI,
 } from "../../../utils/openapi";
 
-function scaleLargeNumbersInJson(jsonString: string): string {
-  return jsonString.replace(/\b(\d{8,})\b/g, (_match, num) => {
-    const scaledNum = num.slice(0, -8) + "." + num.slice(-8);
-    return `"${scaledNum} (scaled)"`;
-  });
-}
-
 export const getAptosApiData = tool({
   description: "Get real-time Aptos blockchain data.",
   parameters: z.object({
@@ -97,15 +90,8 @@ export const getAptosApiData = tool({
                     `API call failed with status ${response.status}`
                   );
                 const json = await response.json();
-                // Scale large numbers for better readability
-                const strinJson = JSON.stringify(json);
-                console.log("json", strinJson);
-                const scaledJson = scaleLargeNumbersInJson(strinJson);
-                console.log("scaledJson", scaledJson);
-                const parsedJson = JSON.parse(scaledJson);
-                console.log("parsedJson", parsedJson);
 
-                return parsedJson; // Return parsed JSON data for further processing
+                return json; // Return parsed JSON data for further processing
               } catch (error) {
                 console.error("Error fetching aptos API data:", error);
                 return { error: "Failed to fetch data from the API." };
