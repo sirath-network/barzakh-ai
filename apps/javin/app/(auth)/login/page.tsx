@@ -60,7 +60,7 @@ export default function Page() {
           )
         )}
         <p className="text-lg text-muted-foreground">
-          A focused, no-nonsense AI search engine for crypto and blockchain.
+          A focused, no-nonsense AI search engine for crypto.
         </p>
       </div>
       <div className="w-fit overflow-hidden rounded-2xl gap-5 flex flex-col border m-2 p-5">

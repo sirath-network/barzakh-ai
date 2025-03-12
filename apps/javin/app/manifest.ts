@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Javin.ai",
     short_name: "Javin.ai",
     description:
-      "A focused, no-nonsense AI search engine for crypto and blockchain.",
+      "A focused, no-nonsense AI search engine for crypto.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

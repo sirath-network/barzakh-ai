@@ -10,12 +10,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: "Javin.ai",
   description:
-    "A focused, no-nonsense AI search engine for crypto and blockchain.",
+    "A focused, no-nonsense AI search engine for crypto.",
   manifest: "/manifest.json",
   openGraph: {
     title: "Javin.ai",
     description:
-      "A focused, no-nonsense AI search engine for crypto and blockchain.",
+      "A focused, no-nonsense AI search engine for crypto.",
     images: [
       {
         url: `${baseUrl}/images/javin/preview/javin_preview_banner.png`,

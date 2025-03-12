@@ -30,7 +30,7 @@ export const Overview = () => {
           )
         )}
         <p className="text-lg text-muted-foreground">
-          A focused, no-nonsense AI search engine for crypto and blockchain.
+          A focused, no-nonsense AI search engine for crypto.
         </p>
       </div>
     </motion.div>
