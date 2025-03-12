@@ -4,11 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
-// CHANGE THIS ===========================================================================================================
-// const baseUrl = "https://javin.ai";
-const baseUrl =
-  "https://javin-ai-website-git-new-brand-icon-lvmodel24.vercel.app";
-// CHANGE THIS ===========================================================================================================
+const baseUrl = "https://javin.ai";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
