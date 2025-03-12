@@ -9,6 +9,27 @@ import {
   loadOpenAPI,
 } from "../../../utils/openapi";
 
+function scaleLargeNumbersInJson(jsonString: string): string {
+  return jsonString.replace(/\b(\d{8,})\b/g, (_match, num) => {
+    const scaledNum = num.slice(0, -8) + "." + num.slice(-8);
+    return `"${scaledNum} (scaled)"`;
+  });
+}
+
+// Recursive function to process numbers in the response
+const processNumbers = (data: any): any => {
+  if (typeof data === "number" && data >= 10_000_000) {
+    return data / 10 ** 8;
+  } else if (Array.isArray(data)) {
+    return data.map(processNumbers);
+  } else if (typeof data === "object" && data !== null) {
+    return Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, processNumbers(value)])
+    );
+  }
+  return data;
+};
+
 export const getAptosApiData = tool({
   description: "Get real-time Aptos blockchain data.",
   parameters: z.object({
@@ -91,7 +112,9 @@ export const getAptosApiData = tool({
                   );
                 const json = await response.json();
 
-                return json; // Return parsed JSON data for further processing
+                const processedData = processNumbers(json);
+
+                return processedData;
               } catch (error) {
                 console.error("Error fetching aptos API data:", error);
                 return { error: "Failed to fetch data from the API." };
