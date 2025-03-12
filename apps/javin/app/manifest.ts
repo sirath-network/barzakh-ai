@@ -12,15 +12,21 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#000000",
     icons: [
       {
-        src: "/images/javin/javin_192px_text1.jpg",
-        sizes: "192x192",
-        type: "image/jpg",
+        src: "/images/javin/javin-logo.svg",
+        sizes: "any",
+        type: "image/svg+xml",
         purpose: "maskable",
       },
       {
-        src: "/images/javin/javin_512px_text1.jpg",
+        src: "/images/javin/javin_logo_192px.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/images/javin/javin_logo_512px.jpg",
         sizes: "512x512",
-        type: "image/jpg",
+        type: "image/png",
         purpose: "maskable",
       },
     ],
