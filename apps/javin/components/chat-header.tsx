@@ -69,15 +69,21 @@ function PureChatHeader({
       </div>
       {messages.length > 0 && (
         <Link href={"/"} className="font-semibold">
-          <img
-            alt="Javin.ai"
-            src={
-              theme == "dark"
-                ? "/images/javin/banner/javin-banner-white.svg"
-                : "/images/javin/banner/javin-banner-black.svg"
-            }
-            className="w-48 h-auto"
-          />
+          {theme == "dark" ? (
+            <img
+              alt="Javin.ai"
+              src="/images/javin/banner/javin-banner-white.svg"
+              className="w-48 h-auto"
+            />
+          ) : (
+            theme == "light" && (
+              <img
+                alt="Javin.ai"
+                src="/images/javin/banner/javin-banner-black.svg"
+                className="w-48 h-auto"
+              />
+            )
+          )}
         </Link>
       )}
       {/* REPLACE TEXT WITH THE ACTUAL LOGO WHEN YOU GET ONE WITH WHITE TEXT */}

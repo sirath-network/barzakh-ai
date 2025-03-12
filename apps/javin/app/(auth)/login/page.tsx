@@ -44,15 +44,21 @@ export default function Page() {
   return (
     <div className="flex flex-col h-dvh w-screen pt-12 md:pt-0 items-center justify-center bg-background">
       <div className="rounded-xl p-6 flex flex-col items-center gap-2 leading-relaxed text-center max-w-2xl">
-        <img
-          alt="Javin.ai"
-          src={
-            theme == "dark"
-              ? "/images/javin/banner/javin-banner-white.svg"
-              : "/images/javin/banner/javin-banner-black.svg"
-          }
-          className=" w-32 sm:w-48 h-auto"
-        />
+        {theme == "dark" ? (
+          <img
+            alt="Javin.ai"
+            src="/images/javin/banner/javin-banner-white.svg"
+            className=" w-32 sm:w-48 h-auto"
+          />
+        ) : (
+          theme == "light" && (
+            <img
+              alt="Javin.ai"
+              src="/images/javin/banner/javin-banner-black.svg"
+              className=" w-32 sm:w-48 h-auto"
+            />
+          )
+        )}
         <p className="text-lg text-muted-foreground">
           A focused, no-nonsense AI search engine for crypto and blockchain.
         </p>
