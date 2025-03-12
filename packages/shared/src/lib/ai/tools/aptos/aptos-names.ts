@@ -15,9 +15,13 @@ export const aptosNames = tool({
   execute: async ({ aptosName }) => {
     try {
       console.log("fetching Aptos names ");
+
       console.log("network", Network.MAINNET);
       // Fetch the Aptos name
-      const nameOwnerAddress = await aptos.getOwnerAddress({ name: aptosName });
+      const lowerCaseAptosName = aptosName.toLowerCase();
+      const nameOwnerAddress = await aptos.getOwnerAddress({
+        name: lowerCaseAptosName,
+      });
       console.log("nameOwnerAddress", nameOwnerAddress);
 
       if (!nameOwnerAddress) {
