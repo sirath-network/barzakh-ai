@@ -3,8 +3,10 @@ import Link from "next/link";
 
 import { MessageIcon, VercelIcon } from "./icons";
 import Image from "next/image";
+import { useTheme } from "next-themes";
 
 export const Overview = () => {
+  const { theme } = useTheme();
   return (
     <motion.div
       key="overview"
@@ -17,7 +19,11 @@ export const Overview = () => {
       <div className="rounded-xl p-6 flex flex-col items-center gap-2 leading-relaxed text-center max-w-2xl">
         <img
           alt="Javin.ai"
-          src="/images/javin/banner/javin-banner-white.svg"
+          src={
+            theme == "dark"
+              ? "/images/javin/banner/javin-banner-white.svg"
+              : "/images/javin/banner/javin-banner-black.svg"
+          }
           className=" w-32 sm:w-48 h-auto"
         />
         <p className="text-lg text-muted-foreground">

@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/submit-button";
 
 import { login, type LoginActionState } from "@/app/(auth)/actions";
 import { X } from "lucide-react";
+import { useTheme } from "next-themes";
 export default function AuthModal({
   isOpen,
   onClose,
@@ -22,6 +23,7 @@ export default function AuthModal({
   setMode: (mode: "login" | "signup") => void;
 }) {
   const router = useRouter();
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
 
@@ -93,7 +95,11 @@ export default function AuthModal({
           <div className="rounded-xl p-6 flex flex-col gap-2 leading-relaxed text-center max-w-2xl">
             <img
               alt="Javin.ai"
-              src="/images/javin/banner/javin-banner-white.svg"
+              src={
+                theme == "dark"
+                  ? "/images/javin/banner/javin-banner-white.svg"
+                  : "/images/javin/banner/javin-banner-black.svg"
+              }
               className=" w-32 sm:w-48 h-auto"
             />
             <p className="text-lg text-muted-foreground">
