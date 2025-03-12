@@ -14,6 +14,7 @@ import { signOut } from "next-auth/react";
 import { User } from "next-auth";
 import { SidebarUserNav } from "./sidebar-user-nav";
 import { Message } from "ai";
+import { useTheme } from "next-themes";
 
 function PureChatHeader({
   chatId,
@@ -32,6 +33,7 @@ function PureChatHeader({
 }) {
   const router = useRouter();
   const { open } = useSidebar();
+  const { theme } = useTheme();
 
   const { width: windowWidth } = useWindowSize();
   // console.log("user in chat header", user);
@@ -67,7 +69,21 @@ function PureChatHeader({
       </div>
       {messages.length > 0 && (
         <Link href={"/"} className="font-semibold">
-          Javin.ai
+          {theme == "dark" ? (
+            <img
+              alt="Javin.ai"
+              src="/images/javin/banner/javin-banner-white.svg"
+              className="w-48 h-auto"
+            />
+          ) : (
+            theme == "light" && (
+              <img
+                alt="Javin.ai"
+                src="/images/javin/banner/javin-banner-black.svg"
+                className="w-48 h-auto"
+              />
+            )
+          )}
         </Link>
       )}
       {/* REPLACE TEXT WITH THE ACTUAL LOGO WHEN YOU GET ONE WITH WHITE TEXT */}

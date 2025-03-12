@@ -860,18 +860,11 @@ export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
 export const JavinMan = ({ size = 20 }: { size?: number }) => {
   return (
     <Image
-      src={"/images/javin/javin-man-white.png"}
+      src={"/images/javin/javin-logo.svg"}
       alt="ai icon"
       width={size}
       height={size}
     />
-  );
-};
-export const JavinLetterJ = ({ size = 16 }: { size?: number }) => {
-  return (
-    <p className="lowercase" style={{ fontSize: size }}>
-      J
-    </p>
   );
 };
 

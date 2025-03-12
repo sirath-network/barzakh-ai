@@ -10,15 +10,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: "Javin.ai",
   description:
-    "A focused, no-nonsense AI search engine for crypto and blockchain.",
+    "A focused, no-nonsense AI search engine for crypto.",
   manifest: "/manifest.json",
   openGraph: {
     title: "Javin.ai",
     description:
-      "A focused, no-nonsense AI search engine for crypto and blockchain.",
+      "A focused, no-nonsense AI search engine for crypto.",
     images: [
       {
-        url: `${baseUrl}/images/javin/preview/javin_preview.jpg?v=v2`,
+        url: `${baseUrl}/images/javin/preview/javin_preview_banner.png`,
         width: 1200,
         height: 630,
         alt: "Javin.ai",
@@ -71,7 +71,6 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
-        <link rel="icon" href="/images/icon/j_white.png" type="image/png" />
       </head>
       <body className="antialiased">
         {/* dont remove below div. it is for modal */}
