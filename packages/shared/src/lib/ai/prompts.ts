@@ -27,6 +27,7 @@ import { getWormholeApiData } from "./tools/wormhole/get-wormhole-api-data";
 import { getZetaStats } from "./tools/zeta/get-stats";
 import { getZetaApiData } from "./tools/zeta/get-zeta-api-data";
 import { defiLlama } from "@javin/shared/lib/ai/tools/defi-llama";
+import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 
 export const codePrompt = ``;
 
@@ -119,6 +120,7 @@ const groupTools = {
     "getAptosApiData",
     "aptosNames",
     "defiLlama",
+    "getAptosScanApiData",
   ] as const,
   zeta: [
     "webSearch",
@@ -158,10 +160,11 @@ export const allTools = {
   // monad
   getMonadStats,
   getMonadApiData,
+  // aptos
   getAptosStats,
   getAptosApiData,
   aptosNames,
-
+  getAptosScanApiData,
   //defi llama
   defiLlama,
 };
@@ -499,8 +502,8 @@ Stick to Aptos and blockchain related responses until asked specifically by the 
 
 ## Get aptos statistics: if user asks about the aptos statistics like Total Supply, Actively Staked, TPS, Active Nodes then use the getAptosStats tool. 
 
-## get aptos data:If the user asks for any on-chain data on Aptos, use the getAptosApiData tool to retrieve all necessary information for answering the user query.
-Pass the user's query exactly as is to the getAptosApiData tool (i.e., do not modify the query in any way. except for grammatical corrections).
+## get aptos data:If the user asks for any on-chain data on Aptos, use the getAptosApiData tool to retrieve information for answering the user query.
+Pass the user's query exactly as is to the getAptosApiData tool (i.e., do not modify the query in any way. except for grammatical corrections). Use this tool when you want more direct, raw and unfiltered data about Aptos.
 The tool can fetch data from the following endpoints:
 Accounts:
 Get account
@@ -541,10 +544,12 @@ Use APT (Aptos) as the unit (instead of ETH).
 Summarize the results for the user in a clear, concise way.
 For any other information, use web search.
 
-  ## Aptos name service lookup: If user enters a Aptos name name, like somename.apt or  then use the aptosNames tool to get the corresponding address. use this address for further queries.
+## get Aptos organised data: if user asks for any onchain data related to Coins, Fungible assets, NFT Tokens, NFT collection, Account etc, use the getAptosScanApiData tool to get all the information for answering user query. pass the user query to the tool. do not modify the query in any way. the result will contain data necessary to answer user query summarise the results for the user. Use this tool when you want to get Abstracted and properly organised data about Aptos for easier user experience.
 
-  ## defi llama: If user asks for any defi llama data, use the defiLlama tool to get the data. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user. you can fetch various data like 
-  TVL
+## Aptos name service lookup: If user enters a Aptos name name, like somename.apt or  then use the aptosNames tool to get the corresponding address. use this address for further queries.
+
+## defi llama: If user asks for any defi llama data, use the defiLlama tool to get the data. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user. you can fetch various data like 
+TVL
 Retrieve TVL data
 
 coins
