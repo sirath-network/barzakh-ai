@@ -73,10 +73,16 @@ export const defiLlama = tool({
             description: "Fetch real-time blockchain data from defiLlama API.",
             parameters: z.object({
               url: z.string().describe("The full API query URL."),
+              limit: z
+                .number()
+                .optional()
+                .describe("number of items in the response.")
+                .default(10),
             }),
-            execute: async ({ url }) => {
+            execute: async ({ url, limit }) => {
               try {
                 console.log("fetching --- ", url);
+                console.log("limit requested --- ", limit);
                 const options = {
                   method: "GET",
                   headers: {
@@ -88,8 +94,19 @@ export const defiLlama = tool({
                   throw new Error(
                     `API call failed with status ${response.status}`
                   );
-                const json = await response.json();
-                console.log("Fetched API response:", json);
+                let json = await response.json();
+                // if json is an array them clip to only 10 elements
+                if (Array.isArray(json) && json.length > limit) {
+                  console.log("actual length of responbse ", json.length);
+                  json = json.slice(0, limit);
+                }
+                // else if json is {coins :{}} then only take 10 coins in the json
+                else if (json.coins && Object.keys(json.coins).length > limit) {
+                  json.coins = Object.fromEntries(
+                    Object.entries(json.coins).slice(0, limit)
+                  );
+                }
+                // console.log("Fetched ", url, " response:", json);
                 return json; // Return parsed JSON data for further processing
               } catch (error) {
                 console.error("Error fetching API data:", error);
