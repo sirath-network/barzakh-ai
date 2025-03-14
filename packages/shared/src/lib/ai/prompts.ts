@@ -90,6 +90,8 @@ const groupTools = {
     "getEvmOnchainDataUsingEtherscan",
     "ensToAddress",
     "translateTransactions",
+    //defi llama
+    "defiLlama",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -264,6 +266,25 @@ Get list of all available gas prices
 
 ## translate transactions to human readable format: 
 always use the translateTransactions tool to convert the raw transaction details into human readable format. pass the transaction details, chain name and user query to the tool. the supported chain names are ${novesSupportedChains}.
+
+ ## defi llama: If user asks for any defi llama data, use the defiLlama tool to get the data. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user. you can fetch various data like 
+  TVL
+Retrieve TVL data
+
+coins
+General blockchain data used by defillama and open-sourced
+
+stablecoins
+Data from our stablecoins dashboard
+
+yields
+Data from our yields/APY dashboard
+
+volumes
+Data from our volumes dashboards
+
+fees and revenue
+Data from our fees and revenue dashboard
 `,
 
   wormhole: `
