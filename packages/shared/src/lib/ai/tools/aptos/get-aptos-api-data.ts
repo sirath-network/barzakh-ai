@@ -55,7 +55,7 @@ export const getAptosApiData = tool({
            - Select the API path whose description best matches the intent of the query.  
       
         2. **Retrieve Required Parameters**:  
-           - Use the **getPathParameters** tool to fetch all necessary parameters.  
+           - Use the **getPathParametersAndBaseUrl** tool to fetch all necessary parameters.  
            - pass The API path, e.g., '/accounts/{address}'
            - If any required parameters are missing, prompt the user for input.
            - make sure to use all the parameters needed to get user answer for the API path like limit, offset, etc.  
@@ -73,7 +73,7 @@ export const getAptosApiData = tool({
           `User query: "${userQuery}". Available API paths and descriptions: ${allPathsAndDesc}. Base URL: ${aptosBaseUrl}`
         ),
         tools: {
-          getPathParameters: tool({
+          getPathParametersAndBaseUrl: tool({
             description:
               "Retrieve all parameters required for a given API path.",
             parameters: z.object({
