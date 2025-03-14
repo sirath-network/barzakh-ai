@@ -26,6 +26,7 @@ import { webSearch } from "./tools/web-search";
 import { getWormholeApiData } from "./tools/wormhole/get-wormhole-api-data";
 import { getZetaStats } from "./tools/zeta/get-stats";
 import { getZetaApiData } from "./tools/zeta/get-zeta-api-data";
+import { defiLlama } from "@javin/shared/lib/ai/tools/defi-llama";
 
 export const codePrompt = ``;
 
@@ -89,6 +90,8 @@ const groupTools = {
     "getEvmOnchainDataUsingEtherscan",
     "ensToAddress",
     "translateTransactions",
+    //defi llama
+    "defiLlama",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -115,6 +118,7 @@ const groupTools = {
     "getAptosStats",
     "getAptosApiData",
     "aptosNames",
+    "defiLlama",
   ] as const,
   zeta: [
     "webSearch",
@@ -157,6 +161,9 @@ export const allTools = {
   getAptosStats,
   getAptosApiData,
   aptosNames,
+
+  //defi llama
+  defiLlama,
 };
 
 const groupPrompts = {
@@ -259,6 +266,25 @@ Get list of all available gas prices
 
 ## translate transactions to human readable format: 
 always use the translateTransactions tool to convert the raw transaction details into human readable format. pass the transaction details, chain name and user query to the tool. the supported chain names are ${novesSupportedChains}.
+
+ ## defi llama: If user asks for any defi llama data, use the defiLlama tool to get the data. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user. you can fetch various data like 
+  TVL
+Retrieve TVL data
+
+coins
+General blockchain data used by defillama and open-sourced
+
+stablecoins
+Data from our stablecoins dashboard
+
+yields
+Data from our yields/APY dashboard
+
+volumes
+Data from our volumes dashboards
+
+fees and revenue
+Data from our fees and revenue dashboard
 `,
 
   wormhole: `
@@ -517,6 +543,24 @@ For any other information, use web search.
 
   ## Aptos name service lookup: If user enters a Aptos name name, like somename.apt or  then use the aptosNames tool to get the corresponding address. use this address for further queries.
 
+  ## defi llama: If user asks for any defi llama data, use the defiLlama tool to get the data. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user. you can fetch various data like 
+  TVL
+Retrieve TVL data
+
+coins
+General blockchain data used by defillama and open-sourced
+
+stablecoins
+Data from our stablecoins dashboard
+
+yields
+Data from our yields/APY dashboard
+
+volumes
+Data from our volumes dashboards
+
+fees and revenue
+Data from our fees and revenue dashboard
 `,
 
   monad: `Role & Functionality
