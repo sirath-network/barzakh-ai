@@ -28,6 +28,7 @@ import { getZetaStats } from "./tools/zeta/get-stats";
 import { getZetaApiData } from "./tools/zeta/get-zeta-api-data";
 import { defiLlama } from "@javin/shared/lib/ai/tools/defi-llama";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
+import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 
 export const codePrompt = ``;
 
@@ -121,6 +122,7 @@ const groupTools = {
     "aptosNames",
     "defiLlama",
     "getAptosScanApiData",
+    "getAptosPortfolio",
   ] as const,
   zeta: [
     "webSearch",
@@ -165,6 +167,7 @@ export const allTools = {
   getAptosApiData,
   aptosNames,
   getAptosScanApiData,
+  getAptosPortfolio,
   //defi llama
   defiLlama,
 };
@@ -502,6 +505,8 @@ Stick to Aptos and blockchain related responses until asked specifically by the 
 ## Scrape url to get the site content: use  getSiteContent to scrap any website. pass the url to scrape. Can be used to scrape the Aptos site: https://aptosfoundation.org/ for various info like upcoming events, resouces, stats, etc 
 
 ## Get aptos statistics: if user asks about the aptos statistics like Total Supply, Actively Staked, TPS, Active Nodes then use the getAptosStats tool. 
+
+## Get aptos account portfolio: if user asks for the portfolio for an account. use the getAptosPortfolio tool to get the portfolio of the account. pass the accountAddress to the tool. summarize and present the results to the user. 
 
 ## get aptos data:If the user asks for any on-chain data on Aptos, use the getAptosApiData tool to retrieve information for answering the user query.
 Pass the user's query exactly as is to the getAptosApiData tool (i.e., do not modify the query in any way. except for grammatical corrections). Use this tool when you want more direct, raw and unfiltered data about Aptos.
