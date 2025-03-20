@@ -9,11 +9,26 @@ import {
   loadOpenAPI,
 } from "../../../utils/openapi";
 
-function scaleLargeNumbersInJson(jsonString: string): string {
-  return jsonString.replace(/\b(\d{8,})\b/g, (_match, num) => {
-    const scaledNum = num.slice(0, -8) + "." + num.slice(-8);
-    return `"${scaledNum} (scaled)"`;
-  });
+//@ts-ignore
+function scaleLargeNumbers(data: any) {
+  const SCALE_FACTOR = 10n ** 8n; // 10^8 as a BigInt
+
+  if (typeof data === "bigint" && data >= SCALE_FACTOR) {
+    return data / SCALE_FACTOR;
+  } else if (typeof data === "number" && data >= Number(SCALE_FACTOR)) {
+    return data / Number(SCALE_FACTOR);
+  } else if (Array.isArray(data)) {
+    return data.map(scaleLargeNumbers);
+  } else if (typeof data === "object" && data !== null) {
+    return Object.fromEntries(
+      //@ts-ignore
+      Object.entries(data).map(([key, value]) => [
+        key,
+        scaleLargeNumbers(value),
+      ])
+    );
+  }
+  return data;
 }
 
 // Recursive function to process numbers in the response
@@ -112,9 +127,10 @@ export const getAptosApiData = tool({
                   );
                 const json = await response.json();
 
-                const processedData = processNumbers(json);
+                const scaledData = scaleLargeNumbers(json);
+                console.log("processedData", scaledData);
 
-                return processedData;
+                return scaledData;
               } catch (error) {
                 console.error("Error fetching aptos API data:", error);
                 return { error: "Failed to fetch data from the API." };
