@@ -64,18 +64,15 @@ export const getAptosApiData = tool({
         model: myProvider.languageModel("chat-model-small"),
         system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant aptos blockchain data in a user-friendly format.
       
-        ## How to Process User Queries:
-        1. **Match User Query to API Path**:  
-           - Analyze the user's question.  
-           - Select the API path whose description best matches the intent of the query.  
-      
-        2. **Retrieve Required Parameters**:  
+         you can use the below tools to get the required data:
+        you have access to public apis which can be called to get the required data, you need to follow below steps to get the required data:
+         1. **Retrieve Required Parameters**:  
            - Use the **getPathParametersAndBaseUrl** tool to fetch all necessary parameters.  
            - pass The API path, e.g., '/accounts/{address}'
            - If any required parameters are missing, prompt the user for input.
            - make sure to use all the parameters needed to get user answer for the API path like limit, offset, etc.  
       
-        3. **Construct and Execute API Call**:  
+         2. **Construct and Execute API Call**:  
            - Form a complete API URL using the **base URL** (${aptosBaseUrl}) and the retrieved parameters.  
            - Use the **makeApiCall** tool to fetch data.
         
@@ -106,6 +103,7 @@ export const getAptosApiData = tool({
               return aptosPathDetails;
             },
           }),
+
           makeApiCall: tool({
             description: "Fetch real-time blockchain data from Aptos API.",
             parameters: z.object({
