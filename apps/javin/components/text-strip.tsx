@@ -23,6 +23,9 @@ function TextStrip() {
       setShow(false);
     } else {
       setShow(true);
+      setTimeout(() => {
+        setShow(false);
+      }, 10000);
     }
   }, []);
 
