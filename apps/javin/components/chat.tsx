@@ -5,13 +5,18 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote } from "@/lib/db/schema";
-import { fetcher, generateUUID, SearchGroup, SearchGroupId } from "@javin/shared/lib/utils/utils";
+import {
+  fetcher,
+  generateUUID,
+  SearchGroupId,
+} from "@javin/shared/lib/utils/utils";
 import { MultimodalInput } from "./Input/multimodal-input";
 import { Messages } from "./messages";
 import { VisibilityType } from "./visibility-selector";
 import { toast } from "sonner";
 import { User } from "next-auth";
 import { InstallPrompt } from "./install-prompt";
+import { Trophy } from "lucide-react";
 
 export function Chat({
   id,
@@ -85,7 +90,7 @@ export function Chat({
           reload={reload}
           isReadonly={isReadonly}
         />
-        <form className="flex mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl ">
+        <form className="flex flex-col mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
             <MultimodalInput
               chatId={id}
@@ -105,6 +110,20 @@ export function Chat({
               selectedGroup={selectedGroup}
               setSelectedGroup={setSelectedGroup}
             />
+          )}
+          {messages.length == 0 && (
+            <div className="flex justify-center sm:justify-start w-full mt-2">
+              <div className="flex gap-2 p-2 px-3 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
+                <Trophy
+                  className="text-javinOrange"
+                  size={20}
+                  strokeWidth={1.8}
+                />
+                <span className="text-sm">
+                  Finalist at ETH San Francisco 2025
+                </span>
+              </div>
+            </div>
           )}
         </form>
       </div>
