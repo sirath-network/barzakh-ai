@@ -32,7 +32,7 @@ function TextStrip() {
   return (
     <>
       {show && (
-        <div className="absolute top-0 z-50 w-screen flex justify-center items-center bg-javinOrange rounded-b-md py-1 px-3">
+        <div className="z-50 w-full flex justify-center items-center bg-javinOrange rounded-b-md py-1 px-3">
           <div className="flex flex-col sm:flex-row items-center">
             <span className=" font-semibold text-sm md:text-base text-center">
               A new rewards system is arriving

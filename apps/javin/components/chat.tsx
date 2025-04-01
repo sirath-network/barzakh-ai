@@ -1,7 +1,7 @@
 "use client";
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote } from "@/lib/db/schema";
@@ -16,7 +16,7 @@ import { VisibilityType } from "./visibility-selector";
 import { toast } from "sonner";
 import { User } from "next-auth";
 import { InstallPrompt } from "./install-prompt";
-import { Trophy } from "lucide-react";
+// import { Trophy } from "lucide-react";
 
 export function Chat({
   id,
@@ -67,6 +67,7 @@ export function Chat({
   );
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   return (
     <>
@@ -87,6 +88,7 @@ export function Chat({
           votes={votes}
           messages={messages}
           setMessages={setMessages}
+          setIsAtBottom={setIsAtBottom}
           reload={reload}
           isReadonly={isReadonly}
         />
@@ -109,10 +111,11 @@ export function Chat({
               user={user}
               selectedGroup={selectedGroup}
               setSelectedGroup={setSelectedGroup}
+              isAtBottom={isAtBottom}
             />
           )}
-          {messages.length == 0 && (
-            <div className="flex justify-center sm:justify-start w-full mt-2">
+          {/* {messages.length == 0 && (
+            <div className="flex justify-center sm:justify-start w-full mt-10">
               <div className="flex gap-2 p-2 px-3 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-slate-100 dark:hover:bg-neutral-700 transition-colors cursor-pointer">
                 <Trophy
                   className="text-javinOrange"
@@ -124,7 +127,7 @@ export function Chat({
                 </span>
               </div>
             </div>
-          )}
+          )} */}
         </form>
       </div>
 
