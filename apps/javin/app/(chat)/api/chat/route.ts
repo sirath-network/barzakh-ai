@@ -23,8 +23,6 @@ import {
 } from "@javin/shared/lib/utils/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 
-export const maxDuration = 60;
-
 export async function POST(request: Request) {
   const {
     id,
