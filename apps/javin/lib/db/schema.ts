@@ -19,6 +19,7 @@ export const user = pgTable("User", {
   password: varchar("password", { length: 64 }),
   tier: varchar("tier", { length: 64 }).notNull().default("free"),
   messageCount: integer("messageCount").notNull().default(0),
+  lastUsed: timestamp("lastUsed"),
 });
 
 export type User = InferSelectModel<typeof user>;
