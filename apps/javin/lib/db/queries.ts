@@ -352,6 +352,23 @@ export async function incrementMessageCount(userId: string) {
     .where(eq(user.id, userId));
 }
 
+export async function decrementOrResetMessageCount(
+  userId: string,
+  isSameDay: boolean,
+  today: Date,
+  resetTo: number
+) {
+  await db
+    .update(user)
+    .set({
+      messageCount: isSameDay
+        ? sql`LEAST(${user.messageCount} - 1, ${resetTo})`
+        : resetTo,
+      lastUsed: today,
+    })
+    .where(eq(user.id, userId));
+}
+
 export async function getMessageCount(userId: string): Promise<number> {
   const result = await db
     .select({ messageCount: user.messageCount })

@@ -9,10 +9,10 @@ import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@javin/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@javin/shared/lib/ai/prompts";
 import {
+  decrementOrResetMessageCount,
   deleteChatById,
   getChatById,
   getUser,
-  incrementMessageCount,
   saveChat,
   saveMessages,
 } from "@/lib/db/queries";
@@ -22,6 +22,7 @@ import {
   sanitizeResponseMessages,
 } from "@javin/shared/lib/utils/utils";
 import { generateTitleFromUserMessage } from "../../actions";
+import { startOfToday } from "date-fns";
 
 export async function POST(request: Request) {
   const {
@@ -45,21 +46,38 @@ export async function POST(request: Request) {
   }
   const users = await getUser(session.user.email!);
   const user_info = users[0];
-  console.log("user infor ", session.user);
-  if (
-    user_info.tier == "free" &&
-    user_info.messageCount >= Number(process.env.FREE_USER_MESSAGE_LIMIT!)
-  ) {
-    // console.log("totmsg ", user_info.messageCount);
-    return new Response(
-      "Message limit reached!  Upgrade to PRO for more usage and other perks!",
-      {
-        status: 403,
-      }
-    );
-  }
-  const userMessage = getMostRecentUserMessage(messages);
+  console.log("user info ", session.user);
 
+  const today = startOfToday();
+  const isSameDay = user_info.lastUsed?.toDateString() === today.toDateString();
+  console.log("isSameDay = ", isSameDay);
+
+  let limit = process.env.FREE_USER_MESSAGE_LIMIT;
+
+  switch (user_info.tier) {
+    case "free":
+      limit = process.env.FREE_USER_MESSAGE_LIMIT;
+      break;
+    case "pro":
+      limit = process.env.PRO_USER_MESSAGE_LIMIT;
+      break;
+    default:
+      limit = process.env.FREE_USER_MESSAGE_LIMIT;
+      break;
+  }
+
+  if (isSameDay && user_info.messageCount == 0) {
+    if (user_info.tier === "free") {
+      return new Response(
+        `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
+        {
+          status: 403,
+        }
+      );
+    }
+  }
+
+  const userMessage = getMostRecentUserMessage(messages);
   if (!userMessage) {
     return new Response("No user message found", { status: 400 });
   }
@@ -106,7 +124,14 @@ export async function POST(request: Request) {
                   };
                 }),
               });
-              await incrementMessageCount(session.user.id);
+              if (user_info.tier === "free") {
+                await decrementOrResetMessageCount(
+                  session.user.id,
+                  isSameDay,
+                  today,
+                  Number(limit) - 1
+                );
+              }
             } catch (error) {
               console.error("Failed to save chat");
             }
