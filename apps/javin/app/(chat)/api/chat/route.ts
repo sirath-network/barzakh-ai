@@ -9,7 +9,7 @@ import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@javin/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@javin/shared/lib/ai/prompts";
 import {
-  decrementOrResetMessageCount,
+  resetRemainingMessageCount,
   deleteChatById,
   getChatById,
   getUser,
@@ -22,7 +22,6 @@ import {
   sanitizeResponseMessages,
 } from "@javin/shared/lib/utils/utils";
 import { generateTitleFromUserMessage } from "../../actions";
-import { startOfToday } from "date-fns";
 
 export async function POST(request: Request) {
   const {
@@ -48,28 +47,17 @@ export async function POST(request: Request) {
   const user_info = users[0];
   console.log("user info ", session.user);
 
-  const today = startOfToday();
-  const isSameDay = user_info.lastUsed?.toDateString() === today.toDateString();
-  console.log("isSameDay = ", isSameDay);
-
-  let limit = process.env.FREE_USER_MESSAGE_LIMIT;
-
-  switch (user_info.tier) {
-    case "free":
-      limit = process.env.FREE_USER_MESSAGE_LIMIT;
-      break;
-    case "pro":
-      limit = process.env.PRO_USER_MESSAGE_LIMIT;
-      break;
-    default:
-      limit = process.env.FREE_USER_MESSAGE_LIMIT;
-      break;
-  }
-
-  if (isSameDay && user_info.messageCount == 0) {
+  if (user_info.dailyMessageRemaining <= 0) {
     if (user_info.tier === "free") {
       return new Response(
         `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
+        {
+          status: 403,
+        }
+      );
+    } else {
+      return new Response(
+        `We're experiencing exceptionally high demand. Please hang tight as we work on scaling our systems!`,
         {
           status: 403,
         }
@@ -112,7 +100,6 @@ export async function POST(request: Request) {
                 messages: response.messages,
                 reasoning,
               });
-
               await saveMessages({
                 messages: sanitizedResponseMessages.map((message) => {
                   return {
@@ -124,14 +111,7 @@ export async function POST(request: Request) {
                   };
                 }),
               });
-              if (user_info.tier === "free") {
-                await decrementOrResetMessageCount(
-                  session.user.id,
-                  isSameDay,
-                  today,
-                  Number(limit) - 1
-                );
-              }
+              await resetRemainingMessageCount(session.user.id);
             } catch (error) {
               console.error("Failed to save chat");
             }

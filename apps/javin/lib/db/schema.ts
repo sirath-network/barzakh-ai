@@ -14,12 +14,14 @@ import {
 
 export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
-  email: varchar("email", { length: 64 }).notNull().unique(),
+  email: varchar("email", { length: 64 }).unique(),
   walletAddress: varchar("walletAddress", { length: 64 }),
   password: varchar("password", { length: 64 }),
   tier: varchar("tier", { length: 64 }).notNull().default("free"),
   messageCount: integer("messageCount").notNull().default(0),
-  lastUsed: timestamp("lastUsed"),
+  dailyMessageRemaining: integer("dailyMessageRemaining")
+    .notNull()
+    .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 20),
 });
 
 export type User = InferSelectModel<typeof user>;

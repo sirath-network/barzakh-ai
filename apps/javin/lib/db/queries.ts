@@ -345,28 +345,21 @@ export async function updateChatVisiblityById({
   }
 }
 
-export async function incrementMessageCount(userId: string) {
-  await db
-    .update(user)
-    .set({ messageCount: sql`${user.messageCount} + 1` })
-    .where(eq(user.id, userId));
-}
-
-export async function decrementOrResetMessageCount(
+export async function resetRemainingMessageCount(
   userId: string,
-  isSameDay: boolean,
-  today: Date,
-  resetTo: number
 ) {
   await db
     .update(user)
     .set({
-      messageCount: isSameDay
-        ? sql`LEAST(${user.messageCount} - 1, ${resetTo})`
-        : resetTo,
-      lastUsed: today,
+      dailyMessageRemaining: sql`${user.dailyMessageRemaining} - 1`,
+      messageCount: sql`${user.messageCount} + 1`,
     })
     .where(eq(user.id, userId));
+}
+export async function resetRemainingMessageCountForEveryone() {
+  await db.update(user).set({
+    dailyMessageRemaining: sql`CASE WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT} WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT} ELSE ${user.dailyMessageRemaining} END`,
+  });
 }
 
 export async function getMessageCount(userId: string): Promise<number> {
