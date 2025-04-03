@@ -9,10 +9,10 @@ import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@javin/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@javin/shared/lib/ai/prompts";
 import {
+  decrementRemainingMessageCount,
   deleteChatById,
   getChatById,
   getUser,
-  incrementMessageCount,
   saveChat,
   saveMessages,
 } from "@/lib/db/queries";
@@ -45,21 +45,27 @@ export async function POST(request: Request) {
   }
   const users = await getUser(session.user.email!);
   const user_info = users[0];
-  console.log("user infor ", session.user);
-  if (
-    user_info.tier == "free" &&
-    user_info.messageCount >= Number(process.env.FREE_USER_MESSAGE_LIMIT!)
-  ) {
-    // console.log("totmsg ", user_info.messageCount);
-    return new Response(
-      "Message limit reached!  Upgrade to PRO for more usage and other perks!",
-      {
-        status: 403,
-      }
-    );
-  }
-  const userMessage = getMostRecentUserMessage(messages);
+  console.log("user info ", session.user);
 
+  if (user_info.dailyMessageRemaining <= 0) {
+    if (user_info.tier === "free") {
+      return new Response(
+        `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
+        {
+          status: 403,
+        }
+      );
+    } else {
+      return new Response(
+        `We're experiencing exceptionally high demand. Please hang tight as we work on scaling our systems!`,
+        {
+          status: 403,
+        }
+      );
+    }
+  }
+
+  const userMessage = getMostRecentUserMessage(messages);
   if (!userMessage) {
     return new Response("No user message found", { status: 400 });
   }
@@ -94,7 +100,6 @@ export async function POST(request: Request) {
                 messages: response.messages,
                 reasoning,
               });
-
               await saveMessages({
                 messages: sanitizedResponseMessages.map((message) => {
                   return {
@@ -106,7 +111,7 @@ export async function POST(request: Request) {
                   };
                 }),
               });
-              await incrementMessageCount(session.user.id);
+              await decrementRemainingMessageCount(session.user.id);
             } catch (error) {
               console.error("Failed to save chat");
             }
