@@ -22,6 +22,11 @@ export const user = pgTable("User", {
   dailyMessageRemaining: integer("dailyMessageRemaining")
     .notNull()
     .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 20),
+  // do this in future when we directly do pro tier when creating user
+  // right now only free tier users are created then upgraded to pro
+  // .default(
+  //   sql`CASE WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT} WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT} END`
+  // ),
 });
 
 export type User = InferSelectModel<typeof user>;
