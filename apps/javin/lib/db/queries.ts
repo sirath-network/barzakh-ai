@@ -345,7 +345,7 @@ export async function updateChatVisiblityById({
   }
 }
 
-export async function resetRemainingMessageCount(
+export async function decrementRemainingMessageCount(
   userId: string,
 ) {
   await db

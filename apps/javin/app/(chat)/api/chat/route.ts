@@ -9,7 +9,7 @@ import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@javin/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@javin/shared/lib/ai/prompts";
 import {
-  resetRemainingMessageCount,
+  decrementRemainingMessageCount,
   deleteChatById,
   getChatById,
   getUser,
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
                   };
                 }),
               });
-              await resetRemainingMessageCount(session.user.id);
+              await decrementRemainingMessageCount(session.user.id);
             } catch (error) {
               console.error("Failed to save chat");
             }
