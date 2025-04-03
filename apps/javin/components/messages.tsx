@@ -4,6 +4,7 @@ import { Overview } from "./overview";
 import { memo, useEffect, useRef } from "react";
 import { Vote } from "@/lib/db/schema";
 import equal from "fast-deep-equal";
+import { SearchGroupId } from "@javin/shared/lib/utils/utils";
 
 interface MessagesProps {
   chatId: string;
@@ -14,6 +15,7 @@ interface MessagesProps {
     messages: Message[] | ((messages: Message[]) => Message[])
   ) => void;
   setIsAtBottom: (isAtBottom: boolean) => void;
+  selectedGroup: SearchGroupId;
   reload: (
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
@@ -27,6 +29,7 @@ function PureMessages({
   messages,
   setMessages,
   setIsAtBottom,
+  selectedGroup,
   reload,
   isReadonly,
 }: MessagesProps) {
@@ -80,6 +83,7 @@ function PureMessages({
               : undefined
           }
           setMessages={setMessages}
+          selectedGroup={selectedGroup}
           reload={reload}
           isReadonly={isReadonly}
           showIcon={index > 0 && messages[index - 1].role == "user"}
@@ -106,6 +110,7 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (!equal(prevProps.selectedGroup, nextProps.selectedGroup)) return false;
 
   return true;
 });

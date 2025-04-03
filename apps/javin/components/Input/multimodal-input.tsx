@@ -306,7 +306,6 @@ function PureMultimodalInput({
 
   const handleGroupSelect = useCallback(
     async (group: SearchGroup) => {
-      console.log("selectd grup", group);
       setSelectedGroup(group.id);
       setLocalStorageChatMode(group.id);
     },

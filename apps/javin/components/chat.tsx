@@ -89,6 +89,7 @@ export function Chat({
           messages={messages}
           setMessages={setMessages}
           setIsAtBottom={setIsAtBottom}
+          selectedGroup={selectedGroup}
           reload={reload}
           isReadonly={isReadonly}
         />
