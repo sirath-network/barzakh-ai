@@ -2,10 +2,18 @@
 
 import { z } from "zod";
 
-import { createUser, getUser } from "@/lib/db/queries";
+import {
+  createUser,
+  getUser,
+  getPasswordResetToken,
+  savePasswordResetToken,
+  updateUserPassword,
+} from "@/lib/db/queries";
 
 import { signIn } from "./auth";
 import { generateUUID } from "@javin/shared/lib/utils/utils";
+import { nanoid } from "nanoid";
+import { sendResetEmail } from "@/lib/utils/email";
 
 // For login: only check required + min length
 const loginSchema = z.object({
@@ -113,3 +121,74 @@ export const register = async (
     return { status: "failed" };
   }
 };
+
+export interface ForgotPasswordActionState {
+  status:
+    | "idle"
+    | "in_progress"
+    | "success"
+    | "failed"
+    | "invalid_data"
+    | "invalid_email";
+}
+
+export async function forgotPassword(
+  _: ForgotPasswordActionState,
+  formData: FormData
+): Promise<ForgotPasswordActionState> {
+  try {
+    const email = formData.get("email") as string;
+
+    const user = await getUser(email);
+    if (user.length === 0) {
+      return { status: "invalid_email" };
+    }
+
+    const resetToken = nanoid();
+    await savePasswordResetToken(email, resetToken);
+
+    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
+    console.log("Reset URL:", resetUrl);
+
+    await sendResetEmail(email, resetUrl); // 💌 Send the actual email
+
+    return { status: "success" };
+  } catch (err) {
+    console.log("Error while running forgotPassword action = ", err);
+    return { status: "failed" };
+  }
+}
+
+export interface VerifyAndResetPasswordActionState {
+  status:
+    | "idle"
+    | "in_progress"
+    | "success"
+    | "failed"
+    | "redirect_to_forgot_password"
+    | "expired_token";
+}
+
+export async function verifyAndResetPassword(
+  _: VerifyAndResetPasswordActionState,
+  formData: FormData
+): Promise<VerifyAndResetPasswordActionState> {
+  try {
+    const token = formData.get("token") as string;
+    const newPassword = formData.get("password") as string;
+    const tokens = await getPasswordResetToken(token);
+    if (!tokens) {
+      return { status: "redirect_to_forgot_password" };
+    }
+    if (tokens.expiry < new Date()) {
+      console.log("expired_token");
+      return { status: "expired_token" };
+    }
+    const email = tokens.email;
+    await updateUserPassword(email, newPassword);
+    return { status: "success" };
+  } catch (err) {
+    console.log("Error while running verifyAndResetPassword action = ", err);
+    return { status: "failed" };
+  }
+}
