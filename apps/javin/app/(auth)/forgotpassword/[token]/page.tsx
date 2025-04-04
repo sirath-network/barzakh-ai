@@ -73,6 +73,8 @@ export default function ResetPassword() {
           action={handleSubmit}
           emailNeeded={false}
           forgotPasswordNeeded={false}
+          passwordNeeded={true}
+          fieldErrors={state.fieldErrors}
         >
           <SubmitButton isSuccessful={isSuccessful}>Reset</SubmitButton>
         </AuthForm>

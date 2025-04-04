@@ -33,6 +33,10 @@ export default function Page() {
     } else if (state.status === "success") {
       setIsSuccessful(true);
       toast.success("Reset link sent to your email");
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
     }
   }, [state.status, router]);
 
@@ -65,6 +69,9 @@ export default function Page() {
           action={handleSubmit}
           defaultEmail={email}
           passwordNeeded={false}
+          emailNeeded={true}
+          forgotPasswordNeeded={false}
+          fieldErrors={state.fieldErrors}
         >
           <SubmitButton isSuccessful={isSuccessful}>Reset</SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">

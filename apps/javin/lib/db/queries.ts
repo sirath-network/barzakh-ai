@@ -137,6 +137,17 @@ export async function getPasswordResetTokenUsingEmail(email: string) {
   }
 }
 
+export async function deletePasswordResetToken(token: string) {
+  try {
+    return await db
+      .delete(password_reset_tokens)
+      .where(eq(password_reset_tokens.token, token));
+  } catch (error) {
+    console.error("Failed to delete password reset token from database");
+    throw error;
+  }
+}
+
 export async function deleteChatById({ id }: { id: string }) {
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
