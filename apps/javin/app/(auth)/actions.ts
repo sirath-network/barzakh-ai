@@ -5,10 +5,20 @@ import { z } from "zod";
 import { createUser, getUser } from "@/lib/db/queries";
 
 import { signIn } from "./auth";
+import { generateUUID } from "@javin/shared/lib/utils/utils";
+
+const passwordRequirements = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(100, "Password must be at most 100 characters")
+  .regex(/[a-z]/, "Must include at least one lowercase letter")
+  .regex(/[A-Z]/, "Must include at least one uppercase letter")
+  .regex(/[0-9]/, "Must include at least one number")
+  .regex(/[^A-Za-z0-9]/, "Must include at least one special character");
 
 const authFormSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordRequirements,
 });
 
 export interface LoginActionState {
@@ -49,10 +59,12 @@ export interface RegisterActionState {
     | "failed"
     | "user_exists"
     | "invalid_data"
-    | "too_small"
-    | "invalid_email";
+    | "too_small";
+  fieldErrors?: {
+    email?: string[];
+    password?: string[];
+  };
 }
-
 export const register = async (
   _: RegisterActionState,
   formData: FormData
@@ -68,7 +80,8 @@ export const register = async (
     if (user) {
       return { status: "user_exists" } as RegisterActionState;
     }
-    await createUser(validatedData.email, validatedData.password);
+    const id = generateUUID();
+    await createUser(id, validatedData.email, validatedData.password);
     await signIn("credentials", {
       email: validatedData.email,
       password: validatedData.password,
@@ -78,10 +91,15 @@ export const register = async (
     return { status: "success" };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      if (error.errors[0].code === "too_small") {
-        return { status: "too_small" };
-      }
-      return { status: "invalid_data" };
+      const fieldErrors = error.flatten().fieldErrors;
+
+      return {
+        status: "invalid_data",
+        fieldErrors: {
+          email: fieldErrors.email,
+          password: fieldErrors.password,
+        },
+      };
     }
 
     return { status: "failed" };

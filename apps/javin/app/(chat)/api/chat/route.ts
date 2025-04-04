@@ -13,6 +13,7 @@ import {
   deleteChatById,
   getChatById,
   getUser,
+  getUserById,
   saveChat,
   saveMessages,
 } from "@/lib/db/queries";
@@ -43,12 +44,14 @@ export async function POST(request: Request) {
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
   }
-  console.log("user info ", session.user);
-  const users = await getUser(session.user.email!);
+  console.log("user session ", session.user);
+  const users = await getUserById(session.user.id!);
   const user_info = users[0];
 
   if (user_info.dailyMessageRemaining <= 0) {
     if (user_info.tier === "free") {
+      console.warn(`User ${user_info.email} blocked: message limit exceeded`);
+
       return new Response(
         `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
         {
