@@ -7,18 +7,26 @@ import { createUser, getUser } from "@/lib/db/queries";
 import { signIn } from "./auth";
 import { generateUUID } from "@javin/shared/lib/utils/utils";
 
-const passwordRequirements = z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(100, "Password must be at most 100 characters")
-  .regex(/[a-z]/, "Must include at least one lowercase letter")
-  .regex(/[A-Z]/, "Must include at least one uppercase letter")
-  .regex(/[0-9]/, "Must include at least one number")
-  .regex(/[^A-Za-z0-9]/, "Must include at least one special character");
-
-const authFormSchema = z.object({
+// For login: only check required + min length
+const loginSchema = z.object({
   email: z.string().email(),
-  password: passwordRequirements,
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+// For registration: enforce full strength rules
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100)
+    .regex(/[a-z]/, "Must include at least one lowercase letter")
+    .regex(/[A-Z]/, "Must include at least one uppercase letter")
+    .regex(/[0-9]/, "Must include at least one number")
+    .regex(
+      /[!@#$%^&*]/,
+      "Must include at least one special character (!@#$%^&*)"
+    ),
 });
 
 export interface LoginActionState {
@@ -30,7 +38,7 @@ export const login = async (
   formData: FormData
 ): Promise<LoginActionState> => {
   try {
-    const validatedData = authFormSchema.parse({
+    const validatedData = loginSchema.parse({
       email: formData.get("email"),
       password: formData.get("password"),
     });
@@ -70,7 +78,7 @@ export const register = async (
   formData: FormData
 ): Promise<RegisterActionState> => {
   try {
-    const validatedData = authFormSchema.parse({
+    const validatedData = registerSchema.parse({
       email: formData.get("email"),
       password: formData.get("password"),
     });
