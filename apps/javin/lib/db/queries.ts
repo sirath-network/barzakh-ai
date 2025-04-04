@@ -33,13 +33,29 @@ export async function getUser(email: string): Promise<Array<User>> {
     throw error;
   }
 }
+export async function getUserById(id: string): Promise<Array<User>> {
+  try {
+    return await db.select().from(user).where(eq(user.id, id));
+  } catch (error) {
+    console.error("Failed to get user from database");
+    throw error;
+  }
+}
 
-export async function createUser(email: string, password: string | null) {
+export async function createUser(
+  id: string | null,
+  email: string,
+  password: string | null
+) {
   const salt = genSaltSync(10);
   const hash = password ? hashSync(password, salt) : null;
 
   try {
-    return await db.insert(user).values({ email, password: hash });
+    if (id) {
+      return await db.insert(user).values({ id, email, password: hash });
+    } else {
+      return await db.insert(user).values({ email, password: hash });
+    }
   } catch (error) {
     console.error("Failed to create user in database");
     throw error;

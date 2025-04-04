@@ -6,6 +6,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { createUser, getUser } from "@/lib/db/queries";
 
 import { authConfig } from "./auth.config";
+import { generateUUID } from "@javin/shared/lib/utils/utils";
 
 export const {
   handlers: { GET, POST },
@@ -33,34 +34,35 @@ export const {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // If this is the first time JWT is being created
       if (user?.email) {
-        const [dbUser] = await getUser(user.email);
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.tier = dbUser.tier;
-          token.messageCount = dbUser.messageCount;
+        // Only fetch or create user the first time
+        let dbUser;
+        const [existingUser] = await getUser(user.email);
+
+        if (!existingUser) {
+          const generatedId = generateUUID();
+          await createUser(generatedId, user.email, null);
+          dbUser = {
+            id: generatedId,
+            tier: "free",
+            messageCount: 0,
+          };
+        } else {
+          dbUser = existingUser;
         }
+
+        // Attach to token
+        token.id = dbUser.id;
       }
+
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.tier = token.tier as string; // Assign tier from token to session
-        session.user.messageCount = token.messageCount as number; // Assign tier from token to session
       }
       return session;
-    },
-  },
-  events: {
-    async signIn({ user, account }) {
-      if (account?.provider === "google" && user?.email) {
-        const [existingUser] = await getUser(user.email);
-        if (!existingUser) {
-          await createUser(user.email, null); // Assuming password is nullable in your DB
-        }
-      }
     },
   },
 });
