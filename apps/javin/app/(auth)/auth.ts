@@ -1,8 +1,9 @@
 import { compare } from "bcrypt-ts";
 import NextAuth, { type User, type Session } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 
-import { getUser } from "@/lib/db/queries";
+import { createUser, getUser } from "@/lib/db/queries";
 
 import { authConfig } from "./auth.config";
 
@@ -25,13 +26,21 @@ export const {
         return users[0] as any;
       },
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.tier = user.tier; // Add tier to the token
-        token.messageCount = user.messageCount as number; // Add tier to the token
+      // If this is the first time JWT is being created
+      if (user?.email) {
+        const [dbUser] = await getUser(user.email);
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.tier = dbUser.tier;
+          token.messageCount = dbUser.messageCount;
+        }
       }
       return token;
     },
@@ -42,6 +51,16 @@ export const {
         session.user.messageCount = token.messageCount as number; // Assign tier from token to session
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user?.email) {
+        const [existingUser] = await getUser(user.email);
+        if (!existingUser) {
+          await createUser(user.email, null); // Assuming password is nullable in your DB
+        }
+      }
     },
   },
 });

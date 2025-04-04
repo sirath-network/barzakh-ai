@@ -43,9 +43,9 @@ export async function POST(request: Request) {
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
   }
+  console.log("user info ", session.user);
   const users = await getUser(session.user.email!);
   const user_info = users[0];
-  console.log("user info ", session.user);
 
   if (user_info.dailyMessageRemaining <= 0) {
     if (user_info.tier === "free") {
