@@ -34,9 +34,9 @@ export async function getUser(email: string): Promise<Array<User>> {
   }
 }
 
-export async function createUser(email: string, password: string) {
+export async function createUser(email: string, password: string | null) {
   const salt = genSaltSync(10);
-  const hash = hashSync(password, salt);
+  const hash = password ? hashSync(password, salt) : null;
 
   try {
     return await db.insert(user).values({ email, password: hash });
@@ -345,9 +345,7 @@ export async function updateChatVisiblityById({
   }
 }
 
-export async function decrementRemainingMessageCount(
-  userId: string,
-) {
+export async function decrementRemainingMessageCount(userId: string) {
   await db
     .update(user)
     .set({
