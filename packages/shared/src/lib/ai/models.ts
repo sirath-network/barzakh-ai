@@ -34,12 +34,12 @@ interface ChatModel {
 export const chatModels: Array<ChatModel> = [
   {
     id: "chat-model-small",
-    name: "Gpt 4o mini",
+    name: "Barzakh LHS-1140",
     description: "Small model for fast, lightweight tasks",
   },
   {
     id: "chat-model-large",
-    name: "Gpt 4o",
+    name: "Barzakh K2-18",
     description: "Large model for complex, multi-step tasks",
   },
   // {

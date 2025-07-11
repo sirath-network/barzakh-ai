@@ -860,7 +860,7 @@ export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
 export const JavinMan = ({ size = 20 }: { size?: number }) => {
   return (
     <Image
-      src={"/images/javin/javin-logo.svg"}
+      src={"/images/javin/SirathLogo.svg"}
       alt="ai icon"
       width={size}
       height={size}

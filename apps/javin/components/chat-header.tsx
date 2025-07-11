@@ -70,25 +70,15 @@ function PureChatHeader({
         </div>
         {messages.length > 0 && (
           <Link href={"/"} className="font-semibold">
-            {resolvedTheme == "dark" ? (
-              <img
-                alt="Javin.ai"
-                src="/images/javin/banner/javin-banner-white.svg"
-                className="w-48 h-auto"
-              />
-            ) : (
-              resolvedTheme == "light" && (
-                <img
-                  alt="Javin.ai"
-                  src="/images/javin/banner/javin-banner-black.svg"
-                  className="w-48 h-auto"
-                />
-              )
-            )}
+            <img
+              alt="Barzakh Agents"
+              src="/images/javin/banner/sirath-banner.svg"
+              className="w-48 h-auto"
+            />
           </Link>
         )}
         {/* REPLACE TEXT WITH THE ACTUAL LOGO WHEN YOU GET ONE WITH WHITE TEXT */}
-        {/* <Image src={"/javin-logo.png"} width={100} height={30} alt="Javin.ai" /> */}
+        {/* <Image src={"/javin-logo.png"} width={100} height={30} alt="Barzakh Agents" /> */}
 
         <div className="flex justify-end w-full">
           <div className="">

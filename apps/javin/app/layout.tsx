@@ -4,24 +4,24 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
-const baseUrl = "https://javin.ai";
+const baseUrl = "https://sirath.network";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
-  title: "Javin.ai",
+  title: "Barzakh Agents",
   description:
-    "A focused, no-nonsense AI search engine for crypto.",
+    "Intelligent, focused AI search powering crypto and blockchain insights.",
   manifest: "/manifest.json",
   openGraph: {
-    title: "Javin.ai",
+    title: "Barzakh Agents",
     description:
-      "A focused, no-nonsense AI search engine for crypto.",
+      "Intelligent, focused AI search powering crypto and blockchain insights.",
     images: [
       {
         url: `${baseUrl}/images/javin/preview/javin_preview_banner.png`,
         width: 1200,
         height: 630,
-        alt: "Javin.ai",
+        alt: "Barzakh Agents",
       },
     ],
   },

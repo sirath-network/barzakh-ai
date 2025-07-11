@@ -1,4 +1,4 @@
-# Javin.ai
+# Barzakh.ai
 
 A focused, no-nonsense AI search engine for crypto and blockchain-related information
 

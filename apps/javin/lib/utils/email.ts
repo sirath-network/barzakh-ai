@@ -25,12 +25,12 @@ export async function sendResetEmail(email: string, resetUrl: string) {
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         refreshToken: process.env.EMAIL_REFRESH_TOKEN,
-        accessToken: accessToken.token || "", // fallback to empty string to satisfy TS
+        accessToken: accessToken.token || "",
       },
     });
 
     const mailOptions = {
-      from: `"Javin Support" <${process.env.EMAIL_USER}>`,
+      from: `"Sirath Team Support" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Reset Your Password",
       html: `
@@ -39,7 +39,7 @@ export async function sendResetEmail(email: string, resetUrl: string) {
           <p>We received a request to reset your password. Click the button below:</p>
           <a href="${resetUrl}" style="display:inline-block; padding:12px 20px; background-color:#EA580C; color:white; text-decoration:none; border-radius:6px;">Reset Password</a>
           <p>If you didn’t request this, you can safely ignore it.</p>
-          <p style="margin-top: 30px;">– Team Javin</p>
+          <p style="margin-top: 30px;">– Sirath Team Support</p>
         </div>
       `,
     };

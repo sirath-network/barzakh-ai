@@ -2,29 +2,29 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Javin.ai",
-    short_name: "Javin.ai",
+    name: "Barzakh Agents",
+    short_name: "Barzakh Agents",
     description:
-      "A focused, no-nonsense AI search engine for crypto.",
+      "Intelligent, focused AI search powering crypto and blockchain insights.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#000000",
     icons: [
       {
-        src: "/images/javin/javin-logo.svg",
+        src: "/images/javin/SirathLogo.svg",
         sizes: "any",
         type: "image/svg+xml",
         purpose: "maskable",
       },
       {
-        src: "/images/javin/javin_logo_192px.png",
+        src: "/images/javin/SirathLogo-192px.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: "/images/javin/javin_logo_512px.jpg",
+        src: "/images/javin/SirathLogo-512px.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

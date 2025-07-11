@@ -69,8 +69,8 @@ const config: Config = {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
-        javinOrange: {
-          DEFAULT: "#EA580C"
+        sirathRed: {
+          DEFAULT: "#FF153C"
         }
       },
     },

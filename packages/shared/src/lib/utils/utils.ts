@@ -197,6 +197,7 @@ export type SearchGroupId =
   | "flow"
   | "zeta"
   | "monad"
+  | "solana"
   | "aptos";
 
 export const searchGroups = [
@@ -215,15 +216,14 @@ export const searchGroups = [
     icon: Network,
     img: "",
   },
-  // {
-  //   id: "wormhole" as const,
-  //   name: "Wormhole",
-  //   description:
-  //     "Access all the information you need to develop secure multichain applications powered by Wormhole",
-  //   icon: Network,
-  //   img: "/images/icon/wormhole-logo.png",
-  // },
-
+  {
+    id: "wormhole" as const,
+    name: "Wormhole",
+    description:
+      "Everything Wormhole. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/wormhole-logo.png",
+  },
   {
     id: "creditcoin" as const,
     name: "Creditcoin",
@@ -265,6 +265,13 @@ export const searchGroups = [
     description: "Everything Monad. Search, transactions and more.",
     icon: Network,
     img: "/images/icon/monad/monad-logo.jpg",
+  },
+  {
+    id: "solana",
+    name: "Solana",
+    description: "Everything Solana. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/solana/solana.png",
   },
 ] as const;
 

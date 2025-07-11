@@ -43,13 +43,14 @@ export const getEvmMultiChainWalletPortfolio = tool({
       );
 
       const portfolioData: PortfolioResponse = await response.json();
-      if (!portfolioData || !portfolioData.data.attributes) {
-        //@ts-ignore
+      
+      // Check if portfolioData and portfolioData.data exist before accessing attributes
+      if (!portfolioData || !portfolioData.data || !portfolioData.data.attributes) {
+        console.log("Invalid response structure:", JSON.stringify(portfolioData, null, 2));
         return "No results found. Check address and try again.";
       }
 
       if (portfolioData.data.attributes.total.positions == 0) {
-        //@ts-ignore
         return "Wallet has no balances.";
       }
 

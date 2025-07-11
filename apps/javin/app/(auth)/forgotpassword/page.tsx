@@ -50,7 +50,7 @@ export default function Page() {
     <div className="flex flex-col h-dvh w-screen pt-12 md:pt-0 items-center justify-center bg-background">
       <div className="rounded-xl p-6 flex flex-col items-center gap-2 leading-relaxed text-center max-w-2xl">
         <p className="flex flex-row justify-center gap-4 items-center text-5xl font-semibold">
-          Javin.ai
+          Barzakh Agents
         </p>
         <p className="text-lg text-muted-foreground">
           A focused, no-nonsense AI search engine for crypto and blockchain.
