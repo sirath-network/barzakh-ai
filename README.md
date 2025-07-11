@@ -1,0 +1,1 @@
+### To start developing, go on apps/ directory, there is frontend (javin) & backend (javin-api)
