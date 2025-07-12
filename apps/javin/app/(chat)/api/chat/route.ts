@@ -1,4 +1,3 @@
-// app/(chat)/api/chat/route.ts
 import {
   type Message,
   createDataStreamResponse,
@@ -24,6 +23,51 @@ import {
 } from "@javin/shared/lib/utils/utils";
 import { generateTitleFromUserMessage } from "../../actions";
 
+// Function to validate and clean messages
+function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
+  return messages.map((message) => {
+    // If message has tool invocations, ensure they have results
+    if (message.toolInvocations && Array.isArray(message.toolInvocations)) {
+      const validToolInvocations = message.toolInvocations.filter((invocation) => {
+        // Keep only tool invocations that have results or are in 'partial-call' state
+        return invocation.result !== undefined || invocation.state === 'partial-call';
+      });
+      
+      // If no valid tool invocations remain, remove the toolInvocations property
+      if (validToolInvocations.length === 0) {
+        const { toolInvocations, ...messageWithoutTools } = message;
+        return messageWithoutTools;
+      }
+      
+      return {
+        ...message,
+        toolInvocations: validToolInvocations,
+      };
+    }
+    
+    return message;
+  });
+}
+
+// Alternative approach: Filter out incomplete tool calls
+function filterIncompleteToolCalls(messages: Array<Message>): Array<Message> {
+  return messages.filter((message) => {
+    // Remove assistant messages that have incomplete tool calls
+    if (message.role === 'assistant' && message.toolInvocations) {
+      const hasIncompleteToolCalls = message.toolInvocations.some(
+        (invocation) => invocation.state === 'call' && !invocation.result
+      );
+      
+      if (hasIncompleteToolCalls) {
+        console.log('Filtering out message with incomplete tool calls:', message.id);
+        return false;
+      }
+    }
+    
+    return true;
+  });
+}
+
 export async function POST(request: Request) {
   const {
     id,
@@ -44,6 +88,7 @@ export async function POST(request: Request) {
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
   }
+  
   console.log("user session ", session.user);
   const users = await getUserById(session.user.id!);
   const user_info = users[0];
@@ -84,54 +129,117 @@ export async function POST(request: Request) {
     messages: [{ ...userMessage, createdAt: new Date(), chatId: id }],
   });
 
+  // SOLUTION 1: Clean messages before passing to streamText
+  const cleanedMessages = validateAndCleanMessages(messages);
+  
+  // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
+  // const cleanedMessages = filterIncompleteToolCalls(messages);
+
   return createDataStreamResponse({
     execute: (dataStream) => {
-      const result = streamText({
-        model: myProvider.languageModel(selectedChatModel),
-        system: systemPrompt,
-        messages,
-        maxSteps: 5,
-        experimental_activeTools:
-          selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
-        experimental_transform: smoothStream({ chunking: "word" }),
-        experimental_generateMessageId: generateUUID,
-        tools: allTools,
-        onFinish: async ({ response, reasoning }) => {
-          if (session.user?.id) {
-            try {
-              const sanitizedResponseMessages = sanitizeResponseMessages({
-                messages: response.messages,
-                reasoning,
-              });
-              await saveMessages({
-                messages: sanitizedResponseMessages.map((message) => {
-                  return {
-                    id: message.id,
-                    chatId: id,
-                    role: message.role,
-                    content: message.content,
-                    createdAt: new Date(),
-                  };
-                }),
-              });
-              await decrementRemainingMessageCount(session.user.id);
-            } catch (error) {
-              console.error("Failed to save chat");
+      try {
+        const result = streamText({
+          model: myProvider.languageModel(selectedChatModel),
+          system: systemPrompt,
+          messages: cleanedMessages, // Use cleaned messages
+          maxSteps: 5,
+          experimental_activeTools:
+            selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
+          experimental_transform: smoothStream({ chunking: "word" }),
+          experimental_generateMessageId: generateUUID,
+          tools: allTools,
+          onFinish: async ({ response, reasoning }) => {
+            if (session.user?.id) {
+              try {
+                const sanitizedResponseMessages = sanitizeResponseMessages({
+                  messages: response.messages,
+                  reasoning,
+                });
+                await saveMessages({
+                  messages: sanitizedResponseMessages.map((message) => {
+                    return {
+                      id: message.id,
+                      chatId: id,
+                      role: message.role,
+                      content: message.content,
+                      createdAt: new Date(),
+                    };
+                  }),
+                });
+                await decrementRemainingMessageCount(session.user.id);
+              } catch (error) {
+                console.error("Failed to save chat", error);
+              }
             }
-          }
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: "stream-text",
-        },
-      });
+          },
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: "stream-text",
+          },
+        });
 
-      result.mergeIntoDataStream(dataStream, {
-        sendReasoning: true,
-      });
+        result.mergeIntoDataStream(dataStream, {
+          sendReasoning: true,
+        });
+      } catch (error) {
+        console.error("Error in streamText:", error);
+        // If still getting tool invocation error, try with fresh conversation
+        if (error.message?.includes("ToolInvocation must have a result")) {
+          console.log("Retrying with fresh conversation context...");
+          
+          // Only keep the latest user message for fresh start
+          const freshMessages = [userMessage];
+          
+          const result = streamText({
+            model: myProvider.languageModel(selectedChatModel),
+            system: systemPrompt,
+            messages: freshMessages,
+            maxSteps: 5,
+            experimental_activeTools:
+              selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
+            experimental_transform: smoothStream({ chunking: "word" }),
+            experimental_generateMessageId: generateUUID,
+            tools: allTools,
+            onFinish: async ({ response, reasoning }) => {
+              if (session.user?.id) {
+                try {
+                  const sanitizedResponseMessages = sanitizeResponseMessages({
+                    messages: response.messages,
+                    reasoning,
+                  });
+                  await saveMessages({
+                    messages: sanitizedResponseMessages.map((message) => {
+                      return {
+                        id: message.id,
+                        chatId: id,
+                        role: message.role,
+                        content: message.content,
+                        createdAt: new Date(),
+                      };
+                    }),
+                  });
+                  await decrementRemainingMessageCount(session.user.id);
+                } catch (error) {
+                  console.error("Failed to save chat", error);
+                }
+              }
+            },
+            experimental_telemetry: {
+              isEnabled: true,
+              functionId: "stream-text",
+            },
+          });
+
+          result.mergeIntoDataStream(dataStream, {
+            sendReasoning: true,
+          });
+        } else {
+          throw error;
+        }
+      }
     },
     onError: (error: any) => {
-      console.log(error);
+      console.log("DataStream error:", error);
       return "Oops, something went wrong!. Please try again in new chat";
     },
   });
