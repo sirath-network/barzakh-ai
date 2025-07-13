@@ -29,6 +29,16 @@ export const user = pgTable("User", {
   // ),
 });
 
+export const otp_tokens = pgTable("OTPToken", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  email: varchar("email", { length: 64 }).notNull().unique(),
+  otp: varchar("otp").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  expiry: timestamp("expiry").notNull(),
+});
+
+export type OTPToken = InferSelectModel<typeof otp_tokens>;
+
 export type User = InferSelectModel<typeof user>;
 
 export const password_reset_tokens = pgTable("PasswordResetToken", {

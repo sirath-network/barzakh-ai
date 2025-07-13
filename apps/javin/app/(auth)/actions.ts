@@ -9,12 +9,16 @@ import {
   savePasswordResetToken,
   updateUserPassword,
   deletePasswordResetToken,
+  generateOTP,
+  saveOTP,
+  getOTP,
+  deleteOTP,
 } from "@/lib/db/queries";
 
 import { signIn } from "./auth";
 import { generateUUID } from "@javin/shared/lib/utils/utils";
 import { nanoid } from "nanoid";
-import { sendResetEmail } from "@/lib/utils/email";
+import { sendResetEmail, sendOTPEmail } from "@/lib/utils/email";
 import * as Sentry from "@sentry/nextjs";
 
 // For login: only check required + min length
@@ -87,6 +91,23 @@ export const login = async (
   }
 };
 
+const verifyOTPSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+});
+
+// Add this new action state type
+export interface VerifyOTPActionState {
+  status:
+    | "idle"
+    | "in_progress"
+    | "success"
+    | "failed"
+    | "invalid_data"
+    | "invalid_otp"
+    | "otp_expired";
+}
+
 export interface RegisterActionState {
   status:
     | "idle"
@@ -95,53 +116,125 @@ export interface RegisterActionState {
     | "failed"
     | "user_exists"
     | "invalid_data"
-    | "too_small";
+    | "too_small"
+    | "otp_sent"
+    | "otp_verified";
   fieldErrors?: {
     email?: string[];
     password?: string[];
+    otp?: string[];
   };
+  email?: string;
 }
 
+// Modify the register action to handle OTP flow
 export const register = async (
-  _: RegisterActionState,
+  prevState: RegisterActionState,
   formData: FormData
 ): Promise<RegisterActionState> => {
   try {
-    const validatedData = registerSchema.parse({
-      email: formData.get("email"),
-      password: formData.get("password"),
-    });
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const otp = formData.get("otp") as string | null;
 
-    const [user] = await getUser(validatedData.email);
+    console.log('Registration attempt:', { email, hasOtp: !!otp });
 
-    if (user) {
-      return { status: "user_exists" } as RegisterActionState;
-    }
-    const id = generateUUID();
-    await createUser(id, validatedData.email, validatedData.password);
-    await signIn("credentials", {
-      email: validatedData.email,
-      password: validatedData.password,
-      redirect: false,
-    });
+    // If we're verifying OTP
+    if (otp) {
+      console.log('Verifying OTP for:', email);
+      const verified = await verifyOTP(email, otp);
+      
+      if (!verified) {
+        return { 
+          status: "invalid_data",
+          fieldErrors: { otp: ["Invalid or expired OTP"] },
+          email
+        };
+      }
 
-    return { status: "success" };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const fieldErrors = error.flatten().fieldErrors;
+      // Validate password only at verification stage
+      try {
+        registerSchema.parse({ email, password });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            status: "invalid_data",
+            fieldErrors: error.flatten().fieldErrors,
+            email
+          };
+        }
+        throw error;
+      }
 
-      return {
-        status: "invalid_data",
-        fieldErrors: {
-          email: fieldErrors.email,
-          password: fieldErrors.password,
-        },
+      console.log('Creating user account');
+      const id = generateUUID();
+      await createUser(id, email, password);
+      
+      return { 
+        status: "otp_verified",
+        email
       };
     }
+
+    // Initial submission - just send OTP
+    console.log('Sending OTP to:', email);
+    const otpCode = generateOTP();
+    await saveOTP(email, otpCode);
+    await sendOTPEmail(email, otpCode);
+
+    return { 
+      status: "otp_sent",
+      email
+    };
+  } catch (error) {
+    console.error('Registration error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return {
+        status: "invalid_data",
+        fieldErrors: error.flatten().fieldErrors,
+      };
+    }
+    
     Sentry.captureException(error);
     return { status: "failed" };
   }
 };
+
+// Add this helper function to verify OTP
+async function verifyOTP(email: string, otp: string): Promise<boolean> {
+  try {
+    console.log('Verifying OTP for:', email);
+    const savedOTP = await getOTP(email);
+    
+    if (!savedOTP) {
+      console.log('No OTP found for email:', email);
+      return false;
+    }
+
+    console.log('Comparing OTPs - Saved:', savedOTP.otp, 'Received:', otp);
+    if (savedOTP.otp !== otp) {
+      console.log('OTP mismatch');
+      return false;
+    }
+
+    const now = new Date();
+    const expiryTime = new Date(savedOTP.createdAt.getTime() + 10 * 60 * 1000);
+    
+    if (now > expiryTime) {
+      console.log('OTP expired');
+      await deleteOTP(email);
+      return false;
+    }
+
+    await deleteOTP(email);
+    console.log('OTP verified successfully');
+    return true;
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    return false;
+  }
+}
 
 export interface ForgotPasswordActionState {
   status:

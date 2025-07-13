@@ -16,6 +16,7 @@ import {
   message,
   vote,
   password_reset_tokens,
+  otp_tokens,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -24,7 +25,63 @@ import {
 
 // biome-ignore lint: Forbidden non-null assertion.
 const client = postgres(process.env.POSTGRES_URL!);
+
+// Test connection on startup
+(async () => {
+  try {
+    await client`SELECT 1`;
+    console.log('✅ Database connection successful');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    process.exit(1);
+  }
+})();
+
 const db = drizzle(client);
+
+export function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Save OTP to database with 10-minute expiry
+export async function saveOTP(email: string, otp: string): Promise<void> {
+  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+  
+  await db
+    .insert(otp_tokens)
+    .values({ email, otp, expiry })
+    .onConflictDoUpdate({
+      target: otp_tokens.email,
+      set: { otp, expiry },
+    });
+}
+
+// Get OTP from database
+export async function getOTP(email: string) {
+  try {
+    const [otpToken] = await db
+      .select()
+      .from(otp_tokens)
+      .where(eq(otp_tokens.email, email));
+
+    return otpToken;
+  } catch (error) {
+    console.error("Failed to get OTP from database");
+    throw error;
+  }
+}
+
+// Delete OTP from database
+export async function deleteOTP(email: string) {
+  try {
+    return await db
+      .delete(otp_tokens)
+      .where(eq(otp_tokens.email, email));
+  } catch (error) {
+    console.error("Failed to delete OTP from database");
+    throw error;
+  }
+}
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
@@ -44,21 +101,29 @@ export async function getUserById(id: string): Promise<Array<User>> {
 }
 
 export async function createUser(
-  id: string | null,
+  id: string,
   email: string,
-  password: string | null
+  password: string
 ) {
-  const salt = genSaltSync(10);
-  const hash = password ? hashSync(password, salt) : null;
-
   try {
-    if (id) {
-      return await db.insert(user).values({ id, email, password: hash });
-    } else {
-      return await db.insert(user).values({ email, password: hash });
-    }
+    const salt = genSaltSync(10);
+    const hash = hashSync(password, salt);
+
+    console.log('Creating user:', { id, email });
+    const result = await db.insert(user).values({ 
+      id, 
+      email, 
+      password: hash 
+    }).returning();
+    
+    console.log('User created successfully:', result);
+    return result;
   } catch (error) {
-    console.error("Failed to create user in database");
+    console.error("Failed to create user:", {
+      error,
+      email,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    });
     throw error;
   }
 }

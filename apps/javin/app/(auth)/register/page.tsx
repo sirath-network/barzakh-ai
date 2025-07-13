@@ -11,21 +11,13 @@ import { SubmitButton } from "@/components/submit-button";
 import { register, type RegisterActionState } from "../actions";
 import { useTheme } from "next-themes";
 
-type AuthFormProps = {
-  action: (formData: FormData) => void;
-  defaultEmail?: string;
-  fieldErrors?: {
-    email?: string;
-    password?: string;
-  };
-};
-
 export default function Page() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
 
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const [showOTPField, setShowOTPField] = useState(false);
 
   const [state, formAction] = useActionState<RegisterActionState, FormData>(
     register,
@@ -43,16 +35,76 @@ export default function Page() {
       toast.error("Failed validating your submission!");
     } else if (state.status === "too_small") {
       toast.error("Password should be at least 6 characters long.");
-    } else if (state.status === "success") {
+    } else if (state.status === "otp_sent") {
+      setShowOTPField(true);
+      toast.success("OTP sent to your email");
+    } else if (state.status === "otp_verified") {
       toast.success("Account created successfully");
       setIsSuccessful(true);
-      router.refresh();
+      
+      // Redirect to login page after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
     }
   }, [state, router]);
 
+  const [formData, setFormData] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+
   const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
-    formAction(formData);
+    const emailValue = formData.get("email") as string;
+    const passwordValue = formData.get("password") as string;
+    const otpValue = formData.get("otp") as string | null;
+
+    setEmail(emailValue);
+    
+    // Store email and password when first submitting
+    if (!showOTPField && !otpValue) {
+      setFormData({ email: emailValue, password: passwordValue });
+    }
+
+    // Create a new FormData with all required fields
+    const submitData = new FormData();
+    submitData.append("email", emailValue);
+    
+    if (passwordValue) {
+      submitData.append("password", passwordValue);
+    } else if (formData?.password) {
+      // Use stored password if not in current form data
+      submitData.append("password", formData.password);
+    }
+    
+    if (otpValue) {
+      submitData.append("otp", otpValue);
+    }
+    
+    formAction(submitData);
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      const response = await fetch('/api/resend-otp', {  
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (response.ok) {
+        toast.success("New OTP sent to your email");
+      } else {
+        const errorData = await response.json();
+        console.error('OTP resend error:', errorData);
+        toast.error("Failed to resend OTP");
+      }
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      toast.error("Failed to resend OTP");
+    }
   };
 
   return (
@@ -81,15 +133,23 @@ export default function Page() {
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
           <h3 className="text-xl font-semibold dark:text-zinc-50">Sign Up</h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Create an account with your email and password
+            {showOTPField 
+              ? "Enter the OTP sent to your email" 
+              : "Create an account with your email and password"}
           </p>
         </div>
         <AuthForm
           action={handleSubmit}
           defaultEmail={email}
           fieldErrors={state.fieldErrors}
+          emailNeeded={!showOTPField}
+          passwordNeeded={!showOTPField}
+          showOTPField={showOTPField}
+          onResendOTP={showOTPField ? handleResendOTP : undefined}
         >
-          <SubmitButton isSuccessful={isSuccessful}>Sign Up</SubmitButton>
+          <SubmitButton isSuccessful={isSuccessful}>
+            {showOTPField ? "Verify OTP" : "Sign Up"}
+          </SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
             {"Already have an account? "}
             <Link
