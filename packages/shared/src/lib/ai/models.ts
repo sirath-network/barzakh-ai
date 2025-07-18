@@ -8,7 +8,7 @@ import {
 
 export const DEFAULT_CHAT_MODEL: string = "chat-model-small";
 
-export const myProvider:any = customProvider({
+export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o-mini"),
     "chat-model-large": openai("gpt-4o"),
@@ -41,6 +41,11 @@ export const chatModels: Array<ChatModel> = [
     id: "chat-model-large",
     name: "Barzakh K2-18",
     description: "Large model for complex, multi-step tasks",
+  },
+  {
+    id: "chat-model-reasoning",
+    name: "Barzakh DeepSeek",
+    description: "Deepseek model for experimental tasks",
   },
   // {
   //   id: 'chat-model-reasoning',

@@ -222,7 +222,7 @@ export const searchGroups = [
     description:
       "Everything Wormhole. Search, transactions and more.",
     icon: Network,
-    img: "/images/icon/wormhole-logo.png",
+    img: "/images/icon/wormhole/wormhole-logo.png",
   },
   {
     id: "creditcoin" as const,
