@@ -1,0 +1,7280 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v2/addresses": {
+      "get": {
+        "operationId": "AddressController-getAddressDetail",
+        "summary": "Get address details",
+        "description": "\nThe endpoint to get address details. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address (EVM or Sei address)",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return address details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Addresses"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/addresses/transactions": {
+      "get": {
+        "operationId": "AddressController-getAddressTransactions",
+        "summary": "Get address transactions",
+        "description": "\nThe endpoint to get address transactions. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address (EVM or Sei address)",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "description": "Transaction status",
+            "example": "ALL",
+            "schema": {
+              "enum": [
+                "ALL",
+                "SUCCESS",
+                "ERROR"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return address transactions list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAddressTransactions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Addresses"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/addresses/token-transfers": {
+      "get": {
+        "operationId": "AddressController-getAddressTokenTransfers",
+        "summary": "Get address token transfers",
+        "description": "\nThe endpoint to get address token transfers. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address (EVM or Sei address)",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return address token transfers list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedAddressTokenTransfers"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Addresses"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc20": {
+      "get": {
+        "operationId": "Erc20TokenController-getErc20TokenInfo",
+        "summary": "Get Erc20 token info",
+        "description": "\nThe endpoint to get Erc20 token info. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc20 token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erc20TokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc20/balances": {
+      "get": {
+        "operationId": "Erc20TokenController-getErc20Balances",
+        "summary": "Get Erc20 token balances",
+        "description": "\nThe endpoint to get Erc20 token balances.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|\n|Cost|**50 Credit Units**|\n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_contract_list",
+            "required": false,
+            "in": "query",
+            "description": "List of token contract addresses",
+            "example": [
+              "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+              "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc20 tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc20Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc20/transfers": {
+      "get": {
+        "operationId": "Erc20TokenController-getErc20TokenTransfers",
+        "summary": "Get Erc20 token transfers",
+        "description": "\nThe endpoint to get Erc20 token transfers. Sorted by time in descending order.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|\n|Cost|**100 Credit Units**|\n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc20 tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc20TokenTransfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc20/holders": {
+      "get": {
+        "operationId": "Erc20TokenController-getErc20TokenHolders",
+        "summary": "Get Erc20 token holders",
+        "description": "\nThe endpoint to get Erc20 token holders. Sorted by amount in descending order.\n\n|||\n|---|---|\n|Eligible For|**Paid users**|\n|Cost|**100 Credit Units**|\n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc20 token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc20TokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc721": {
+      "get": {
+        "operationId": "Erc721TokenController-getErc721TokenInfo",
+        "summary": "Get Erc721 token info",
+        "description": "\nThe endpoint to get Erc721 token info. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc721 token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erc721TokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc721/instances": {
+      "get": {
+        "operationId": "Erc721TokenController-getErc721Instance",
+        "summary": "Get Erc721 token instances",
+        "description": "\nThe endpoint to get Erc721 token instances.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "required": false,
+            "in": "query",
+            "description": "Token id",
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc721 token instances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc721Token"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc721/balances": {
+      "get": {
+        "operationId": "Erc721TokenController-getErc721TokenBalances",
+        "summary": "Get Erc721 token balances",
+        "description": "\nThe endpoint to get Erc721 token balances. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_contract_list",
+            "required": false,
+            "in": "query",
+            "description": "List of token contract addresses",
+            "example": [
+              "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+              "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc721 token holdings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc721Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc721/transfers": {
+      "get": {
+        "operationId": "Erc721TokenController-getErc721TokenTransfers",
+        "summary": "Get Erc721 token transfers",
+        "description": "\nThe endpoint to get Erc721 token transfers. Sorted by descending order of timestamp. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "required": false,
+            "in": "query",
+            "description": "Token ID",
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc721 token transfers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc721TokenTransfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc721/holders": {
+      "get": {
+        "operationId": "Erc721TokenController-getErc721TokenHolders",
+        "summary": "Get Erc721 token holders",
+        "description": "\nThe endpoint to get Erc721 token holders. Sorted by descending order of holding. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc721 token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc721TokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc1155": {
+      "get": {
+        "operationId": "Erc1155TokenController-getErc1155TokenInfo",
+        "summary": "Get Erc1155 token info",
+        "description": "\nThe endpoint to get Erc1155 token info. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0xbDDA76656929D3D202B396497ef86d620BB635D1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc1155 token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erc1155TokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC1155 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc1155/instances": {
+      "get": {
+        "operationId": "Erc1155TokenController-getErc1155Instance",
+        "summary": "Get Erc1155 token instances",
+        "description": "\nThe endpoint to get Erc1155 token instances.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "required": false,
+            "in": "query",
+            "description": "Token id",
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc1155 token instances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc1155Token"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC1155 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc1155/holders": {
+      "get": {
+        "operationId": "Erc1155TokenController-getErc1155TokenHolders",
+        "summary": "Get Erc1155 token holders",
+        "description": "\nThe endpoint to get Erc1155 token holders. Sorted by descending order of holding. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc1155 token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc1155TokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC1155 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc1155/balances": {
+      "get": {
+        "operationId": "Erc1155TokenController-getErc1155TokenBalances",
+        "summary": "Get Erc1155 token balances",
+        "description": "\nThe endpoint to get Erc1155 token balances. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_contract_list",
+            "required": false,
+            "in": "query",
+            "description": "List of token contract addresses",
+            "example": [
+              "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+              "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc1155 token holdings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc1155Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC1155 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/erc1155/transfers": {
+      "get": {
+        "operationId": "Erc1155TokenController-getErc1155TokenTransfers",
+        "summary": "Get Erc1155 token transfers",
+        "description": "\nThe endpoint to get Erc1155 token transfers. Sorted by descending order of timestamp. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "0x0c78d371EB4F8c082E8CD23c2Fa321b915E1BBfA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "required": false,
+            "in": "query",
+            "description": "Token ID",
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Erc1155 token transfers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedErc1155TokenTransfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "ERC1155 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw20": {
+      "get": {
+        "operationId": "Cw20TokenController-getCw20TokenInfo",
+        "summary": "Get CW20 token info",
+        "description": "\nThe endpoint to get CW20 token info. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return CW20 token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cw20TokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw20/balances": {
+      "get": {
+        "operationId": "Cw20TokenController-getCw20Balances",
+        "summary": "Get CW20 token balances",
+        "description": "\nThe endpoint to get CW20 token balances. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_contract_list",
+            "required": false,
+            "in": "query",
+            "description": "List of token contract addresses",
+            "example": [
+              "seiabcxyuz",
+              "seiabcxyuz111"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return CW20 tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw20Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw20/transfers": {
+      "get": {
+        "operationId": "Cw20TokenController-getCw20TokenTransfers",
+        "summary": "Get CW20 token transfers",
+        "description": "\nThe endpoint to get CW20 token transfers. Sorted by time in descending order.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return CW20 tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw20Transfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw20/holders": {
+      "get": {
+        "operationId": "Cw20TokenController-getCw20TokenHolders",
+        "summary": "Get CW20 token holders",
+        "description": "\nThe endpoint to get CW20 token holders. Sorted by amount in descending order.\n\n|||\n|---|---|\n|Eligible For|**Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return CW20 token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw20TokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW20 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw721": {
+      "get": {
+        "operationId": "Cw721TokenController-getCw721TokenInfo",
+        "summary": "Get CW721 token info",
+        "description": "\nThe endpoint to get Cw721 token info. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Cw721 token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cw721TokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw721/instances": {
+      "get": {
+        "operationId": "Cw721TokenController-getCw721Instance",
+        "summary": "Get Cw721 token instances",
+        "description": "\nThe endpoint to get Cw721 token instances.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|\n|Cost|**50 Credit Units**|\n  ",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "required": false,
+            "in": "query",
+            "description": "Token id",
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Cw721 token instances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw721Token"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw721/balances": {
+      "get": {
+        "operationId": "Cw721TokenController-getCw721TokenBalances",
+        "summary": "Get Cw721 token balances",
+        "description": "\nThe endpoint to get Cw721 token balances.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|\n|Cost|**50 Credit Units**|\n  ",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_contract_list",
+            "required": false,
+            "in": "query",
+            "description": "List of token contract addresses",
+            "example": [
+              "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+              "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Cw721 token holdings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw721Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw721/transfers": {
+      "get": {
+        "operationId": "Cw721TokenController-getCw721TokenTransfers",
+        "summary": "Get Cw721 token transfers",
+        "description": "\nThe endpoint to get Cw721 token transfers. Sorted by descending order of timestamp.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|\n|Cost|**50 Credit Units**|\n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_id",
+            "required": false,
+            "in": "query",
+            "description": "Token ID",
+            "example": "1",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Cw721 token transfers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw721TokenTransfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/cw721/holders": {
+      "get": {
+        "operationId": "Cw721TokenController-getCw721TokenHolders",
+        "summary": "Get Cw721 token holders",
+        "description": "\nThe endpoint to get Cw721 token holders. Sorted by descending order of holding.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|\n|Cost|**50 Credit Units**|\n  ",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "contract_address",
+            "required": true,
+            "in": "query",
+            "description": "Contract address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "sei1wrz9tveueyqqw6zesuae0qvh6natxumknlvvp8",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Cw721 token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedCw721TokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "CW721 Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/ibc": {
+      "get": {
+        "operationId": "ICS20TokenController-getICS20TokenInfoStatistic",
+        "summary": "Get IBC token info",
+        "description": "\nThe endpoint to get IBC token info. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom",
+            "required": true,
+            "in": "query",
+            "description": "IBC token denom",
+            "example": "ibc/abcxyz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return IBC token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ICS20TokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "IBC Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/ibc/balances": {
+      "get": {
+        "operationId": "ICS20TokenController-getICS20Balances",
+        "summary": "Get IBC token balances",
+        "description": "\nThe endpoint to get IBC token balances. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**50 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom_list",
+            "required": false,
+            "in": "query",
+            "description": "List of IBC tokens's denoms",
+            "example": [
+              "ibc/abcxyz",
+              "ibc/efghijk"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return IBC tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedICS20Balance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "IBC Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/ibc/transfers": {
+      "get": {
+        "operationId": "ICS20TokenController-getICS20TokenTransfers",
+        "summary": "Get IBC token transfers",
+        "description": "\nThe endpoint to get IBC token transfers. Sorted by time in descending order.\n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom",
+            "required": true,
+            "in": "query",
+            "description": "IBC token denom",
+            "example": "ibc/abcxyz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return IBC tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedICS20Transfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "IBC Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/ibc/holders": {
+      "get": {
+        "operationId": "ICS20TokenController-getICS20TokenHolders",
+        "summary": "Get IBC token holders",
+        "description": "\nThe endpoint to get IBC token holders. Sorted by amount in descending order.\n\n|||\n|---|---|\n|Eligible For|**Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom",
+            "required": true,
+            "in": "query",
+            "description": "IBC token denom",
+            "example": "ibc/abcxyz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return IBC token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedICS20TokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "IBC Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/native": {
+      "get": {
+        "operationId": "NativeTokenController-getNativeTokenInfoAndStatistic",
+        "summary": "Get Native token info",
+        "description": "\n  The endpoint to get Native token info. \n  \n  |||\n  |---|---|\n  |Eligible For|**Free Trial and Paid users**|    \n  |Cost|**50 Credit Units**|    \n  ",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom",
+            "required": true,
+            "in": "query",
+            "description": "Native token denom (including \"usei\")",
+            "example": "factory/abcxyz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Native token info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NativeTokenInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Native Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/native/balances": {
+      "get": {
+        "operationId": "NativeTokenController-getNativeBalances",
+        "summary": "Get Native token balances",
+        "description": "\n  The endpoint to get Native token balances. \n  \n  |||\n  |---|---|\n  |Eligible For|**Free Trial and Paid users**|    \n  |Cost|**50 Credit Units**|    \n  ",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom_list",
+            "required": false,
+            "in": "query",
+            "description": "List of tokens's denoms (including \"usei\")",
+            "example": [
+              "factory/abcxyz",
+              "factory/efghijk"
+            ],
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Native tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNativeBalance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Native Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/native/transfers": {
+      "get": {
+        "operationId": "NativeTokenController-getNativeTokenTransfers",
+        "summary": "Get Native token transfers",
+        "description": "\n  The endpoint to get Native token transfers. Sorted by time in descending order.\n  \n  |||\n  |---|---|\n  |Eligible For|**Free Trial and Paid users**|    \n  |Cost|**100 Credit Units**|    \n  ",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom",
+            "required": true,
+            "in": "query",
+            "description": "Native token denom (including \"usei\")",
+            "example": "factory/abcxyz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wallet_address",
+            "required": false,
+            "in": "query",
+            "description": "Wallet address",
+            "example": "seiabcxyuz",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "description": "From date",
+            "example": "2021-01-01",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_date",
+            "required": false,
+            "in": "query",
+            "description": "To date",
+            "example": "2021-03-01",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Native tokens in a wallet address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNativeTransfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Native Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/token/native/holders": {
+      "get": {
+        "operationId": "NativeTokenController-getNativeTokenHolders",
+        "summary": "Get Native token holders",
+        "description": "\n  The endpoint to get Native token holders. Sorted by amount in descending order.\n  \n  |||\n  |---|---|\n  |Eligible For|**Paid users**|    \n  |Cost|**100 Credit Units**|    \n  ",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Limit of items to be returned, capped at 50",
+            "example": 10,
+            "schema": {
+              "maximum": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset",
+            "example": 0,
+            "schema": {
+              "maximum": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "token_denom",
+            "required": true,
+            "in": "query",
+            "description": "Native token denom (including \"usei\")",
+            "example": "factory/abcxyz",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return Native token holders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedNativeTokenHolder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Native Tokens"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    },
+    "/api/v2/smart-contract": {
+      "get": {
+        "operationId": "SmartContractController-getSmartContractDetail",
+        "summary": "Get smart contract details",
+        "description": "\nThe endpoint to get smart contract details. \n\n|||\n|---|---|\n|Eligible For|**Free Trial and Paid users**|    \n|Cost|**100 Credit Units**|    \n",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "required": true,
+            "in": "query",
+            "description": "Chain ID",
+            "example": "pacific-1",
+            "schema": {
+              "enum": [
+                "pacific-1",
+                "atlantic-2",
+                "arctic-1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": true,
+            "in": "query",
+            "description": "Wallet address (EVM or Sei address)",
+            "example": "0xdD489C75be1039ec7d843A6aC2Fd658350B067Cf",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return smart contract details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartContractDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "tags": [
+          "Smart contract"
+        ],
+        "security": [
+          {
+            "apiKey": []
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Seitrace Insights",
+    "description": "\n<h3>About Seitrace Insights</h3>\n\nSeitrace Insights is your entrance to Sei Blockchain data. \n        \nOur API service provides seamless access to highly accurate, real-time on-chain data from the Sei blockchain.\n        \nDesigned with developers in mind, it features a user-friendly interface that allows easy integration into applications, enabling quick retrieval and aggregation of blockchain data. \n\nThis service simplifies the development process by ensuring high data integrity, while offering flexible and comprehensive tools for blockchain analytics and insights.\n\nWe are constantly adding more API endpoints, stay tuned for more updates.\n\nBefore you start, you would need to grab your API Key from the <a target=\"_blank\" href=\"https://seitrace.com/insights\">Seitrace Dashboard</a>.\n\n<br/>\n<h3>About Data Availability</h3>\n\nWe might not index all historical data, below are starting blocks for data availability on each chain.\n\n|Chain|Available from block|Frequently pruned|\n|---|---|---|\n|pacific-1|From block 79,123,882|No - Data will be kept|\n|atlantic-2|From block 93,515,009|Yes - Data will be pruned frequently and we will inform users before the operation|\n|arctic-1|From block 25,307,946|Yes - Data will be pruned frequently and we will inform users before the operation|\n\n<br/>\n<h3>About Credit Units</h3>\n\nUsers will be charged based on the number of requests made to the API. \nEach request will cost a certain number of credit units. \n\nThe number of credit units required for each request is specified in the API documentation.\nUsers won't be charged for failed requests.\n\n<br/>\n<h3>Customer Support</h3>\n\nWe are here to help you with any questions or issues you may have. Please send us an email at support@seitrace.com\n",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "https://seitrace.com/insights/"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "AddressDetail": {
+        "type": "object",
+        "properties": {
+          "operator_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "consensus_hex_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "coin_balance": {
+            "type": "string"
+          },
+          "raw_wei_balance": {
+            "type": "string"
+          },
+          "raw_usei_balance": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "creation_tx_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "creator_address_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_contract": {
+            "type": "boolean"
+          },
+          "association": {
+            "type": "object",
+            "properties": {
+              "evm_hash": {
+                "required": true,
+                "type": "string"
+              },
+              "sei_hash": {
+                "required": true,
+                "type": "string"
+              },
+              "timestamp": {
+                "required": true,
+                "type": "string"
+              },
+              "tx_hash": {
+                "required": true,
+                "type": "string"
+              },
+              "type": {
+                "required": true,
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "operator_address",
+          "consensus_hex_address",
+          "coin_balance",
+          "raw_wei_balance",
+          "raw_usei_balance",
+          "hash",
+          "creation_tx_hash",
+          "creator_address_hash",
+          "is_contract",
+          "association"
+        ]
+      },
+      "AddressTransaction": {
+        "type": "object",
+        "properties": {
+          "priority_fee": {
+            "type": "string"
+          },
+          "tx_burnt_fee": {
+            "type": "string"
+          },
+          "raw_input": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "max_fee_per_gas": {
+            "type": "string"
+          },
+          "revert_reason": {
+            "type": "object"
+          },
+          "confirmation_duration": {
+            "type": "object"
+          },
+          "confirmations": {
+            "type": "number"
+          },
+          "position": {
+            "type": "number"
+          },
+          "max_priority_fee_per_gas": {
+            "type": "string"
+          },
+          "created_contract": {
+            "type": "object"
+          },
+          "value": {
+            "type": "string"
+          },
+          "tx_types": {
+            "type": "object"
+          },
+          "from": {
+            "type": "object",
+            "properties": {
+              "ens_domain_name": {
+                "required": true,
+                "type": "string"
+              },
+              "hash": {
+                "required": true,
+                "type": "string"
+              },
+              "implementations": {
+                "required": true,
+                "type": "object"
+              },
+              "is_contract": {
+                "required": true,
+                "type": "boolean"
+              },
+              "is_scam": {
+                "required": true,
+                "type": "boolean"
+              },
+              "is_verified": {
+                "required": true,
+                "type": "boolean"
+              },
+              "metadata": {
+                "required": true,
+                "type": "object"
+              },
+              "name": {
+                "required": true,
+                "type": "string"
+              },
+              "private_tags": {
+                "required": true,
+                "type": "object"
+              },
+              "proxy_type": {
+                "required": true,
+                "type": "object"
+              },
+              "public_tags": {
+                "required": true,
+                "type": "object"
+              },
+              "watchlist_names": {
+                "required": true,
+                "type": "object"
+              }
+            }
+          },
+          "to": {
+            "type": "object",
+            "properties": {
+              "ens_domain_name": {
+                "required": true,
+                "type": "string"
+              },
+              "hash": {
+                "required": true,
+                "type": "string"
+              },
+              "implementations": {
+                "required": true,
+                "type": "object"
+              },
+              "is_contract": {
+                "required": true,
+                "type": "boolean"
+              },
+              "is_scam": {
+                "required": true,
+                "type": "boolean"
+              },
+              "is_verified": {
+                "required": true,
+                "type": "boolean"
+              },
+              "metadata": {
+                "required": true,
+                "type": "object"
+              },
+              "name": {
+                "required": true,
+                "type": "string"
+              },
+              "private_tags": {
+                "required": true,
+                "type": "object"
+              },
+              "proxy_type": {
+                "required": true,
+                "type": "object"
+              },
+              "public_tags": {
+                "required": true,
+                "type": "object"
+              },
+              "watchlist_names": {
+                "required": true,
+                "type": "object"
+              }
+            }
+          },
+          "gas_used": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "authorization_list": {
+            "type": "object"
+          },
+          "method": {
+            "type": "string"
+          },
+          "fee": {
+            "type": "object"
+          },
+          "actions": {
+            "type": "object"
+          },
+          "gas_limit": {
+            "type": "string"
+          },
+          "gas_price": {
+            "type": "string"
+          },
+          "decoded_input": {
+            "type": "object"
+          },
+          "base_fee_per_gas": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "nonce": {
+            "type": "number"
+          },
+          "block": {
+            "type": "number"
+          },
+          "transaction_types": {
+            "type": "object"
+          },
+          "block_number": {
+            "type": "number"
+          },
+          "signers": {
+            "type": "object"
+          },
+          "memo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "priority_fee",
+          "tx_burnt_fee",
+          "raw_input",
+          "result",
+          "hash",
+          "max_fee_per_gas",
+          "revert_reason",
+          "confirmation_duration",
+          "confirmations",
+          "position",
+          "max_priority_fee_per_gas",
+          "created_contract",
+          "value",
+          "tx_types",
+          "from",
+          "to",
+          "gas_used",
+          "status",
+          "authorization_list",
+          "method",
+          "fee",
+          "actions",
+          "gas_limit",
+          "gas_price",
+          "decoded_input",
+          "base_fee_per_gas",
+          "timestamp",
+          "nonce",
+          "block",
+          "transaction_types",
+          "block_number",
+          "signers",
+          "memo"
+        ]
+      },
+      "QueryAddressTransactionsParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedAddressTransactions": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressTransaction"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryAddressTransactionsParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Association": {
+        "type": "object",
+        "properties": {
+          "evm_hash": {
+            "type": "string"
+          },
+          "sei_hash": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EOA",
+              "TRANSACTION",
+              "CREATE_CW20_POINTER",
+              "CREATE_CW721_POINTER",
+              "CREATE_ERC20_POINTER",
+              "CREATE_ERC721_POINTER",
+              "CREATE_NATIVE_POINTER"
+            ]
+          }
+        },
+        "required": [
+          "evm_hash",
+          "sei_hash",
+          "timestamp",
+          "tx_hash",
+          "type"
+        ]
+      },
+      "AddressBase": {
+        "type": "object",
+        "properties": {
+          "address_hash": {
+            "type": "string"
+          },
+          "address_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "address_hash",
+          "address_association"
+        ]
+      },
+      "AddressTokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          },
+          "token_info": {
+            "type": "object",
+            "properties": {
+              "token_contract": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_denom": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_symbol": {
+                "required": true,
+                "type": "string"
+              },
+              "token_name": {
+                "required": true,
+                "type": "string"
+              },
+              "token_id": {
+                "required": true,
+                "type": "string"
+              },
+              "token_logo": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_decimals": {
+                "required": true,
+                "type": "string"
+              },
+              "token_association": {
+                "required": true,
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Association"
+                  }
+                ]
+              },
+              "token_type": {
+                "required": true,
+                "type": "string"
+              }
+            }
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_instance": {
+            "type": "object",
+            "properties": {
+              "token_contract": {
+                "required": true,
+                "type": "string"
+              },
+              "token_symbol": {
+                "required": true,
+                "type": "string"
+              },
+              "token_name": {
+                "required": true,
+                "type": "string"
+              },
+              "token_id": {
+                "required": true,
+                "type": "string"
+              },
+              "token_logo": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_decimals": {
+                "required": true,
+                "type": "string"
+              },
+              "token_association": {
+                "required": true,
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Association"
+                  }
+                ]
+              },
+              "token_metadata": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "required": [
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "from",
+          "to",
+          "timestamp",
+          "raw_amount",
+          "tx_hash",
+          "action",
+          "block_height",
+          "token_info",
+          "token_id",
+          "token_instance"
+        ]
+      },
+      "QueryAddressTokenTransfersParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedAddressTokenTransfers": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddressTokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryAddressTokenTransfersParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc20TokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_holder_count": {
+            "type": "string"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_contract_address": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_description": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "ERC-721",
+              "ERC-1155",
+              "ERC-20",
+              "CW-20",
+              "CW-721"
+            ]
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_holder_count",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "token_usd_price",
+          "total_usd_value",
+          "token_contract_address",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_description",
+          "token_type",
+          "token_logo",
+          "token_metadata",
+          "token_association"
+        ]
+      },
+      "Erc20Balance": {
+        "type": "object",
+        "properties": {
+          "raw_amount": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "raw_amount",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "wallet_address",
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryErc20BalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_contract_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc20Balance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc20Balance"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc20BalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "TokenBase": {
+        "type": "object",
+        "properties": {
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_id",
+          "token_logo",
+          "token_association"
+        ]
+      },
+      "Erc20TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          },
+          "token_info": {
+            "$ref": "#/components/schemas/TokenBase"
+          }
+        },
+        "required": [
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "from",
+          "to",
+          "timestamp",
+          "raw_amount",
+          "tx_hash",
+          "action",
+          "block_height",
+          "token_info"
+        ]
+      },
+      "QueryErc20TokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc20TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc20TokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc20TokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc20TokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "raw_amount",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryErc20TokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc20TokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc20TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc20TokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc721TokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_holder_count": {
+            "type": "string"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "token_contract_address": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "ERC-721",
+              "ERC-1155",
+              "ERC-20",
+              "CW-20",
+              "CW-721"
+            ]
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_holder_count",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "token_contract_address",
+          "token_symbol",
+          "token_name",
+          "token_type",
+          "token_metadata",
+          "token_association"
+        ]
+      },
+      "Erc721Token": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "owner",
+          "token_id",
+          "token_contract",
+          "token_association",
+          "token_symbol",
+          "token_name",
+          "token_metadata"
+        ]
+      },
+      "QueryErc721TokenParams": {
+        "type": "object",
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "contract_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc721Token": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc721Token"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc721TokenParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "QueryErc721BalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_contract_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc721Balance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc721Token"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc721BalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc721TokenInstance": {
+        "type": "object",
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "token_id",
+          "token_contract",
+          "token_association",
+          "token_symbol",
+          "token_name",
+          "token_metadata"
+        ]
+      },
+      "Erc721TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_instance": {
+            "$ref": "#/components/schemas/Erc721TokenInstance"
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "token_id",
+          "token_instance",
+          "from",
+          "to",
+          "timestamp",
+          "tx_hash",
+          "action",
+          "block_height"
+        ]
+      },
+      "QueryErc721TokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc721TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc721TokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc721TokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc721TokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "amount",
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryErc721TokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc721TokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc721TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc721TokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc1155TokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_holder_count": {
+            "type": "string"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "total_edition_supply": {
+            "type": "string"
+          },
+          "token_contract_address": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "ERC-721",
+              "ERC-1155",
+              "ERC-20",
+              "CW-20",
+              "CW-721"
+            ]
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_holder_count",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "total_edition_supply",
+          "token_contract_address",
+          "token_symbol",
+          "token_name",
+          "token_type",
+          "token_metadata",
+          "token_association"
+        ]
+      },
+      "Erc1155Token": {
+        "type": "object",
+        "properties": {
+          "total_supply": {
+            "type": "string"
+          },
+          "total_holders": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "total_supply",
+          "total_holders",
+          "token_id",
+          "token_contract",
+          "token_association",
+          "token_symbol",
+          "token_name",
+          "token_metadata"
+        ]
+      },
+      "QueryErc1155TokenParams": {
+        "type": "object",
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "contract_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc1155Token": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc1155Token"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc1155TokenParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc1155TokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "token_id",
+          "amount",
+          "token_contract",
+          "token_metadata",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryErc1155TokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc1155TokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc1155TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc1155TokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "QueryErc1155BalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_contract_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc1155Balance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc1155TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc1155BalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Erc1155TokenInstance": {
+        "type": "object",
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "token_id",
+          "token_contract",
+          "token_association",
+          "token_symbol",
+          "token_name",
+          "token_metadata"
+        ]
+      },
+      "Erc1155TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_instance": {
+            "$ref": "#/components/schemas/Erc1155TokenInstance"
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "token_id",
+          "token_instance",
+          "from",
+          "to",
+          "timestamp",
+          "tx_hash",
+          "action",
+          "block_height"
+        ]
+      },
+      "QueryErc1155TokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedErc1155TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Erc1155TokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryErc1155TokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Cw20TokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_holder_count": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_contract_address": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_description": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "ERC-721",
+              "ERC-1155",
+              "ERC-20",
+              "CW-20",
+              "CW-721"
+            ]
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_holder_count",
+          "token_metadata",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "token_usd_price",
+          "total_usd_value",
+          "token_contract_address",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_description",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "Cw20Balance": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "raw_amount",
+          "wallet_address",
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryCw20BalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_contract_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw20Balance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw20Balance"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw20BalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Cw20TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          },
+          "token_info": {
+            "$ref": "#/components/schemas/TokenBase"
+          }
+        },
+        "required": [
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "raw_amount",
+          "from",
+          "to",
+          "timestamp",
+          "tx_hash",
+          "action",
+          "block_height",
+          "token_info"
+        ]
+      },
+      "QueryCw20TokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw20Transfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw20TokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw20TokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Cw20TokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "raw_amount",
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryCw20TokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw20TokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw20TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw20TokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Cw721TokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_holder_count": {
+            "type": "string"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "token_contract_address": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "ERC-721",
+              "ERC-1155",
+              "ERC-20",
+              "CW-20",
+              "CW-721"
+            ]
+          },
+          "token_metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_holder_count",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "token_contract_address",
+          "token_symbol",
+          "token_name",
+          "token_type",
+          "token_metadata",
+          "token_association"
+        ]
+      },
+      "Cw721Token": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "owner",
+          "token_id",
+          "token_contract",
+          "token_association",
+          "token_symbol",
+          "token_name",
+          "token_metadata"
+        ]
+      },
+      "QueryCw721TokenParams": {
+        "type": "object",
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "contract_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw721Token": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw721Token"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw721TokenParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "QueryCw721BalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_contract_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw721Balance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw721Token"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw721BalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Cw721TokenInstance": {
+        "type": "object",
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "token_id",
+          "token_contract",
+          "token_association",
+          "token_symbol",
+          "token_name",
+          "token_metadata"
+        ]
+      },
+      "Cw721TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "token_instance": {
+            "$ref": "#/components/schemas/Cw721TokenInstance"
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "token_id",
+          "token_instance",
+          "from",
+          "to",
+          "timestamp",
+          "tx_hash",
+          "action",
+          "block_height"
+        ]
+      },
+      "QueryCw721TokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "token_id": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw721TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw721TokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw721TokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Cw721TokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_contract": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "amount",
+          "token_contract",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryCw721TokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "contract_address": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "contract_address",
+          "chain_id"
+        ]
+      },
+      "PaginatedCw721TokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cw721TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCw721TokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ICS20TokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_denom": {
+            "type": "string"
+          },
+          "token_holder_count": {
+            "type": "number"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_symbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_description": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_denom",
+          "token_holder_count",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "token_usd_price",
+          "total_usd_value",
+          "token_name",
+          "token_symbol",
+          "token_decimals",
+          "token_description",
+          "token_type",
+          "token_logo",
+          "token_metadata",
+          "token_association"
+        ]
+      },
+      "ICS20Balance": {
+        "type": "object",
+        "properties": {
+          "raw_amount": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_denom": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "raw_amount",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "wallet_address",
+          "token_denom",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryICS20BalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_denom_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedICS20Balance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ICS20Balance"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryICS20BalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ICS20TokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          },
+          "token_info": {
+            "type": "object",
+            "properties": {
+              "token_denom": {
+                "required": true,
+                "type": "string"
+              },
+              "token_symbol": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_name": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_decimals": {
+                "required": true,
+                "type": "string"
+              },
+              "token_logo": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_association": {
+                "required": true,
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Association"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "from",
+          "to",
+          "timestamp",
+          "raw_amount",
+          "tx_hash",
+          "action",
+          "block_height",
+          "token_info"
+        ]
+      },
+      "QueryICS20TokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "token_denom": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "token_denom",
+          "chain_id"
+        ]
+      },
+      "PaginatedICS20Transfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ICS20TokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryICS20TokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ICS20TokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_denom": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "raw_amount",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "token_denom",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryICS20TokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "token_denom": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "token_denom",
+          "chain_id"
+        ]
+      },
+      "PaginatedICS20TokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ICS20TokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryICS20TokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "NativeTokenInfo": {
+        "type": "object",
+        "properties": {
+          "token_denom": {
+            "type": "string"
+          },
+          "token_holder_count": {
+            "type": "number"
+          },
+          "token_raw_total_supply": {
+            "type": "string"
+          },
+          "token_total_supply": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_symbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_description": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_metadata": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token_denom",
+          "token_holder_count",
+          "token_raw_total_supply",
+          "token_total_supply",
+          "token_usd_price",
+          "total_usd_value",
+          "token_name",
+          "token_symbol",
+          "token_decimals",
+          "token_description",
+          "token_type",
+          "token_logo",
+          "token_metadata",
+          "token_association"
+        ]
+      },
+      "NativeBalance": {
+        "type": "object",
+        "properties": {
+          "raw_amount": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "token_denom": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "raw_amount",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "wallet_address",
+          "token_denom",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryNativeBalanceParams": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "token_denom_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "chain_id"
+        ]
+      },
+      "PaginatedNativeBalance": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NativeBalance"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryNativeBalanceParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "NativeTokenTransfer": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "from": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "tx_hash": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "block_height": {
+            "type": "string"
+          },
+          "token_info": {
+            "type": "object",
+            "properties": {
+              "token_denom": {
+                "required": true,
+                "type": "string"
+              },
+              "token_symbol": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_name": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_decimals": {
+                "required": true,
+                "type": "string"
+              },
+              "token_logo": {
+                "required": true,
+                "type": "string",
+                "nullable": true
+              },
+              "token_association": {
+                "required": true,
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Association"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "from",
+          "to",
+          "timestamp",
+          "raw_amount",
+          "tx_hash",
+          "action",
+          "block_height",
+          "token_info"
+        ]
+      },
+      "QueryNativeTokenTransferParams": {
+        "type": "object",
+        "properties": {
+          "token_denom": {
+            "type": "string"
+          },
+          "wallet_address": {
+            "type": "string"
+          },
+          "from_date": {
+            "type": "string"
+          },
+          "to_date": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "token_denom",
+          "chain_id"
+        ]
+      },
+      "PaginatedNativeTransfer": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NativeTokenTransfer"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryNativeTokenTransferParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "NativeTokenHolder": {
+        "type": "object",
+        "properties": {
+          "wallet_address": {
+            "$ref": "#/components/schemas/AddressBase"
+          },
+          "raw_amount": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "token_usd_price": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_usd_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_denom": {
+            "type": "string"
+          },
+          "token_symbol": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_decimals": {
+            "type": "string"
+          },
+          "token_logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "token_association": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Association"
+              }
+            ]
+          }
+        },
+        "required": [
+          "wallet_address",
+          "raw_amount",
+          "amount",
+          "token_usd_price",
+          "total_usd_value",
+          "token_denom",
+          "token_symbol",
+          "token_name",
+          "token_decimals",
+          "token_logo",
+          "token_type",
+          "token_association"
+        ]
+      },
+      "QueryNativeTokenHolderParams": {
+        "type": "object",
+        "properties": {
+          "token_denom": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          },
+          "chain_id": {
+            "type": "string",
+            "enum": [
+              "pacific-1",
+              "atlantic-2",
+              "arctic-1"
+            ]
+          }
+        },
+        "required": [
+          "token_denom",
+          "chain_id"
+        ]
+      },
+      "PaginatedNativeTokenHolder": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NativeTokenHolder"
+            }
+          },
+          "next_page_params": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryNativeTokenHolderParams"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SmartContractDetail": {
+        "type": "object",
+        "properties": {
+          "has_methods_read": {
+            "type": "boolean"
+          },
+          "is_self_destructed": {
+            "type": "boolean"
+          },
+          "has_custom_methods_write": {
+            "type": "boolean"
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "source_code": {
+            "type": "string"
+          },
+          "deployed_bytecode": {
+            "type": "string"
+          },
+          "optimization_enabled": {
+            "type": "boolean"
+          },
+          "verified_twin_address_hash": {
+            "type": "string"
+          },
+          "is_verified": {
+            "type": "boolean"
+          },
+          "compiler_settings": {
+            "type": "object"
+          },
+          "optimization_runs": {
+            "type": "number"
+          },
+          "sourcify_repo_url": {
+            "type": "object"
+          },
+          "decoded_constructor_args": {
+            "type": "object"
+          },
+          "has_methods_write": {
+            "type": "boolean"
+          },
+          "compiler_version": {
+            "type": "string"
+          },
+          "is_verified_via_verifier_alliance": {
+            "type": "boolean"
+          },
+          "verified_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "implementations": {
+            "type": "object"
+          },
+          "proxy_type": {
+            "type": "object"
+          },
+          "external_libraries": {
+            "type": "object"
+          },
+          "creation_bytecode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "is_blueprint": {
+            "type": "boolean"
+          },
+          "license_type": {
+            "type": "string"
+          },
+          "is_fully_verified": {
+            "type": "boolean"
+          },
+          "has_methods_read_proxy": {
+            "type": "boolean"
+          },
+          "is_vyper_contract": {
+            "type": "boolean"
+          },
+          "is_verified_via_eth_bytecode_db": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
+          "evm_version": {
+            "type": "string"
+          },
+          "can_be_visualized_via_sol2uml": {
+            "type": "boolean"
+          },
+          "has_methods_write_proxy": {
+            "type": "boolean"
+          },
+          "has_custom_methods_read": {
+            "type": "boolean"
+          },
+          "is_verified_via_sourcify": {
+            "type": "boolean"
+          },
+          "additional_sources": {
+            "type": "object"
+          },
+          "certified": {
+            "type": "boolean"
+          },
+          "abi": {
+            "type": "object"
+          },
+          "is_changed_bytecode": {
+            "type": "boolean"
+          },
+          "is_partially_verified": {
+            "type": "boolean"
+          },
+          "constructor_args": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "has_methods_read",
+          "is_self_destructed",
+          "has_custom_methods_write",
+          "file_path",
+          "source_code",
+          "deployed_bytecode",
+          "optimization_enabled",
+          "verified_twin_address_hash",
+          "is_verified",
+          "compiler_settings",
+          "optimization_runs",
+          "sourcify_repo_url",
+          "decoded_constructor_args",
+          "has_methods_write",
+          "compiler_version",
+          "is_verified_via_verifier_alliance",
+          "verified_at",
+          "implementations",
+          "proxy_type",
+          "external_libraries",
+          "creation_bytecode",
+          "name",
+          "is_blueprint",
+          "license_type",
+          "is_fully_verified",
+          "has_methods_read_proxy",
+          "is_vyper_contract",
+          "is_verified_via_eth_bytecode_db",
+          "language",
+          "evm_version",
+          "can_be_visualized_via_sol2uml",
+          "has_methods_write_proxy",
+          "has_custom_methods_read",
+          "is_verified_via_sourcify",
+          "additional_sources",
+          "certified",
+          "abi",
+          "is_changed_bytecode",
+          "is_partially_verified",
+          "constructor_args"
+        ]
+      }
+    }
+  }
+}

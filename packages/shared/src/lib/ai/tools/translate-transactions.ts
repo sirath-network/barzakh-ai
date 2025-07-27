@@ -75,6 +75,7 @@ export const novesSupportedChains = [
   "xdc",
   "zetachain-evm",
   "zetachain-evm-testnet",
+  "sei",
   "zksync-era",
   "zora",
 ] as const;

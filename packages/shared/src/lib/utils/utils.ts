@@ -196,6 +196,7 @@ export type SearchGroupId =
   | "wormhole"
   | "flow"
   | "zeta"
+  | "sei"
   | "monad"
   | "solana"
   | "aptos";
@@ -251,6 +252,13 @@ export const searchGroups = [
     description: "Everything Zeta. Search, transactions and more.",
     icon: Network,
     img: "/images/icon/zeta/zetachain-logo.png",
+  },
+  {
+    id: "sei",
+    name: "Sei",
+    description: "Everything Sei. Search, transactions and more.",
+    icon: Network,
+    img: "/images/icon/sei/sei-logo.png",
   },
   {
     id: "aptos",
