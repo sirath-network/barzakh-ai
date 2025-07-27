@@ -9,11 +9,19 @@ import { makeSeiTraceApiRequest } from "../../../utils/make-seitrace-api-request
 import seiTraceJson from "./seitrace-opanapi.json";
 
 // A list of common token contract addresses on the Sei network.
-// This gives the AI the necessary "knowledge" to answer queries about specific tokens.
 const COMMON_CONTRACTS = {
-  usdc: "0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392",
+  // Native EVM Tokens
+  wsei: "0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7",
+  isei: "0x5Cf6826140C1C56Ff49C808A1A75407Cd1DF9423",
+  // Bridged Tokens (with Pointers)
+  "usdc.n": {
+    pointer: "0x3894085Ef7Ff0f0aeDf52E2A2704928d1Ec074F1",
+    original: "ibc/CA6FBFAF399474A06263E10D0CE5AEBBE15189D6D4B2DD9ADE61007E68EB9DB0"
+  },
   usdt: "0x9151434b16b9763660705744891fA906F660EcC5",
-  // Add other common contract addresses here as needed
+  wbtc: "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+  weth: "0x160345fC359604fC6e70E3c5fAcbdE5F7A9342d8",
+  fastUSD: "0x37a4dD9CED2b19Cfe8FAC251cd727b5787E45269",
 };
 
 export const getSeiApiData = tool({
@@ -26,52 +34,84 @@ export const getSeiApiData = tool({
     try {
       console.log("getSeiApiData called with query: ", userQuery);
 
+      let evmAddress: string | null = null;
+      let seiAddress: string | null = null;
+
+      // Step 1: Find any address in the query and get its associated pair.
+      const addressRegex = /(0x[a-fA-F0-9]{40}|sei[a-z0-9]{39})/;
+      const match = userQuery.match(addressRegex);
+
+      if (match) {
+        const foundAddress = match[0];
+        console.log(`Found address in query: ${foundAddress}`);
+        
+        try {
+            const assocUrl = `https://seitrace.com/insights/api/v2/addresses?chain_id=pacific-1&address=${foundAddress}`;
+            const assocResponseStr = await makeSeiTraceApiRequest(assocUrl);
+            const assocResponse = JSON.parse(assocResponseStr);
+
+            if (assocResponse.association) {
+                evmAddress = assocResponse.association.evm_hash;
+                seiAddress = assocResponse.association.sei_hash;
+                console.log(`Associated addresses found: EVM: ${evmAddress}, SEI: ${seiAddress}`);
+            }
+        } catch (e) {
+            console.error("Could not fetch associated address. Proceeding with original address.", e);
+        }
+
+        // Fallback if association fails
+        if (!evmAddress && !seiAddress) {
+            if (foundAddress.startsWith('0x')) {
+                evmAddress = foundAddress;
+            } else {
+                seiAddress = foundAddress;
+            }
+        }
+      }
+
       const openapidata = await loadOpenAPIFromJson(seiTraceJson);
       const allPaths = await getAllPathDetails(openapidata);
 
+      // Step 2: Ask the AI to build API calls using the addresses we found.
       const { object: apiEndpointsArray } = await generateObject({
         model: myProvider.languageModel("chat-model-small"),
         output: "array",
         schema: z.string().describe("the full api path with query parameters"),
         system: `
-          You are an expert at constructing API request paths from an OpenAPI specification.
-          Your task is to return an array of complete API request paths based on a user query and a list of common contracts.
+          You are an expert at constructing API request paths. You have been provided with a user's query and a pair of associated addresses: one EVM (0x...) and one SEI (sei...).
+          Your task is to construct the correct API calls to fulfill the user's request.
           Follow these rules strictly:
-          1.  **Identify Entities:** Analyze the user's query to extract key entities:
-              - **Wallet Addresses:** Look for 'sei...' or '0x...' addresses that are likely user wallets.
-              - **Token Mentions:** Look for token names or symbols (e.g., "USDC", "Tether").
-              - **Direct Contract Addresses:** Recognize if a '0x...' address is explicitly referred to as a contract.
-
-          2.  **Consult Common Contracts:** Use the provided list of common contracts to find the 'contract_address' if a token name is mentioned in the query.
-
-          3.  **Construct API Paths:** For each potential API path from the spec, you must determine if you have the required parameters.
-              - An endpoint like '/token/erc20/transfers' requires **both** a 'contract_address' and a 'wallet_address'.
-              - An endpoint like '/addresses' only requires an 'address'.
-              - **Crucially, do not use a wallet address to fill a 'contract_address' parameter.**
-
-          4.  **Build the Full URL:**
-              - If the query is "USDC transfers for 0x123...", you must find the USDC contract address from the common list and build the path like: '/api/v2/token/erc20/transfers?chain_id=pacific-1&contract_address=[USDC_ADDRESS]&wallet_address=0x123...'
-              - If the query is "details for wallet 0x123...", build the path: '/api/v2/addresses?chain_id=pacific-1&address=0x123...'
-              - **If an endpoint requires a 'contract_address' and one cannot be found (either directly in the query or from the common list), YOU MUST NOT generate a path for that endpoint.**
-
-          5.  **Defaults:** Always use 'chain_id=pacific-1' for the chain ID.
-
-          6.  **Output:** Return only the path and query string. Do not include the base URL. Limit the response to a maximum of 5 paths.`,
+          1.  **Analyze Intent:** Determine if the user wants a "portfolio" (balances, holdings) or "history" (transactions, transfers). If no intent is clear, default to "portfolio".
+          2.  **Use Correct Address Formats:** This is the most important rule.
+              - For EVM-related endpoints (like /token/erc20/balances), you MUST use the provided EVM address. If no EVM address is available, you CANNOT call these endpoints.
+              - For Native/Cosmos-related endpoints (like /token/cw20/balances, /token/native/balances), you MUST use the provided SEI address. If no SEI address is available, you CANNOT call these endpoints.
+          3.  **Portfolio Discovery:** If the intent is "portfolio", construct calls to all relevant balance endpoints, respecting the address format rule above. Do not include optional parameters like 'token_contract_list'.
+          4.  **Defaults:** Always use 'chain_id=pacific-1'.
+          5.  **Output:** Return an array of **relative paths** only (e.g., /api/v2/...). Do not include the base URL.`,
         prompt: JSON.stringify({
           apiPaths: allPaths,
           commonContracts: COMMON_CONTRACTS,
           userQuery: userQuery,
+          availableAddresses: {
+            evmAddress,
+            seiAddress
+          }
         }),
       });
 
       const limitedApiEndpointsArray = apiEndpointsArray.slice(0, 5);
       console.log(`AI selected the following API endpoints: `, limitedApiEndpointsArray);
 
+      // Step 3: Execute the generated API calls.
       const requests = limitedApiEndpointsArray.map(async (endpoint) => {
-        const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        // Sanitize the endpoint to ensure it's a relative path
+        let path = endpoint;
+        if (endpoint.startsWith('http')) {
+            path = new URL(endpoint).pathname + new URL(endpoint).search;
+        }
+        const formattedEndpoint = path.startsWith('/') ? path : `/${path}`;
         const fullUrl = `https://seitrace.com/insights${formattedEndpoint}`;
         
-        console.log("Making request to:", fullUrl);
         const response = await makeSeiTraceApiRequest(fullUrl);
         
         let responseObject;
@@ -92,8 +132,7 @@ export const getSeiApiData = tool({
       const results = await Promise.all(requests);
       return results;
 
-    } catch (error: any)
-     {
+    } catch (error: any) {
       console.error("Error in getSeiApiData:", error);
       return {
         success: false,
