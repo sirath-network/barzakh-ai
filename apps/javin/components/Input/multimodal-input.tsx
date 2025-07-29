@@ -379,7 +379,6 @@ function PureMultimodalInput({
             WebkitTouchCallout: "none",
           }}
           rows={1}
-          autoFocus={width ? width > 768 : true}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
