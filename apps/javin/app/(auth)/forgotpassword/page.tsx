@@ -12,7 +12,6 @@ import { forgotPassword, type ForgotPasswordActionState } from "../actions";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
 
-// 2. Definisikan tipe untuk state overlay
 type OverlayState = {
   status: "success" | "error" | "idle";
   title?: string;
@@ -61,13 +60,11 @@ export default function Page() {
     animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
   
-  // 5. Buat fungsi untuk menutup overlay
   const closeOverlay = () => {
     setOverlayState({ status: "idle", message: "" });
   };
 
   return (
-    // 6. Bungkus dengan React Fragment dan render overlay
     <>
       <ActionResultOverlay
         status={overlayState.status}

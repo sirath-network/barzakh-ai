@@ -12,9 +12,9 @@ interface BottomSheetProps {
   title?: string;
   fullscreen?: boolean;
   className?: string;
-  showHandle?: boolean; // Prop untuk menampilkan/menyembunyikan handle
-  maxHeight?: string; // Prop untuk mengatur max height custom
-  snapPoints?: number[]; // Snap points untuk drag behavior (dalam persen)
+  showHandle?: boolean; 
+  maxHeight?: string; 
+  snapPoints?: number[]; 
 }
 
 export default function BottomSheet({
@@ -36,15 +36,12 @@ export default function BottomSheet({
     setIsMounted(true);
   }, []);
 
-  // Mencegah body scroll saat sheet terbuka
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      // Prevent zoom on iOS
       document.body.style.position = "fixed";
       document.body.style.width = "100%";
     } else {
-      // Mengembalikan scroll setelah animasi exit selesai
       setTimeout(() => {
         document.body.style.overflow = "";
         document.body.style.position = "";
@@ -72,19 +69,16 @@ export default function BottomSheet({
     }
   };
 
-  // Menangani gestur drag untuk menutup sheet atau snap ke posisi tertentu
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const dragVelocity = info.velocity.y;
     const dragOffset = info.offset.y;
     const sheetHeight = sheetRef.current?.clientHeight || 0;
 
-    // Tutup jika di-drag ke bawah dengan cepat atau offset besar
     if (dragVelocity > 500 || dragOffset > sheetHeight * 0.4) {
       onClose();
       return;
     }
 
-    // Snap ke posisi terdekat untuk drag kecil
     if (Math.abs(dragOffset) > 50) {
       const newSnapPoint = findClosestSnapPoint(dragOffset, sheetHeight);
       setCurrentSnapPoint(newSnapPoint);
@@ -104,7 +98,7 @@ export default function BottomSheet({
             onClick={onClose}
           />
 
-          {/* Konten Bottom Sheet */}
+          {/* */}
           <motion.div
             ref={sheetRef}
             drag="y"
@@ -135,7 +129,7 @@ export default function BottomSheet({
               height: fullscreen ? "100%" : `${currentSnapPoint * 100}vh`,
             }}
           >
-            {/* Header dengan Handle */}
+            {/* */}
             {showHandle && (
               <motion.div 
                 className="flex-shrink-0 cursor-grab active:cursor-grabbing p-4 pt-3 pb-2"
@@ -152,7 +146,7 @@ export default function BottomSheet({
               </motion.div>
             )}
 
-            {/* Title tanpa handle */}
+            {/* */}
             {!showHandle && title && (
               <div className="flex-shrink-0 p-4 pb-2 border-b border-border/20">
                 <h2 className="text-center text-lg font-semibold text-foreground/90">
@@ -161,19 +155,15 @@ export default function BottomSheet({
               </div>
             )}
 
-            {/* Konten Scrollable */}
+            {/* */}
             <div 
               className={cn(
                 "flex-1 overflow-y-auto min-h-0",
-                // Custom scrollbar untuk mobile
                 "scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent",
-                // Smooth scrolling
                 "scroll-smooth",
-                // Padding adjustment
                 showHandle || title ? "" : "pt-4"
               )}
               style={{
-                // Prevent momentum scrolling issues on iOS
                 WebkitOverflowScrolling: 'touch',
                 overscrollBehavior: 'contain',
               }}
@@ -183,7 +173,7 @@ export default function BottomSheet({
               </div>
             </div>
 
-            {/* Safe area untuk mobile devices */}
+            {/* */}
             <div className="flex-shrink-0 h-safe-area-inset-bottom" />
           </motion.div>
         </>

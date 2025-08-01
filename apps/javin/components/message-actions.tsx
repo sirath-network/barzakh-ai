@@ -4,7 +4,7 @@ import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
-import { cn } from '@javin/shared/lib/utils/utils'; // Pastikan cn diimpor
+import { cn } from '@javin/shared/lib/utils/utils';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -99,7 +99,7 @@ export function PureMessageActions({
               disabled={vote?.isUpvoted}
               onClick={() => handleVote('up')}
             >
-              {/* NEW: Ikon berubah warna saat vote aktif */}
+              {/* */}
               <ThumbUpIcon
                 className={cn(
                   'h-4 w-4',
@@ -120,7 +120,7 @@ export function PureMessageActions({
               disabled={vote && !vote.isUpvoted}
               onClick={() => handleVote('down')}
             >
-              {/* NEW: Ikon berubah warna saat vote aktif */}
+              {/* */}
               <ThumbDownIcon
                 className={cn(
                   'h-4 w-4',

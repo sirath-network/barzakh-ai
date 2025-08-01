@@ -59,10 +59,9 @@ export const getAptosApiData = tool({
       const allPathsAndDesc = await getAllPathsAndDesc(aptosOpenapidata);
 
       const aptosBaseUrl = "https://api.mainnet.aptoslabs.com/v1";
-      
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel(selectedModel),
+        model: myProvider.languageModel("chat-model-small"),
         system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant aptos blockchain data in a user-friendly format.
       
          you can use the below tools to get the required data:

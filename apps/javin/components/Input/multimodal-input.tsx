@@ -266,7 +266,6 @@ function PureMultimodalInput({
 
     window.history.replaceState({}, "", `/chat/${chatId}`);
 
-    // ✅ Filter file yang didukung AI (gambar dan teks)
     const allowedTypes = [
         // Images
         'image/jpeg',

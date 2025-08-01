@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
 
-// Validasi file: max 5MB, boleh semua format
 const FileSchema = z.object({
   file: z
     .instanceof(File)

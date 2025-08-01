@@ -11,9 +11,8 @@ import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import { LogoGoogle } from "@/components/icons";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
-import { Button } from "@/components/ui/button"; // Impor Button
+import { Button } from "@/components/ui/button";
 
-// Tipe untuk state overlay dengan judul kustom
 type OverlayState = {
   status: "success" | "error" | "idle";
   title?: string;

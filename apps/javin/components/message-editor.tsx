@@ -78,7 +78,6 @@ export function MessageEditor({
   };
 
   return (
-    // Wrapper ini memberikan konteks (latar, padding) untuk area edit
     <div className="flex flex-col gap-4 w-full bg-white dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 shadow-md">
       <Textarea
         ref={textareaRef}
