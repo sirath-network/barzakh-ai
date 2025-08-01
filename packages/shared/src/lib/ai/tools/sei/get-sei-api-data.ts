@@ -34,10 +34,16 @@ export const getSeiApiData = tool({
     try {
       console.log("getSeiApiData called with query: ", userQuery);
 
+      const today = new Date();
+      const oneMonthAgoDate = new Date(today);
+      oneMonthAgoDate.setMonth(today.getMonth() - 1);
+
+      const to_date = today.toISOString().split('T')[0];
+      const from_date = oneMonthAgoDate.toISOString().split('T')[0];
+
       let evmAddress: string | null = null;
       let seiAddress: string | null = null;
 
-      // Step 1: Find any address in the query and get its associated pair.
       const addressRegex = /(0x[a-fA-F0-9]{40}|sei[a-z0-9]{39})/;
       const match = userQuery.match(addressRegex);
 
@@ -59,7 +65,6 @@ export const getSeiApiData = tool({
             console.error("Could not fetch associated address. Proceeding with original address.", e);
         }
 
-        // Fallback if association fails
         if (!evmAddress && !seiAddress) {
             if (foundAddress.startsWith('0x')) {
                 evmAddress = foundAddress;
@@ -72,9 +77,8 @@ export const getSeiApiData = tool({
       const openapidata = await loadOpenAPIFromJson(seiTraceJson);
       const allPaths = await getAllPathDetails(openapidata);
 
-      // Step 2: Ask the AI to build API calls using the addresses we found.
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("chat-model-small"),
+        model: myProvider.languageModel("chat-model-gemini"),
         output: "array",
         schema: z.string().describe("the full api path with query parameters"),
         system: `
@@ -82,12 +86,12 @@ export const getSeiApiData = tool({
           Your task is to construct the correct API calls to fulfill the user's request.
           Follow these rules strictly:
           1.  **Analyze Intent:** Determine if the user wants a "portfolio" (balances, holdings) or "history" (transactions, transfers). If no intent is clear, default to "portfolio".
-          2.  **Use Correct Address Formats:** This is the most important rule.
-              - For EVM-related endpoints (like /token/erc20/balances), you MUST use the provided EVM address. If no EVM address is available, you CANNOT call these endpoints.
-              - For Native/Cosmos-related endpoints (like /token/cw20/balances, /token/native/balances), you MUST use the provided SEI address. If no SEI address is available, you CANNOT call these endpoints.
-          3.  **Portfolio Discovery:** If the intent is "portfolio", construct calls to all relevant balance endpoints, respecting the address format rule above. Do not include optional parameters like 'token_contract_list'.
-          4.  **Defaults:** Always use 'chain_id=pacific-1'.
-          5.  **Output:** Return an array of **relative paths** only (e.g., /api/v2/...). Do not include the base URL.`,
+          2.  **Use Correct Address Formats (General Rule):** For EVM endpoints (e.g., /token/erc20/...) use the EVM address. For Native/Cosmos endpoints (e.g., /token/cw20/...) use the SEI address.
+          3.  **Transaction History Address Priority:** For the /api/v2/addresses/transactions endpoint, you MUST use the EVM (0x...) address if it is available. Only use the SEI (sei...) address for this endpoint if the EVM address is not found.
+          4.  **Portfolio Discovery:** If the intent is "portfolio", construct calls to all relevant balance endpoints, respecting the address format rule above. Do not include optional parameters.
+          5.  **Defaults:** Always use 'chain_id=pacific-1'.
+          6.  **Date Range for Recent History:** If the user's query contains words like "recent", "last month", or "latest transactions", and the intent is "history", you MUST add from_date and to_date query parameters to the /api/v2/addresses/transactions call. Use the provided dates.
+          7.  **Output:** Return an array of **relative paths** only (e.g., /api/v2/...). Do not include the base URL.`,
         prompt: JSON.stringify({
           apiPaths: allPaths,
           commonContracts: COMMON_CONTRACTS,
@@ -95,6 +99,10 @@ export const getSeiApiData = tool({
           availableAddresses: {
             evmAddress,
             seiAddress
+          },
+          dateContext: {
+            from_date: from_date,
+            to_date: to_date
           }
         }),
       });
@@ -102,9 +110,7 @@ export const getSeiApiData = tool({
       const limitedApiEndpointsArray = apiEndpointsArray.slice(0, 5);
       console.log(`AI selected the following API endpoints: `, limitedApiEndpointsArray);
 
-      // Step 3: Execute the generated API calls.
       const requests = limitedApiEndpointsArray.map(async (endpoint) => {
-        // Sanitize the endpoint to ensure it's a relative path
         let path = endpoint;
         if (endpoint.startsWith('http')) {
             path = new URL(endpoint).pathname + new URL(endpoint).search;

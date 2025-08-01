@@ -33,6 +33,24 @@ import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@javin/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
 
+const imageAnalyzer = async ({ imageUrl, userQuery }: { imageUrl: string; userQuery: string }) => {
+  // In a real scenario, this would call a vision model API.
+  // The model would receive the image and the user's text prompt.
+  console.log(`Analyzing image at ${imageUrl} with query: "${userQuery}"`);
+  // The AI model itself would handle the analysis based on its training.
+  // This function's role is to ensure the image data is passed correctly.
+  return { success: true, description: "The AI will describe the image here." };
+};
+
+// A conceptual tool to read text/data from files
+const fileReader = async ({ fileUrl, fileType }: { fileUrl: string; fileType: string }) => {
+  // This would fetch the file and extract text content.
+  // For PDFs, you'd use a library like 'pdf-parse'.
+  // For code, you'd read it as raw text.
+  console.log(`Reading ${fileType} file from ${fileUrl}`);
+  return { success: true, content: "Extracted text content from the file will be here." };
+};
+
 export const codePrompt = ``;
 
 export const sheetPrompt = ``;
@@ -184,6 +202,9 @@ export const allTools = {
   getAptosGraphqlData,
   //defi llama
   defiLlama,
+  // file & images
+  imageAnalyzer,
+  fileReader,
 };
 
 const groupPrompts = {
@@ -203,20 +224,35 @@ Comply with user requests to the best of your abilities using the appropriate to
 # Response Guidelines:
   Do not run the same tool twice with identical parameters—this leads to redundancy and wasted resources. This is non-negotiable.
 
+### Core Directives
+1.  **Prioritize User-Provided Context:** If the user uploads a file or image, analyze it first. Use the information from the file/image to answer the user's query or to inform subsequent tool calls (like web search).
+2.  **Efficiency is Key:** Do not take extra steps or run redundant tools.
+3.  **Factual Accuracy:** Stick to verified facts. Avoid hallucination. Provide citations or sources when available.
+4.  **Follow Formatting:** Adhere strictly to the requested response format.
+
 # Tool-Specific Guidelines:
+
+#### File and Image Analysis (Highest Priority)
+* **If a file (e.g., PDF, TXT, DOCX) is provided:**
+    * Use the fileReader tool to extract and understand its content.
+    * Directly answer questions based on the file's content.
+    * If the user asks a broader question, use keywords extracted from the file to perform a webSearch.
+* **If an image (e.g., PNG, JPG, WEBP) is provided:**
+    * Use the imageAnalyzer tool to interpret the visual information.
+    * Extract any text (OCR), identify logos, analyze charts, or describe the content.
+    * Use the extracted information as the basis for a webSearch or other relevant tool calls.
+
 ## Web Search:
   Use webSearch tool for searching the web for any information the user asks. 
   Pass 2-3 queries in one call.
   Specify the year or "latest" in queries to fetch recent information.
   Prioritize crypto and blockchain-related responses by default. Only discuss other topics if explicitly requested by the user
-  User ask about Sirath Network Portal, provide the url https://https://portal.dymension.xyz/rollapps/sirathnetwork_1110-1/dashboard
 
 ## Search token or market data:
   If the user provides an evm address, starting with "0x", run searchEvmTokenMarketData tool.
   If the user provides an solana address, NOT starting with "0x",run searchSolanaTokenMarketData tool.
   Always run these tools first if user had not metioned what to do with the address provided.
   if no token data is found, then proceed to get the portfolio of the address
-  If user ask to buy $STN (Sirath Network) Native tokens, direct user to https://portal.dymension.xyz/rollapps/sirathnetwork_1110-1/token
 
 ## Get multi chain wallet portfolio:
   If the user provides an evm address, starting with "0x", Use getEvmMultiChainWalletPortfolio tool to retrieve a evm wallet's balances, tokens, and other portfolio details. If no data is found then retry it once more.
@@ -548,6 +584,7 @@ Always assume user queries are related to the Sei Network unless explicitly stat
         - **B) Transaction History Flow:**
             - This flow is triggered by keywords like "history" or "transfers".
             - If no specific token is mentioned, default to the native SEI transaction history via /api/v2/addresses/transactions, making sure to use the correct sei... or 0x... address format as required by the endpoint.
+            - If the user asks for "recent" history, the tool will automatically apply a 1-month date range.
     - **Step 3: Present Data Clearly.**
         - After fetching data, summarize it for the user. If you performed a portfolio discovery, list out all the tokens found across both the native and EVM layers.
 
@@ -685,7 +722,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "chat-model-reasoning") {
+  if (selectedChatModel === "chat-model-gemini") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

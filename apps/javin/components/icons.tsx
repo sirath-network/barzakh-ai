@@ -199,9 +199,16 @@ export const LogoOpenAI = ({ size = 16 }: { size?: number }) => {
   );
 };
 
-export const LogoGoogle = ({ size = 16 }: { size?: number }) => {
+export const LogoGoogle = ({
+  size = 16,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) => {
   return (
     <svg
+      className={className}
       data-testid="geist-icon"
       height={size}
       strokeLinejoin="round"

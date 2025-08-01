@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { cn } from "@javin/shared/lib/utils/utils";
 
 const Textarea = React.forwardRef<
@@ -9,8 +8,30 @@ const Textarea = React.forwardRef<
   return (
     <textarea
       className={cn(
-        'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-        className,
+        // === Base Layout & Sizing ===
+        'flex w-full resize-none rounded-xl text-base leading-relaxed',
+        'min-h-[52px]',
+
+        // === Padding ===
+        'px-4 py-3',
+
+        // === Colors & Background ===
+        'bg-neutral-100 dark:bg-neutral-800',
+        'placeholder:text-neutral-400 dark:placeholder:text-neutral-500',
+
+        // === Border & Focus State ===
+        'border border-neutral-200 dark:border-neutral-700',
+        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900',
+        
+        // === Transitions ===
+        'transition-colors duration-200',
+        
+        // === Scrollbar & Disabled State ===
+        'overflow-y-auto custom-scrollbar',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        
+        // === ClassName from props (untuk override) ===
+        className, 
       )}
       ref={ref}
       {...props}

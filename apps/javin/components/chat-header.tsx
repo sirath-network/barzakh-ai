@@ -1,3 +1,5 @@
+// chat-header.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -7,7 +9,7 @@ import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "./icons";
 import { useSidebar } from "./ui/sidebar";
-import { memo } from "react";
+import { memo, useState, useEffect } from "react"; // Import useState and useEffect
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VisibilityType } from "./visibility-selector";
 import { User } from "next-auth";
@@ -36,7 +38,15 @@ function PureChatHeader({
   const { resolvedTheme } = useTheme();
 
   const { width: windowWidth } = useWindowSize();
-  // console.log("user in chat header", user);
+
+  // State to prevent hydration mismatch
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+
   return (
     <div className="flex flex-col">
       <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
@@ -44,7 +54,8 @@ function PureChatHeader({
           <SidebarToggle />
 
           <div className="">
-            {(!open || windowWidth < 768) && (
+            {/* Only render this part on the client after hydration */}
+            {isClient && (!open || windowWidth < 768) && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -64,9 +75,6 @@ function PureChatHeader({
             )}
           </div>
 
-          {/* {!isReadonly && (
-          <ModelSelector selectedModelId={selectedModelId} className=" " />
-        )} */}
         </div>
         {messages.length > 0 && (
           <Link href={"/"} className="font-semibold">
@@ -77,23 +85,10 @@ function PureChatHeader({
             />
           </Link>
         )}
-        {/* REPLACE TEXT WITH THE ACTUAL LOGO WHEN YOU GET ONE WITH WHITE TEXT */}
-        {/* <Image src={"/javin-logo.png"} width={100} height={30} alt="Barzakh Agents" /> */}
 
         <div className="flex justify-end w-full">
           <div className="">
             {user && user?.email ? (
-              // <button
-              //   type="button"
-              //   className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-              //   onClick={() => {
-              //     signOut({
-              //       redirectTo: "/",
-              //     });
-              //   }}
-              // >
-              //   Logout
-              // </button>
               <div>
                 <SidebarUserNav user={user} />
               </div>
@@ -111,13 +106,6 @@ function PureChatHeader({
           </div>
         </div>
 
-        {/* {!isReadonly && (
-        <VisibilitySelector
-          chatId={chatId}
-          selectedVisibilityType={selectedVisibilityType}
-          className="order-1 md:order-3"
-        />
-      )} */}
       </header>
       <TextStrip />
     </div>

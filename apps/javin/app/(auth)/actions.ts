@@ -267,7 +267,7 @@ export async function forgotPassword(
     const resetToken = nanoid();
     await savePasswordResetToken(email, resetToken);
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
+    const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
     console.log("Reset URL:", resetUrl);
 
     await sendResetEmail(email, resetUrl); // 💌 Send the actual email

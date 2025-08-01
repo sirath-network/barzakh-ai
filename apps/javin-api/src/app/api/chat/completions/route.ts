@@ -1,6 +1,7 @@
 import { allTools, getGroupConfig } from "@javin/shared/src/lib/ai/prompts";
 import { generateUUID } from "@javin/shared/src/lib/utils/utils";
 import { openai } from "@ai-sdk/openai";
+import { myProvider } from "@javin/shared/src/lib/ai/models";
 import { smoothStream, streamText, generateText } from "ai";
 import { PromptRequestSchema, ChatCompletionStreaming } from "./type";
 import { z } from "zod";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       stream: StreamingTrue,
     } = validatedData;
 
-    const model = "gpt-4o-mini";
+    myProvider.languageModel("chat-model-small")
 
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"

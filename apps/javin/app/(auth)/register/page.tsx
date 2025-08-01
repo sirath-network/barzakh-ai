@@ -2,170 +2,158 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
+import { register, type RegisterActionState } from "../actions";
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 
-import { register, type RegisterActionState } from "../actions";
-import { useTheme } from "next-themes";
-
 export default function Page() {
   const router = useRouter();
-  const { resolvedTheme } = useTheme();
-
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [showOTPField, setShowOTPField] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [formData, setFormData] = useState<{ email: string; password: string } | null>(null);
+
+  const [isPending, startTransition] = useTransition();
 
   const [state, formAction] = useActionState<RegisterActionState, FormData>(
     register,
-    {
-      status: "idle",
-    }
+    { status: "idle" },
   );
 
-  // Fix hydration mismatch by waiting for client-side mount
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (state.status === "user_exists") {
-      toast.error("Account already exists");
-    } else if (state.status === "failed") {
-      toast.error("Failed to create account");
-    } else if (state.status === "invalid_data") {
-      toast.error("Failed validating your submission!");
-    } else if (state.status === "too_small") {
-      toast.error("Password should be at least 6 characters long.");
-    } else if (state.status === "otp_sent") {
+    if (state.status === "user_exists") toast.error("Account already exists");
+    else if (state.status === "failed") toast.error("Failed to create account");
+    else if (state.status === "invalid_data") toast.error("Failed validating your submission!");
+    else if (state.status === "too_small") toast.error("Password should be at least 6 characters long.");
+    else if (state.status === "otp_sent") {
       setShowOTPField(true);
       toast.success("OTP sent to your email");
     } else if (state.status === "otp_verified") {
-      toast.success("Account created successfully");
       setIsSuccessful(true);
-      
-      // Redirect to login page after 2 seconds
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
+      toast.success("Account created! Redirecting...");
+      setTimeout(() => router.push("/login"), 2000);
     }
   }, [state, router]);
 
-  const [formData, setFormData] = useState<{
-    email: string;
-    password: string;
-  } | null>(null);
-
-  const handleSubmit = (formData: FormData) => {
-    const emailValue = formData.get("email") as string;
-    const passwordValue = formData.get("password") as string;
-    const otpValue = formData.get("otp") as string | null;
-
-    setEmail(emailValue);
+  const handleSubmit = (currentFormData: FormData) => {
+    const emailValue = currentFormData.get("email") as string;
+    const passwordValue = currentFormData.get("password") as string;
+    const otpValue = currentFormData.get("otp") as string | null;
     
-    // Store email and password when first submitting
-    if (!showOTPField && !otpValue) {
+    setEmail(emailValue);
+
+    if (!showOTPField) {
       setFormData({ email: emailValue, password: passwordValue });
     }
 
-    // Create a new FormData with all required fields
     const submitData = new FormData();
     submitData.append("email", emailValue);
-    
-    if (passwordValue) {
-      submitData.append("password", passwordValue);
-    } else if (formData?.password) {
-      // Use stored password if not in current form data
-      submitData.append("password", formData.password);
+
+    const finalPassword = passwordValue || formData?.password;
+    if (finalPassword) {
+      submitData.append("password", finalPassword);
     }
-    
+
     if (otpValue) {
       submitData.append("otp", otpValue);
     }
-    
+
     formAction(submitData);
   };
 
-  const handleResendOTP = async () => {
-    try {
-      const response = await fetch('/api/resend-otp', {  
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-      
-      if (response.ok) {
-        toast.success("New OTP sent to your email");
-      } else {
-        const errorData = await response.json();
-        console.error('OTP resend error:', errorData);
-        toast.error("Failed to resend OTP");
+  const handleResendOTP = () => {
+    startTransition(() => {
+      if (formData?.email && formData?.password) {
+        const resendData = new FormData();
+        resendData.append("email", formData.email);
+        resendData.append("password", formData.password);
+        formAction(resendData);
       }
-    } catch (error) {
-      console.error("Error resending OTP:", error);
-      toast.error("Failed to resend OTP");
-    }
+    });
+  };
+
+  const formVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.4 } },
   };
 
   return (
-    <div className="flex flex-col h-dvh w-screen pt-12 md:pt-0 items-center justify-center bg-background">
-      <div className="rounded-xl p-6 flex flex-col items-center gap-2 leading-relaxed text-center max-w-2xl">
-        {/* Fix hydration mismatch by showing a fallback until mounted */}
-        {!mounted ? (
-          <img
-            alt="Barzakh Agents"
-            src="/images/javin/banner/sirath-banner.svg"
-            className="w-32 sm:w-48 h-auto"
-          />
-        ) : (
-          <img
-            alt="Barzakh Agents"
-            src="/images/javin/banner/sirath-banner.svg"
-            className="w-32 sm:w-48 h-auto"
-          />
-        )}
-        <p className="text-lg text-muted-foreground">
-          Intelligent, focused AI search powering crypto and blockchain insights.
-        </p>
-      </div>
-      <div className="w-fit overflow-hidden rounded-2xl gap-5 flex flex-col border m-2 p-5">
-        <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">Sign Up</h3>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            {showOTPField 
-              ? "Enter the OTP sent to your email" 
-              : "Create an account with your email and password"}
-          </p>
-        </div>
-        <AuthForm
-          action={handleSubmit}
-          defaultEmail={email}
-          fieldErrors={state.fieldErrors}
-          emailNeeded={!showOTPField}
-          passwordNeeded={!showOTPField}
-          showOTPField={showOTPField}
-          onResendOTP={showOTPField ? handleResendOTP : undefined}
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+       {/* */}
+       <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
+         <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <SubmitButton isSuccessful={isSuccessful}>
-            {showOTPField ? "Verify OTP" : "Sign Up"}
-          </SubmitButton>
-          <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
-            {"Already have an account? "}
-            <Link
-              href="/login"
-              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
-            >
-              Sign in
-            </Link>
-            {" instead."}
-          </p>
-        </AuthForm>
+            <img
+            alt="Brand Banner"
+            src="/images/javin/banner/sirath-banner.svg"
+            className="w-48 h-auto mb-4 mx-auto"
+            />
+            <h1 className="text-3xl font-bold">All Features. One Platform!</h1>
+            <p className="text-muted-foreground mt-2 max-w-sm">
+                Unlock the future of blockchain insights with our intelligent AI search.
+            </p>
+         </motion.div>
+      </div>
+
+       {/* */}
+       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
+        <div className="mx-auto w-full max-w-md space-y-6">
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={showOTPField ? "otp" : "register"}
+                    variants={formVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="space-y-6"
+                >
+                    <div className="space-y-2 text-center">
+                        <img
+                          alt="Brand Banner"
+                          src="/images/javin/banner/sirath-banner.svg"
+                          className="w-32 h-auto mx-auto lg:hidden"
+                        />
+                        <h1 className="text-3xl font-bold">
+                            {showOTPField ? "Verify Your Email" : "Create an Account"}
+                        </h1>
+                        <p className="text-muted-foreground">
+                            {showOTPField
+                            ? `Enter the code sent to ${email}`
+                            : "Get started for free."}
+                        </p>
+                    </div>
+
+                    <AuthForm
+                        action={handleSubmit}
+                        defaultEmail={email}
+                        fieldErrors={state.fieldErrors}
+                        emailNeeded={!showOTPField}
+                        passwordNeeded={!showOTPField}
+                        showOTPField={showOTPField}
+                        onResendOTP={showOTPField ? handleResendOTP : undefined}
+                    >
+                        <SubmitButton isSuccessful={isSuccessful} className="w-full">
+                            {showOTPField ? "Verify & Create Account" : "Sign Up"}
+                        </SubmitButton>
+                    </AuthForm>
+                </motion.div>
+            </AnimatePresence>
+
+            <p className="text-center text-sm text-muted-foreground">
+                Already have an account?{" "}
+                <Link href="/login" className="font-semibold underline underline-offset-4 hover:text-primary">
+                    Sign In
+                </Link>
+            </p>
+        </div>
       </div>
     </div>
   );

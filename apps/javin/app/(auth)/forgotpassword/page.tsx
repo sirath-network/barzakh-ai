@@ -3,18 +3,31 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
-
 import { forgotPassword, type ForgotPasswordActionState } from "../actions";
+import { ActionResultOverlay } from "@/components/action-result-overlay";
+import { Button } from "@/components/ui/button";
+
+// 2. Definisikan tipe untuk state overlay
+type OverlayState = {
+  status: "success" | "error" | "idle";
+  title?: string;
+  message: string;
+};
 
 export default function Page() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [isSuccessful, setIsSuccessful] = useState(false);
+
+  const [overlayState, setOverlayState] = useState<OverlayState>({
+    status: "idle",
+    message: "",
+  });
 
   const [state, formAction] = useActionState<
     ForgotPasswordActionState,
@@ -25,66 +38,120 @@ export default function Page() {
 
   useEffect(() => {
     if (state.status === "failed") {
-      toast.error("Something went wrong!");
+      setOverlayState({ status: "error", title: "Request Failed", message: "Something went wrong! Please try again." });
     } else if (state.status === "invalid_data") {
-      toast.error("Failed validating your submission!");
-    } else if (state.status == "invalid_email") {
-      toast.error("Invalid email address");
+      setOverlayState({ status: "error", title: "Invalid Data", message: "Failed validating your submission." });
+    } else if (state.status === "invalid_email") {
+      setOverlayState({ status: "error", title: "Invalid Email", message: "The email address you entered is not valid." });
     } else if (state.status === "success") {
-      setIsSuccessful(true);
-      toast.success("Reset link sent to your email");
-      // Redirect to login after 2 seconds
+      setOverlayState({ status: "success", title: "Link Sent", message: "A password reset link has been sent to your email." });
       setTimeout(() => {
         router.push("/login");
-      }, 2000);
+      }, 2500);
     }
   }, [state.status, router]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get("email") as string);
-    console.log("formData = ", formData);
     formAction(formData);
   };
 
+  const formVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
+  
+  // 5. Buat fungsi untuk menutup overlay
+  const closeOverlay = () => {
+    setOverlayState({ status: "idle", message: "" });
+  };
+
   return (
-    <div className="flex flex-col h-dvh w-screen pt-12 md:pt-0 items-center justify-center bg-background">
-      <div className="rounded-xl p-6 flex flex-col items-center gap-2 leading-relaxed text-center max-w-2xl">
-        <p className="flex flex-row justify-center gap-4 items-center text-5xl font-semibold">
-          Barzakh Agents
-        </p>
-        <p className="text-lg text-muted-foreground">
-          A focused, no-nonsense AI search engine for crypto and blockchain.
-        </p>
-      </div>
-      <div className="w-fit overflow-hidden rounded-2xl gap-5 flex flex-col border m-2 p-5">
-        <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">
-            Forgot Password ?
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Use your email to get a reset link.
-          </p>
+    // 6. Bungkus dengan React Fragment dan render overlay
+    <>
+      <ActionResultOverlay
+        status={overlayState.status}
+        title={overlayState.title}
+        message={overlayState.message}
+      >
+        {overlayState.status === 'error' && (
+          <Button onClick={closeOverlay} className="w-full h-11" variant="secondary">
+            Try Again
+          </Button>
+        )}
+      </ActionResultOverlay>
+
+      <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+        <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
+          <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+          >
+              <img
+                alt="Brand Banner"
+                src="/images/javin/banner/sirath-banner.svg" 
+                className="w-48 h-auto mb-4 mx-auto"
+              />
+              <h1 className="text-3xl font-bold">Forgot Password?</h1>
+              <p className="text-muted-foreground mt-2 max-w-sm">
+                Don't worry. We'll send you a link to get back into your account.
+              </p>
+          </motion.div>
         </div>
-        <AuthForm
-          action={handleSubmit}
-          defaultEmail={email}
-          passwordNeeded={false}
-          emailNeeded={true}
-          forgotPasswordNeeded={false}
-          fieldErrors={state.fieldErrors}
-        >
-          <SubmitButton isSuccessful={isSuccessful}>Reset</SubmitButton>
-          <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
-            {"Remembered your password? "}
-            <Link
-              href="/login"
-              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
+
+        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
+          <motion.div
+              key="forgot-password-form"
+              variants={formVariants}
+              initial="initial"
+              animate="animate"
+              className="mx-auto w-full max-w-md space-y-6"
+          >
+            <div className="space-y-2 text-center">
+               <img
+                alt="Brand Banner"
+                src="/images/javin/banner/sirath-banner.svg"
+                className="w-32 h-auto mx-auto lg:hidden" 
+              />
+              <h1 className="text-3xl font-bold">Reset Password</h1>
+              <p className="text-muted-foreground">
+                Enter your email to receive a reset link.
+              </p>
+            </div>
+            
+            <AuthForm
+              action={handleSubmit}
+              defaultEmail={email}
+              passwordNeeded={false}
+              emailNeeded={true}
+              fieldErrors={state.fieldErrors}
             >
-              Sign In
-            </Link>
-          </p>
-        </AuthForm>
+              {/* */}
+              <SubmitButton isSuccessful={false} className="w-full">
+                  Send Reset Link
+              </SubmitButton>
+            </AuthForm>
+            
+            <p className="text-center text-sm text-muted-foreground">
+              Remembered your password?{" "}
+              <Link
+                href="/login"
+                className="font-semibold underline underline-offset-4 hover:text-primary"
+              >
+                Sign In
+              </Link>
+            </p>
+
+            <p className="text-center text-sm text-muted-foreground">
+               <Link href="/" className="underline underline-offset-4 hover:text-primary">
+                  &larr; Back to Home
+               </Link>
+            </p>
+
+          </motion.div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

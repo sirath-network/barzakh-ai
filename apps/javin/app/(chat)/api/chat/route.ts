@@ -144,7 +144,7 @@ export async function POST(request: Request) {
           messages: cleanedMessages, // Use cleaned messages
           maxSteps: 5,
           experimental_activeTools:
-            selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
+            selectedChatModel === "chat-model-small" ? [] : [...activeTools],
           experimental_transform: smoothStream({ chunking: "word" }),
           experimental_generateMessageId: generateUUID,
           tools: allTools,
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
             messages: freshMessages,
             maxSteps: 5,
             experimental_activeTools:
-              selectedChatModel === "chat-model-reasoning" ? [] : [...activeTools],
+              selectedChatModel === "chat-model-small" ? [] : [...activeTools],
             experimental_transform: smoothStream({ chunking: "word" }),
             experimental_generateMessageId: generateUUID,
             tools: allTools,

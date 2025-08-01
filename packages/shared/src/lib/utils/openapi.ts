@@ -125,7 +125,6 @@ export async function getPathDetails(openapiData: any, pathUrl: string) {
 
       const servers = methodDetails?.servers || [];
       const serverUrl = servers[0]?.url || mainServerUrl;
-      console.log("server url is ", serverUrl);
       return {
         method: method.toUpperCase(),
         description,

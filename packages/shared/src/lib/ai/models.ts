@@ -1,5 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { fireworks } from "@ai-sdk/fireworks";
+import { google } from "@ai-sdk/google";
+import { anthropic } from "@ai-sdk/anthropic";
 import {
   customProvider,
   extractReasoningMiddleware,
@@ -12,6 +14,8 @@ export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o-mini"),
     "chat-model-large": openai("gpt-4o"),
+    "chat-model-gemini": google("models/gemini-2.5-flash"),
+    "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
     "chat-model-reasoning": wrapLanguageModel({
       model: fireworks("accounts/fireworks/models/deepseek-r1"),
       middleware: extractReasoningMiddleware({ tagName: "think" }),
@@ -47,9 +51,14 @@ export const chatModels: Array<ChatModel> = [
     name: "Barzakh DeepSeek",
     description: "Deepseek model for experimental tasks",
   },
-  // {
-  //   id: 'chat-model-reasoning',
-  //   name: 'Reasoning model',
-  //   description: 'Uses advanced reasoning',
-  // },
+  {
+    id: "chat-model-gemini",
+    name: "Barzakh Gemini",
+    description: "Gemini model for experimental tasks",
+  },
+  {
+    id: "chat-model-claude",
+    name: "Barzakh Claude",
+    description: "Claude model for experimental tasks",
+  },
 ];
