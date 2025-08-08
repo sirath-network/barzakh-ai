@@ -311,33 +311,33 @@ export async function getVotesByChatId({ id }: { id: string }) {
   }
 }
 
-// export async function saveDocument({
-//   id,
-//   title,
-//   kind,
-//   content,
-//   userId,
-// }: {
-//   id: string;
-//   title: string;
-//   kind: BlockKind;
-//   content: string;
-//   userId: string;
-// }) {
-//   try {
-//     return await db.insert(document).values({
-//       id,
-//       title,
-//       kind,
-//       content,
-//       userId,
-//       createdAt: new Date(),
-//     });
-//   } catch (error) {
-//     console.error("Failed to save document in database");
-//     throw error;
-//   }
-// }
+export async function saveDocument({
+  id,
+  title,
+  kind,
+  content,
+  userId,
+}: {
+  id: string;
+  title: string;
+  kind: BlockKind;
+  content: string;
+  userId: string;
+}) {
+  try {
+    return await db.insert(document).values({
+      id,
+      title,
+      kind,
+      content,
+      userId,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error("Failed to save document in database");
+    throw error;
+  }
+}
 
 export async function getDocumentsById({ id }: { id: string }) {
   try {
@@ -526,4 +526,41 @@ export async function getUserTier(userId: string) {
     throw new Error("User not found");
   }
   return result[0].tier;
+}
+
+export async function updateUserProfile({
+  email,
+  name,
+  username,
+  image,
+  password
+}: {
+  email: string;
+  name?: string;
+  username?: string;
+  image?: string;
+  password?: string;
+}) {
+  try {
+    const updateData: any = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (username !== undefined) updateData.username = username;
+    if (image !== undefined) updateData.image = image;
+    if (password !== undefined) {
+      const salt = genSaltSync(10);
+      updateData.password = hashSync(password, salt);
+    }
+
+    const result = await db
+      .update(user)
+      .set(updateData)
+      .where(eq(user.email, email))
+      .returning();
+    
+    return result[0];
+  } catch (error) {
+    console.error("Failed to update user profile:", error);
+    throw error;
+  }
 }

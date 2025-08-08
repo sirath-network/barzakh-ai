@@ -28,7 +28,7 @@ import { cn, SearchGroup, SearchGroupId } from "@javin/shared/lib/utils/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
-import { ChevronDown } from "lucide-react";
+import { CornerLeftDown  } from "lucide-react";
 
 const SendIcon = ({ size = 24, className }: { size?: number; className?: string }) => (
   <svg
@@ -319,8 +319,8 @@ function PureMultimodalInput({
     chatId,
     handleSubmit,
     selectedGroup,
-    attachments,
-    setAttachments,
+    attachments, 
+    setAttachments, 
     setLocalStorageInput,
     width,
     setInput,
@@ -456,7 +456,7 @@ function PureMultimodalInput({
       <div className="relative flex items-end w-full">
         <Textarea
           ref={textareaRef}
-          placeholder={messages.length > 0 ? "Reply Barzakh..." : "How may I assist you today?"}
+          placeholder={messages.length > 0 ? "Reply Barzakh..." : "Ask Barzakh"}
           value={input}
           onChange={handleInput}
           className="pl-3 pr-12 py-3"
@@ -496,20 +496,53 @@ function PureMultimodalInput({
       />
 
       <AnimatePresence>
-        {!isAtBottom && (
-          <motion.button
-            onClick={scrollMessagesToBottom}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-            className="absolute -top-14 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center p-2 rounded-full bg-rose-600 text-white cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all"
-            aria-label="Scroll to bottom"
-          >
-            <ChevronDown size={18} />
-          </motion.button>
+  {!isAtBottom && (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{
+        type: "spring",
+        stiffness: 500,
+        damping: 30,
+        bounce: 0.25
+      }}
+      className="absolute right-4 -top-14 z-50"
+    >
+      <button
+        onClick={scrollMessagesToBottom}
+        className={cn(
+          "group relative",
+          "px-4 py-2 rounded-lg",
+          "bg-white dark:bg-neutral-800",
+          "text-sm font-medium text-neutral-700 dark:text-neutral-200",
+          "border border-neutral-200 dark:border-neutral-700",
+          "shadow-lg hover:shadow-xl",
+          "hover:bg-neutral-50 dark:hover:bg-neutral-700",
+          "transform transition-all duration-300 ease-out",
+          "hover:-translate-y-0.5 active:translate-y-0",
+          "overflow-hidden"
         )}
-      </AnimatePresence>
+        aria-label="Scroll to bottom"
+      >
+        <span className="relative z-10 flex items-center gap-2">
+          <CornerLeftDown className="h-4 w-4 opacity-80 group-hover:opacity-100 transition-opacity" />
+          <span>Latest Messages</span>
+          {/* PERUBAHAN DI SINI: Mengganti span dengan komponen ikon */}
+          
+        </span>
+        
+        {/* Animated background effect */}
+        <span className={cn(
+          "absolute inset-0 rounded-lg z-0",
+          "bg-gradient-to-r from-rose-100/50 to-rose-200/50 dark:from-rose-900/30 dark:to-rose-800/30",
+          "opacity-0 group-hover:opacity-100",
+          "transition-opacity duration-300"
+        )} />
+      </button>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       <div className="flex items-center justify-between w-full">
         <div className="flex flex-row gap-1.5 items-center">

@@ -4,6 +4,7 @@ import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
 import "./markdown.css";
+import { AddressBlock } from "./AddressBlock"; // Impor komponen baru
 
 const components: Partial<Components> = {
   // @ts-expect-error
@@ -14,7 +15,8 @@ const components: Partial<Components> = {
   pre: ({ children }) => <>{children}</>,
 
   span: ({ children }) => <span className="break-long-words">{children}</span>,
-  p: ({ children }) => <p className="break-long-words">{children}</p>,
+
+  p: ({ children }) => <div className="break-long-words">{children}</div>,
 
   ol: ({ node, children, ...props }) => {
     return (
@@ -41,11 +43,27 @@ const components: Partial<Components> = {
     );
   },
   strong: ({ node, children, ...props }) => {
+    // ---- PERUBAHAN UTAMA DIMULAI DI SINI ----
+    const textContent =
+      children && typeof children[0] === "string" ? children[0] : "";
+
+    // Regex untuk mendeteksi pola umum alamat blockchain
+    const isAddress =
+      /^(0x[a-fA-F0-9]{40}|(sei|cosmos|osmo|apt)[a-z0-9]{38,})$/.test(
+        textContent.trim()
+      );
+
+    if (isAddress) {
+      return <AddressBlock address={textContent} />;
+    }
+
+    // Jika bukan alamat, render sebagai teks tebal biasa
     return (
       <span className="break-long-words font-semibold" {...props}>
         {children}
       </span>
     );
+    // ---- PERUBAHAN UTAMA BERAKHIR DI SINI ----
   },
   a: ({ node, children, ...props }) => {
     return (

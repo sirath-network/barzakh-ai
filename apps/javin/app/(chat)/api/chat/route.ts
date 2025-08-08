@@ -68,6 +68,22 @@ function filterIncompleteToolCalls(messages: Array<Message>): Array<Message> {
   });
 }
 
+// Helper function to safely get active tools
+function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] {
+  // For reasoning models, always return empty array
+  if (selectedChatModel === "chat-model-reasoning") {
+    return [];
+  }
+  
+  // If activeTools is null, undefined, or not iterable, return empty array
+  if (!activeTools || !Array.isArray(activeTools)) {
+    console.warn('activeTools is not iterable, using empty array:', activeTools);
+    return [];
+  }
+  
+  return [...activeTools];
+}
+
 export async function POST(request: Request) {
   const {
     id,
@@ -83,7 +99,20 @@ export async function POST(request: Request) {
 
   console.log("search groupe", group);
   const session = await auth();
-  const { tools: activeTools, systemPrompt } = await getGroupConfig(group);
+  
+  // Get group config with error handling
+  let tools: any[] = [];
+  let systemPrompt = "";
+  
+  try {
+    const groupConfig = await getGroupConfig(group);
+    tools = groupConfig?.tools || [];
+    systemPrompt = groupConfig?.systemPrompt || "";
+    console.log("Group config loaded:", { tools: tools?.length, hasSystemPrompt: !!systemPrompt });
+  } catch (error) {
+    console.error("Failed to get group config:", error);
+    // Continue with empty tools and system prompt
+  }
 
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
@@ -135,6 +164,9 @@ export async function POST(request: Request) {
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
 
+  // Get safe active tools
+  const safeActiveTools = getSafeActiveTools(tools, selectedChatModel);
+
   return createDataStreamResponse({
     execute: (dataStream) => {
       try {
@@ -143,8 +175,7 @@ export async function POST(request: Request) {
           system: systemPrompt,
           messages: cleanedMessages, // Use cleaned messages
           maxSteps: 5,
-          experimental_activeTools:
-            selectedChatModel === "chat-model-small" ? [] : [...activeTools],
+          experimental_activeTools: safeActiveTools,
           experimental_transform: smoothStream({ chunking: "word" }),
           experimental_generateMessageId: generateUUID,
           tools: allTools,
@@ -195,8 +226,7 @@ export async function POST(request: Request) {
             system: systemPrompt,
             messages: freshMessages,
             maxSteps: 5,
-            experimental_activeTools:
-              selectedChatModel === "chat-model-small" ? [] : [...activeTools],
+            experimental_activeTools: safeActiveTools,
             experimental_transform: smoothStream({ chunking: "word" }),
             experimental_generateMessageId: generateUUID,
             tools: allTools,

@@ -7,23 +7,17 @@ import { useRouter } from "next/navigation";
 import { useWindowSize } from "usehooks-ts";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 import { Button } from "@/components/ui/button";
-import { PlusIcon } from "./icons";
 import { useSidebar } from "./ui/sidebar";
-import { memo, useState, useEffect } from "react"; // Import useState and useEffect
+import { memo, useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { VisibilityType } from "./visibility-selector";
 import { User } from "next-auth";
 import { SidebarUserNav } from "./sidebar-user-nav";
 import { Message } from "ai";
-import { useTheme } from "next-themes";
 import TextStrip from "./text-strip";
+import { MessageCirclePlus } from 'lucide-react';
 
 function PureChatHeader({
-  chatId,
-  selectedModelId,
-  selectedVisibilityType,
-  isReadonly,
-  messages,
   user,
 }: {
   chatId: string;
@@ -34,77 +28,74 @@ function PureChatHeader({
   user?: User;
 }) {
   const router = useRouter();
-  const { open } = useSidebar();
-  const { resolvedTheme } = useTheme();
-
+  const { open: isSidebarOpen } = useSidebar();
   const { width: windowWidth } = useWindowSize();
+  const isDesktop = windowWidth >= 768;
 
-  // State to prevent hydration mismatch
+  // State to prevent hydration mismatch on client-side renders
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const NewChatButton = () => (
+    <Button
+      variant="outline"
+      className="px-3"
+      onClick={() => {
+        router.push("/");
+        router.refresh();
+      }}
+    >
+      <MessageCirclePlus />
+      <span className="md:hidden">New</span>
+      <span className="hidden md:inline">New Chat</span>
+    </Button>
+  );
 
   return (
-    <div className="flex flex-col">
-      <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
-        <div className="flex items-center justify-start gap-2 w-full">
+    <div className="flex flex-col sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+      {/* Use CSS Grid for a true three-column layout, ensuring perfect centering */}
+      <header className="grid grid-cols-3 items-center w-full h-16 px-2 md:px-4">
+        {/* === Left Section === */}
+        <div className="flex items-center gap-2 justify-start">
           <SidebarToggle />
-
-          <div className="">
-            {/* Only render this part on the client after hydration */}
-            {isClient && (!open || windowWidth < 768) && (
+          {isClient && (!isSidebarOpen || !isDesktop) && (
+            isDesktop ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
-                    onClick={() => {
-                      router.push("/");
-                      router.refresh();
-                    }}
-                  >
-                    <PlusIcon />
-                    <span className="sr-only md:not-sr-only">New Chat</span>
-                  </Button>
+                  <MessageCirclePlus />
                 </TooltipTrigger>
                 <TooltipContent>New Chat</TooltipContent>
               </Tooltip>
-            )}
-          </div>
-
-        </div>
-        {messages.length > 0 && (
-          <Link href={"/"} className="font-semibold">
-            <img
-              alt="Barzakh Agents"
-              src="/images/javin/banner/sirath-banner.svg"
-              className="w-48 h-auto"
-            />
-          </Link>
-        )}
-
-        <div className="flex justify-end w-full">
-          <div className="">
-            {user && user?.email ? (
-              <div>
-                <SidebarUserNav user={user} />
-              </div>
             ) : (
-              <button
-                type="button"
-                className="border py-1 rounded bg-gray-900 dark:bg-zinc-50 text-white dark:text-black font-semibold text-sm px-3"
-                onClick={() => {
-                  router.push("/login");
-                }}
-              >
-                Login
-              </button>
-            )}
-          </div>
+              <NewChatButton />
+            )
+          )}
         </div>
+
+        {/* === Center Section (Logo) === */}
+        <div className="flex justify-center">
+          <Link href="/" aria-label="Home">
+            {isClient && !isDesktop}
+          </Link>
+        </div>
+
+        {/* === Right Section (User Nav / Login) === */}
+        <div className="flex items-center justify-end text-sm space-x-2">
+  {user && user.email ? (
+    <div className="scale-90">
+      <SidebarUserNav user={user} />
+    </div>
+  ) : (
+    <Button
+      className="px-3 py-1 text-sm h-auto"
+      onClick={() => router.push("/login")}
+    >
+      Login
+    </Button>
+  )}
+</div>
 
       </header>
       <TextStrip />

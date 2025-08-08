@@ -11,6 +11,7 @@ const config: Config = {
     fontFamily: {
       sans: ['geist'],
       mono: ['geist-mono'],
+      gramatika: ['gramatika_black', 'sans-serif'],
     },
     extend: {
       borderRadius: {

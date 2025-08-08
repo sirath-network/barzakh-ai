@@ -8,7 +8,7 @@ import type {
 } from "ai";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Globe, Network } from "lucide-react";
+import { Globe, Network, CodeXml } from "lucide-react";
 import { PortfolioData, TokenItem } from "../../types/wallet-actions-response";
 import {
   BirdeyeTokenSearchResponse,
@@ -191,6 +191,7 @@ export function getMostRecentUserMessage(messages: Array<Message>) {
 export type SearchGroupId =
   | "search"
   | "on_chain"
+  | "coding"
   | "creditcoin"
   | "vana"
   | "wormhole"
@@ -209,18 +210,24 @@ export const searchGroups = [
     icon: Globe,
     img: "",
   },
-
   {
     id: "on_chain" as const,
     name: "On Chain",
-    description: "Indepth onchain analysis",
+    description: "In-depth analysis of real-time on-chain activity",
     icon: Network,
+    img: "",
+  },
+  {
+    id: "coding" as const,
+    name: "Coding",
+    description: "Write, debug, and optimize code with Barzakh",
+    icon: CodeXml,
     img: "",
   },
   {
     id: "sei",
     name: "Sei",
-    description: "Everything Sei. Search, transactions and more.",
+    description: "Everything Sei. Search, transactions and more",
     icon: Network,
     img: "/images/icon/sei/sei-logo.png",
   },
@@ -228,42 +235,42 @@ export const searchGroups = [
     id: "wormhole" as const,
     name: "Wormhole",
     description:
-      "Everything Wormhole. Search, transactions and more.",
+      "Everything Wormhole. Search, transactions and more",
     icon: Network,
     img: "/images/icon/wormhole/wormhole-logo.png",
   },
   {
     id: "creditcoin" as const,
     name: "Creditcoin",
-    description: "Everything Creditcoin. Search, transactions and more.",
+    description: "Everything Creditcoin. Search, transactions and more",
     icon: Network,
     img: "/images/icon/creditcoin/creditcoin-white.png",
   },
   {
     id: "vana" as const,
     name: "Vana",
-    description: "Everything Vana. Search, transactions and more.",
+    description: "Everything Vana. Search, transactions and more",
     icon: Network,
     img: "/images/icon/vana/vana-icon-black.png",
   },
   {
     id: "flow" as const,
     name: "Flow",
-    description: "Everything Flow. Search, transactions and more.",
+    description: "Everything Flow. Search, transactions and more",
     icon: Network,
     img: "/images/icon/flow-logo.png",
   },
   {
     id: "zeta",
     name: "Zeta",
-    description: "Everything Zeta. Search, transactions and more.",
+    description: "Everything Zeta. Search, transactions and more",
     icon: Network,
     img: "/images/icon/zeta/zetachain-logo.png",
   },
   {
     id: "aptos",
     name: "Aptos",
-    description: "Everything Aptos. Search, transactions and more.",
+    description: "Everything Aptos. Search, transactions and more",
     icon: Network,
     img: "/images/icon/aptos/aptos-logo.png",
   }

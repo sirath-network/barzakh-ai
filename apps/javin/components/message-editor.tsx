@@ -6,8 +6,8 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Textarea } from "./ui/textarea";
 import { deleteTrailingMessages } from "@/app/(chat)/actions";
 import { SearchGroupId } from "@javin/shared/lib/utils/utils";
-import { FiX, FiSend } from "react-icons/fi"; 
-import { CgSpinner } from "react-icons/cg"; 
+import { FiX, FiSend } from "react-icons/fi";
+import { CgSpinner } from "react-icons/cg";
 
 export type MessageEditorProps = {
   message: Message;
@@ -35,16 +35,16 @@ export function MessageEditor({
   useEffect(() => {
     if (textareaRef.current) {
       adjustHeight();
-      textareaRef.current.focus(); 
+      // Secara otomatis fokus dan pilih teks
+      textareaRef.current.focus();
+      textareaRef.current.select();
     }
   }, []);
 
   const adjustHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${
-        textareaRef.current.scrollHeight + 2
-      }px`;
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   };
 
@@ -52,7 +52,7 @@ export function MessageEditor({
     setDraftContent(event.target.value);
     adjustHeight();
   };
-  
+
   const handleSubmit = async () => {
     if (isSubmitting || !draftContent.trim()) return;
 
@@ -69,47 +69,51 @@ export function MessageEditor({
     setMode("view");
     reload({ body: { group: selectedGroup } });
   };
-  
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       handleSubmit();
+    }
+    if (event.key === "Escape") {
+      setMode("view");
     }
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full bg-white dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 shadow-md">
+    <div className="flex flex-col w-full bg-muted/50 rounded-2xl p-3">
       <Textarea
         ref={textareaRef}
-        className="!min-h-[60px]"
+        className="w-full bg-transparent border-0 resize-none px-4 py-2 text-base placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
         value={draftContent}
-        onChange={handleInput}
+        onInput={handleInput}
         onKeyDown={handleKeyDown}
         placeholder="Edit your message..."
         rows={1}
       />
-
-      <div className="flex flex-row gap-2 justify-end items-center">
+      <div className="flex flex-row gap-2 justify-end items-center mt-2">
         <Button
           variant="ghost"
-          className="h-fit py-1.5 px-3 text-sm"
+          size="icon"
+          className="h-8 w-8 rounded-full"
           onClick={() => setMode("view")}
+          title="Cancel (Esc)"
         >
-          <FiX className="mr-1.5 h-4 w-4" />
-          Cancel
+          <FiX className="h-4 w-4" />
         </Button>
         <Button
           variant="default"
-          className="h-fit py-1.5 px-3 text-sm"
+          size="icon"
+          className="h-8 w-8 rounded-full"
           disabled={isSubmitting || !draftContent.trim()}
           onClick={handleSubmit}
+          title="Save & Submit (Enter)"
         >
           {isSubmitting ? (
-            <CgSpinner className="animate-spin mr-1.5 h-4 w-4" />
+            <CgSpinner className="animate-spin h-4 w-4" />
           ) : (
-            <FiSend className="mr-1.5 h-4 w-4" />
+            <FiSend className="h-4 w-4" />
           )}
-          {isSubmitting ? "Submitting..." : "Save & Submit"}
         </Button>
       </div>
     </div>

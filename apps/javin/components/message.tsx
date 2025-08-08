@@ -6,10 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { memo, useState } from "react";
 
 import type { Vote } from "@/lib/db/schema";
-import {
-  PencilEditIcon,
-  JavinMan,
-} from "./icons";
+import { JavinMan, PencilEditIcon } from "./icons";
 import { Markdown } from "./markdown";
 import { MessageActions } from "./message-actions";
 import { PreviewAttachment } from "./preview-attachment";
@@ -21,7 +18,8 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check } from "lucide-react";
+// Mengimpor ikon Check dan Copy dari lucide-react
+import { Check, Copy } from "lucide-react";
 
 const PurePreviewMessage = ({
   chatId,
@@ -49,6 +47,38 @@ const PurePreviewMessage = ({
   showIcon?: boolean;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
+  // State untuk mengontrol visibilitas tombol aksi (edit, salin)
+  const [actionsVisible, setActionsVisible] = useState(false);
+  // State untuk memberikan umpan balik saat pesan disalin
+  const [isCopied, setIsCopied] = useState(false);
+
+  // Fungsi untuk menyalin konten pesan ke clipboard
+  const handleCopy = (e: React.MouseEvent) => {
+    // Mencegah event klik menyebar ke elemen induk
+    e.stopPropagation();
+    if (message.content) {
+      navigator.clipboard
+        .writeText(message.content as string)
+        .then(() => {
+          setIsCopied(true);
+          // Reset status "disalin" dan sembunyikan tombol setelah 1.5 detik
+          setTimeout(() => {
+            setIsCopied(false);
+            setActionsVisible(false);
+          }, 1500);
+        })
+        .catch((err) => {
+          console.error("Gagal menyalin teks: ", err);
+        });
+    }
+  };
+
+  // Fungsi untuk masuk ke mode edit
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMode("edit");
+    setActionsVisible(false); // Sembunyikan tombol saat masuk mode edit
+  };
 
   return (
     <AnimatePresence>
@@ -68,7 +98,7 @@ const PurePreviewMessage = ({
           )}
         >
           {message.role === "assistant" && (
-            <div className="size-8 flex items-center rounded-full justify-center  bg-background">
+            <div className="hidden md:flex size-8 items-center rounded-full justify-center bg-background">
               {showIcon && (
                 <div className="">
                   <JavinMan size={24} />
@@ -103,65 +133,83 @@ const PurePreviewMessage = ({
 
                   if (state === "result") {
                     const { result } = toolInvocation;
-                    // console.log(
-                    //   toolName,
-                    //   " -- tool result ------------ ",
-                    //   result
-                    // );
+
+                    const SuccessIndicator = ({
+                      children,
+                    }: {
+                      children: React.ReactNode;
+                    }) => (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Check
+                          size={14}
+                          className="text-green-500 flex-shrink-0"
+                        />
+                        <span>{children}</span>
+                      </div>
+                    );
+
+                    const toolComponents: Record<string, React.ReactNode> = {
+                      webSearch: <MultiSearch result={result} args={args} />,
+                      searchEvmTokenMarketData: (
+                        <TokenInfoTable result={result} />
+                      ),
+                      searchSolanaTokenMarketData: (
+                        <TokenInfoTable result={result} />
+                      ),
+                      getSolanaChainWalletPortfolio: (
+                        <PortfolioTable result={result} />
+                      ),
+                      getEvmMultiChainWalletPortfolio: (
+                        <PortfolioTable result={result} />
+                      ),
+                      getTokenBalances: <PortfolioTable result={result} />,
+                      getCreditcoinApiData: (
+                        <SuccessIndicator>
+                          Blockchain exploration complete
+                        </SuccessIndicator>
+                      ),
+                      getVanaApiData: (
+                        <SuccessIndicator>
+                          Blockchain exploration complete
+                        </SuccessIndicator>
+                      ),
+                      getEvmOnchainDataUsingZerion: (
+                        <SuccessIndicator>
+                          Blockchain exploration complete
+                        </SuccessIndicator>
+                      ),
+                      getEvmOnchainDataUsingEtherscan: (
+                        <SuccessIndicator>
+                          Ethereum data retrieved
+                        </SuccessIndicator>
+                      ),
+                      ensToAddress: (
+                        <SuccessIndicator>
+                          Address lookup completed
+                        </SuccessIndicator>
+                      ),
+                      aptosNames: (
+                        <SuccessIndicator>
+                          Address lookup completed
+                        </SuccessIndicator>
+                      ),
+                      translateTransactions: (
+                        <SuccessIndicator>
+                          Transactions summarized
+                        </SuccessIndicator>
+                      ),
+                    };
+
                     return (
-                      <div key={toolCallId}>
-                        {toolName === "webSearch" ? (
-                          <MultiSearch result={result} args={args} />
-                        ) : toolName === "searchEvmTokenMarketData" ||
-                          toolName === "searchSolanaTokenMarketData" ? (
-                          <TokenInfoTable result={result} />
-                        ) : toolName === "getSolanaChainWalletPortfolio" ||
-                          toolName === "getEvmMultiChainWalletPortfolio" ||
-                          toolName === "getTokenBalances" ? (
-                          <PortfolioTable result={result} />
-                        ) : toolName === "getCreditcoinApiData" ||
-                          toolName === "getVanaApiData" ||
-                          toolName === "getEvmOnchainDataUsingZerion" ? (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Exploring the blockchain
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
-                        ) : toolName === "getEvmOnchainDataUsingEtherscan" ? (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Exploring ethereum
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
-                        ) : toolName === "ensToAddress" ||
-                          toolName === "aptosNames" ? (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Looking for you in the blockchain
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
-                        ) : toolName === "translateTransactions" ? (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Summarizing transactions
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="text-sm">
-                            <p className="flex flex-row gap-1 items-center">
-                              Finding info
-                              <Check size={14} className="text-green-500" />
-                            </p>
-                          </div>
+                      <div key={toolCallId} className="mb-4 last:mb-0">
+                        {toolComponents[toolName] || (
+                          <SuccessIndicator>
+                            Operation completed successfully
+                          </SuccessIndicator>
                         )}
                       </div>
                     );
                   }
-                  // else when tool is loading
                   return (
                     <div
                       key={toolCallId}
@@ -216,31 +264,72 @@ const PurePreviewMessage = ({
               </div>
             )}
 
+            {/* Blok yang dimodifikasi untuk menampilkan tombol di bawah dengan animasi */}
             {(message.content || message.reasoning) && mode === "view" && (
-              <div className="flex flex-row gap-2 items-start">
-                {message.role === "user" && !isReadonly && (
-                  <Button
-                    type="button"
-                    title="Edit message"
-                    variant="ghost"
-                    className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setMode("edit");
-                    }}
-                  >
-                    <PencilEditIcon />
-                  </Button>
-                )}
-
+              <div
+                className={cn("flex flex-col w-full", {
+                  "items-end": message.role === "user",
+                })}
+              >
+                {/* Gelembung pesan itu sendiri */}
                 <div
-                  className={cn("flex flex-col gap-4", {
-                    "bg-primary text-primary-foreground px-3 py-2 rounded-xl":
+                  className={cn("flex flex-col gap-4 max-w-max", {
+                    "bg-primary text-primary-foreground px-4 py-2 rounded-t-2xl rounded-bl-2xl":
                       message.role === "user",
+                    "cursor-pointer": message.role === "user" && !isReadonly,
                   })}
+                  onClick={() => {
+                    if (message.role === "user" && !isReadonly) {
+                      setActionsVisible(!actionsVisible);
+                    }
+                  }}
                 >
                   <Markdown>{message.content as string}</Markdown>
                 </div>
+
+                {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}
+                <AnimatePresence>
+                  {message.role === "user" && !isReadonly && actionsVisible && (
+                    <motion.div
+                      className="flex flex-row gap-1 mt-2"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{
+                        opacity: 0,
+                        y: 10,
+                        transition: { duration: 0.15 },
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    >
+                      <Button
+                        type="button"
+                        title="Edit pesan"
+                        variant="ghost"
+                        className="p-2 h-fit rounded-full text-muted-foreground"
+                        onClick={handleEdit}
+                      >
+                        <PencilEditIcon className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        title={isCopied ? "Disalin!" : "Salin pesan"}
+                        variant="ghost"
+                        className="p-2 h-fit rounded-full text-muted-foreground"
+                        onClick={handleCopy}
+                      >
+                        {isCopied ? (
+                          <Check className="size-4 text-green-500" />
+                        ) : (
+                          <Copy className="size-4" />
+                        )}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
@@ -314,7 +403,7 @@ export const ThinkingMessage = () => {
           }
         )}
       >
-        <div className="size-8 flex items-center rounded-full justify-center  bg-background">
+        <div className="hidden md:flex size-8 items-center rounded-full justify-center bg-background">
           <div className="">
             <JavinMan size={24} />
           </div>

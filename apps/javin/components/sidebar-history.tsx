@@ -16,6 +16,7 @@ import {
   ShareIcon,
   TrashIcon,
 } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,71 +76,68 @@ const PureChatItem = ({
   });
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
-        <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <span>{chat.title}</span>
-        </Link>
-      </SidebarMenuButton>
-
-      <DropdownMenu modal={true}>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
-            showOnHover={!isActive}
+    <SidebarMenuItem className="group">
+      <div className="relative flex items-center rounded-lg">
+        <SidebarMenuButton 
+          asChild 
+          isActive={isActive}
+          className={`
+            flex-1 rounded-lg transition-all duration-200 border-0
+            ${isActive 
+              ? 'bg-gradient-to-r from-primary/15 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10' 
+              : 'hover:bg-muted/60'
+            }
+          `}
+        >
+          <Link 
+            href={`/chat/${chat.id}`} 
+            onClick={() => setOpenMobile(false)}
+            className="flex items-center gap-3 px-3 py-2.5 w-full min-w-0"
           >
-            <MoreHorizontalIcon />
-            <span className="sr-only">More</span>
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
+            <div className={`
+              w-2 h-2 rounded-full flex-shrink-0 transition-all duration-200
+              ${isActive ? 'bg-primary shadow-sm' : 'bg-muted-foreground/30'}
+            `} />
+            <span className="flex-1 text-sm font-medium truncate">
+              {chat.title}
+            </span>
+          </Link>
+        </SidebarMenuButton>
 
-        <DropdownMenuContent side="bottom" align="end">
-          {/* <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">
-              <ShareIcon />
-              <span>Share</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  className="cursor-pointer flex-row justify-between"
-                  onClick={() => {
-                    setVisibilityType('private');
-                  }}
-                >
-                  <div className="flex flex-row gap-2 items-center">
-                    <LockIcon size={12} />
-                    <span>Private</span>
-                  </div>
-                  {visibilityType === 'private' ? (
-                    <CheckCircleFillIcon />
-                  ) : null}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer flex-row justify-between"
-                  onClick={() => {
-                    setVisibilityType('public');
-                  }}
-                >
-                  <div className="flex flex-row gap-2 items-center">
-                    <GlobeIcon />
-                    <span>Public</span>
-                  </div>
-                  {visibilityType === 'public' ? <CheckCircleFillIcon /> : null}
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub> */}
+        <DropdownMenu modal={true}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`
+                flex-shrink-0 h-8 w-8 p-0 ml-1 mr-1 rounded-md
+                opacity-0 group-hover:opacity-100 transition-all duration-200
+                hover:bg-muted hover:text-muted-foreground
+                data-[state=open]:opacity-100 data-[state=open]:bg-muted
+                ${isActive ? 'opacity-70 hover:opacity-100' : ''}
+              `}
+            >
+              <MoreHorizontalIcon className="h-4 w-4" />
+              <span className="sr-only">More options</span>
+            </Button>
+          </DropdownMenuTrigger>
 
-          <DropdownMenuItem
-            className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
-            onSelect={() => onDelete(chat.id)}
+          <DropdownMenuContent 
+            side="right" 
+            align="start"
+            className="w-44 shadow-lg border border-border/50 bg-background/98 backdrop-blur-sm rounded-lg"
+            sideOffset={8}
           >
-            <TrashIcon />
-            <span>Delete</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
+              onSelect={() => onDelete(chat.id)}
+            >
+              <TrashIcon className="mr-2 h-4 w-4" />
+              <span className="font-medium">Delete chat</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </SidebarMenuItem>
   );
 };
@@ -168,6 +166,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+  
   const handleDelete = async () => {
     const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
       method: "DELETE",
@@ -178,7 +177,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       success: () => {
         mutate((history) => {
           if (history) {
-            return history.filter((h) => h.id !== id);
+            return history.filter((h) => h.id !== deleteId);
           }
         });
         return "Chat deleted successfully";
@@ -197,8 +196,15 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
-          <div className="px-2 text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
-            Login to save and revisit previous chats!
+          <div className="px-4 py-8 text-center">
+            <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-6 border border-border/30">
+              <div className="text-muted-foreground text-sm font-medium mb-2">
+                Welcome! 👋
+              </div>
+              <div className="text-sm text-muted-foreground/80 leading-relaxed">
+                Login to save and revisit your previous conversations
+              </div>
+            </div>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -208,23 +214,20 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   if (isLoading) {
     return (
       <SidebarGroup>
-        <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
+        <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
           Today
         </div>
         <SidebarGroupContent>
-          <div className="flex flex-col">
-            {[44, 32, 28, 64, 52].map((item) => (
+          <div className="flex flex-col space-y-2">
+            {[64, 48, 56, 72, 40].map((width, index) => (
               <div
-                key={item}
-                className="rounded-md h-8 flex gap-2 px-2 items-center"
+                key={index}
+                className="rounded-lg h-10 flex gap-3 px-3 items-center bg-muted/30 animate-pulse"
               >
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
                 <div
-                  className="h-4 rounded-md flex-1 max-w-[--skeleton-width] bg-sidebar-accent-foreground/10"
-                  style={
-                    {
-                      "--skeleton-width": `${item}%`,
-                    } as React.CSSProperties
-                  }
+                  className="h-4 rounded-md bg-muted-foreground/20"
+                  style={{ width: `${width}%` }}
                 />
               </div>
             ))}
@@ -238,8 +241,15 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
-          <div className="px-2 text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
-            Your conversations will appear here once you start chatting!
+          <div className="px-4 py-8 text-center">
+            <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-6 border border-border/20">
+              <div className="text-muted-foreground text-sm font-medium mb-2">
+                No conversations yet
+              </div>
+              <div className="text-xs text-muted-foreground/70 leading-relaxed">
+                Your conversations will appear here once you start chatting!
+              </div>
+            </div>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -279,22 +289,26 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     );
   };
 
+  const DateGroupHeader = ({ children }: { children: React.ReactNode }) => (
+    <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider border-b border-border/10 bg-muted/20 rounded-lg mx-1 mb-2 mt-4 first:mt-0">
+      {children}
+    </div>
+  );
+
   return (
     <>
       <SidebarGroup>
         <SidebarGroupContent>
-          <SidebarMenu>
+          <SidebarMenu className="space-y-0.5">
             {history &&
               (() => {
                 const groupedChats = groupChatsByDate(history);
 
                 return (
-                  <>
+                  <div className="space-y-2">
                     {groupedChats.today.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                          Today
-                        </div>
+                      <div>
+                        <DateGroupHeader>Today</DateGroupHeader>
                         {groupedChats.today.map((chat) => (
                           <ChatItem
                             key={chat.id}
@@ -307,14 +321,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
-                      </>
+                      </div>
                     )}
 
                     {groupedChats.yesterday.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
-                          Yesterday
-                        </div>
+                      <div>
+                        <DateGroupHeader>Yesterday</DateGroupHeader>
                         {groupedChats.yesterday.map((chat) => (
                           <ChatItem
                             key={chat.id}
@@ -327,14 +339,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
-                      </>
+                      </div>
                     )}
 
                     {groupedChats.lastWeek.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
-                          Last 7 days
-                        </div>
+                      <div>
+                        <DateGroupHeader>Last 7 days</DateGroupHeader>
                         {groupedChats.lastWeek.map((chat) => (
                           <ChatItem
                             key={chat.id}
@@ -347,14 +357,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
-                      </>
+                      </div>
                     )}
 
                     {groupedChats.lastMonth.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
-                          Last 30 days
-                        </div>
+                      <div>
+                        <DateGroupHeader>Last 30 days</DateGroupHeader>
                         {groupedChats.lastMonth.map((chat) => (
                           <ChatItem
                             key={chat.id}
@@ -367,14 +375,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
-                      </>
+                      </div>
                     )}
 
                     {groupedChats.older.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
-                          Older
-                        </div>
+                      <div>
+                        <DateGroupHeader>Older</DateGroupHeader>
                         {groupedChats.older.map((chat) => (
                           <ChatItem
                             key={chat.id}
@@ -387,27 +393,34 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
-                      </>
+                      </div>
                     )}
-                  </>
+                  </div>
                 );
               })()}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+      
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md mx-4 rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your
-              chat and remove it from our servers.
+            <AlertDialogTitle className="text-lg font-semibold">
+              Delete conversation?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
+              This action cannot be undone. This will permanently delete your chat and remove it from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Continue
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel className="rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

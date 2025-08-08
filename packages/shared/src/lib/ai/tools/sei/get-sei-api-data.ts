@@ -24,6 +24,42 @@ const COMMON_CONTRACTS = {
   fastUSD: "0x37a4dD9CED2b19Cfe8FAC251cd727b5787E45269",
 };
 
+// Helper function to validate and sanitize API endpoints
+function sanitizeApiEndpoint(endpoint: string): string | null {
+  try {
+    // Remove any base URL if present
+    let path = endpoint;
+    
+    // If it's a full URL, extract just the path and query
+    if (endpoint.includes('://')) {
+      const url = new URL(endpoint);
+      path = url.pathname + url.search;
+    }
+    
+    // Ensure path starts with /
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    // Validate that it's a proper API path
+    if (!path.startsWith('/api/')) {
+      console.warn(`Invalid API path detected: ${path}`);
+      return null;
+    }
+    
+    // Check for any suspicious patterns that might indicate malformed URLs
+    if (path.includes('X-API-KEY') || path.includes('YOUR_API_KEY')) {
+      console.error(`Malformed URL detected: ${path}`);
+      return null;
+    }
+    
+    return path;
+  } catch (error) {
+    console.error(`Error sanitizing endpoint: ${endpoint}`, error);
+    return null;
+  }
+}
+
 export const getSeiApiData = tool({
   description: "Get real-time Sei Chain blockchain data from Seitrace.",
   parameters: z.object({
@@ -53,6 +89,7 @@ export const getSeiApiData = tool({
         
         try {
             const assocUrl = `https://seitrace.com/insights/api/v2/addresses?chain_id=pacific-1&address=${foundAddress}`;
+            console.log(`Making association request to: ${assocUrl}`);
             const assocResponseStr = await makeSeiTraceApiRequest(assocUrl);
             const assocResponse = JSON.parse(assocResponseStr);
 
@@ -78,7 +115,7 @@ export const getSeiApiData = tool({
       const allPaths = await getAllPathDetails(openapidata);
 
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("chat-model-gemini"),
+        model: myProvider.languageModel("chat-model-claude"),
         output: "array",
         schema: z.string().describe("the full api path with query parameters"),
         system: `
@@ -91,7 +128,8 @@ export const getSeiApiData = tool({
           4.  **Portfolio Discovery:** If the intent is "portfolio", construct calls to all relevant balance endpoints, respecting the address format rule above. Do not include optional parameters.
           5.  **Defaults:** Always use 'chain_id=pacific-1'.
           6.  **Date Range for Recent History:** If the user's query contains words like "recent", "last month", or "latest transactions", and the intent is "history", you MUST add from_date and to_date query parameters to the /api/v2/addresses/transactions call. Use the provided dates.
-          7.  **Output:** Return an array of **relative paths** only (e.g., /api/v2/...). Do not include the base URL.`,
+          7.  **Output:** Return an array of **relative paths** only (e.g., /api/v2/...). Do not include the base URL.
+          8.  **CRITICAL:** Never include API keys, authentication headers, or placeholder text in the paths. Only return clean API endpoint paths.`,
         prompt: JSON.stringify({
           apiPaths: allPaths,
           commonContracts: COMMON_CONTRACTS,
@@ -107,32 +145,51 @@ export const getSeiApiData = tool({
         }),
       });
 
-      const limitedApiEndpointsArray = apiEndpointsArray.slice(0, 5);
+      // Sanitize and validate endpoints
+      const sanitizedEndpoints = apiEndpointsArray
+        .map(sanitizeApiEndpoint)
+        .filter((endpoint): endpoint is string => endpoint !== null);
+
+      const limitedApiEndpointsArray = sanitizedEndpoints.slice(0, 5);
       console.log(`AI selected the following API endpoints: `, limitedApiEndpointsArray);
 
-      const requests = limitedApiEndpointsArray.map(async (endpoint) => {
-        let path = endpoint;
-        if (endpoint.startsWith('http')) {
-            path = new URL(endpoint).pathname + new URL(endpoint).search;
-        }
-        const formattedEndpoint = path.startsWith('/') ? path : `/${path}`;
-        const fullUrl = `https://seitrace.com/insights${formattedEndpoint}`;
-        
-        const response = await makeSeiTraceApiRequest(fullUrl);
-        
-        let responseObject;
-        try {
-          responseObject = JSON.parse(response);
-        } catch (e) {
-          console.warn(`Could not parse response as JSON: "${response}". Wrapping it in a message object.`);
-          return JSON.stringify({ message: response, items: [] });
-        }
+      if (limitedApiEndpointsArray.length === 0) {
+        console.error("No valid API endpoints generated");
+        return {
+          success: false,
+          message: "No valid API endpoints could be generated for this query.",
+          error: "Invalid endpoint generation",
+        };
+      }
 
-        if (responseObject && responseObject.items && Array.isArray(responseObject.items)) {
-          responseObject.items = responseObject.items.slice(0, limit);
+      const requests = limitedApiEndpointsArray.map(async (endpoint) => {
+        try {
+          const fullUrl = `https://seitrace.com/insights${endpoint}`;
+          console.log(`Making request to: ${fullUrl}`);
+          
+          const response = await makeSeiTraceApiRequest(fullUrl);
+          
+          let responseObject;
+          try {
+            responseObject = JSON.parse(response);
+          } catch (e) {
+            console.warn(`Could not parse response as JSON: "${response}". Wrapping it in a message object.`);
+            return JSON.stringify({ message: response, items: [] });
+          }
+
+          if (responseObject && responseObject.items && Array.isArray(responseObject.items)) {
+            responseObject.items = responseObject.items.slice(0, limit);
+          }
+          
+          return JSON.stringify(responseObject);
+        } catch (error) {
+          console.error(`Error processing endpoint ${endpoint}:`, error);
+          return JSON.stringify({ 
+            error: `Failed to fetch data from ${endpoint}`, 
+            message: error.message,
+            items: [] 
+          });
         }
-        
-        return JSON.stringify(responseObject);
       });
 
       const results = await Promise.all(requests);

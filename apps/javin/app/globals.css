@@ -94,6 +94,144 @@
   }
 }
 
+/* Enhanced CodeBlock Responsive Styles */
+
+/* Custom scrollbar for better appearance */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-zinc-300::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thumb-zinc-300::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-zinc-300::-webkit-scrollbar-thumb {
+  background-color: rgb(212 212 216);
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-zinc-600::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thumb-zinc-600::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-zinc-600::-webkit-scrollbar-thumb {
+  background-color: rgb(82 82 91);
+  border-radius: 3px;
+}
+
+/* Responsive breakpoints for mobile optimization */
+@media (max-width: 640px) {
+  .code-block-container {
+    margin: 1rem -1rem; /* Extend to screen edges on mobile */
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .code-block-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .code-block-content {
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  .code-block-output {
+    padding: 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .code-block-content {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+  }
+  
+  .code-block-output {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/* Enhanced syntax highlighting compatibility */
+.code-block-content pre {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+
+.code-block-content code {
+  background: transparent !important;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Loading animation enhancement */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.loading-pulse {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Improved focus states for accessibility */
+.code-block-button:focus-visible {
+  outline: 2px solid rgb(59 130 246);
+  outline-offset: 2px;
+}
+
+/* Dark mode specific enhancements */
+@media (prefers-color-scheme: dark) {
+  .code-block-container {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .code-block-container {
+    border-width: 2px;
+  }
+  
+  .code-block-header {
+    border-bottom-width: 2px;
+  }
+  
+  .code-block-output {
+    border-top-width: 2px;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+  
+  .loading-pulse {
+    animation: none;
+  }
+}
+
 .break-long-words {
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -166,6 +304,13 @@
     font-style: normal;
     font-weight: 100 900;
     src: url(/fonts/geist-mono.woff2) format("woff2");
+  }
+
+  @font-face {
+    font-family: 'Gramatika';
+    src: url('/fonts/gramatika_black.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
   }
 }
 

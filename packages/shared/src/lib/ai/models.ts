@@ -8,7 +8,7 @@ import {
   wrapLanguageModel,
 } from "ai";
 
-export const DEFAULT_CHAT_MODEL: string = "chat-model-small";
+export const DEFAULT_CHAT_MODEL: string = "chat-model-gemini";
 
 export const myProvider: any = customProvider({
   languageModels: {
@@ -17,7 +17,7 @@ export const myProvider: any = customProvider({
     "chat-model-gemini": google("models/gemini-2.5-flash"),
     "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
     "chat-model-reasoning": wrapLanguageModel({
-      model: fireworks("accounts/fireworks/models/deepseek-r1"),
+      model: fireworks("accounts/fireworks/models/deepseek-r1-0528"),
       middleware: extractReasoningMiddleware({ tagName: "think" }),
     }),
     "title-model": openai("gpt-4-turbo"),
@@ -38,27 +38,27 @@ interface ChatModel {
 export const chatModels: Array<ChatModel> = [
   {
     id: "chat-model-small",
-    name: "Barzakh LHS-1140",
+    name: "gpt-4o-mini",
     description: "Small model for fast, lightweight tasks",
   },
   {
     id: "chat-model-large",
-    name: "Barzakh K2-18",
+    name: "gpt-4o",
     description: "Large model for complex, multi-step tasks",
   },
   {
     id: "chat-model-reasoning",
-    name: "Barzakh DeepSeek",
+    name: "deepseek-r1",
     description: "Deepseek model for experimental tasks",
   },
   {
     id: "chat-model-gemini",
-    name: "Barzakh Gemini",
+    name: "gemini-2.5-flash",
     description: "Gemini model for experimental tasks",
   },
   {
     id: "chat-model-claude",
-    name: "Barzakh Claude",
+    name: "claude-3-5-haiku",
     description: "Claude model for experimental tasks",
   },
 ];

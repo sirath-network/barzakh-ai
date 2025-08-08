@@ -41,7 +41,7 @@ export default function Page() {
     } else if (state.status === "success") {
       setOverlayState({ status: "success", title: "Login Successful", message: "You will be redirected shortly." });
       setTimeout(() => {
-        router.refresh();
+        router.push("/");
       }, 2000);
     }
   }, [state, router]);

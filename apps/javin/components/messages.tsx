@@ -1,7 +1,9 @@
+// components/messages.tsx
+
 import { ChatRequestOptions, Message } from "ai";
 import { PreviewMessage, ThinkingMessage } from "./message";
 import { Overview } from "./overview";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useCallback } from "react";
 import { Vote } from "@/lib/db/schema";
 import equal from "fast-deep-equal";
 import { SearchGroupId } from "@javin/shared/lib/utils/utils";
@@ -33,39 +35,53 @@ function PureMessages({
   reload,
   isReadonly,
 }: MessagesProps) {
-  // const [messagesContainerRef, messagesEndRef] =
-  //   useScrollToBottom<HTMLDivElement>([messages]);
-
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  // ==================================================================
+  // === BLOK KODE YANG DITAMBAHKAN ===
+  //
+  // Efek ini akan berjalan setiap kali array 'messages' diperbarui.
+  // Ini memastikan bahwa tampilan akan otomatis scroll ke bawah
+  // baik saat chat history dimuat maupun saat pesan baru ditambahkan.
   useEffect(() => {
-    const handleScroll = () => {
-      const el = scrollRef.current;
-      if (!el) return;
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages]); // Bergantung pada 'messages' untuk trigger
+  // ==================================================================
 
-      const threshold = 250;
-      const isBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
-      setIsAtBottom(isBottom);
-    };
 
+  // Bungkus logika handleScroll dengan useCallback
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const threshold = 250;
+    const isBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    setIsAtBottom(isBottom);
+  }, [setIsAtBottom]); // Jadikan setIsAtBottom sebagai dependensi
+
+  useEffect(() => {
     const el = scrollRef.current;
     if (el) {
       el.addEventListener("scroll", handleScroll);
-      handleScroll(); // check on mount
+      handleScroll(); // Panggil saat mount untuk pengecekan awal
     }
 
     return () => {
-      if (el) el.removeEventListener("scroll", handleScroll);
+      if (el) {
+        el.removeEventListener("scroll", handleScroll);
+      }
     };
-  }, []);
+  }, [handleScroll]); // Gunakan handleScroll yang sudah di-memoize sebagai dependensi
 
   return (
     <div
       id="chat-scroll"
       ref={scrollRef}
-      // ref={messagesContainerRef}
-      className={`relative flex flex-col min-w-0 gap-6 w-screen md:w-full overflow-y-scroll custom-scrollbar pt-4 ${
+      className={`relative flex flex-col min-w-0 w-full gap-4 md:gap-6 overflow-y-scroll custom-scrollbar pt-4 ${
         messages.length === 0 ? "" : "flex-1"
       }`}
     >
@@ -95,10 +111,7 @@ function PureMessages({
         messages[messages.length - 1].role === "user" && <ThinkingMessage />}
 
       {messages.length > 0 && (
-        <div
-          // ref={messagesEndRef}
-          className="shrink-0 min-w-[24px] min-h-[24px]"
-        />
+        <div className="shrink-0 min-w-[24px] min-h-[24px]" />
       )}
     </div>
   );
@@ -107,6 +120,7 @@ function PureMessages({
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;
+  // Kita hapus pengecekan panjang pesan agar useEffect bisa berjalan
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
