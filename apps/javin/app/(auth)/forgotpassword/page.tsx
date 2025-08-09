@@ -92,7 +92,7 @@ export default function Page() {
               />
               <h1 className="text-3xl font-bold">Forgot Password?</h1>
               <p className="text-muted-foreground mt-2 max-w-sm">
-                Don't worry. We'll send you a link to get back into your account.
+                Don&apos;t worry. We&apos;ll send you a link to get back into your account.
               </p>
           </motion.div>
         </div>

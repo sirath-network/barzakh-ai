@@ -403,7 +403,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       </SidebarGroup>
       
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="max-w-md mx-4 rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
+        <AlertDialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg font-semibold">
               Delete conversation?
@@ -412,13 +412,15 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               This action cannot be undone. This will permanently delete your chat and remove it from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-2">
-            <AlertDialogCancel className="rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200">
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+            <AlertDialogCancel 
+              className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200"
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
+              className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
             >
               Delete
             </AlertDialogAction>

@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   verifyAndResetPassword,
   VerifyAndResetPasswordActionState,
@@ -10,13 +11,24 @@ import { toast } from "sonner";
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
+import { ActionResultOverlay } from "@/components/action-result-overlay";
+import { Button } from "@/components/ui/button";
+
+type OverlayState = {
+  status: "success" | "error" | "idle";
+  title?: string;
+  message: string;
+};
 
 export default function ResetPassword() {
-  const { token } = useParams(); // Get token from dynamic route
+  const { token } = useParams();
   const router = useRouter();
 
-  // const [password, setPassword] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const [overlayState, setOverlayState] = useState<OverlayState>({
+    status: "idle",
+    message: "",
+  });
 
   const [state, formAction] = useActionState<
     VerifyAndResetPasswordActionState,
@@ -27,58 +39,110 @@ export default function ResetPassword() {
 
   const handleSubmit = (formData: FormData) => {
     if (typeof token !== "string") {
-      toast.error("Invalid token");
+      setOverlayState({ status: "error", title: "Invalid Token", message: "The provided token is invalid." });
       return;
     }
-    // setPassword(formData.get("password") as string);
     formData.set("token", token);
-    console.log(formData);
     formAction(formData);
   };
 
   useEffect(() => {
     if (state.status === "failed") {
-      toast.error("Something went wrong!");
+        setOverlayState({ status: "error", title: "Reset Failed", message: "Something went wrong! Please try again." });
     } else if (state.status === "expired_token") {
-      toast.error(
-        "Token has expired, please forget password again to get a new link."
-      );
+        setOverlayState({ status: "error", title: "Expired Token", message: "Your token has expired. Please request a new reset link." });
     } else if (state.status == "redirect_to_forgot_password") {
-      toast.error("Wrong token. Redirecting to forgot password.");
-      router.push("/forgotpassword");
+        setOverlayState({ status: "error", title: "Invalid Token", message: "The token is incorrect. Redirecting you to request a new one." });
+        setTimeout(() => router.push("/forgotpassword"), 2500);
     } else if (state.status === "success") {
       setIsSuccessful(true);
-      toast.success("Reset succesfully, Redirecting to login.");
-      router.push("/login");
+      setOverlayState({ status: "success", title: "Success!", message: "Your password has been reset successfully. Redirecting to login." });
+      setTimeout(() => {
+        router.push("/login");
+      }, 2500);
     }
   }, [state.status, router]);
 
+  const closeOverlay = () => {
+    setOverlayState({ status: "idle", message: "" });
+  };
+  
+  const formVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
+
   return (
-    <div className="flex flex-col h-dvh w-screen pt-12 md:pt-0 items-center justify-center bg-background">
-      <div className="rounded-xl p-6 flex flex-col items-center gap-2 leading-relaxed text-center max-w-2xl">
-        <p className="flex flex-row justify-center gap-4 items-center text-5xl font-semibold">
-          Barzakh Agents
-        </p>
-        <p className="text-lg text-muted-foreground">
-          A focused, no-nonsense AI search engine for crypto and blockchain.
-        </p>
-      </div>
-      <div className="w-fit overflow-hidden rounded-2xl gap-5 flex flex-col border m-2 p-5">
-        <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">
-            Reset your password.
-          </h3>
-        </div>
-        <AuthForm
-          action={handleSubmit}
-          emailNeeded={false}
-          forgotPasswordNeeded={false}
-          passwordNeeded={true}
-          fieldErrors={state.fieldErrors}
+    <>
+        <ActionResultOverlay
+            status={overlayState.status}
+            title={overlayState.title}
+            message={overlayState.message}
         >
-          <SubmitButton isSuccessful={isSuccessful}>Reset</SubmitButton>
-        </AuthForm>
-      </div>
-    </div>
+            {overlayState.status === 'error' && (
+              <Button onClick={closeOverlay} className="w-full h-11" variant="secondary">
+                Try Again
+              </Button>
+            )}
+        </ActionResultOverlay>
+        <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+            <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
+              <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                  <img
+                    alt="Brand Banner"
+                    src="/images/javin/banner/sirath-banner.svg" 
+                    className="w-48 h-auto mb-4 mx-auto"
+                  />
+                  <h1 className="text-3xl font-bold">Reset Your Password</h1>
+                  <p className="text-muted-foreground mt-2 max-w-sm">
+                    Create a new, strong password to secure your account.
+                  </p>
+              </motion.div>
+            </div>
+
+            <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
+                <motion.div
+                    key="reset-password-form"
+                    variants={formVariants}
+                    initial="initial"
+                    animate="animate"
+                    className="mx-auto w-full max-w-md space-y-6"
+                >
+                    <div className="space-y-2 text-center">
+                       <img
+                        alt="Brand Banner"
+                        src="/images/javin/banner/sirath-banner.svg"
+                        className="w-32 h-auto mx-auto lg:hidden" 
+                      />
+                      <h1 className="text-3xl font-bold">Set New Password</h1>
+                      <p className="text-muted-foreground">
+                        Enter and confirm your new password below.
+                      </p>
+                    </div>
+                    
+                    <AuthForm
+                      action={handleSubmit}
+                      emailNeeded={false}
+                      forgotPasswordNeeded={false}
+                      passwordNeeded={true}
+                      fieldErrors={state.fieldErrors}
+                    >
+                      <SubmitButton isSuccessful={isSuccessful} className="w-full">Reset Password</SubmitButton>
+                    </AuthForm>
+
+                    <p className="text-center text-sm text-muted-foreground">
+                       <Link href="/login" className="underline underline-offset-4 hover:text-primary">
+                          &larr; Back to Login
+                       </Link>
+                    </p>
+
+                </motion.div>
+            </div>
+        </div>
+    </>
   );
 }

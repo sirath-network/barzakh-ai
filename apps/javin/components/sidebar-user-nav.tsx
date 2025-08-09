@@ -5,7 +5,7 @@ import Image from "next/image";
 import type { User } from "next-auth";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { useRouter } from "next/navigation"; // <-- Tambahan
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,12 +17,40 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { toast } from "sonner";
 
-export function SidebarUserNav({ user }: { user: User }) {
+interface SidebarUserNavProps {
+  user: User;
+}
+
+export function SidebarUserNav({ user }: SidebarUserNavProps) {
   const { setTheme, theme } = useTheme();
-  const router = useRouter(); // <-- Tambahan
+  // 1. Ambil semua state yang relevan dari context useSidebar
+  const { 
+    setSidebarView, 
+    state, 
+    toggleSidebar, 
+    isMobile, 
+    openMobile 
+  } = useSidebar();
+
+  // 2. Perbarui fungsi handleSettingsClick dengan logika untuk mobile
+  const handleSettingsClick = () => {
+    // Selalu ganti tampilan ke 'settings'
+    if (setSidebarView) {
+      setSidebarView('settings');
+    }
+
+    // Cek apakah sidebar perlu dibuka
+    const isDesktopCollapsed = !isMobile && state === 'collapsed';
+    const isMobileClosed = isMobile && !openMobile;
+
+    // Panggil toggleSidebar jika salah satu kondisi terpenuhi
+    if ((isDesktopCollapsed || isMobileClosed) && toggleSidebar) {
+        toggleSidebar();
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -90,7 +118,7 @@ export function SidebarUserNav({ user }: { user: User }) {
 
             <DropdownMenuItem
               className="cursor-pointer focus:bg-muted/60 rounded-lg mx-1 transition-colors duration-200"
-              onSelect={() => router.push("/settings")} // <-- Ganti toast
+              onSelect={handleSettingsClick} // Panggil fungsi yang sudah diperbarui
             >
               <span className="font-medium">Settings</span>
             </DropdownMenuItem>

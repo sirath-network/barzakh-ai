@@ -1,7 +1,22 @@
+// 1. Import baru yang dibutuhkan untuk fungsi 'cn'
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+// Import yang sudah ada untuk fungsi Anda
 import type { Message as DBMessage } from "@/lib/db/schema";
 import type { CoreToolMessage, Message, ToolInvocation } from "ai";
 import { addToolMessageToChat } from "@javin/shared/lib/utils/utils";
 
+// 2. Tambahkan fungsi 'cn' yang baru di sini
+/**
+ * Menggabungkan class names dengan aman untuk styling.
+ * Mencegah duplikasi dan konflik pada class Tailwind CSS.
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// 3. Fungsi convertToUIMessages milik Anda tetap ada di bawahnya (tidak perlu diubah)
 export function convertToUIMessages(
   messages: Array<DBMessage>
 ): Array<Message> {

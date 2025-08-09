@@ -17,6 +17,7 @@ import {
   vote,
   password_reset_tokens,
   otp_tokens,
+  email_change_requests,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -164,6 +165,33 @@ export async function updateUserPassword(email: string, newPassword: string) {
     throw error;
   }
 }
+
+export async function saveEmailChangeRequest({ userId, newEmail, code, expiresAt }) {
+  // Hapus request lama user kalau ada
+  await db.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
+
+  // Simpan request baru
+  await db.insert(email_change_requests).values({
+    userId,
+    newEmail,
+    code,
+    expiresAt
+  });
+}
+
+// --- NEW FUNCTION TO UPDATE EMAIL ---
+export async function updateUserEmail(userId: string, newEmail: string) {
+  try {
+    return await db
+      .update(user)
+      .set({ email: newEmail })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error("Failed to update user email in database");
+    throw error;
+  }
+}
+
 
 export async function savePasswordResetToken(email: string, token: string) {
   await db

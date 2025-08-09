@@ -274,7 +274,6 @@ const MultiSearch: React.FC<{
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  // Set preview count: 3 for desktop, 4 for mobile
   const PREVIEW_RESULT_COUNT = isDesktop ? 3 : 2;
 
   if (!result) {
@@ -293,7 +292,6 @@ const MultiSearch: React.FC<{
   const hasMoreResults = allResults.length > PREVIEW_RESULT_COUNT;
 
   const handleToggleShowAll = () => {
-    // If we are about to show less, scroll to the top of the component
     if (showAll) {
       containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -323,7 +321,14 @@ const MultiSearch: React.FC<{
               ))}
             </div>
             
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            {/* PERUBAHAN DI SINI: Kelas grid sekarang dinamis */}
+            <div 
+              className={`grid gap-3 ${
+                allResults.length === 1
+                  ? 'grid-cols-1' // Jika hanya 1 hasil, gunakan 1 kolom
+                  : 'grid-cols-2 md:grid-cols-3' // Jika lebih, gunakan 2 atau 3 kolom
+              }`}
+            >
               {displayResults.map((res, index) => (
                 <motion.div
                   key={`${res.url}-${index}`}

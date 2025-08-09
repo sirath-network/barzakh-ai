@@ -90,23 +90,26 @@ const PurePreviewMessage = ({
       >
         <div
           className={cn(
-            "flex flex-col md:flex-row gap-0 md:gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
+            "flex flex-col md:flex-row pl-0.5 gap-0 md:gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
             {
               "w-full": mode === "edit",
               "group-data-[role=user]/message:w-fit": mode !== "edit",
             }
           )}
         >
+
+          
           {message.role === "assistant" && (
             <div className="hidden md:flex size-8 items-center rounded-full justify-center bg-background">
               {showIcon && (
                 <div className="">
                   <JavinMan size={24} />
                 </div>
+                
               )}
             </div>
           )}
-
+         
           <div className="flex flex-col gap-4 w-full">
             {message.experimental_attachments && (
               <div className="flex flex-row justify-end gap-2">

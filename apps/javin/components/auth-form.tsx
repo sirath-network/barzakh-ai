@@ -169,7 +169,7 @@ export function AuthForm({
             />
           </div>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            We've sent a code to your email
+            We&apos;ve sent a code to your email
           </p>
           {onResendOTP && (
             <div className="flex flex-col gap-1">

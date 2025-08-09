@@ -275,12 +275,16 @@
 
 /* Firefox scrollbar */
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #a1a1aa #f3f4f6; /* Light mode colors */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .dark .custom-scrollbar {
-  scrollbar-color: #52525b #1e1e1e; /* Dark mode colors */
+  scrollbar-width: none; /* Dark mode colors */
 }
 
 @layer base {
