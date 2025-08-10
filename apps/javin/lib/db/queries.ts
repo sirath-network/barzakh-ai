@@ -104,18 +104,24 @@ export async function getUserById(id: string): Promise<Array<User>> {
 export async function createUser(
   id: string,
   email: string,
-  password: string
+  password: string | null
 ) {
   try {
-    const salt = genSaltSync(10);
-    const hash = hashSync(password, salt);
-
     console.log('Creating user:', { id, email });
-    const result = await db.insert(user).values({ 
+    
+    const userData: any = {
       id, 
-      email, 
-      password: hash 
-    }).returning();
+      email
+    };
+
+    // Only hash and add password if it's provided (not null)
+    if (password !== null) {
+      const salt = genSaltSync(10);
+      const hash = hashSync(password, salt);
+      userData.password = hash;
+    }
+    
+    const result = await db.insert(user).values(userData).returning();
     
     console.log('User created successfully:', result);
     return result;
