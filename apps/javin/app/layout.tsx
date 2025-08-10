@@ -8,20 +8,27 @@ const baseUrl = "https://sirath.network";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
-  title: "Barzakh Agents",
+  title: "Barzakh AI",
   description:
     "Intelligent, focused AI search powering crypto and blockchain insights.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/images/javin/SirathLogo.svg", type: "image/svg+xml" },
+      { url: "/images/javin/SirathLogo-192px.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/images/javin/SirathLogo-192px.png",
+  },
   openGraph: {
-    title: "Barzakh Agents",
+    title: "Barzakh AI",
     description:
       "Intelligent, focused AI search powering crypto and blockchain insights.",
     images: [
       {
-        url: `${baseUrl}/images/javin/preview/javin_preview_banner.png`,
+        url: `${baseUrl}/images/javin/preview/barzakh_preview_banner.png`,
         width: 1200,
         height: 630,
-        alt: "Barzakh Agents",
+        alt: "Barzakh AI",
       },
     ],
   },

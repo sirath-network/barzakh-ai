@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Barzakh Agents",
-    short_name: "Barzakh Agents",
+    name: "Barzakh AI",
+    short_name: "Barzakh AI",
     description:
       "Intelligent, focused AI search powering crypto and blockchain insights.",
     start_url: "/",
@@ -15,19 +15,19 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/images/javin/SirathLogo.svg",
         sizes: "any",
         type: "image/svg+xml",
-        purpose: "maskable",
+        purpose: "any",
       },
       {
         src: "/images/javin/SirathLogo-192px.png",
         sizes: "192x192",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
       },
       {
         src: "/images/javin/SirathLogo-512px.png",
         sizes: "512x512",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
       },
     ],
     screenshots: [

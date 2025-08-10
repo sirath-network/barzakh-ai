@@ -95,14 +95,14 @@ export default function AuthModal({
           <div className="rounded-xl p-6 flex flex-col gap-2 leading-relaxed text-center max-w-2xl">
             {resolvedTheme == "dark" ? (
               <img
-                alt="Barzakh Agents"
+                alt="Barzakh AI"
                 src="/images/javin/banner/sirath-banner.svg"
                 className=" w-32 sm:w-48 h-auto"
               />
             ) : (
               resolvedTheme == "light" && (
                 <img
-                  alt="Barzakh Agents"
+                  alt="Barzakh AI"
                   src="/images/javin/banner/sirath-banner.svg"
                   className=" w-32 sm:w-48 h-auto"
                 />
