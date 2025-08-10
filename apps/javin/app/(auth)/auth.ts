@@ -42,15 +42,19 @@ export const authOptions: NextAuthOptions = {
       // ✅ Logic existing untuk login pertama kali
       if (user?.email) {
         let dbUser;
+        let isNewUser = false;
         const [existingUser] = await getUser(user.email);
 
         if (!existingUser) {
           const generatedId = generateUUID();
           await createUser(generatedId, user.email, null);
+          isNewUser = true;
           dbUser = {
             id: generatedId,
             name: user.name ?? null,
+            email: user.email,
             image: user.image ?? null,
+            username: null,
             tier: "free",
             messageCount: 0,
           };
@@ -63,6 +67,8 @@ export const authOptions: NextAuthOptions = {
         token.email = dbUser.email;
         token.image = dbUser.image;
         token.username = dbUser.username;
+        // Mark if this is a new user
+        token.isNewUser = isNewUser;
       }
       return token;
     },
@@ -76,6 +82,13 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // If this was a callback and we have a new user, force a refresh
+      if (url.includes('/api/auth/callback/google')) {
+        return `${baseUrl}/?newuser=true`;
+      }
+      return url.startsWith(baseUrl) ? url : baseUrl;
+    }
   },
 };
 
