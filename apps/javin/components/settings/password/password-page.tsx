@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { Lock, Shield, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function PasswordSettingsPage() {
@@ -60,54 +61,73 @@ export default function PasswordSettingsPage() {
   };
 
   const handleLogout = async () => {
-    // Fungsi handleLogout tetap sama
     try {
-      const logoutResponse = await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      console.log("Logout response:", logoutResponse.status);
+      console.log("Starting logout process...");
       
+      // Use NextAuth's signOut function first
+      await signOut({ 
+        redirect: false // Don't redirect automatically
+      });
+      
+      // Additional cleanup for any remaining session data
+      try {
+        const logoutResponse = await fetch("/api/auth/signout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        console.log("SignOut API response:", logoutResponse.status);
+      } catch (apiError) {
+        console.log("API signout failed, continuing with manual cleanup:", apiError);
+      }
+
+      // Manual cleanup as fallback
       if (typeof window !== "undefined") {
+        // Clear all storage
         localStorage.clear();
         sessionStorage.clear();
         
+        // Clear all auth-related cookies
         const authCookies = [
+          'next-auth.session-token',
+          'next-auth.csrf-token',
+          'next-auth.callback-url',
           'authjs.session-token',
           'authjs.csrf-token', 
           'authjs.callback-url',
+          '__Secure-next-auth.session-token',
+          '__Secure-next-auth.callback-url',
+          '__Secure-next-auth.csrf-token',
           '__Secure-authjs.session-token',
           '__Secure-authjs.callback-url',
           '__Secure-authjs.csrf-token'
         ];
         
         authCookies.forEach(cookieName => {
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
+          // Clear for current path and domain
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
+          // Also clear for secure cookies
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure`;
         });
+        
+        // Small delay to ensure cookies are cleared
+        setTimeout(() => {
+          console.log("Redirecting to login...");
+          window.location.replace("/login");
+        }, 100);
       }
-      
-      window.location.replace("/login");
       
     } catch (error) {
       console.error("Logout error:", error);
       
+      // Force redirect even if logout fails
       if (typeof window !== "undefined") {
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        document.cookie.split(";").forEach(cookie => {
-          const eqPos = cookie.indexOf("=");
-          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-        });
+        toast.error("Session ended. Redirecting to login...");
+        setTimeout(() => {
+          window.location.replace("/login");
+        }, 1000);
       }
-      
-      window.location.replace("/login");
     }
   };
 
@@ -119,6 +139,7 @@ export default function PasswordSettingsPage() {
     setIsLoading(true);
 
     try {
+      console.log("Updating password...");
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,19 +147,25 @@ export default function PasswordSettingsPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update password.");
+      console.log("Password update response:", { status: res.status, data });
       
-      toast.success("Password updated successfully! Directing to login...");
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update password.");
+      }
+      
+      toast.success("Password updated successfully! Logging out...");
       setPassword("");
       setConfirmPassword("");
 
-      setTimeout(() => {
-        toast.info("Logging out... Please wait.");
-        handleLogout();
-      }, 1500);
+      // Wait a moment for the user to see the success message
+      setTimeout(async () => {
+        console.log("Initiating logout after password change...");
+        await handleLogout();
+      }, 2000); // Increased to 2 seconds for better UX
 
     } catch (err) {
-      toast.error(err.message);
+      console.error("Password update error:", err);
+      toast.error(err.message || "Failed to update password");
     } finally {
       setIsLoading(false);
     }
@@ -347,7 +374,7 @@ export default function PasswordSettingsPage() {
             <div>
               <h3 className="text-sm md:text-base font-bold text-white mb-1">Need Help?</h3>
               <p className="text-xs md:text-sm text-gray-300">
-                Having trouble changing your email? Our support team is here to help.
+                Having trouble changing your password? Our support team is here to help.
               </p>
             </div>
             <button 
