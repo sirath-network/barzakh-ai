@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { signOut } from "next-auth/react"; // Add this import
 import { Mail, Shield, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function EmailSettingsPage() {
-  const { data: session } = useSession();
-  const [currentEmail, setCurrentEmail] = useState("Loading...");
+  const { data: session, status } = useSession();
+  const [currentEmail, setCurrentEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -22,6 +23,26 @@ export default function EmailSettingsPage() {
       setCurrentEmail(session.user.email);
     }
   }, [session]);
+
+  // Show loading state while session is being fetched
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-red-950 to-gray-900 p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (status === "unauthenticated") {
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    }
+    return null;
+  }
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -135,19 +156,35 @@ export default function EmailSettingsPage() {
       const responseData = await response.json();
 
       if (response.ok) {
+        // Update the current email display
         setCurrentEmail(newEmail);
+        
+        // Show success message
         setMessage({
           type: "success",
-          text: "🎉 Email updated successfully! You'll be redirected to login with your new email."
+          text: "🎉 Email updated successfully! You'll be signed out in 3 seconds to complete the change."
         });
 
-        if (responseData.forceLogout) {
-          setTimeout(() => {
-            handleLogout();
-          }, 2000);
-        }
+        // Always logout after successful email change for security
+        setTimeout(async () => {
+          try {
+            // Use NextAuth signOut first
+            await signOut({ 
+              redirect: false,
+              callbackUrl: "/login"
+            });
+            
+            // Additional cleanup
+            await handleLogout();
+          } catch (error) {
+            console.error("SignOut error:", error);
+            // Fallback to manual logout
+            await handleLogout();
+          }
+        }, 3000);
 
-        handleCancel();
+        // Don't call handleCancel() here as it might interfere with the logout process
+        
       } else {
         setMessage({ 
           type: "error", 
@@ -167,35 +204,47 @@ export default function EmailSettingsPage() {
 
   const handleLogout = async () => {
     try {
+      // Call your logout API
       await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
 
+      // Clear browser storage
       if (typeof window !== "undefined") {
         localStorage.clear();
         sessionStorage.clear();
 
+        // Clear auth cookies
         const authCookies = [
           'authjs.session-token',
           'authjs.csrf-token', 
           'authjs.callback-url',
           '__Secure-authjs.session-token',
           '__Secure-authjs.callback-url',
-          '__Secure-authjs.csrf-token'
+          '__Secure-authjs.csrf-token',
+          // Add more cookie variations if needed
+          'next-auth.session-token',
+          'next-auth.csrf-token',
+          '__Host-next-auth.csrf-token',
+          '__Secure-next-auth.session-token'
         ];
 
         authCookies.forEach(cookieName => {
+          // Clear for current domain
           document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          // Clear for domain and subdomains
           document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
           document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
         });
       }
 
+      // Force redirect to login
       window.location.replace("/login");
     } catch (error) {
       console.error("Logout error:", error);
+      // Even if logout API fails, still redirect to login
       window.location.replace("/login");
     }
   };
@@ -254,11 +303,14 @@ export default function EmailSettingsPage() {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div className="flex items-center gap-2 md:gap-3">
                         <Mail className="w-4 h-4 md:w-5 md:h-5 text-red-400" />
-                        <span className="text-sm md:text-base text-white font-medium break-all">{currentEmail}</span>
+                        <span className="text-sm md:text-base text-white font-medium break-all">
+                          {currentEmail || "No email found"}
+                        </span>
                       </div>
                       <button
                         onClick={handleStartEditing}
-                        className="w-full md:w-auto px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 font-medium text-xs md:text-sm shadow-lg"
+                        disabled={!currentEmail}
+                        className="w-full md:w-auto px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-xs md:text-sm shadow-lg"
                       >
                         Change Email
                       </button>
@@ -380,7 +432,7 @@ export default function EmailSettingsPage() {
                 <div className="flex flex-col md:flex-row gap-2 md:gap-3 pt-3 md:pt-4">
                   <button
                     onClick={handleRequestChange}
-                    disabled={isLoading}
+                    disabled={isLoading || !newEmail || !password || !validateEmail(newEmail) || newEmail === currentEmail}
                     className="w-full md:flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 md:py-3 px-4 md:px-6 rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg text-sm md:text-base"
                   >
                     {isLoading ? (

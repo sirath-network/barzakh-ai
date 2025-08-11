@@ -4,12 +4,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Lock, Shield, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
+import { Lock, Shield, Eye, EyeOff, CheckCircle, AlertCircle, Key } from "lucide-react";
 
 export default function PasswordSettingsPage() {
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -44,10 +46,16 @@ export default function PasswordSettingsPage() {
   const validateForm = () => {
     const newErrors = {};
     
+    if (!currentPassword) {
+      newErrors.currentPassword = "Current password is required";
+    }
+    
     if (!password) {
       newErrors.password = "New password is required";
     } else if (validatePassword(password).length > 0) {
       newErrors.password = "Password doesn't meet requirements";
+    } else if (currentPassword && password === currentPassword) {
+      newErrors.password = "New password must be different from current password";
     }
     
     if (!confirmPassword) {
@@ -136,6 +144,13 @@ export default function PasswordSettingsPage() {
     
     if (!validateForm()) return;
 
+    // Check if new password is same as current password
+    if (currentPassword === password) {
+      toast.error("New password must be different from your current password");
+      setErrors({...errors, password: "New password must be different from current password"});
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -143,17 +158,30 @@ export default function PasswordSettingsPage() {
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ 
+          currentPassword, 
+          password 
+        }),
       });
 
       const data = await res.json();
       console.log("Password update response:", { status: res.status, data });
       
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update password.");
+        if (res.status === 400 && data.error === "Current password is incorrect") {
+          toast.error("Current password is incorrect");
+          setErrors({...errors, currentPassword: "Current password is incorrect"});
+        } else if (res.status === 400 && data.error === "New password cannot be the same as current password") {
+          toast.error("New password must be different from your current password");
+          setErrors({...errors, password: "New password must be different from current password"});
+        } else {
+          throw new Error(data.error || "Failed to update password.");
+        }
+        return;
       }
       
       toast.success("Password updated successfully! Logging out...");
+      setCurrentPassword("");
       setPassword("");
       setConfirmPassword("");
 
@@ -205,6 +233,45 @@ export default function PasswordSettingsPage() {
             {/* Form Content */}
             <div className="p-8 space-y-6">
               
+              {/* Current Password */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => {
+                      setCurrentPassword(e.target.value);
+                      if (errors.currentPassword) setErrors({...errors, currentPassword: ""});
+                      // Clear password error if it was about same password
+                      if (errors.password && errors.password.includes("different from current")) {
+                        setErrors({...errors, password: ""});
+                      }
+                    }}
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+                      errors.currentPassword ? 'border-red-500 bg-red-900/20' : 'border-red-900/50 bg-black/20'
+                    }`}
+                    placeholder="Enter your current password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {errors.currentPassword && (
+                  <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.currentPassword}
+                  </p>
+                )}
+              </div>
+
               {/* New Password */}
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">
@@ -233,8 +300,16 @@ export default function PasswordSettingsPage() {
                   </button>
                 </div>
                 
+                {/* Same Password Warning */}
+                {currentPassword && password && currentPassword === password && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm text-yellow-400">New password must be different from current password</span>
+                  </div>
+                )}
+                
                 {/* Password Strength Indicator */}
-                {password && (
+                {password && currentPassword !== password && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-gray-400">Password Strength</span>
@@ -256,7 +331,7 @@ export default function PasswordSettingsPage() {
                 )}
 
                 {/* Password Requirements */}
-                {password && passwordRequirements.length > 0 && (
+                {password && passwordRequirements.length > 0 && currentPassword !== password && (
                   <div className="mt-3 p-3 bg-red-900/20 border border-red-700/50 rounded-lg">
                     <p className="text-xs text-red-300 font-medium mb-2">Password must include:</p>
                     <ul className="space-y-1">
@@ -350,7 +425,7 @@ export default function PasswordSettingsPage() {
               <button 
                 type="button"
                 onClick={handleSubmit}
-                disabled={isLoading || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0}
+                disabled={isLoading || !currentPassword || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || currentPassword === password}
                 className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-lg hover:from-red-700 hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-red-900/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isLoading ? (
