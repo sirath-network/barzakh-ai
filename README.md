@@ -37,7 +37,7 @@ Barzakh is an intelligent blockchain analytics platform that combines real-time 
 ## 🏗️ Project Structure
 
 ```
-barzakh/
+barzakh-ai/
 ├── README.md
 ├── apps
 │   ├── javin
