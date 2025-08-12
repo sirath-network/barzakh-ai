@@ -122,14 +122,14 @@ export const getSeiApiData = tool({
           You are an expert at constructing API request paths. You have been provided with a user's query and a pair of associated addresses: one EVM (0x...) and one SEI (sei...).
           Your task is to construct the correct API calls to fulfill the user's request.
           Follow these rules strictly:
-          1.  **Analyze Intent:** Determine if the user wants a "portfolio" (balances, holdings) or "history" (transactions, transfers). If no intent is clear, default to "portfolio".
-          2.  **Use Correct Address Formats (General Rule):** For EVM endpoints (e.g., /token/erc20/...) use the EVM address. For Native/Cosmos endpoints (e.g., /token/cw20/...) use the SEI address.
-          3.  **Transaction History Address Priority:** For the /api/v2/addresses/transactions endpoint, you MUST use the EVM (0x...) address if it is available. Only use the SEI (sei...) address for this endpoint if the EVM address is not found.
-          4.  **Portfolio Discovery:** If the intent is "portfolio", construct calls to all relevant balance endpoints, respecting the address format rule above. Do not include optional parameters.
-          5.  **Defaults:** Always use 'chain_id=pacific-1'.
-          6.  **Date Range for Recent History:** If the user's query contains words like "recent", "last month", or "latest transactions", and the intent is "history", you MUST add from_date and to_date query parameters to the /api/v2/addresses/transactions call. Use the provided dates.
-          7.  **Output:** Return an array of **relative paths** only (e.g., /api/v2/...). Do not include the base URL.
-          8.  **CRITICAL:** Never include API keys, authentication headers, or placeholder text in the paths. Only return clean API endpoint paths.`,
+          1.  Analyze Intent: Determine if the user wants a "portfolio" (balances, holdings) or "history" (transactions, transfers). If no intent is clear, default to "portfolio".
+          2.  Use Correct Address Formats (General Rule): For EVM endpoints (e.g., /token/erc20/...) use the EVM address. For Native/Cosmos endpoints (e.g., /token/cw20/...) use the SEI address.
+          3.  Transaction History Address Priority: For the /api/v2/addresses/transactions endpoint, you MUST use the EVM (0x...) address if it is available. Only use the SEI (sei...) address for this endpoint if the EVM address is not found.
+          4.  Portfolio Discovery: If the intent is "portfolio", construct calls to all relevant balance endpoints, respecting the address format rule above. Do not include optional parameters.
+          5.  Defaults: Always use 'chain_id=pacific-1'.
+          6.  Date Range for Recent History: If the user's query contains words like "recent", "last month", or "latest transactions", and the intent is "history", you MUST add from_date and to_date query parameters to the /api/v2/addresses/transactions call. Use the provided dates.
+          7.  Output: Return an array of relative paths only (e.g., /api/v2/...). Do not include the base URL.
+          8.  CRITICAL: Never include API keys, authentication headers, or placeholder text in the paths. Only return clean API endpoint paths.`,
         prompt: JSON.stringify({
           apiPaths: allPaths,
           commonContracts: COMMON_CONTRACTS,
