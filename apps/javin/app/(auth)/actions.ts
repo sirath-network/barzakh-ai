@@ -183,69 +183,86 @@ export interface RegisterActionState {
 
         // If we're verifying OTP
         if (otp) {
-      console.log('Verifying OTP for:', email);
-      const verified = await verifyOTP(email, otp);
-      
-      if (!verified) {
-        return { 
-          status: "invalid_data",
-          fieldErrors: { otp: ["Invalid or expired OTP"] },
-          email
-        };
-      }
+          console.log('Verifying OTP for:', email);
+          const verified = await verifyOTP(email, otp);
+          
+          if (!verified) {
+            return { 
+              status: "invalid_data",
+              fieldErrors: { otp: ["Invalid or expired OTP"] },
+              email
+            };
+          }
 
-      // Validate password and turnstile response at the verification stage
-      try {
-        // FIX: Add the "cf-turnstile-response" to the object being parsed.
-        registerSchema.parse({ 
-          email, 
-          password,
-          "cf-turnstile-response": turnstileResponse 
-        });
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            status: "invalid_data",
-            fieldErrors: error.flatten().fieldErrors,
+          // Validate password and turnstile response at the verification stage
+          try {
+            registerSchema.parse({ 
+              email, 
+              password,
+              "cf-turnstile-response": turnstileResponse 
+            });
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              return {
+                status: "invalid_data",
+                fieldErrors: error.flatten().fieldErrors,
+                email
+              };
+            }
+            throw error;
+          }
+
+          console.log('Creating user account');
+          const id = generateUUID();
+          await createUser(id, email, password);
+          
+          return { 
+            status: "otp_verified",
             email
           };
         }
-        throw error;
-      }
 
-      console.log('Creating user account');
-      const id = generateUUID();
-      await createUser(id, email, password);
-      
-      return { 
-        status: "otp_verified",
-        email
-      };
+        // Check if user already exists BEFORE sending OTP
+        const existingUser = await getUser(email);
+        if (existingUser.length > 0) {
+            return {
+                status: "user_exists",
+                fieldErrors: { email: ["An account with this email already exists."] },
+                email,
+            };
+        }
+
+        // Initial submission - just send OTP
+        console.log('Sending OTP to:', email);
+        const otpCode = generateOTP();
+        await saveOTP(email, otpCode);
+        await sendOTPEmail(email, otpCode);
+
+        return { 
+          status: "otp_sent",
+          email
+        };
+    } catch (error) {
+        console.error('Registration error:', error);
+        
+        // Handle potential duplicate key error during creation as a fallback
+        if (error instanceof Error && 'code' in error && error.code === '23505') {
+            return {
+                status: "user_exists",
+                fieldErrors: { email: ["An account with this email already exists."] },
+            };
+        }
+
+        if (error instanceof z.ZodError) {
+        return {
+            status: "invalid_data",
+            fieldErrors: error.flatten().fieldErrors,
+        };
+        }
+        
+        Sentry.captureException(error);
+        return { status: "failed" };
     }
-
-    // Initial submission - just send OTP
-    console.log('Sending OTP to:', email);
-    const otpCode = generateOTP();
-    await saveOTP(email, otpCode);
-    await sendOTPEmail(email, otpCode);
-
-    return { 
-      status: "otp_sent",
-      email
-    };
-  } catch (error) {
-    console.error('Registration error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return {
-        status: "invalid_data",
-        fieldErrors: error.flatten().fieldErrors,
-      };
-    }
-    
-    Sentry.captureException(error);
-    return { status: "failed" };
-  }
 };
 
 // Add this helper function to verify OTP
