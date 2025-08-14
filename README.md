@@ -138,8 +138,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## 📞 Support
 
 - **Email**: support@sirath.network
-- **Website**: [https://barzakh.framer.ai](https://barzakh.framer.ai)
-- **Issues**: [GitHub Issues](https://github.com/your-username/barzakh/issues)
+- **Website**: [https://barzakh.tech](https://barzakh.tech)
+- **Issues**: [GitHub Issues](https://github.com/sirath-network/barzakh-ai/issues)
 
 ## 📄 License
 
