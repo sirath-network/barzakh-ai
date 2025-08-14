@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@javin/shared": "*",
     "@ai-sdk/fireworks": "^0.1.8",
     "@ai-sdk/groq": "^1.1.11",
     "@ai-sdk/openai": "1.1.9",
@@ -21,6 +20,7 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.35.3",
     "@ensdomains/ensjs": "^4.0.2",
+    "@javin/shared": "*",
     "@mendable/firecrawl-js": "^1.17.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.2",
@@ -72,6 +72,7 @@
     "react-dom": "19.0.0-rc-45804af1-20241021",
     "react-markdown": "^9.0.1",
     "react-resizable-panels": "^2.1.7",
+    "react-turnstile": "^1.1.4",
     "remark-gfm": "^4.0.0",
     "server-only": "^0.0.1",
     "sonner": "^1.5.0",
@@ -86,12 +87,12 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.1",
-    "@eslint/eslintrc": "^3"
+    "typescript": "^5"
   }
 }

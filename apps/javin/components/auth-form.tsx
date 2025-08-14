@@ -3,8 +3,10 @@
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { EyeOff, Eye } from "lucide-react";
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import Link from "next/link";
+import { Turnstile } from "./turnstile";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
 export function AuthForm({
   action,
@@ -16,6 +18,10 @@ export function AuthForm({
   forgotPasswordNeeded = true,
   showOTPField = false,
   onResendOTP,
+  onTurnstileSuccess,
+  turnstileToken,
+  turnstileRef, // Added prop to receive the ref
+  formRef,
 }: {
   action: NonNullable<
     string | ((formData: FormData) => void | Promise<void>) | undefined
@@ -32,6 +38,10 @@ export function AuthForm({
   forgotPasswordNeeded?: boolean;
   showOTPField?: boolean;
   onResendOTP?: () => void;
+  onTurnstileSuccess?: (token: string) => void;
+  turnstileToken?: string;
+  turnstileRef?: RefObject<TurnstileInstance>; // Added prop type
+  formRef?: React.RefObject<HTMLFormElement>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [storedEmail, setStoredEmail] = useState(defaultEmail);
@@ -60,13 +70,16 @@ export function AuthForm({
       setResendMessage("Failed to send new code. Please try again.");
     } finally {
       setIsResending(false);
-      // Clear the message after 5 seconds
       setTimeout(() => setResendMessage(""), 5000);
     }
   };
 
+  const handleTurnstileTokenChange = (token: string) => {
+    onTurnstileSuccess?.(token);
+  };
+
   return (
-    <form action={action} className="flex flex-col gap-4 px-4 sm:px-16">
+    <form ref={formRef} action={action} className="flex flex-col gap-4 px-4 sm:px-16">
       {/* Hidden fields to preserve email and password during OTP verification */}
       {showOTPField && (
         <>
@@ -202,6 +215,12 @@ export function AuthForm({
         </div>
       )}
 
+      {/* Pass the received ref to the Turnstile component */}
+      <Turnstile ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
+      
+      {/* Hidden input for Turnstile token */}
+      <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />
+      
       {children}
     </form>
   );

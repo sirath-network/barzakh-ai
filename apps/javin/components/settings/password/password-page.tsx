@@ -144,55 +144,41 @@ export default function PasswordSettingsPage() {
     
     if (!validateForm()) return;
 
-    // Check if new password is same as current password
-    if (currentPassword === password) {
-      toast.error("New password must be different from your current password");
-      setErrors({...errors, password: "New password must be different from current password"});
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      console.log("Updating password...");
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          currentPassword, 
-          password 
-        }),
+        body: JSON.stringify({ currentPassword, password }),
       });
 
       const data = await res.json();
-      console.log("Password update response:", { status: res.status, data });
-      
+
       if (!res.ok) {
         if (res.status === 400 && data.error === "Current password is incorrect") {
+          setErrors({ ...errors, currentPassword: "Current password is incorrect" });
           toast.error("Current password is incorrect");
-          setErrors({...errors, currentPassword: "Current password is incorrect"});
-        } else if (res.status === 400 && data.error === "New password cannot be the same as current password") {
-          toast.error("New password must be different from your current password");
-          setErrors({...errors, password: "New password must be different from current password"});
-        } else {
-          throw new Error(data.error || "Failed to update password.");
+          return;
         }
-        return;
+        if (res.status === 400 && data.error === "New password cannot be the same as current password") {
+          setErrors({ ...errors, password: "New password must be different from current password" });
+          toast.error("New password must be different from current password");
+          return;
+        }
+        throw new Error(data.error || "Failed to update password.");
       }
-      
+
       toast.success("Password updated successfully! Logging out...");
       setCurrentPassword("");
       setPassword("");
       setConfirmPassword("");
 
-      // Wait a moment for the user to see the success message
       setTimeout(async () => {
-        console.log("Initiating logout after password change...");
         await handleLogout();
-      }, 2000); // Increased to 2 seconds for better UX
+      }, 2000);
 
     } catch (err) {
-      console.error("Password update error:", err);
       toast.error(err.message || "Failed to update password");
     } finally {
       setIsLoading(false);

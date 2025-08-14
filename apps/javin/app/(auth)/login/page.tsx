@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
 import { login, type LoginActionState } from "../actions";
 import { AuthForm } from "@/components/auth-form";
@@ -22,6 +23,8 @@ type OverlayState = {
 export default function Page() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileInstance>(null); // Ref for the Turnstile component
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
@@ -58,6 +61,12 @@ export default function Page() {
 
   const closeOverlay = () => {
     setOverlayState({ status: "idle", message: "" });
+    // Reset the Turnstile widget when the user clicks "Try Again"
+    turnstileRef.current?.reset();
+  };
+
+  const handleTurnstileSuccess = (token: string) => {
+    setTurnstileToken(token);
   };
 
   return (
@@ -67,7 +76,6 @@ export default function Page() {
         title={overlayState.title}
         message={overlayState.message}
       >
-        {/* */}
         {overlayState.status === 'error' && (
           <Button onClick={closeOverlay} className="w-full h-11" variant="secondary">
             Try Again
@@ -76,7 +84,6 @@ export default function Page() {
       </ActionResultOverlay>
       
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        {/* */}
         <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
           <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -133,7 +140,13 @@ export default function Page() {
                   </span>
                 </div>
               </div>
-              <AuthForm action={handleSubmit} defaultEmail={email}>
+              <AuthForm 
+                action={handleSubmit} 
+                defaultEmail={email}
+                onTurnstileSuccess={handleTurnstileSuccess}
+                turnstileToken={turnstileToken}
+                turnstileRef={turnstileRef}
+              >
                 <SubmitButton isSuccessful={false} className="w-full">
                   Sign In
                 </SubmitButton>

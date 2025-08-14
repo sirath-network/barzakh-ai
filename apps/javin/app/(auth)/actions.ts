@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { headers } from "next/headers";
 
 import {
   createUser,
@@ -21,10 +22,33 @@ import { nanoid } from "nanoid";
 import { sendResetEmail, sendOTPEmail } from "@/lib/utils/email";
 import * as Sentry from "@sentry/nextjs";
 
+async function verifyTurnstile(token: string) {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for");
+
+  const formData = new FormData();
+  formData.append("secret", process.env.TURNSTILE_SECRET_KEY!);
+  formData.append("response", token);
+  formData.append("remoteip", ip!);
+
+  const res = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  const data = await res.json();
+
+  return data.success;
+}
+
 // For login: only check required + min length
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  "cf-turnstile-response": z.string(),
 });
 
 // For registration: enforce full strength rules
@@ -41,10 +65,12 @@ const registerSchema = z.object({
       /[!@#$%^&*]/,
       "Must include at least one special character (!@#$%^&*)"
     ),
+  "cf-turnstile-response": z.string(),
 });
 
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
+  "cf-turnstile-response": z.string(),
 });
 const resetPasswordSchema = z.object({
   token: z.string(),
@@ -73,7 +99,16 @@ export const login = async (
     const validatedData = loginSchema.parse({
       email: formData.get("email"),
       password: formData.get("password"),
+      "cf-turnstile-response": formData.get("cf-turnstile-response"),
     });
+
+    const isTurnstileValid = await verifyTurnstile(
+      validatedData["cf-turnstile-response"]
+    );
+
+    if (!isTurnstileValid) {
+      return { status: "failed" };
+    }
 
     await signIn("credentials", {
       email: validatedData.email,
@@ -127,20 +162,27 @@ export interface RegisterActionState {
   email?: string;
 }
 
-// Modify the register action to handle OTP flow
-export const register = async (
-  prevState: RegisterActionState,
-  formData: FormData
-): Promise<RegisterActionState> => {
-  try {
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const otp = formData.get("otp") as string | null;
+    // Modify the register action to handle OTP flow
+    export const register = async (
+      prevState: RegisterActionState,
+      formData: FormData
+    ): Promise<RegisterActionState> => {
+      try {
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const otp = formData.get("otp") as string | null;
+        const turnstileResponse = formData.get("cf-turnstile-response") as string;
 
-    console.log('Registration attempt:', { email, hasOtp: !!otp });
+        const isTurnstileValid = await verifyTurnstile(turnstileResponse);
 
-    // If we're verifying OTP
-    if (otp) {
+        if (!isTurnstileValid) {
+          return { status: "failed" };
+        }
+
+        console.log('Registration attempt:', { email, hasOtp: !!otp });
+
+        // If we're verifying OTP
+        if (otp) {
       console.log('Verifying OTP for:', email);
       const verified = await verifyOTP(email, otp);
       
@@ -152,9 +194,14 @@ export const register = async (
         };
       }
 
-      // Validate password only at verification stage
+      // Validate password and turnstile response at the verification stage
       try {
-        registerSchema.parse({ email, password });
+        // FIX: Add the "cf-turnstile-response" to the object being parsed.
+        registerSchema.parse({ 
+          email, 
+          password,
+          "cf-turnstile-response": turnstileResponse 
+        });
       } catch (error) {
         if (error instanceof z.ZodError) {
           return {
@@ -255,6 +302,13 @@ export async function forgotPassword(
 ): Promise<ForgotPasswordActionState> {
   try {
     const email = formData.get("email") as string;
+    const turnstileResponse = formData.get("cf-turnstile-response") as string;
+
+    const isTurnstileValid = await verifyTurnstile(turnstileResponse);
+
+    if (!isTurnstileValid) {
+      return { status: "failed" };
+    }
 
     const user = await getUser(email);
     if (user.length === 0) {
