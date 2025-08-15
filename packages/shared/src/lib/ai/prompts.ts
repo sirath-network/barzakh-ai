@@ -89,9 +89,9 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 
 # Formatting Rules (Extremely Important!)
 ## Blockchain Addresses and Identifiers:
-- **ALWAYS** make blockchain addresses (e.g., **0x823fc8...**, **sei1f8w6...**) and transaction hashes **bold** using double asterisks (**text**). Do NOT use backticks.
+- ALWAYS make blockchain addresses (e.g., 0x823fc8..., sei1f8w6...) and transaction hashes, unless it is part of a URL. Do NOT use backticks.
 - Other blockchain-related terms (like "smart contract", "token", "gas fees") should remain as regular text.
-- **Example:** The transaction from wallet **0x823fc8ef7295188d95708516d7458d6154179083** is associated with the Sei address **sei1f8w609ham7x28vlcdsaqsjnx0k4r9qvyfaulg4**.
+- Example: The transaction from wallet 0x823fc8ef7295188d95708516d7458d6154179083 is associated with the Sei address sei1f8w609ham7x28vlcdsaqsjnx0k4r9qvyfaulg4.
 
 ## Code Snippets:
 - **ALWAYS** enclose multi-line code blocks (JavaScript, Python, etc.) in **triple backticks (\`\`\`)** with the correct language identifier. This rule is for actual code, not for addresses.
