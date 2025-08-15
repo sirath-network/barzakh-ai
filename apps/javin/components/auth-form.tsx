@@ -9,7 +9,6 @@ import { Turnstile } from "./turnstile";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
 export function AuthForm({
-  action,
   children,
   defaultEmail = "",
   fieldErrors,
@@ -21,11 +20,7 @@ export function AuthForm({
   onTurnstileSuccess,
   turnstileToken,
   turnstileRef, // Added prop to receive the ref
-  formRef,
 }: {
-  action: NonNullable<
-    string | ((formData: FormData) => void | Promise<void>) | undefined
-  >;
   children: React.ReactNode;
   defaultEmail?: string;
   fieldErrors?: {
@@ -41,7 +36,6 @@ export function AuthForm({
   onTurnstileSuccess?: (token: string) => void;
   turnstileToken?: string;
   turnstileRef?: RefObject<TurnstileInstance>; // Added prop type
-  formRef?: React.RefObject<HTMLFormElement>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [storedEmail, setStoredEmail] = useState(defaultEmail);
@@ -79,7 +73,7 @@ export function AuthForm({
   };
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-4 px-4 sm:px-16">
+    <div className="flex flex-col gap-4 px-4 sm:px-16">
       {/* Hidden fields to preserve email and password during OTP verification */}
       {showOTPField && (
         <>
@@ -222,6 +216,6 @@ export function AuthForm({
       <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />
       
       {children}
-    </form>
+    </div>
   );
 }

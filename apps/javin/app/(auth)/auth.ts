@@ -3,7 +3,7 @@ import NextAuth, { type Session, type User, type NextAuthOptions } from "next-au
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
-import { createUser, getUser } from "@/lib/db/queries";
+import { createUser, getUser, updateUserProfile } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
 import { generateUUID } from "@javin/shared/lib/utils/utils";
 
@@ -26,59 +26,66 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      // ✅ Jika ada trigger 'update', refresh data dari database
-      if (trigger === "update" && session && token.email) {
-        const [dbUser] = await getUser(token.email);
-        if (dbUser) {
-          token.id = dbUser.id;
-          token.name = dbUser.name;
-          token.email = dbUser.email;
-          token.image = dbUser.image;
-          token.username = dbUser.username;
-        }
+    async jwt({ token, user, account, trigger, session }) {
+      // Handle session updates from the client (e.g., profile update)
+      if (trigger === "update" && session?.user) {
+        token.name = session.user.name;
+        token.image = session.user.image;
+        token.username = session.user.username;
       }
 
-      // ✅ Logic existing untuk login pertama kali
+      // Handle initial sign-in
       if (user?.email) {
-        let dbUser;
-        let isNewUser = false;
         const [existingUser] = await getUser(user.email);
 
-        if (!existingUser) {
-          const generatedId = generateUUID();
-          await createUser(generatedId, user.email, null);
-          isNewUser = true;
-          dbUser = {
-            id: generatedId,
-            name: user.name ?? null,
-            email: user.email,
-            image: user.image ?? null,
-            username: null,
-            tier: "free",
-            messageCount: 0,
-          };
-        } else {
-          dbUser = existingUser;
-        }
+        if (existingUser) {
+          // User exists, link the account.
+          token.id = existingUser.id;
+          token.email = existingUser.email;
+          token.username = existingUser.username;
+          token.tier = existingUser.tier;
 
-        token.id = dbUser.id;
-        token.name = dbUser.name;
-        token.email = dbUser.email;
-        token.image = dbUser.image;
-        token.username = dbUser.username;
-        // Mark if this is a new user
-        token.isNewUser = isNewUser;
+          // Merge profile information: fill in missing data from provider.
+          const nameToSet = existingUser.name || user.name;
+          const imageToSet = existingUser.image || user.image;
+
+          token.name = nameToSet;
+          token.image = imageToSet;
+
+          // If we updated the name or image, persist it to the database.
+          if (nameToSet !== existingUser.name || imageToSet !== existingUser.image) {
+            await updateUserProfile({ email: existingUser.email, name: nameToSet, image: imageToSet });
+          }
+        } else {
+          // If user does not exist, create a new user (primarily for OAuth)
+          const newUserId = generateUUID();
+          const [newUser] = await createUser(
+            newUserId,
+            user.email,
+            null, // No password for OAuth users
+            user.name,
+            user.image
+          );
+          
+          token.id = newUser.id;
+          token.name = newUser.name;
+          token.email = newUser.email;
+          token.image = newUser.image;
+          token.username = newUser.username;
+          token.tier = newUser.tier;
+        }
       }
+      
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (token) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
         session.user.email = token.email as string;
         session.user.image = token.image as string;
         session.user.username = token.username as string;
+        session.user.tier = token.tier as string;
       }
       return session;
     },

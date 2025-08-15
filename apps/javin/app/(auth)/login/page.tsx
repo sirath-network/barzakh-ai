@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
-import { login, type LoginActionState } from "../actions";
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import { LogoGoogle } from "@/components/icons";
@@ -30,28 +29,32 @@ export default function Page() {
     status: "idle",
     message: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    { status: "idle" }
-  );
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-  useEffect(() => {
-    if (state.status === "failed") {
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+      "cf-turnstile-response": turnstileToken,
+    });
+
+    setIsLoading(false);
+
+    if (result?.error) {
       setOverlayState({ status: "error", title: "Login Failed", message: "Invalid credentials!" });
-    } else if (state.status === "invalid_data") {
-      setOverlayState({ status: "error", title: "Invalid Data", message: "Failed validating your submission!" });
-    } else if (state.status === "success") {
+    } else if (result?.ok) {
       setOverlayState({ status: "success", title: "Login Successful", message: "You will be redirected shortly." });
       setTimeout(() => {
         router.push("/");
       }, 2000);
     }
-  }, [state, router]);
-
-  const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
-    formAction(formData);
   };
   
   const formVariants = {
@@ -140,17 +143,18 @@ export default function Page() {
                   </span>
                 </div>
               </div>
-              <AuthForm 
-                action={handleSubmit} 
-                defaultEmail={email}
-                onTurnstileSuccess={handleTurnstileSuccess}
-                turnstileToken={turnstileToken}
-                turnstileRef={turnstileRef}
-              >
-                <SubmitButton isSuccessful={false} className="w-full">
-                  Sign In
-                </SubmitButton>
-              </AuthForm>
+              <form onSubmit={handleSubmit}>
+                <AuthForm
+                  defaultEmail={email}
+                  onTurnstileSuccess={handleTurnstileSuccess}
+                  turnstileToken={turnstileToken}
+                  turnstileRef={turnstileRef}
+                >
+                  <SubmitButton isLoading={isLoading} className="w-full">
+                    Sign In
+                  </SubmitButton>
+                </AuthForm>
+              </form>
             </div>
             
             <p className="text-center text-sm text-muted-foreground">
