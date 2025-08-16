@@ -122,7 +122,6 @@ export default function Page() {
   };
 
   const handleTurnstileSuccess = (token: string) => {
-    console.log('Turnstile token received:', token);
     setTurnstileToken(token);
   };
 
@@ -181,29 +180,30 @@ export default function Page() {
                         </p>
                     </div>
 
-                    <AuthForm
-                        action={handleFormAction}
-                        defaultEmail={email}
-                        fieldErrors={state.fieldErrors}
-                        emailNeeded={!showOTPField}
-                        passwordNeeded={!showOTPField}
-                        showOTPField={showOTPField}
-                        onResendOTP={showOTPField ? handleResendOTP : undefined}
-                        onTurnstileSuccess={handleTurnstileSuccess}
-                        turnstileToken={turnstileToken}
-                        formRef={formRef}
-                    >
-                        <SubmitButton 
-                          isSuccessful={isSuccessful} 
-                          className="w-full"
-                          disabled={isPending}
+                    <form action={handleFormAction}>
+                        <AuthForm
+                            defaultEmail={email}
+                            fieldErrors={state.fieldErrors}
+                            emailNeeded={!showOTPField}
+                            passwordNeeded={!showOTPField}
+                            showOTPField={showOTPField}
+                            onResendOTP={showOTPField ? handleResendOTP : undefined}
+                            onTurnstileSuccess={handleTurnstileSuccess}
+                            turnstileToken={turnstileToken}
+                            formRef={formRef}
                         >
-                            {isPending 
-                              ? (showOTPField ? "Verifying..." : "Sending Code...") 
-                              : (showOTPField ? "Verify & Create Account" : "Sign Up")
-                            }
-                        </SubmitButton>
-                    </AuthForm>
+                            <SubmitButton 
+                              isSuccessful={isSuccessful} 
+                              className="w-full"
+                              disabled={isPending}
+                            >
+                                {isPending 
+                                  ? (showOTPField ? "Verifying..." : "Sending Code...") 
+                                  : (showOTPField ? "Verify & Create Account" : "Sign Up")
+                                }
+                            </SubmitButton>
+                        </AuthForm>
+                    </form>
                 </motion.div>
             </AnimatePresence>
 

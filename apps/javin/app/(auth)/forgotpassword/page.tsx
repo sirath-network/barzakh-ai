@@ -117,18 +117,19 @@ export default function Page() {
               </p>
             </div>
             
-            <AuthForm
-              action={handleSubmit}
-              defaultEmail={email}
-              passwordNeeded={false}
-              emailNeeded={true}
-              fieldErrors={state.fieldErrors}
-            >
-              {/* */}
-              <SubmitButton isSuccessful={false} className="w-full">
-                  Send Reset Link
-              </SubmitButton>
-            </AuthForm>
+            <form action={handleSubmit}>
+              <AuthForm
+                defaultEmail={email}
+                passwordNeeded={false}
+                emailNeeded={true}
+                fieldErrors={state.fieldErrors}
+              >
+                {/* */}
+                <SubmitButton isSuccessful={false} className="w-full">
+                    Send Reset Link
+                </SubmitButton>
+              </AuthForm>
+            </form>
             
             <p className="text-center text-sm text-muted-foreground">
               Remembered your password?{" "}

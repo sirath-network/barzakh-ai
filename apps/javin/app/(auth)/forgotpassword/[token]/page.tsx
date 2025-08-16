@@ -124,15 +124,16 @@ export default function ResetPassword() {
                       </p>
                     </div>
                     
-                    <AuthForm
-                      action={handleSubmit}
-                      emailNeeded={false}
-                      forgotPasswordNeeded={false}
-                      passwordNeeded={true}
-                      fieldErrors={state.fieldErrors}
-                    >
-                      <SubmitButton isSuccessful={isSuccessful} className="w-full">Reset Password</SubmitButton>
-                    </AuthForm>
+                    <form action={handleSubmit}>
+                      <AuthForm
+                        emailNeeded={false}
+                        forgotPasswordNeeded={false}
+                        passwordNeeded={true}
+                        fieldErrors={state.fieldErrors}
+                      >
+                        <SubmitButton isSuccessful={isSuccessful} className="w-full">Reset Password</SubmitButton>
+                      </AuthForm>
+                    </form>
 
                     <p className="text-center text-sm text-muted-foreground">
                        <Link href="/login" className="underline underline-offset-4 hover:text-primary">
