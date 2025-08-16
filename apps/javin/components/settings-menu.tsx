@@ -58,17 +58,19 @@ export function SettingsMenu({
     <div className="flex flex-col h-full p-1 space-y-1">
       <div className="flex items-center p-3 mb-2 space-x-4">
         {user?.image && (
-          <img
-            src={user.image}
-            alt={user.name ?? "User Avatar"}
-            className="w-20 h-20 rounded-md object-cover" // ✅ Diubah di sini
-          />
+          <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+            <img
+              src={user.image}
+              alt={user.name ?? "User Avatar"}
+              className="w-full h-full object-cover"
+            />
+          </div>
         )}
-        <div>
-          <p className="font-bold text-lg uppercase tracking-wider text-foreground">
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-lg uppercase tracking-wider text-foreground truncate">
             {user?.name ?? 'Guest'}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground truncate">
             {user?.username ? `@${user.username}` : ''}
           </p>
         </div>
