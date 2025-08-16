@@ -4,11 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
 
 const FileSchema = z.object({
-  file: z
-    .instanceof(File)
-    .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: 'File size should be less than 5MB',
-    }),
+  file: z.any(),
 });
 
 export async function POST(request: Request) {
@@ -26,14 +22,17 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get('file');
 
-    if (!(file instanceof File)) {
+    // Duck-typing the file object to avoid ReferenceError: File is not defined
+    // in server environments where the File constructor may not be globally available.
+    if (!file || typeof file === 'string' || !('size' in file) || !('type' in file) || !('name' in file)) {
       return NextResponse.json({ error: 'Invalid file upload' }, { status: 400 });
     }
 
-    const validation = FileSchema.safeParse({ file });
-    if (!validation.success) {
-      const message = validation.error.errors.map((e) => e.message).join(', ');
-      return NextResponse.json({ error: message }, { status: 400 });
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File size should be less than 5MB' },
+        { status: 400 },
+      );
     }
 
     const fileBuffer = await file.arrayBuffer();
