@@ -1,9 +1,10 @@
 // components/messages.tsx
 
 import { ChatRequestOptions, Message } from "ai";
-import { PreviewMessage, ThinkingMessage } from "./message";
+// === PERBAIKAN DI SINI: Hapus import ThinkingMessage ===
+import { PreviewMessage } from "./message";
 import { Overview } from "./overview";
-import { memo, useEffect, useRef, useCallback } from "react";
+import { memo } from "react";
 import { Vote } from "@/lib/db/schema";
 import equal from "fast-deep-equal";
 import { SearchGroupId } from "@javin/shared/lib/utils/utils";
@@ -16,7 +17,6 @@ interface MessagesProps {
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[])
   ) => void;
-  setIsAtBottom: (isAtBottom: boolean) => void;
   selectedGroup: SearchGroupId;
   reload: (
     chatRequestOptions?: ChatRequestOptions
@@ -30,58 +30,14 @@ function PureMessages({
   votes,
   messages,
   setMessages,
-  setIsAtBottom,
   selectedGroup,
   reload,
   isReadonly,
 }: MessagesProps) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  // ==================================================================
-  // === BLOK KODE YANG DITAMBAHKAN ===
-  //
-  // Efek ini akan berjalan setiap kali array 'messages' diperbarui.
-  // Ini memastikan bahwa tampilan akan otomatis scroll ke bawah
-  // baik saat chat history dimuat maupun saat pesan baru ditambahkan.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [messages]); // Bergantung pada 'messages' untuk trigger
-  // ==================================================================
-
-
-  // Bungkus logika handleScroll dengan useCallback
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const threshold = 250;
-    const isBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
-    setIsAtBottom(isBottom);
-  }, [setIsAtBottom]); // Jadikan setIsAtBottom sebagai dependensi
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.addEventListener("scroll", handleScroll);
-      handleScroll(); // Panggil saat mount untuk pengecekan awal
-    }
-
-    return () => {
-      if (el) {
-        el.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, [handleScroll]); // Gunakan handleScroll yang sudah di-memoize sebagai dependensi
 
   return (
     <div
-      id="chat-scroll"
-      ref={scrollRef}
-      className={`relative flex flex-col min-w-0 w-full gap-4 md:gap-6 overflow-y-scroll custom-scrollbar pt-4 ${
+      className={`relative flex flex-col min-w-0 w-full gap-4 md:gap-6 pt-4 ${
         messages.length === 0 ? "" : "flex-1"
       }`}
     >
@@ -106,25 +62,21 @@ function PureMessages({
         />
       ))}
 
-      {isLoading &&
+      {/* === PERBAIKAN DI SINI: Hapus blok kode ini === */}
+      {/* Logika 'Thinking' sekarang ditangani oleh PreviewMessage, jadi ini tidak perlu lagi */}
+      {/* {isLoading &&
         messages.length > 0 &&
-        messages[messages.length - 1].role === "user" && <ThinkingMessage />}
+        messages[messages.length - 1].role === "user" && <ThinkingMessage />} */}
 
-      {messages.length > 0 && (
-        <div className="shrink-0 min-w-[24px] min-h-[24px]" />
-      )}
+      <div className="shrink-0 h-8 w-full" />
     </div>
   );
 }
 
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.isLoading !== nextProps.isLoading) return false;
-  if (prevProps.isLoading && nextProps.isLoading) return false;
-  // Kita hapus pengecekan panjang pesan agar useEffect bisa berjalan
-  if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (!equal(prevProps.selectedGroup, nextProps.selectedGroup)) return false;
-
   return true;
 });
