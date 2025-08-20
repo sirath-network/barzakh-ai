@@ -286,7 +286,13 @@ export default function EmailSettingsPage() {
                       <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors({...errors, password: ""}); }}
                         className={`w-full pl-8 md:pl-10 pr-10 md:pr-12 py-2 md:py-3 text-sm md:text-base border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${ errors.password ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-red-900/30 bg-white dark:bg-gray-900/80' }`}
                         placeholder="Enter your current password" />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"><EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" /></button>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)} 
+                        className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
+                      </button>
                     </div>
                     {errors.password && (<p className="mt-1 text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3 md:w-4 md:h-4" />{errors.password}</p>)}
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required for security verification</p>
