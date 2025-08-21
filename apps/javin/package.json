@@ -79,6 +79,7 @@
     "nanoid": "^5.0.8",
     "next": "15.2.1-canary.2",
     "next-auth": "5.0.0-beta.25",
+    "next-intl": "^4.3.5",
     "next-themes": "^0.3.0",
     "nodemailer": "^6.10.0",
     "orderedmap": "^2.1.1",

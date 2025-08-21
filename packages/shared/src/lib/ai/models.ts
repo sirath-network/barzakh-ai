@@ -8,7 +8,7 @@ import {
   wrapLanguageModel,
 } from "ai";
 
-export const DEFAULT_CHAT_MODEL: string = "chat-model-gemini";
+export const DEFAULT_CHAT_MODEL: string = "chat-model-small";
 
 export const myProvider: any = customProvider({
   languageModels: {

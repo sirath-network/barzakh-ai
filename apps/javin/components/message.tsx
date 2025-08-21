@@ -82,12 +82,7 @@ const PurePreviewMessage = ({
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [actionsVisible, setActionsVisible] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [showThinking, setShowThinking] = useState(
-    // Inisialisasi showThinking true jika ini assistant message yang masih kosong
-    message.role === 'assistant' && 
-    (!message.content || message.content === '') && 
-    (!message.toolInvocations || message.toolInvocations.length === 0)
-  );
+  const [showThinking, setShowThinking] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -131,15 +126,9 @@ const PurePreviewMessage = ({
   // Logika thinking yang lebih agresif dan responsif
   const isThinking = 
     message.role === 'assistant' && 
-    (
-      // Sedang loading dan belum ada content
-      (isLoading && !message.content) ||
-      // Atau ada pending tools
-      (pendingTools && pendingTools.length > 0) ||
-      // Atau message assistant baru tanpa content/tools (termasuk message yang baru dibuat)
+    isLoading && ( // only when the chat is actively loading
       (!message.content && (!message.toolInvocations || message.toolInvocations.length === 0)) ||
-      // Atau message assistant yang baru saja dibuat (dengan content kosong atau undefined)
-      (message.content === '' || message.content === undefined)
+      (pendingTools && pendingTools.length > 0)
     );
 
   // Effect untuk menampilkan thinking tanpa delay sama sekali
