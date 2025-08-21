@@ -3,7 +3,7 @@
 import type { ChatRequestOptions, Message, ToolInvocation } from "ai";
 import cx from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
-import { memo, useState } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 
 import type { Vote } from "@/lib/db/schema";
 import { JavinMan, PencilEditIcon } from "./icons";
@@ -38,35 +38,124 @@ const toolIcons: Record<string, React.ElementType> = {
 };
 
 // HELPER: Komponen kecil untuk merender setiap ikon tool
-const ToolIcon = ({ toolName }: { toolName: string }) => {
+const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "small" | "medium" }) => {
   const IconComponent = toolIcons?.[toolName] || FileText;
+  const iconSize = size === "small" ? "size-3" : "size-4";
+  
   return (
-    <div className="flex items-center justify-center size-5 bg-card rounded-full border border-border shadow-sm">
-      <IconComponent className="size-3 text-muted-foreground" />
+    <IconComponent className={`${iconSize} text-muted-foreground/80`} />
+  );
+};
+
+// Komponen Avatar sederhana tanpa video
+const AssistantAvatar = ({ 
+  showIcon = true,
+  staticImageSrc,
+  size = 32 
+}: { 
+  showIcon?: boolean;
+  staticImageSrc?: string;
+  size?: number;
+}) => {
+  if (!showIcon) return null;
+
+  return (
+    <div 
+      className="hidden md:flex items-center justify-center rounded-full bg-background overflow-hidden border border-border/20 shadow-sm relative flex-shrink-0"
+      style={{ 
+        width: `${size}px`,
+        height: `${size}px`,
+        minWidth: `${size}px`,
+        minHeight: `${size}px`,
+        maxWidth: `${size}px`,
+        maxHeight: `${size}px`,
+      }}
+    >
+      <div
+        className="absolute inset-0 w-full h-full flex items-center justify-center"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+        }}
+      >
+        {staticImageSrc ? (
+          <img 
+            src={staticImageSrc} 
+            alt="Assistant Avatar" 
+            width={size}
+            height={size}
+            className="w-full h-full object-cover rounded-full"
+            style={{
+              width: `${size}px`,
+              height: `${size}px`,
+              maxWidth: `${size}px`,
+              maxHeight: `${size}px`,
+              objectFit: 'cover',
+              imageRendering: 'optimizeQuality',
+            }}
+          />
+        ) : (
+          <JavinMan size={Math.floor(size * 0.90)} />
+        )}
+      </div>
     </div>
   );
 };
 
-// Komponen animasi 'Thinking'
+// Komponen animasi 'Thinking' yang diperbaiki
 const ThinkingAnimation = () => {
-    const loadingContainerVariants = {
+    const containerVariants = {
+        hidden: {
+            opacity: 0,
+            y: 2,
+        },
         visible: {
+            opacity: 1,
+            y: 0,
             transition: {
-                staggerChildren: 0.25,
+                duration: 0,
+                staggerChildren: 0,
             },
         },
     };
 
-    const loadingCircleVariants = {
+    const textVariants = {
+        hidden: {
+            opacity: 0,
+            x: -5,
+        },
+        visible: {
+            opacity: 1,
+            x: 0,
+            transition: {
+                duration: 0,
+            },
+        },
+    };
+
+    const dotsContainerVariants = {
+        hidden: {
+            opacity: 0,
+        },
+        visible: {
+            opacity: 1,
+            transition: {
+                duration: 0,
+                staggerChildren: 0.08,
+            },
+        },
+    };
+
+    const dotVariants = {
         hidden: {
             opacity: 0.3,
-            scale: 1,
+            scale: 0.7,
         },
         visible: {
             opacity: [0.3, 1, 0.3],
-            scale: [1, 1.1, 1],
+            scale: [0.7, 1, 0.7],
             transition: {
-                duration: 2,
+                duration: 1.4,
                 repeat: Infinity,
                 ease: "easeInOut",
             },
@@ -74,30 +163,50 @@ const ThinkingAnimation = () => {
     };
 
     return (
-        <div className="flex items-center text-muted-foreground py-2">
-            <motion.div
-                className="flex gap-2"
-                variants={loadingContainerVariants}
-                initial="hidden"
-                animate="visible"
+        <motion.div 
+            className="flex items-center gap-3 py-3 px-1"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit={{ 
+                opacity: 0, 
+                y: -5,
+                transition: { duration: 0.25, ease: "easeIn" } 
+            }}
+        >
+            {/* Text di sebelah kiri */}
+            <motion.span 
+                className="text-sm font-medium text-muted-foreground select-none leading-none"
+                variants={textVariants}
             >
-                <motion.span
-                    className="block w-2.5 h-2.5 rounded-full bg-current"
-                    variants={loadingCircleVariants}
+                Thinking
+            </motion.span>
+            
+            {/* Dots animation di sebelah kanan dengan baseline alignment */}
+            <motion.div
+                className="flex items-center gap-1 h-[14px]"
+                variants={dotsContainerVariants}
+                style={{ alignItems: 'center' }}
+            >
+                <motion.div
+                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
+                    variants={dotVariants}
+                    style={{ transformOrigin: 'center center' }}
                 />
-                <motion.span
-                    className="block w-2.5 h-2.5 rounded-full bg-current"
-                    variants={loadingCircleVariants}
+                <motion.div
+                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
+                    variants={dotVariants}
+                    style={{ transformOrigin: 'center center' }}
                 />
-                <motion.span
-                    className="block w-2.5 h-2.5 rounded-full bg-current"
-                    variants={loadingCircleVariants}
+                <motion.div
+                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
+                    variants={dotVariants}
+                    style={{ transformOrigin: 'center center' }}
                 />
             </motion.div>
-        </div>
+        </motion.div>
     );
 };
-
 
 const PurePreviewMessage = ({
   chatId,
@@ -109,6 +218,8 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
   showIcon = true,
+  staticAvatarSrc,
+  avatarSize = 32,
 }: {
   chatId: string;
   message: Message;
@@ -123,10 +234,18 @@ const PurePreviewMessage = ({
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
   showIcon?: boolean;
+  staticAvatarSrc?: string;
+  avatarSize?: number;
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [actionsVisible, setActionsVisible] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [showThinking, setShowThinking] = useState(
+    // Inisialisasi showThinking true jika ini assistant message yang masih kosong
+    message.role === 'assistant' && 
+    (!message.content || message.content === '') && 
+    (!message.toolInvocations || message.toolInvocations.length === 0)
+  );
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -156,6 +275,10 @@ const PurePreviewMessage = ({
     (tool) => tool.state === "result"
   );
   
+  const pendingTools = message.toolInvocations?.filter(
+    (tool) => tool.state === "call" || tool.state === "partial-call"
+  );
+  
   const webSearchResults = completedTools?.filter(
     (tool) => tool.toolName === 'webSearch'
   );
@@ -163,14 +286,42 @@ const PurePreviewMessage = ({
     (tool) => tool.toolName !== 'webSearch'
   );
 
-  const isThinking = message.role === 'assistant' && !message.content && (!completedTools || completedTools.length === 0);
+  // Logika thinking yang lebih agresif dan responsif
+  const isThinking = 
+    message.role === 'assistant' && 
+    (
+      // Sedang loading dan belum ada content
+      (isLoading && !message.content) ||
+      // Atau ada pending tools
+      (pendingTools && pendingTools.length > 0) ||
+      // Atau message assistant baru tanpa content/tools (termasuk message yang baru dibuat)
+      (!message.content && (!message.toolInvocations || message.toolInvocations.length === 0)) ||
+      // Atau message assistant yang baru saja dibuat (dengan content kosong atau undefined)
+      (message.content === '' || message.content === undefined)
+    );
+
+  // Effect untuk menampilkan thinking tanpa delay sama sekali
+  useEffect(() => {
+    if (isThinking) {
+      // Tampilkan thinking SEGERA tanpa delay
+      setShowThinking(true);
+    } else {
+      // Berikan sedikit delay sebelum menghilangkan thinking
+      const timer = setTimeout(() => {
+        setShowThinking(false);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isThinking]);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       <motion.div
         className="w-full mx-auto max-w-3xl px-4 group/message"
-        initial={{ y: 5, opacity: 0 }}
+        initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
+        exit={{ y: -5, opacity: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         data-role={message.role}
       >
         <div
@@ -183,190 +334,309 @@ const PurePreviewMessage = ({
           )}
         >
           {message.role === 'assistant' && (
-            <div className="hidden md:flex size-8 items-center rounded-full justify-center bg-background">
-              {showIcon && (
-                <div className="">
-                  <JavinMan size={24} />
-                </div>
-              )}
-            </div>
+            <AssistantAvatar
+              showIcon={showIcon}
+              staticImageSrc={staticAvatarSrc}
+              size={avatarSize}
+            />
           )}
 
           <div className="flex flex-col gap-4 w-full">
-            { isThinking ? (
-                <ThinkingAnimation />
-            ) : (
-                <>
-                    {message.experimental_attachments && (
-                        <div className="flex flex-row justify-end gap-2">
-                            {message.experimental_attachments.map((attachment) => (
-                            <PreviewAttachment
-                                key={attachment.url}
-                                attachment={attachment}
-                            />
-                            ))}
-                        </div>
-                    )}
-
-                    {message.reasoning && (
-                        <MessageReasoning
-                            isLoading={isLoading}
-                            reasoning={message.reasoning}
+            <AnimatePresence mode="wait">
+              {showThinking ? (
+                <motion.div key="thinking">
+                  <ThinkingAnimation />
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="content"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {message.experimental_attachments && (
+                    <div className="flex flex-row justify-end gap-2">
+                      {message.experimental_attachments.map((attachment) => (
+                        <PreviewAttachment
+                          key={attachment.url}
+                          attachment={attachment}
                         />
-                    )}
+                      ))}
+                    </div>
+                  )}
 
-                    {/* === BAGIAN ATAS: HANYA HASIL WEBSEARCH === */}
-                    {webSearchResults && webSearchResults.length > 0 && (
-                        webSearchResults.map(tool => (
-                            <MultiSearch key={tool.toolCallId} result={tool.result} args={tool.args} />
-                        ))
-                    )}
+                  {message.reasoning && (
+                    <MessageReasoning
+                      isLoading={isLoading}
+                      reasoning={message.reasoning}
+                    />
+                  )}
 
-                    {/* === BAGIAN TENGAH: HASIL TOOL LAINNYA === */}
-                    {otherCompletedTools && otherCompletedTools.length > 0 && (
-                        <div className="flex flex-col items-start gap-2">
-                            {otherCompletedTools.map((toolInvocation) => {
-                                const { toolName, toolCallId, result } = toolInvocation;
-                                if (toolInvocation.state !== "result") return null;
-                                const toolComponents: Record<string, React.ReactNode> = {
-                                    searchEvmTokenMarketData: <TokenInfoTable result={result} />,
-                                    searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
-                                    getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
-                                    getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
-                                    getTokenBalances: <PortfolioTable result={result} />,
-                                };
-                                return (
-                                <div key={toolCallId}>
-                                    {toolComponents?.[toolName] || null}
-                                </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                    
-                    {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
-                    {(message.content) && mode === "view" && (
-                        <div
-                            className={cn("flex flex-col w-full", {
-                            "items-end": message.role === "user",
-                            })}
-                        >
-                            {/* Gelembung pesan itu sendiri */}
-                            <div
-                                className={cn("flex flex-col gap-4 max-w-max", {
-                                    "bg-primary text-primary-foreground px-4 py-2 rounded-t-2xl rounded-bl-2xl":
-                                    message.role === "user",
-                                    "cursor-pointer": message.role === "user" && !isReadonly,
-                                })}
-                                onClick={() => {
-                                    if (message.role === "user" && !isReadonly) {
-                                    setActionsVisible(!actionsVisible);
-                                    }
-                                }}
+                  {/* === BAGIAN ATAS: HANYA HASIL WEBSEARCH === */}
+                  {webSearchResults && webSearchResults.length > 0 && (
+                    webSearchResults.map(tool => (
+                      <motion.div 
+                        key={tool.toolCallId}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <MultiSearch result={tool.result} args={tool.args} />
+                      </motion.div>
+                    ))
+                  )}
+
+                  {/* === BAGIAN TENGAH: HASIL TOOL LAINNYA === */}
+                  {otherCompletedTools && otherCompletedTools.length > 0 && (
+                    <motion.div 
+                      className="flex flex-col items-start gap-2"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                    >
+                      {otherCompletedTools.map((toolInvocation) => {
+                        const { toolName, toolCallId, result } = toolInvocation;
+                        if (toolInvocation.state !== "result") return null;
+                        const toolComponents: Record<string, React.ReactNode> = {
+                          searchEvmTokenMarketData: <TokenInfoTable result={result} />,
+                          searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
+                          getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
+                          getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
+                          getTokenBalances: <PortfolioTable result={result} />,
+                        };
+                        return (
+                          <div key={toolCallId}>
+                            {toolComponents?.[toolName] || null}
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                  
+                  {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
+                  {(message.content) && mode === "view" && (
+                    <motion.div
+                      className={cn("flex flex-col w-full", {
+                        "items-end": message.role === "user",
+                      })}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.2 }}
+                    >
+                      {/* Gelembung pesan itu sendiri */}
+                      <div
+                        className={cn("flex flex-col gap-4 max-w-max", {
+                          "bg-primary text-primary-foreground px-4 py-2 rounded-t-2xl rounded-bl-2xl":
+                            message.role === "user",
+                          "cursor-pointer": message.role === "user" && !isReadonly,
+                        })}
+                        onClick={() => {
+                          if (message.role === "user" && !isReadonly) {
+                            setActionsVisible(!actionsVisible);
+                          }
+                        }}
+                      >
+                        <Markdown>{message.content as string}</Markdown>
+                      </div>
+
+                      {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}
+                      <AnimatePresence>
+                        {message.role === "user" && !isReadonly && actionsVisible && (
+                          <motion.div
+                            className="flex flex-row gap-1 mt-2"
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{
+                              opacity: 0,
+                              y: 10,
+                              scale: 0.95,
+                              transition: { duration: 0.15 },
+                            }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 25,
+                            }}
+                          >
+                            <Button
+                              type="button"
+                              title="Edit pesan"
+                              variant="ghost"
+                              className="p-2 h-fit rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                              onClick={handleEdit}
                             >
-                                <Markdown>{message.content as string}</Markdown>
-                            </div>
+                              <PencilEditIcon className="size-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              title={isCopied ? "Disalin!" : "Salin pesan"}
+                              variant="ghost"
+                              className="p-2 h-fit rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                              onClick={handleCopy}
+                            >
+                              {isCopied ? (
+                                <Check className="size-4 text-green-500" />
+                              ) : (
+                                <Copy className="size-4" />
+                              )}
+                            </Button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  )}
 
-                            {/* [UPDATE] Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}
-                            <AnimatePresence>
-                                {message.role === "user" && !isReadonly && actionsVisible && (
-                                    <motion.div
-                                        className="flex flex-row gap-1 mt-2"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{
-                                            opacity: 0,
-                                            y: 10,
-                                            transition: { duration: 0.15 },
-                                        }}
-                                        transition={{
-                                            type: "spring",
-                                            stiffness: 500,
-                                            damping: 30,
-                                        }}
-                                    >
-                                        <Button
-                                            type="button"
-                                            title="Edit pesan"
-                                            variant="ghost"
-                                            className="p-2 h-fit rounded-full text-muted-foreground"
-                                            onClick={handleEdit}
-                                        >
-                                            <PencilEditIcon className="size-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            title={isCopied ? "Disalin!" : "Salin pesan"}
-                                            variant="ghost"
-                                            className="p-2 h-fit rounded-full text-muted-foreground"
-                                            onClick={handleCopy}
-                                        >
-                                            {isCopied ? (
-                                                <Check className="size-4 text-green-500" />
-                                            ) : (
-                                                <Copy className="size-4" />
-                                            )}
-                                        </Button>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )}
+                  {message.content && mode === "edit" && (
+                    <div className="flex flex-row gap-2 items-start">
+                      <div className="size-8" />
+                      <MessageEditor
+                        key={message.id}
+                        message={message}
+                        setMode={setMode}
+                        setMessages={setMessages}
+                        selectedGroup={selectedGroup}
+                        reload={reload}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* === BAGIAN BAWAH: MESSAGE ACTIONS & SUMBER === */}
+                  {!isReadonly && message.role === "assistant" && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.3 }}
+                    >
+                      <MessageActions
+                        key={`action-${message.id}`}
+                        chatId={chatId}
+                        message={message}
+                        vote={vote}
+                        isLoading={isLoading}
+                      />
+                    </motion.div>
+                  )}
 
-                    {message.content && mode === "edit" && (
-                        <div className="flex flex-row gap-2 items-start">
-                            <div className="size-8" />
-                            <MessageEditor
-                            key={message.id}
-                            message={message}
-                            setMode={setMode}
-                            setMessages={setMessages}
-                            selectedGroup={selectedGroup}
-                            reload={reload}
-                            />
-                        </div>
-                    )}
-                    
-                    {/* === BAGIAN BAWAH: MESSAGE ACTIONS & SUMBER === */}
-                    {!isReadonly && message.role === "assistant" && (
-                        <MessageActions
-                            key={`action-${message.id}`}
-                            chatId={chatId}
-                            message={message}
-                            vote={vote}
-                            isLoading={isLoading}
-                        />
-                    )}
-
-                    {/* === BAGIAN BAWAH: SEMUA IKON & LABEL SUMBER === */}
-                    {completedTools && completedTools.length > 0 && message.role === "assistant" && (
-                        <div className="flex flex-col gap-3 pt-4 border-t">
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex items-center h-5">
-                                    {completedTools.map((tool, index) => (
-                                    <div
-                                        key={tool.toolCallId}
-                                        className="absolute"
-                                        style={{
-                                        left: `${index * 12}px`,
-                                        zIndex: completedTools.length - index,
-                                        }}
-                                    >
-                                        <ToolIcon toolName={tool.toolName} />
-                                    </div>
-                                    ))}
+                  {/* === BAGIAN BAWAH: SEMUA IKON & LABEL SUMBER === */}
+                  {completedTools && completedTools.length > 0 && message.role === "assistant" && (
+                    <motion.div 
+                      className="flex flex-col gap-3 pt-4 mt-4 border-t border-border/50"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.4 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        {/* Container kiri: Icons dengan background dan shadow yang lebih baik */}
+                        <div className="flex items-center gap-3">
+                          <div className="relative flex items-center h-6">
+                            {completedTools.map((tool, index) => (
+                              <motion.div
+                                key={tool.toolCallId}
+                                className="absolute"
+                                style={{
+                                  left: `${index * 16}px`,
+                                  zIndex: completedTools.length - index,
+                                }}
+                                initial={{ scale: 0, opacity: 0, rotate: -10 }}
+                                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                transition={{ 
+                                  duration: 0.3, 
+                                  delay: index * 0.08 + 0.4,
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 25
+                                }}
+                                whileHover={{ 
+                                  scale: 1.1, 
+                                  y: -2,
+                                  transition: { duration: 0.2 }
+                                }}
+                              >
+                                <div className="flex items-center justify-center w-6 h-6 bg-background/80 backdrop-blur-sm rounded-full border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
+                                  <ToolIcon toolName={tool.toolName} />
                                 </div>
-                                <span
-                                    className="text-xs font-medium text-muted-foreground"
-                                    style={{ marginLeft: `${(completedTools.length - 1) * 12 + 18}px` }}
+                              </motion.div>
+                            ))}
+                          </div>
+                          
+                          {/* Label dengan styling yang lebih baik */}
+                          <div className="flex items-center gap-3">
+                            <motion.div
+                              className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-full border border-border/40"
+                              style={{
+                                marginLeft: `${Math.max(0, (completedTools.length - 1) * 16 + 16)}px`,
+                              }}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: 0.6 }}
+                            >
+                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                              <span className="text-xs font-medium text-muted-foreground">
+                                {completedTools.length} source
+                                {completedTools.length > 1 ? "s" : ""}
+                              </span>
+                            </motion.div>
+
+                            {/* separator */}
+                            <div className="text-border/60">|</div>
+
+                            <motion.div
+                              className="flex flex-wrap gap-1.5"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.3, delay: 0.9 }}
+                            >
+                              {completedTools.slice(0, 3).map((tool, index) => {
+                                const toolNames: Record<string, string> = {
+                                  webSearch: "Web Search",
+                                  searchEvmTokenMarketData: "EVM Token Data",
+                                  searchSolanaTokenMarketData: "Solana Token Data",
+                                  getSolanaChainWalletPortfolio: "Solana Portfolio",
+                                  getEvmMultiChainWalletPortfolio: "EVM Portfolio",
+                                  getTokenBalances: "Token Balances",
+                                  getCreditcoinApiData: "Creditcoin API",
+                                  getVanaApiData: "Vana API",
+                                  getEvmOnchainDataUsingZerion: "Zerion Data",
+                                  getEvmOnchainDataUsingEtherscan: "Etherscan Data",
+                                  ensToAddress: "ENS Resolver",
+                                  aptosNames: "Aptos Names",
+                                  translateTransactions: "Transaction Parser",
+                                };
+
+                                return (
+                                  <motion.span
+                                    key={tool.toolCallId}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-accent/50 text-accent-foreground rounded-md border border-accent/20 hover:bg-accent/70 transition-colors cursor-default"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.2, delay: 0.9 + index * 0.05 }}
+                                    whileHover={{ scale: 1.02 }}
+                                  >
+                                    <ToolIcon toolName={tool.toolName} />
+                                    {toolNames[tool.toolName] || tool.toolName}
+                                  </motion.span>
+                                );
+                              })}
+                              {completedTools.length > 3 && (
+                                <motion.span
+                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-md border border-border/40"
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.2, delay: 1.1 }}
                                 >
-                                    Source
-                                </span>
-                            </div>
+                                  +{completedTools.length - 3} more
+                                </motion.span>
+                              )}
+                            </motion.div>
+                          </div>
+
                         </div>
-                    )}
-                </>
-            )}
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </motion.div>

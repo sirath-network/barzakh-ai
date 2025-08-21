@@ -77,46 +77,101 @@ const categorizeQuery = (text: string): string => {
   return 'general';
 };
 
+const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
+  {
+    title: 'Explain how blockchain works',
+    subtitle: 'Crypto & Web3',
+    category: 'predefined',
+    confidence: 0.85,
+  },
+  {
+    title: 'What is the difference between Bitcoin and Ethereum?',
+    subtitle: 'Crypto & Web3',
+    category: 'predefined',
+    confidence: 0.85,
+  },
+  {
+    title: 'What are smart contracts?',
+    subtitle: 'Crypto & Web3',
+    category: 'predefined',
+    confidence: 0.85,
+  },
+  {
+    title: 'How do I create my own cryptocurrency?',
+    subtitle: 'Crypto & Web3',
+    category: 'predefined',
+    confidence: 0.8,
+  },
+  {
+    title: 'What is DeFi (Decentralized Finance)?',
+    subtitle: 'Crypto & Web3',
+    category: 'predefined',
+    confidence: 0.8,
+  },
+  {
+    title: 'Explain the concept of NFTs',
+    subtitle: 'Crypto & Web3',
+    category: 'predefined',
+    confidence: 0.8,
+  },
+];
+
 const QuestionSuggestions = ({
   append,
   history,
+  user,
 }: {
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   history: ChatHistory[] | undefined;
+  user: User | undefined;
 }) => {
-  const [suggestions, setSuggestions] = useState<EnhancedSuggestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { width } = useWindowSize(); 
+  // MODIFIKASI: Menggunakan state untuk saran dinamis dan status loading
+  const [initialSuggestions, setInitialSuggestions] = useState<EnhancedSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+  
+  const { width } = useWindowSize();
 
-  const NEW_USER_SUGGESTIONS: EnhancedSuggestion[] = [
-    {
-      title: "Bandingkan kelebihan React dan Vue",
-      subtitle: "Mulai analisis teknis",
-      category: "predefined",
-      confidence: 0.8,
-    },
-    {
-      title: "Buat rencana konten media sosial untuk 1 minggu",
-      subtitle: "Untuk ide kreatif",
-      category: "predefined",
-      confidence: 0.8,
-    },
-    {
-      title: "Jelaskan konsep machine learning dengan analogi",
-      subtitle: "Pahami topik kompleks",
-      category: "predefined",
-      confidence: 0.8,
-    },
-     {
-      title: "Berikan ide resep sarapan sehat dan praktis",
-      subtitle: "Inspirasi dapur",
-      category: "predefined",
-      confidence: 0.8,
-    },
-  ];
+  // MODIFIKASI: Mengambil saran dari API saat komponen dimuat
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      setIsLoadingSuggestions(true);
+      try {
+        const response = await fetch('/api/suggestions');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        
+        let formattedSuggestions: EnhancedSuggestion[] = data.map((item: any) => ({
+          title: item.title,
+          subtitle: item.subtitle,
+          category: 'predefined',
+          confidence: 0.8,
+        }));
+
+        // Add 2 random blockchain suggestions
+        const randomCryptoSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random()).slice(0, 2);
+        
+        // Combine and shuffle
+        let combinedSuggestions = [...formattedSuggestions, ...randomCryptoSuggestions];
+        combinedSuggestions.sort(() => 0.5 - Math.random());
+        
+        setInitialSuggestions(combinedSuggestions);
+      } catch (error) {
+        console.error("Failed to fetch suggestions:", error);
+        // Fallback to only blockchain suggestions if API fails
+        const randomCryptoSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random()).slice(0, 4);
+        setInitialSuggestions(randomCryptoSuggestions);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, []); // Dependensi kosong agar hanya berjalan sekali
 
   const conversationAnalysis = useMemo(() => {
     if (!history || history.length === 0) return null;
@@ -165,8 +220,9 @@ const QuestionSuggestions = ({
   }, [history]);
 
   const generateIntelligentSuggestions = useCallback((): EnhancedSuggestion[] => {
+    // MODIFIKASI: Menggunakan saran dari state jika tidak ada riwayat percakapan
     if (!conversationAnalysis) {
-        return NEW_USER_SUGGESTIONS;
+        return initialSuggestions;
     }
 
     const suggestions: EnhancedSuggestion[] = [];
@@ -210,49 +266,42 @@ const QuestionSuggestions = ({
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 4);
 
+    // MODIFIKASI: Fallback ke saran dari state jika tidak ada saran cerdas yang dihasilkan
     if (uniqueSuggestions.length === 0) {
-        return NEW_USER_SUGGESTIONS.slice(0,2);
+        return initialSuggestions.slice(0,4);
     }
     
     return uniqueSuggestions;
-  }, [conversationAnalysis]);
+  }, [conversationAnalysis, initialSuggestions]); // MODIFIKASI: Menambahkan initialSuggestions sebagai dependensi
 
   const generateFollowUpQuestions = (originalQuestion: string, category: string): string[] => {
     const followUps: { [key: string]: string[] } = {
       'coding': [
-        'How can I optimize this code?',
-        'What are the best practices for this?',
-        'Can you show me alternative approaches?',
+        'Elaborate on how I can optimize this code',
+        'Explain the best practices for this',
+        'Show me some alternative approaches',
       ],
       'creative': [
-        'Can you help me brainstorm more ideas?',
-        'How can I improve the creative process?',
-        'What are some variations on this theme?',
+        'Help me brainstorm more ideas on this topic',
+        'Explain how I can improve the creative process for this',
+        'Provide some variations on this theme',
       ],
       'explanation': [
-        'Can you provide a more detailed explanation?',
-        'What are some practical applications?',
+        'Provide a more detailed explanation on this',
+        'What are some practical applications for this?',
         'How does this relate to other concepts?',
       ],
     };
-    return followUps[category] || ['Can you elaborate on this topic?'];
+    return followUps[category] || ['Elaborate further on this topic'];
   };
 
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      const newSuggestions = generateIntelligentSuggestions();
-      setSuggestions(newSuggestions);
-      setIsLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [generateIntelligentSuggestions]);
+  const suggestions = useMemo(generateIntelligentSuggestions, [generateIntelligentSuggestions]);
 
   const isMobile = width < 640;
   const suggestionsToShow = isMobile ? suggestions.slice(0, 2) : suggestions;
-
-  if (isLoading) {
+  
+  // MODIFIKASI: Menampilkan UI skeleton selama loading
+  if (isLoadingSuggestions) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -263,10 +312,10 @@ const QuestionSuggestions = ({
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse"
+              className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]"
             >
-              <div className="h-4 bg-muted rounded mb-2" />
-              <div className="h-3 bg-muted/60 rounded w-2/3" />
+              <div className="h-4 bg-muted rounded mb-2 w-3/4" />
+              <div className="h-3 bg-muted/60 rounded w-1/2" />
             </div>
           ))}
         </div>
@@ -279,8 +328,22 @@ const QuestionSuggestions = ({
   }
 
   const handleSuggestionClick = (suggestion: EnhancedSuggestion) => {
+    if (!user) {
+      toast.error("Please log in to use suggestions.", {
+        position: "top-center",
+        duration: 3000,
+      });
+      return; 
+    }
+
+    let contentToSend = suggestion.title;
+
+    if (suggestion.category === 'followup' && suggestion.context) {
+      contentToSend = `Regarding my previous question about "${suggestion.context}", please ${suggestion.title.charAt(0).toLowerCase() + suggestion.title.slice(1)}`;
+    }
+
     append({
-      content: suggestion.title,
+      content: contentToSend,
       role: "user",
     });
   };
@@ -741,7 +804,8 @@ function PureMultimodalInput({
     >
       <AnimatePresence>
         {showSuggestions && (
-          <QuestionSuggestions append={append} history={history} />
+          // MODIFIKASI: Meneruskan prop 'user' ke komponen QuestionSuggestions
+          <QuestionSuggestions append={append} history={history} user={user} />
         )}
       </AnimatePresence>
 

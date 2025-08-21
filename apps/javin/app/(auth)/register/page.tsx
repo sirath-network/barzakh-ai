@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
 import { register, type RegisterActionState } from "../actions";
 import { AuthForm } from "@/components/auth-form";
@@ -18,6 +19,7 @@ export default function Page() {
   const [formData, setFormData] = useState<{ email: string; password: string } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const [isPending, startTransition] = useTransition();
 
@@ -31,19 +33,19 @@ export default function Page() {
     
     if (state.status === "user_exists") {
       toast.error("Account already exists");
+      turnstileRef.current?.reset();
     } else if (state.status === "failed") {
       toast.error("Failed to create account. Please check your connection and try again.");
+      turnstileRef.current?.reset();
     } else if (state.status === "invalid_data") {
-      if (state.fieldErrors) {
-        // Show specific field errors
-        Object.entries(state.fieldErrors).forEach(([field, errors]) => {
-          errors?.forEach(error => toast.error(`${field}: ${error}`));
-        });
-      } else {
+      // Inline errors are displayed by the AuthForm component, so we only need a generic fallback toast.
+      if (!state.fieldErrors || Object.keys(state.fieldErrors).length === 0) {
         toast.error("Please check your input and try again.");
       }
+      turnstileRef.current?.reset();
     } else if (state.status === "too_small") {
       toast.error("Password should be at least 8 characters long.");
+      turnstileRef.current?.reset();
     } else if (state.status === "otp_sent") {
       setShowOTPField(true);
       toast.success("Verification code sent to your email");
@@ -134,8 +136,27 @@ export default function Page() {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
        {/* Left side - Brand banner */}
-       <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
-         <motion.div
+       <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
+          {/* 1. Video Background (lapisan paling belakang) */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+          >
+            <source src="/video/background.mp4" type="video/mp4" />
+            Browser Anda tidak mendukung tag video.
+          </video>
+
+          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
+          {/* Gradien Atas */}
+          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" />
+          {/* Gradien Bawah */}
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
+
+          {/* 3. Konten Teks (lapisan paling depan) */}
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
@@ -190,6 +211,7 @@ export default function Page() {
                             onResendOTP={showOTPField ? handleResendOTP : undefined}
                             onTurnstileSuccess={handleTurnstileSuccess}
                             turnstileToken={turnstileToken}
+                            turnstileRef={turnstileRef}
                             formRef={formRef}
                         >
                             <SubmitButton 

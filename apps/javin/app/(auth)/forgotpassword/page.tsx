@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 // import { toast } from "sonner";
 import { motion } from "framer-motion";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -22,6 +23,8 @@ export default function Page() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
@@ -37,10 +40,13 @@ export default function Page() {
 
   useEffect(() => {
     if (state.status === "failed") {
+      turnstileRef.current?.reset();
       setOverlayState({ status: "error", title: "Request Failed", message: "Something went wrong! Please try again." });
     } else if (state.status === "invalid_data") {
+      turnstileRef.current?.reset();
       setOverlayState({ status: "error", title: "Invalid Data", message: "Failed validating your submission." });
     } else if (state.status === "invalid_email") {
+      turnstileRef.current?.reset();
       setOverlayState({ status: "error", title: "Invalid Email", message: "The email address you entered is not valid." });
     } else if (state.status === "success") {
       setOverlayState({ status: "success", title: "Link Sent", message: "A password reset link has been sent to your email." });
@@ -52,7 +58,14 @@ export default function Page() {
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get("email") as string);
+    if (turnstileToken) {
+      formData.set("cf-turnstile-response", turnstileToken);
+    }
     formAction(formData);
+  };
+
+  const handleTurnstileSuccess = (token: string) => {
+    setTurnstileToken(token);
   };
 
   const formVariants = {
@@ -79,7 +92,26 @@ export default function Page() {
       </ActionResultOverlay>
 
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
+        <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
+          {/* 1. Video Background (lapisan paling belakang) */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+          >
+            <source src="/video/background.mp4" type="video/mp4" />
+            Browser Anda tidak mendukung tag video.
+          </video>
+
+          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
+          {/* Gradien Atas */}
+          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" />
+          {/* Gradien Bawah */}
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
+
+          {/* 3. Konten Teks (lapisan paling depan) */}
           <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -123,6 +155,9 @@ export default function Page() {
                 passwordNeeded={false}
                 emailNeeded={true}
                 fieldErrors={state.fieldErrors}
+                onTurnstileSuccess={handleTurnstileSuccess}
+                turnstileToken={turnstileToken}
+                turnstileRef={turnstileRef}
               >
                 {/* */}
                 <SubmitButton isSuccessful={false} className="w-full">

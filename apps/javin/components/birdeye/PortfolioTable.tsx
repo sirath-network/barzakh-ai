@@ -27,7 +27,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     : [];
 
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-white px-4 py-4 rounded-lg w-full max-w-md mt-2 md:mt-0">
+    <div className="bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-white px-4 py-4 rounded-lg w-full max-w-md mt-2 md:mt-0 mb-4">
       {/* Portfolio Header */}
       <div className="flex flex-col pb-2 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex flex-row gap-1 justify-between">

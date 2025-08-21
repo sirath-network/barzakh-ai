@@ -52,19 +52,27 @@ const loginSchema = z.object({
 });
 
 // For registration: enforce full strength rules
+const passwordValidation = z
+  .string()
+  .min(8, "Password must be at least 8 characters.")
+  .max(100, "Password cannot be longer than 100 characters.")
+  .refine(
+    (password) => {
+      const hasLowercase = /[a-z]/.test(password);
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecialChar = /[!@#$%^&*]/.test(password);
+      return hasLowercase && hasUppercase && hasNumber && hasSpecialChar;
+    },
+    {
+      message:
+        "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character (!@#$%^&*).",
+    }
+  );
+
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(100)
-    .regex(/[a-z]/, "Must include at least one lowercase letter")
-    .regex(/[A-Z]/, "Must include at least one uppercase letter")
-    .regex(/[0-9]/, "Must include at least one number")
-    .regex(
-      /[!@#$%^&*]/,
-      "Must include at least one special character (!@#$%^&*)"
-    ),
+  password: passwordValidation,
   "cf-turnstile-response": z.string(),
 });
 
@@ -74,17 +82,7 @@ const forgotPasswordSchema = z.object({
 });
 const resetPasswordSchema = z.object({
   token: z.string(),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(100)
-    .regex(/[a-z]/, "Must include at least one lowercase letter")
-    .regex(/[A-Z]/, "Must include at least one uppercase letter")
-    .regex(/[0-9]/, "Must include at least one number")
-    .regex(
-      /[!@#$%^&*]/,
-      "Must include at least one special character (!@#$%^&*)"
-    ),
+  password: passwordValidation,
 });
 
 export interface LoginActionState {
@@ -194,24 +192,6 @@ export interface RegisterActionState {
             };
           }
 
-          // Validate password and turnstile response at the verification stage
-          try {
-            registerSchema.parse({ 
-              email, 
-              password,
-              "cf-turnstile-response": turnstileResponse 
-            });
-          } catch (error) {
-            if (error instanceof z.ZodError) {
-              return {
-                status: "invalid_data",
-                fieldErrors: error.flatten().fieldErrors,
-                email
-              };
-            }
-            throw error;
-          }
-
           console.log('Creating user account');
           const id = generateUUID();
           await createUser(id, email, password);
@@ -220,6 +200,24 @@ export interface RegisterActionState {
             status: "otp_verified",
             email
           };
+        }
+
+        // Initial submission - validate inputs, then send OTP
+        try {
+          registerSchema.parse({ 
+            email, 
+            password,
+            "cf-turnstile-response": turnstileResponse 
+          });
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return {
+              status: "invalid_data",
+              fieldErrors: error.flatten().fieldErrors,
+              email
+            };
+          }
+          throw error;
         }
 
         // Check if user already exists BEFORE sending OTP
@@ -232,7 +230,6 @@ export interface RegisterActionState {
             };
         }
 
-        // Initial submission - just send OTP
         console.log('Sending OTP to:', email);
         const otpCode = generateOTP();
         await saveOTP(email, otpCode);

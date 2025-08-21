@@ -87,23 +87,45 @@ export default function Page() {
       </ActionResultOverlay>
       
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        <div className="hidden bg-muted lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center">
+        {/* --- PERUBAHAN DIMULAI DI SINI --- */}
+        <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
+          {/* 1. Video Background (lapisan paling belakang) */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+          >
+            <source src="/video/background.mp4" type="video/mp4" />
+            Browser Anda tidak mendukung tag video.
+          </video>
+
+          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
+          {/* Gradien Atas */}
+          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" />
+          {/* Gradien Bawah */}
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
+
+          {/* 3. Konten Teks (lapisan paling depan) */}
           <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
+              className="z-10" // Pastikan konten berada di atas video dan gradien
           >
               <img
                 alt="Brand Banner"
                 src="/images/javin/banner/sirath-banner.svg" 
                 className="w-48 h-auto mb-4 mx-auto" 
               />
-              <h1 className="text-3xl font-bold">Welcome Back</h1>
-              <p className="text-muted-foreground mt-2 max-w-sm">
+              <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
+              <p className="text-gray-200 mt-2 max-w-sm">
                 Intelligent, focused AI search powering crypto and blockchain insights.
               </p>
           </motion.div>
         </div>
+        {/* --- PERUBAHAN SELESAI DI SINI --- */}
 
         <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
           <motion.div
