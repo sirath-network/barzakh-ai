@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { memo, useState, useEffect, useRef } from "react";
 
 import type { Vote } from "@/lib/db/schema";
-import { JavinMan, PencilEditIcon } from "./icons";
+import { PencilEditIcon } from "./icons";
 import { Markdown } from "./markdown";
 import { MessageActions } from "./message-actions";
 import { PreviewAttachment } from "./preview-attachment";
@@ -47,166 +47,8 @@ const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "smal
   );
 };
 
-// Komponen Avatar sederhana tanpa video
-const AssistantAvatar = ({ 
-  showIcon = true,
-  staticImageSrc,
-  size = 32 
-}: { 
-  showIcon?: boolean;
-  staticImageSrc?: string;
-  size?: number;
-}) => {
-  if (!showIcon) return null;
-
-  return (
-    <div 
-      className="hidden md:flex items-center justify-center rounded-full bg-background overflow-hidden border border-border/20 shadow-sm relative flex-shrink-0"
-      style={{ 
-        width: `${size}px`,
-        height: `${size}px`,
-        minWidth: `${size}px`,
-        minHeight: `${size}px`,
-        maxWidth: `${size}px`,
-        maxHeight: `${size}px`,
-      }}
-    >
-      <div
-        className="absolute inset-0 w-full h-full flex items-center justify-center"
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-        }}
-      >
-        {staticImageSrc ? (
-          <img 
-            src={staticImageSrc} 
-            alt="Assistant Avatar" 
-            width={size}
-            height={size}
-            className="w-full h-full object-cover rounded-full"
-            style={{
-              width: `${size}px`,
-              height: `${size}px`,
-              maxWidth: `${size}px`,
-              maxHeight: `${size}px`,
-              objectFit: 'cover',
-              imageRendering: 'optimizeQuality',
-            }}
-          />
-        ) : (
-          <JavinMan size={Math.floor(size * 0.90)} />
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Komponen animasi 'Thinking' yang diperbaiki
-const ThinkingAnimation = () => {
-    const containerVariants = {
-        hidden: {
-            opacity: 0,
-            y: 2,
-        },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0,
-                staggerChildren: 0,
-            },
-        },
-    };
-
-    const textVariants = {
-        hidden: {
-            opacity: 0,
-            x: -5,
-        },
-        visible: {
-            opacity: 1,
-            x: 0,
-            transition: {
-                duration: 0,
-            },
-        },
-    };
-
-    const dotsContainerVariants = {
-        hidden: {
-            opacity: 0,
-        },
-        visible: {
-            opacity: 1,
-            transition: {
-                duration: 0,
-                staggerChildren: 0.08,
-            },
-        },
-    };
-
-    const dotVariants = {
-        hidden: {
-            opacity: 0.3,
-            scale: 0.7,
-        },
-        visible: {
-            opacity: [0.3, 1, 0.3],
-            scale: [0.7, 1, 0.7],
-            transition: {
-                duration: 1.4,
-                repeat: Infinity,
-                ease: "easeInOut",
-            },
-        },
-    };
-
-    return (
-        <motion.div 
-            className="flex items-center gap-3 py-3 px-1"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{ 
-                opacity: 0, 
-                y: -5,
-                transition: { duration: 0.25, ease: "easeIn" } 
-            }}
-        >
-            {/* Text di sebelah kiri */}
-            <motion.span 
-                className="text-sm font-medium text-muted-foreground select-none leading-none"
-                variants={textVariants}
-            >
-                Thinking
-            </motion.span>
-            
-            {/* Dots animation di sebelah kanan dengan baseline alignment */}
-            <motion.div
-                className="flex items-center gap-1 h-[14px]"
-                variants={dotsContainerVariants}
-                style={{ alignItems: 'center' }}
-            >
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-            </motion.div>
-        </motion.div>
-    );
-};
+import { AssistantAvatar } from "./assistant-avatar";
+import { ThinkingAnimation } from "./thinking-animation";
 
 const PurePreviewMessage = ({
   chatId,
@@ -326,7 +168,7 @@ const PurePreviewMessage = ({
       >
         <div
           className={cn(
-            "flex flex-col md:flex-row pl-0.5 gap-0 md:gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
+            "flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
             {
               "w-full": mode === "edit",
               "group-data-[role=user]/message:w-fit": mode !== "edit",
