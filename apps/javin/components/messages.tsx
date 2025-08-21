@@ -1,7 +1,7 @@
 // components/messages.tsx
 
 import { ChatRequestOptions, Message } from "ai";
-// === PERBAIKAN DI SINI: Hapus import ThinkingMessage ===
+import { ThinkingMessage } from "./thinking-message";
 import { PreviewMessage } from "./message";
 import { Overview } from "./overview";
 import { memo } from "react";
@@ -62,11 +62,9 @@ function PureMessages({
         />
       ))}
 
-      {/* === PERBAIKAN DI SINI: Hapus blok kode ini === */}
-      {/* Logika 'Thinking' sekarang ditangani oleh PreviewMessage, jadi ini tidak perlu lagi */}
-      {/* {isLoading &&
+      {isLoading &&
         messages.length > 0 &&
-        messages[messages.length - 1].role === "user" && <ThinkingMessage />} */}
+        messages[messages.length - 1].role === "user" && <ThinkingMessage />}
 
       <div className="shrink-0 h-8 w-full" />
     </div>
