@@ -964,6 +964,7 @@ function PureMultimodalInput({
           multiple
           onChange={handleFileChange}
           tabIndex={-1}
+          accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,text/plain,text/markdown,text/csv,application/json,application/javascript,text/javascript,text/x-typescript,application/x-typescript,text/html,text/css,application/xml,text/xml"
         />
 
         

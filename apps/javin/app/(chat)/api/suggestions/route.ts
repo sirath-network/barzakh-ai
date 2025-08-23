@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(BASE_SUGGESTIONS);
     }
     
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
       Translate the following JSON array of objects into the language with code "${mainLang}".

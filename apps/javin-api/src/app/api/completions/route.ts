@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       max_tokens,
       temperature,
       stream: StreamingTrue,
+      model: model
     } = validatedData;
 
     myProvider.languageModel("chat-model-small")

@@ -74,9 +74,15 @@ export const getAptosScanApiData = tool({
       const aiAgentResponse = await generateText({
         model: myProvider.languageModel("chat-model-small"),
         system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant aptos blockchain data in a user-friendly format.
+
+        ## CRITICAL FORMATTING RULES:
+        - ALWAYS format transaction versions as clickable links: [Transaction {version}](https://explorer.aptoslabs.com/txn/{version}?network=mainnet)
+        - Format addresses as clickable links: [Address](https://explorer.aptoslabs.com/account/{address}?network=mainnet)
+        - Make standalone addresses **bold** when not in links
+        - Present portfolio data clearly with proper decimal formatting
       
-        you have a variety of tools available, using them you can get : the latest transaction block number for a given address, coin and fungible asset information for a given address, the total count of fungible assets for a given address, the total count of tokens held by an account, detailed information of tokens held by an account, , transaction balance change information for a given transaction version,
-        based on the user query, see if those tools are helpfull and call the appropriate tool with params.
+        you have a variety of tools available, using them you can get : the transaction history for a given address, coin and fungible asset information for a given address, the total count of fungible assets for a given address, the total count of tokens held by an account, detailed information of tokens held by an account, transaction balance change information for a given transaction version,
+        based on the user query, see if those tools are helpfull and call the appropriate tool with params. For queries about historical transactions, you must use the \`getAccountTransactionsData\` tool.
 
         if the above tools are not helpful, you can use the below tools to get the required data:
         you have access to public apis  which can be called to get the required data. Available API paths and descriptions: ${allPathsAndDesc}. you need to follow below steps to get the required data:
@@ -101,7 +107,7 @@ export const getAptosScanApiData = tool({
         tools: {
           getAccountTransactionsData: tool({
             description:
-              "Fetches the latest transaction block number for a given address.",
+              "Fetches the transaction history for a given Aptos address. Use this tool when the user asks for past or historical transactions.",
             parameters: z.object({
               address: z.string().describe("address of the account"),
               limit: z
@@ -297,8 +303,6 @@ export const getAptosScanApiData = tool({
         },
         maxSteps: 5,
       });
-
-      console.log(`AI response is `, aiAgentResponse.text);
 
       return aiAgentResponse.text;
     } catch (error: any) {

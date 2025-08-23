@@ -26,13 +26,14 @@ export const getAptosGraphqlData = tool({
       // Step 2: Ask the AI agent to select the best tool to fetch the data.
       const aiAgentResponse = await generateText({
         model: myProvider.languageModel("chat-model-small"),
-        system: `You are an intelligent API assistant. Your job is to process user queries and call the relevant tool to fetch the data from Aptos. 
-        Choose the appropriate tool from the list and provide the required parameters.`,
+        system: `You are an intelligent API assistant. Your job is to process user queries and call the relevant tool to fetch the data from Aptos.
+        Pay close attention to queries about an account's transaction history. For these, you must use the \`getAccountTransactionsData\` tool.
+        For all other queries, choose the most appropriate tool from the list and provide the required parameters.`,
         prompt: `User query: "${userQuery}".`,
         tools: {
           getAccountTransactionsData: tool({
             description:
-              "Fetches the latest transaction block number for a given address.",
+              "Fetches the transaction history for a given Aptos address. Use this tool when the user asks for past or historical transactions.",
             parameters: z.object({
               address: z.string(),
               limit: z.number().optional(),

@@ -23,33 +23,70 @@ export async function POST(request: Request) {
     const validatedData = PromptRequestSchema.parse(body);
 
     const {
-      prompt,
+      messages,
+      selectedChatModel,
+      group,
       max_tokens,
       temperature,
-      stream: StreamingTrue,
+      stream: streaming,
     } = validatedData;
 
-    myProvider.languageModel("chat-model-small")
-
-    const { tools: activeTools, systemPrompt } = await getGroupConfig(
-      "on_chain"
+    // Detect if there is an image in the messages
+    const hasImage = messages.some((message) =>
+      Array.isArray(message.content)
+        ? message.content.some((part) => part.type === "image")
+        : false
     );
 
+    const groupId = hasImage ? "multimodal" : group || "search";
+
+    const languageModel = myProvider.languageModel(selectedChatModel);
+    const model = selectedChatModel;
+
+    const { tools: activeTools, systemPrompt } = await getGroupConfig(
+      groupId as any // Cast to any to satisfy the type, since we added "multimodal"
+    );
+
+    // Prepend system prompt if it exists and is not already in messages
+    if (systemPrompt && (!messages[0] || messages[0].role !== "system")) {
+      messages.unshift({ role: "system", content: systemPrompt });
+    }
+
+    const StreamingTrue = streaming ?? true; // Default to streaming if not provided
+
+    // The Vercel AI SDK (`ai` package) automatically handles the conversion of the
+    // standardized `messages` array into the provider-specific format.
+    // For example, it will transform the base64 data URI from an image part
+    // into the format required by OpenAI, Anthropic, or Google's API.
+    // No manual conversion is needed here.
     const system_fingerprint = process.env.VERCEL_GIT_COMMIT_SHA || "";
 
+    // Build the options object for the AI SDK calls.
+    const options: any = {
+      model: languageModel,
+      messages: messages,
+      maxSteps: 10,
+      experimental_activeTools: [...activeTools],
+      tools: allTools,
+      experimental_generateMessageId: generateUUID,
+      temperature: temperature, // Initially set the temperature
+      maxTokens: max_tokens,   // Initially set the max_tokens
+    };
+
+    // Aggressively remove temperature if it's 0 or not a positive number.
+    // The OpenAI API throws an error for `temperature: 0` on some models.
+    if (options.temperature == null || options.temperature <= 0) {
+      delete options.temperature;
+    }
+
+    // Remove maxTokens if it's null or not a positive number.
+    if (options.maxTokens == null || options.maxTokens <= 0) {
+      delete options.maxTokens;
+    }
+
     if (!StreamingTrue) {
-      // NON STREAMING - Convert to chat completion format
-      const result = await generateText({
-        model: openai(model),
-        system: systemPrompt,
-        prompt: prompt,
-        maxSteps: 10,
-        experimental_activeTools: [...activeTools],
-        tools: allTools,
-        maxTokens: max_tokens,
-        temperature: temperature,
-        experimental_generateMessageId: generateUUID,
-      });
+      // NON STREAMING
+      const result = await generateText(options);
 
       const responseMessage = {
         id: generateUUID(),
@@ -107,19 +144,11 @@ export async function POST(request: Request) {
           );
 
           const result = streamText({
-            model: openai(model),
-            system: systemPrompt,
-            prompt: prompt,
-            maxSteps: 10,
-            experimental_activeTools: [...activeTools],
+            ...options,
             onChunk: async ({ chunk }) => {
               console.log("onChunk = ", chunk);
             },
-            tools: allTools,
-            maxTokens: max_tokens,
-            temperature: temperature,
             experimental_transform: smoothStream({ chunking: "word" }),
-            experimental_generateMessageId: generateUUID,
           });
 
           const streamId = generateUUID(); // Keep a consistent ID for the stream

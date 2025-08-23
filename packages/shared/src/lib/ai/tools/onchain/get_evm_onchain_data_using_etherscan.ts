@@ -111,7 +111,6 @@ export const getEvmOnchainDataUsingEtherscan = tool({
         maxSteps: 5,
       });
 
-      console.log(`AI response is `, aiAgentResponse.text);
       return aiAgentResponse.text;
     } catch (error: any) {
       console.error("Error in getEvmOnchainDataUsingEtherscan:", error);

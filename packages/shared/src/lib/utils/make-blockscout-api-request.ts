@@ -14,13 +14,19 @@ export const makeBlockscoutApiRequest = async (url: string) => {
     method: "GET",
     headers: {
       accept: "application/json",
-      authorization: `Basic ${apiKey}`,
-    },
+      authorization: `Basic ${apiKey}`
+    }
   };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
     console.log("fetching data ------ ", url);
-    const response = await fetch(url, options);
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
 
     const apiResult = await response.json();
     if (!apiResult) {
@@ -35,5 +41,7 @@ export const makeBlockscoutApiRequest = async (url: string) => {
 
     // Returning error details so AI can adapt its next action
     throw new Error("Error in making api call:", error);
+  } finally {
+    clearTimeout(timeoutId);
   }
 };

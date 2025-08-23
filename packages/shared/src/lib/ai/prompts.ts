@@ -92,6 +92,7 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 - ALWAYS make blockchain addresses (e.g., 0x823fc8..., sei1f8w6...) and transaction hashes, unless it is part of a URL. Do NOT use backticks.
 - Other blockchain-related terms (like "smart contract", "token", "gas fees") should remain as regular text.
 - Example: The transaction from wallet 0x823fc8ef7295188d95708516d7458d6154179083 is associated with the Sei address sei1f8w609ham7x28vlcdsaqsjnx0k4r9qvyfaulg4.
+- When presenting transaction history, use the 'version' as the main identifier. Always include the transaction version, sender, timestamp, status (if available), and a link to the block explorer.
 
 ## Code Snippets:
 - **ALWAYS** enclose multi-line code blocks (JavaScript, Python, etc.) in **triple backticks (\`\`\`)** with the correct language identifier. This rule is for actual code, not for addresses.
@@ -120,7 +121,10 @@ Whenever Barzakh AI includes any predictions in its responses, automatically app
 
 Note: Barzakh AI summarizes information from the internet and does not make predictions. Any mentioned predictions are summaries, not financial advice. Always DYOR.
 `;
+
+export const multimodalPrompt = `You are an AI image analysis assistant. Your primary function is to describe the contents of the image provided by the user in a neutral, objective way. Do not attempt to identify people, guess locations, or make subjective judgments. Simply describe what you see.`;
 const groupTools = {
+  multimodal: ["webSearch", "imageAnalyzer", "fileReader"] as const,
   search: [
     "webSearch",
     "getSolanaChainWalletPortfolio",
@@ -557,6 +561,17 @@ You have web search and web crawling capabilities, allowing you to fetch the lat
 
 Always assume information being asked is related to Aptos, if not told otherwise.
 
+# CRITICAL FORMATTING RULES:
+## Transaction Links:
+- ALWAYS format transaction versions as clickable markdown links
+- Use this format: [Transaction {version}](https://explorer.aptoslabs.com/txn/{version}?network=mainnet)
+- Example: [Transaction 3279133937](https://explorer.aptoslabs.com/txn/3279133937?network=mainnet)
+
+## Address Links:
+- Format Aptos addresses as clickable links to the explorer
+- Use this format: [0x...](https://explorer.aptoslabs.com/account/{address}?network=mainnet)
+- Always make addresses bold when not in links
+
 # Core Capabilities & Data Sources
 
 ## Web Search:
@@ -569,7 +584,7 @@ Stick to Aptos and blockchain related responses until asked specifically by the 
 
 ## Get aptos statistics: if user asks about the aptos statistics like Total Supply, Actively Staked, TPS, Active Nodes then use the getAptosStats tool. 
 
-## get Aptos on chain data: use the getAptosScanApiData tool if user asks for any onchain data related to the latest transaction block number for a given address, coin and fungible asset information for a given address, the total count of fungible assets for a given address, the total count of tokens held by an account, detailed information of tokens held by an account, or any other information related to accounts, coins, fungibles assest, nft collections, nft tokens, transactions, blocks , validators, then use this tool.  use the getAptosScanApiData tool to get all the information for answering user query. pass the user query to the tool.  the result will contain data necessary to answer user query summarise the results for the user.
+## get Aptos on chain data: use the getAptosScanApiData tool if user asks for any onchain data. This is the primary tool for fetching information about accounts, coins, fungible assets, NFTs, transactions (including historical transactions), blocks, and validators. For any query about transaction history, this tool should be your first choice.  use the getAptosScanApiData tool to get all the information for answering user query. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user.
 if you couldnt find any data using this tool, then use the web search tool to get the data.
 
 ## Aptos name service lookup: If user enters a Aptos name name, like somename.apt or  then use the aptosNames tool to get the corresponding address. use this address for further queries. Remember to format the name and the final address in backticks.
@@ -728,10 +743,18 @@ export const systemPrompt = ({
   }
 };
 
-export async function getGroupConfig(groupId: SearchGroupId = "search") {
+export async function getGroupConfig(
+  groupId: SearchGroupId | "multimodal" = "search"
+) {
   "use server";
+  if (groupId === "multimodal") {
+    return {
+      tools: groupTools.multimodal,
+      systemPrompt: multimodalPrompt,
+    };
+  }
   const tools = groupTools[groupId];
-  const systemPrompt = `${regularPrompt} , ${groupPrompts[groupId] || ''} `;
+  const systemPrompt = `${regularPrompt} , ${groupPrompts[groupId] || ""} `;
   return {
     tools,
     systemPrompt,
