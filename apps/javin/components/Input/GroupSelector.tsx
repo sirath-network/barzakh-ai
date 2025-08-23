@@ -179,7 +179,6 @@ const MobileSearchHeader = ({
           "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
           "transition-colors duration-150"
         )}
-        autoFocus
       />
     </div>
   </div>
@@ -195,12 +194,15 @@ export const GroupSelector = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  const [isDesktop, setIsDesktop] = useState(false);
+  // Client-side hydration fix
+  const [isClient, setIsClient] = useState(false);
   const { width } = useWindowSize();
 
   useEffect(() => {
-    setIsDesktop(width >= TAILWIND_MD_BREAKPOINT);
-  }, [width]);
+    setIsClient(true);
+  }, []);
+
+  const isDesktop = isClient && width >= TAILWIND_MD_BREAKPOINT;
 
   const selectedGroup = useMemo(
     () => searchGroups.find((group) => group.id === selectedGroupId),
@@ -222,34 +224,71 @@ export const GroupSelector = ({
     [onGroupSelect]
   );
 
-  const handleToggle = useCallback(() => {
+  // Fixed mobile button handler - prevent event bubbling and ensure proper state management
+  const handleMobileToggle = useCallback((e: React.MouseEvent) => {
     if (disabled) return;
-    setIsExpanded((prev) => !prev);
-  }, [disabled]);
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isClient || isDesktop) return;
+    
+    setIsExpanded(prev => !prev);
+  }, [disabled, isClient, isDesktop]);
 
+  // Handle dropdown open change for desktop
+  const handleDropdownOpenChange = useCallback((open: boolean) => {
+    if (!isDesktop) return;
+    setIsExpanded(open);
+  }, [isDesktop]);
+
+  // Clean up search query when closing
   useEffect(() => {
     if (!isExpanded) {
-      setTimeout(() => setSearchQuery(""), 150);
+      const timer = setTimeout(() => setSearchQuery(""), 150);
+      return () => clearTimeout(timer);
     }
   }, [isExpanded]);
 
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isExpanded) {
         setIsExpanded(false);
       }
     };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    
+    if (isExpanded) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
   }, [isExpanded]);
+
+  // Don't render until client-side hydration is complete
+  if (!isClient) {
+    return (
+      <div className={cn("relative", className)}>
+        <Button
+          variant="outline"
+          disabled
+          className="h-10 px-2 rounded-xl border-1 bg-background opacity-50"
+        >
+          <div className="w-6 h-6 bg-muted rounded animate-pulse" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative", className)}>
-      <DropdownMenu open={isDesktop && isExpanded} onOpenChange={setIsExpanded}>
+      <DropdownMenu 
+        open={isDesktop && isExpanded} 
+        onOpenChange={handleDropdownOpenChange}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            onClick={() => !isDesktop && handleToggle()}
+            onClick={handleMobileToggle}
             disabled={disabled}
             className={cn(
               "h-10 px-2 rounded-xl border-1 transition-all duration-200",

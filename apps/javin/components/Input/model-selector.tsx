@@ -157,7 +157,6 @@ const MobileSearchHeader = ({
           "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
           "transition-colors duration-150"
         )}
-        autoFocus
       />
     </div>
   </div>
@@ -222,23 +221,37 @@ export function ModelSelector({
     }
   }, [selectedModelId, isUpdating, onModelSelect]);
 
-  // Handle dropdown state changes
-  const handleOpenChange = useCallback((open: boolean) => {
+  // Handle dropdown state changes - separated for desktop/mobile
+  const handleDropdownOpenChange = useCallback((open: boolean) => {
+    if (!isDesktop) return;
     setIsExpanded(open);
+    
     if (!open) {
       // Clear search when closing
       setTimeout(() => setSearchQuery(""), 150);
     }
-  }, []);
+  }, [isDesktop]);
 
-  // Handle mobile sheet open
-  const handleMobileOpen = useCallback((e: React.MouseEvent) => {
+  // Fixed mobile button handler - prevent conflicts with dropdown trigger
+  const handleMobileToggle = useCallback((e: React.MouseEvent) => {
+    if (buttonProps.disabled || isUpdating) return;
+    
     e.preventDefault();
     e.stopPropagation();
-    if (!isDesktop && !isUpdating) {
-      setIsExpanded(true);
+    
+    // Only handle mobile interactions
+    if (!isClient || isDesktop) return;
+    
+    setIsExpanded(prev => !prev);
+  }, [isClient, isDesktop, isUpdating]);
+
+  // Clean up search query when closing
+  useEffect(() => {
+    if (!isExpanded) {
+      const timer = setTimeout(() => setSearchQuery(""), 150);
+      return () => clearTimeout(timer);
     }
-  }, [isDesktop, isUpdating]);
+  }, [isExpanded]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -249,14 +262,32 @@ export function ModelSelector({
     };
   }, []);
 
+  // Don't render until client-side hydration is complete
+  if (!isClient) {
+    return (
+      <div className={cn("relative", className)}>
+        <Button
+          variant="outline"
+          disabled
+          className="h-10 border-2 rounded-xl bg-neutral-200 dark:bg-neutral-800 opacity-50"
+        >
+          <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("relative", className)}>
-      <DropdownMenu open={isDesktop && isExpanded} onOpenChange={handleOpenChange}>
+      <DropdownMenu 
+        open={isDesktop && isExpanded} 
+        onOpenChange={handleDropdownOpenChange}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             {...buttonProps}
             variant="outline"
-            onClick={handleMobileOpen}
+            onClick={handleMobileToggle}
             disabled={isUpdating}
             className={cn(
               "h-10 border-2 rounded-xl transition-all duration-200",
@@ -332,8 +363,8 @@ export function ModelSelector({
       {!isDesktop && (
         <BottomSheet
           isOpen={isExpanded}
-          onClose={() => handleOpenChange(false)}
-          title="Pilih Model"
+          onClose={() => setIsExpanded(false)}
+          title="Choose Models"
           className="max-h-[85vh]"
         >
           <div className="flex flex-1 flex-col min-h-0">
