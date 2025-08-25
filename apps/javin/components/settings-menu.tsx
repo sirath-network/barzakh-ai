@@ -2,14 +2,15 @@
 
 import type { User } from "next-auth";
 import { useTheme } from "next-themes";
-import { 
-  SunIcon, 
-  MoonIcon, 
-  UserCog, 
+import {
+  SunIcon,
+  MoonIcon,
+  UserCog,
   ChevronRight,
   KeyRound,
   Mail,
-  CreditCard
+  CreditCard,
+  ArchiveIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -82,11 +83,17 @@ export function SettingsMenu({
         Account
       </div>
       <div className="flex flex-col space-y-1 px-2">
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<UserCog size={18} />}
           onClick={() => handleMenuClick('account')}
         >
           Edit Account
+        </SettingsMenuItem>
+        <SettingsMenuItem
+          icon={<ArchiveIcon size={18} />}
+          onClick={() => handleMenuClick('archived')}
+        >
+          Archived
         </SettingsMenuItem>
       </div>
 

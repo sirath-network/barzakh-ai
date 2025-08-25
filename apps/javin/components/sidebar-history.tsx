@@ -6,16 +6,30 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import type { User } from "next-auth";
 import { memo, useEffect, useState } from "react";
 import { toast } from "sonner";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 
 import {
+  archiveChat,
+  restoreChat,
+  updateChatVisibility,
+} from "@/app/(chat)/actions";
+import {
+  ArchiveIcon,
   CheckCircleFillIcon,
   GlobeIcon,
   LockIcon,
   MoreHorizontalIcon,
   ShareIcon,
   TrashIcon,
+  ArchiveRestoreIcon,
+  LinkIcon,
 } from "@/components/icons";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -63,11 +77,13 @@ const PureChatItem = ({
   chat,
   isActive,
   onDelete,
+  onArchive,
   setOpenMobile,
 }: {
   chat: Chat;
   isActive: boolean;
   onDelete: (chatId: string) => void;
+  onArchive: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
@@ -78,26 +94,29 @@ const PureChatItem = ({
   return (
     <SidebarMenuItem className="group">
       <div className="relative flex items-center rounded-lg">
-        <SidebarMenuButton 
-          asChild 
+        <SidebarMenuButton
+          asChild
           isActive={isActive}
           className={`
             flex-1 rounded-lg transition-all duration-200 border-0
-            ${isActive 
-              ? 'bg-gradient-to-r from-primary/15 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10' 
-              : 'hover:bg-muted/60'
+            ${
+              isActive
+                ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10"
+                : "hover:bg-muted/60"
             }
           `}
         >
-          <Link 
-            href={`/chat/${chat.id}`} 
+          <Link
+            href={`/chat/${chat.id}`}
             onClick={() => setOpenMobile(false)}
             className="flex items-center gap-3 px-3 py-2.5 w-full min-w-0"
           >
-            <div className={`
+            <div
+              className={`
               w-2 h-2 rounded-full flex-shrink-0 transition-all duration-200
-              ${isActive ? 'bg-primary shadow-sm' : 'bg-muted-foreground/30'}
-            `} />
+              ${isActive ? "bg-primary shadow-sm" : "bg-muted-foreground/30"}
+            `}
+            />
             <span className="flex-1 text-sm font-medium truncate">
               {chat.title}
             </span>
@@ -114,7 +133,7 @@ const PureChatItem = ({
                 opacity-0 group-hover:opacity-100 transition-all duration-200
                 hover:bg-muted hover:text-muted-foreground
                 data-[state=open]:opacity-100 data-[state=open]:bg-muted
-                ${isActive ? 'opacity-70 hover:opacity-100' : ''}
+                ${isActive ? "opacity-70 hover:opacity-100" : ""}
               `}
             >
               <MoreHorizontalIcon className="h-4 w-4" />
@@ -122,12 +141,66 @@ const PureChatItem = ({
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent 
-            side="right" 
+          <DropdownMenuContent
+            side="right"
             align="start"
             className="w-44 shadow-lg border border-border/50 bg-background/98 backdrop-blur-sm rounded-lg"
             sideOffset={8}
           >
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => onArchive(chat.id)}
+            >
+              <ArchiveIcon className="mr-2 h-4 w-4" />
+              <span className="font-medium">Archive chat</span>
+            </DropdownMenuItem>
+            {visibilityType === "public" && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => {
+                  const url = `${window.location.origin}/chat/${chat.id}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success("Link copied to clipboard");
+                }}
+              >
+                <LinkIcon className="mr-2 h-4 w-4" />
+                <span className="font-medium">Copy link</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <ShareIcon className="mr-2 h-4 w-4" />
+                <span className="font-medium">Share</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent
+                  sideOffset={8}
+                  className="w-44 shadow-lg border border-border/50 bg-background/98 backdrop-blur-sm rounded-lg"
+                >
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setVisibilityType("public")}
+                  >
+                    <GlobeIcon className="mr-2 h-4 w-4" />
+                    <span className="font-medium">Public</span>
+                    {visibilityType === "public" && (
+                      <CheckCircleFillIcon className="ml-auto h-4 w-4 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setVisibilityType("private")}
+                  >
+                    <LockIcon className="mr-2 h-4 w-4" />
+                    <span className="font-medium">Private</span>
+                    {visibilityType === "private" && (
+                      <CheckCircleFillIcon className="ml-auto h-4 w-4 text-primary" />
+                    )}
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
               onSelect={() => onDelete(chat.id)}
@@ -144,8 +217,11 @@ const PureChatItem = ({
 
 export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   if (prevProps.isActive !== nextProps.isActive) return false;
+  if (prevProps.chat.visibility !== nextProps.chat.visibility) return false;
   return true;
 });
+
+
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
@@ -166,7 +242,23 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
-  
+
+  const handleArchive = async (chatId: string) => {
+    const archivePromise = archiveChat({ chatId });
+    toast.promise(archivePromise, {
+      loading: "Archiving chat...",
+      success: () => {
+        mutate((history) => {
+          if (history) {
+            return history.filter((h) => h.id !== chatId);
+          }
+        });
+        return "Chat archived successfully";
+      },
+      error: "Failed to archive chat",
+    });
+  };
+
   const handleDelete = async () => {
     const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
       method: "DELETE",
@@ -318,6 +410,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onArchive={handleArchive}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -336,6 +429,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onArchive={handleArchive}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -354,6 +448,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onArchive={handleArchive}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -372,6 +467,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onArchive={handleArchive}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -390,6 +486,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onArchive={handleArchive}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}

@@ -654,6 +654,89 @@ export const CrossSmallIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
+export const LinkIcon = ({ size = 16 }: { size?: number }) => (
+    <svg
+        height={size}
+        strokeLinejoin="round"
+        viewBox="0 0 16 16"
+        width={size}
+        style={{ color: "currentcolor" }}
+    >
+        {/* Bottom-left chain link */}
+        <path
+            fill="currentColor"
+            d="M 3.58 16 c -0.955 0 -1.854 -0.372 -2.53 -1.048 C 0.372 14.274 0 13.375 0 12.42 s 0.372 -1.854 1.048 -2.53 l 3.64 -3.643 c 1.395 -1.394 3.665 -1.394 5.058 0 c 0.348 0.348 0.348 0.913 0 1.261 c -0.348 0.348 -0.913 0.348 -1.261 0 c -0.699 -0.699 -1.838 -0.699 -2.537 0 l -3.64 3.643 c -0.699 0.700 -0.699 1.838 0 2.537 c 0.339 0.339 0.790 0.526 1.268 0.526 s 0.929 -0.187 1.268 -0.526 L 6.65 11.92 c 0.348 -0.348 0.913 -0.348 1.261 0 s 0.348 0.913 0 1.261 L 6.105 14.95 C 5.431 15.628 4.532 16 3.58 16 z"
+        />
+        
+        {/* Top-right chain link */}
+        <path
+            fill="currentColor"
+            d="M 8.828 10.784 c -0.955 0 -1.854 -0.372 -2.53 -1.048 c -0.348 -0.348 -0.348 -0.913 0 -1.261 c 0.348 -0.348 0.913 -0.348 1.261 0 c 0.339 0.339 0.790 0.526 1.268 0.526 s 0.929 -0.187 1.268 -0.526 l 3.643 -3.64 c 0.339 -0.339 0.526 -0.790 0.526 -1.268 s -0.187 -0.929 -0.526 -1.268 c -0.699 -0.699 -1.838 -0.699 -2.537 0 L 9.395 4.105 c -0.348 0.348 -0.913 0.348 -1.261 0 c -0.348 -0.348 -0.348 -0.913 0 -1.261 L 9.94 1.048 c 1.393 -1.394 3.664 -1.394 5.057 0 C 15.628 1.68 16 2.579 16 3.535 s -0.372 1.854 -1.048 2.53 l -3.64 3.643 C 10.681 10.412 9.782 10.784 8.828 10.784 z"
+        />
+    </svg>
+);
+
+export const ArchiveIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    height={size}
+    strokeLinejoin="round"
+    viewBox="0 0 16 16"
+    width={size}
+    style={{ color: "currentcolor" }}
+  >
+    <path
+      fill="currentColor"
+      d="M14.5 3.5V2.5H1.5V3.5H2.5V12.5C2.5 13.0523 2.94772 13.5 3.5 13.5H12.5C13.0523 13.5 13.5 13.0523 13.5 12.5V3.5H14.5ZM12 12H4V4H12V12Z"
+    />
+    <path
+      fill="currentColor"
+      d="M6.5 8.5H9.5V7H6.5V8.5Z"
+    />
+  </svg>
+);
+
+export const RestoreIcon = ({ size = 16 }: { size?: number }) => (
+    <svg
+        height={size}
+        strokeLinejoin="round"
+        viewBox="0 0 16 16"
+        width={size}
+        style={{ color: "currentcolor" }}
+    >
+        <path
+            fill="currentColor"
+            d="M14.5 3.5V2.5H1.5V3.5H2.5V12.5C2.5 13.0523 2.94772 13.5 3.5 13.5H12.5C13.0523 13.5 13.5 13.0523 13.5 12.5V3.5H14.5ZM12 12H4V4H12V12Z"
+        />
+        <path
+            fill="currentColor"
+            d="M8 7.5L10.5 5H5.5L8 7.5Z"
+        />
+    </svg>
+);
+
+export const ArchiveRestoreIcon = ({ size = 16 }: { size?: number }) => (
+    <svg
+        height={size}
+        strokeLinejoin="round"
+        viewBox="0 0 16 16"
+        width={size}
+        style={{ color: "currentcolor" }}
+    >
+        <path
+            fill="currentColor"
+            d="M14.5 3.5V2.5H1.5V3.5H2.5V12.5C2.5 13.0523 2.94772 13.5 3.5 13.5H12.5C13.0523 13.5 13.5 13.0523 13.5 12.5V3.5H14.5ZM12 12H4V4H12V12Z"
+        />
+        <path
+            fill="currentColor"
+            d="M8 7.5L10.5 5H5.5L8 7.5Z"
+        />
+        <path
+            fill="currentColor"
+            d="M6.5 10.5H9.5V9H6.5V10.5Z"
+        />
+    </svg>
+);
+
 export const UndoIcon = ({ size = 16 }: { size?: number }) => (
   <svg
     height={size}

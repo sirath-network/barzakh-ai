@@ -268,10 +268,47 @@ export async function getChatsByUserId({ id }: { id: string }) {
     return await db
       .select()
       .from(chat)
-      .where(eq(chat.userId, id))
+      .where(and(eq(chat.userId, id), eq(chat.isArchived, false)))
       .orderBy(desc(chat.createdAt));
   } catch (error) {
     console.error("Failed to get chats by user from database");
+    throw error;
+  }
+}
+
+export async function getArchivedChatsByUserId({ id }: { id: string }) {
+  try {
+    return await db
+      .select()
+      .from(chat)
+      .where(and(eq(chat.userId, id), eq(chat.isArchived, true)))
+      .orderBy(desc(chat.createdAt));
+  } catch (error) {
+    console.error("Failed to get archived chats by user from database");
+    throw error;
+  }
+}
+
+export async function archiveChat({ id }: { id: string }) {
+  try {
+    return await db
+      .update(chat)
+      .set({ isArchived: true })
+      .where(eq(chat.id, id));
+  } catch (error) {
+    console.error("Failed to archive chat in database");
+    throw error;
+  }
+}
+
+export async function restoreChat({ id }: { id: string }) {
+  try {
+    return await db
+      .update(chat)
+      .set({ isArchived: false })
+      .where(eq(chat.id, id));
+  } catch (error) {
+    console.error("Failed to restore chat in database");
     throw error;
   }
 }

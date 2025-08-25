@@ -23,13 +23,15 @@ import AccountSettingsPage from "@/components/settings/account/account-page";
 import EmailSettingsPage from "@/components/settings/email/email-page";
 import PasswordSettingsPage from "@/components/settings/password/password-page";
 import BillingSettingsPage from "@/components/settings/billing/billing-page";
+import { ArchivedPage } from "@/components/settings/archived/archived-page";
 
-const settingsViews: Record<string, React.ReactNode> = {
+const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
   account: <AccountSettingsPage />,
   email: <EmailSettingsPage />,
   password: <PasswordSettingsPage />,
   billing: <BillingSettingsPage />,
-};
+  archived: <ArchivedPage user={user} />,
+});
 
 export function Chat({
   id,
@@ -203,7 +205,7 @@ export function Chat({
           `}
         >
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {settingsViews[view]}
+            {settingsViews(user)[view]}
           </div>
         </main>
       </div>

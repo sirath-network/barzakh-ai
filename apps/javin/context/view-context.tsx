@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 // Tentukan jenis halaman pengaturan yang bisa ditampilkan
-export type SettingsPageType = 'account' | 'password' | 'email' | 'billing';
+export type SettingsPageType = 'account' | 'password' | 'email' | 'billing' | 'archived';
 type ViewType = 'chat' | SettingsPageType;
 
 // Tentukan tipe untuk context kita

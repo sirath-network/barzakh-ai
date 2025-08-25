@@ -6,6 +6,8 @@ import {
   deleteMessagesByChatIdAfterTimestamp,
   getMessageById,
   updateChatVisiblityById,
+  archiveChat as archiveChatById,
+  restoreChat as restoreChatById,
 } from "@/lib/db/queries";
 import { VisibilityType } from "@/components/visibility-selector";
 import { myProvider } from "@javin/shared/lib/ai/models";
@@ -57,6 +59,14 @@ export async function updateChatVisibility({
   visibility: VisibilityType;
 }) {
   await updateChatVisiblityById({ chatId, visibility });
+}
+
+export async function archiveChat({ chatId }: { chatId: string }) {
+  await archiveChatById({ id: chatId });
+}
+
+export async function restoreChat({ chatId }: { chatId: string }) {
+  await restoreChatById({ id: chatId });
 }
  
 
