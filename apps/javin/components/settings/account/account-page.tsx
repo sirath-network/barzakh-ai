@@ -4,17 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { User, Image as ImageIcon, AtSign, Save, Upload, X, RotateCcw } from "lucide-react";
+import { User, Image as ImageIcon, AtSign, Save, Upload, X, RotateCcw, Trash2 } from "lucide-react";
+import DeleteAccountModal from "./delete-account-modal";
 
 // Image Crop Modal Component (No changes needed here as it's a modal overlay)
-function ImageCropModal({ 
-  imageSrc, 
-  onSave, 
-  onCancel 
-}: { 
-  imageSrc: string; 
-  onSave: (croppedImage: string) => void; 
-  onCancel: () => void; 
+function ImageCropModal({
+  imageSrc,
+  onSave,
+  onCancel
+}: {
+  imageSrc: string;
+  onSave: (croppedImage: string) => void;
+  onCancel: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -101,7 +102,7 @@ function ImageCropModal({
     ctx.fillStyle = '#ef4444';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1;
-    
+
     handles.forEach(handle => {
       ctx.fillRect(handle.x, handle.y, handleSize, handleSize);
       ctx.strokeRect(handle.x, handle.y, handleSize, handleSize);
@@ -111,11 +112,11 @@ function ImageCropModal({
   const getMousePos = (e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = CANVAS_SIZE / rect.width;
     const scaleY = CANVAS_SIZE / rect.height;
-    
+
     return {
       x: (e.clientX - rect.left) * scaleX,
       y: (e.clientY - rect.top) * scaleY
@@ -128,14 +129,14 @@ function ImageCropModal({
     const handleSize = 8;
     const handleX = cropX + cropSize - handleSize;
     const handleY = cropY + cropSize - handleSize;
-    
+
     return mousePos.x >= handleX && mousePos.x <= handleX + handleSize &&
            mousePos.y >= handleY && mousePos.y <= handleY + handleSize;
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     const mousePos = getMousePos(e);
-    
+
     if (isInResizeHandle(mousePos)) {
       setIsResizing(true);
       setResizeStart({ size: cropSize, mouseY: mousePos.y });
@@ -147,7 +148,7 @@ function ImageCropModal({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const mousePos = getMousePos(e);
-    
+
     const canvas = canvasRef.current;
     if (canvas) {
       if (isInResizeHandle(mousePos)) {
@@ -206,7 +207,7 @@ function ImageCropModal({
 
     const imageX = (CANVAS_SIZE - displayWidth) / 2 + imagePosition.x;
     const imageY = (CANVAS_SIZE - displayHeight) / 2 + imagePosition.y;
-    
+
     const cropCenterX = CANVAS_SIZE / 2;
     const cropCenterY = CANVAS_SIZE / 2;
     const cropRadius = cropSize / 2;
@@ -333,6 +334,7 @@ export default function AccountSettingsPage() {
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImageSrc, setTempImageSrc] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     if (session?.user) {
@@ -349,7 +351,7 @@ export default function AccountSettingsPage() {
     }
   }, [session]);
 
-  const hasChanges = 
+  const hasChanges =
     fullName !== initialData.fullName ||
     username !== initialData.username ||
     avatar !== initialData.avatar;
@@ -564,8 +566,32 @@ export default function AccountSettingsPage() {
               </div>
             </div>
           </form>
+
+          <div className="mt-8 bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden">
+            <div className="p-8">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Delete Account
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+                    Permanently delete your account and all associated data. This action is irreversible.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-semibold transition-all duration-200 shadow-lg flex items-center gap-2"
+                >
+                    <Trash2 className="w-4 h-4" />
+                    Delete My Account
+                </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+      />
 
       {showCropModal && (
         <ImageCropModal

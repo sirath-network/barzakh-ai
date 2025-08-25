@@ -566,6 +566,45 @@ export async function getUserTier(userId: string) {
   return result[0].tier;
 }
 
+export async function deleteUserAndData(userId: string, email: string) {
+  try {
+    await db.transaction(async (tx) => {
+      // 1. Get all user's chats
+      const userChats = await tx.select({ id: chat.id }).from(chat).where(eq(chat.userId, userId));
+      const chatIds = userChats.map(c => c.id);
+
+      // 2. Delete all votes, messages, and chats associated with the user
+      if (chatIds.length > 0) {
+        await tx.delete(vote).where(inArray(vote.chatId, chatIds));
+        await tx.delete(message).where(inArray(message.chatId, chatIds));
+        await tx.delete(chat).where(eq(chat.userId, userId));
+      }
+
+      // 3. Get all user's documents
+      const userDocuments = await tx.select({ id: document.id }).from(document).where(eq(document.userId, userId));
+      const documentIds = userDocuments.map(d => d.id);
+
+      // 4. Delete all suggestions and documents associated with the user
+      if (documentIds.length > 0) {
+        await tx.delete(suggestion).where(inArray(suggestion.documentId, documentIds));
+        await tx.delete(document).where(eq(document.userId, userId));
+      }
+
+      // 5. Delete other associated data
+      await tx.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
+      await tx.delete(password_reset_tokens).where(eq(password_reset_tokens.email, email));
+      await tx.delete(otp_tokens).where(eq(otp_tokens.email, email));
+
+      // 6. Finally, delete the user
+      await tx.delete(user).where(eq(user.id, userId));
+    });
+    console.log(`Successfully deleted user ${userId} and all associated data.`);
+  } catch (error) {
+    console.error(`Failed to delete user ${userId}:`, error);
+    throw new Error("Failed to delete user account.");
+  }
+}
+
 export async function updateUserProfile({
   email,
   name,
