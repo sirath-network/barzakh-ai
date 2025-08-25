@@ -257,7 +257,7 @@ const PurePreviewMessage = ({
                       {/* Gelembung pesan itu sendiri */}
                       <div
                         className={cn("flex flex-col gap-4 max-w-max", {
-                          "bg-primary text-primary-foreground px-4 py-2 rounded-t-2xl rounded-bl-2xl":
+                          "dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-4 py-2 rounded-t-2xl rounded-bl-2xl":
                             message.role === "user",
                           "cursor-pointer": message.role === "user" && !isReadonly,
                         })}
