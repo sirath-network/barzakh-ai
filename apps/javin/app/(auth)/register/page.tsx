@@ -145,7 +145,7 @@ export default function Page() {
             playsInline
             className="absolute top-0 left-0 w-full h-full object-cover -z-10"
           >
-            <source src="/video/background.mp4" type="video/mp4" />
+            <source src="/video/register.mp4" type="video/mp4" />
             Browser Anda tidak mendukung tag video.
           </video>
 
