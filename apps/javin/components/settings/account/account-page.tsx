@@ -507,7 +507,7 @@ export default function AccountSettingsPage() {
                       Upload Image
                     </button>
                     <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                      JPG, PNG or GIF. Max 5MB.
+                      JPG, PNG. Max 5MB.
                     </p>
                   </div>
 
