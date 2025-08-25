@@ -23,6 +23,7 @@ export default function PasswordSettingsPage() {
     if (!/(?=.*[a-z])/.test(password)) errors.push("One lowercase letter");
     if (!/(?=.*[A-Z])/.test(password)) errors.push("One uppercase letter");
     if (!/(?=.*\d)/.test(password)) errors.push("One number");
+    if (!/(?=.*[!@#$%^&*])/.test(password)) errors.push("One special character (!@#$%^&*)");
     return errors;
   };
 
@@ -102,15 +103,22 @@ export default function PasswordSettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 400 && data.error === "Current password is incorrect") {
-          setErrors({ ...errors, currentPassword: "Current password is incorrect" });
-          toast.error("Current password is incorrect");
-          return;
-        }
-        if (res.status === 400 && data.error === "New password cannot be the same as current password") {
-          setErrors({ ...errors, password: "New password must be different from current password" });
-          toast.error("New password must be different from current password");
-          return;
+        if (res.status === 400) {
+          if (data.error.includes("Password must contain")) {
+            setErrors({ ...errors, password: data.error });
+            toast.error("Password validation failed");
+            return;
+          }
+          if (data.error === "Current password is incorrect") {
+            setErrors({ ...errors, currentPassword: "Current password is incorrect" });
+            toast.error("Current password is incorrect");
+            return;
+          }
+          if (data.error === "New password cannot be the same as current password") {
+            setErrors({ ...errors, password: "New password must be different from current password" });
+            toast.error("New password must be different from current password");
+            return;
+          }
         }
         throw new Error(data.error || "Failed to update password.");
       }
@@ -226,10 +234,23 @@ export default function PasswordSettingsPage() {
 
               {confirmPassword && password && (
                 <div className="mt-2 flex items-center gap-2">
-                  {password === confirmPassword ? (<><CheckCircle className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /><span className="text-sm text-emerald-600 dark:text-emerald-400">Passwords match</span></>) : (<><AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400" /><span className="text-sm text-red-600 dark:text-red-400">Passwords don't match</span></>)}
+                  {password === confirmPassword ? (<><CheckCircle className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /><span className="text-sm text-emerald-600 dark:text-emerald-400">Passwords match</span></>) : (<><AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400" /><span className="text-sm text-red-600 dark:text-red-400">Passwords not match</span></>)}
                 </div>
               )}
               {errors.confirmPassword && <p className="mt-2 text-sm text-red-500 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.confirmPassword}</p>}
+
+              {confirmPassword && passwordRequirements.length > 0 && (
+                <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg">
+                  <p className="text-xs text-red-700 dark:text-red-300 font-medium mb-2">Password must include:</p>
+                  <ul className="space-y-1">
+                    {passwordRequirements.map((req, index) => (
+                      <li key={index} className="text-xs text-red-700 dark:text-red-300 flex items-center gap-1">
+                        <div className="w-1 h-1 bg-red-500 dark:bg-red-400 rounded-full"></div>{req}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-4 border border-red-200 dark:border-red-700/50">

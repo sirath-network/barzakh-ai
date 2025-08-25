@@ -19,7 +19,7 @@ export function AuthForm({
   onResendOTP,
   onTurnstileSuccess,
   turnstileToken,
-  turnstileRef, // Added prop to receive the ref
+  turnstileRef,
 }: {
   children: React.ReactNode;
   defaultEmail?: string;
@@ -35,7 +35,7 @@ export function AuthForm({
   onResendOTP?: () => void;
   onTurnstileSuccess?: (token: string) => void;
   turnstileToken?: string;
-  turnstileRef?: RefObject<TurnstileInstance>; // Added prop type
+  turnstileRef?: RefObject<TurnstileInstance>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [storedEmail, setStoredEmail] = useState(defaultEmail);
@@ -209,8 +209,10 @@ export function AuthForm({
         </div>
       )}
 
-      {/* Pass the received ref to the Turnstile component */}
-      <Turnstile ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
+      {/* UPDATED: Centered Turnstile with wrapper div */}
+      <div className="flex justify-center items-center w-full">
+        <Turnstile ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
+      </div>
       
       {/* Hidden input for Turnstile token */}
       <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />

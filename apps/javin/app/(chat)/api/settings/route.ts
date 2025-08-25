@@ -4,6 +4,25 @@ import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { hash, compare } from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
+
+const passwordValidation = z
+  .string()
+  .min(8, "Password must be at least 8 characters.")
+  .max(100, "Password cannot be longer than 100 characters.")
+  .refine(
+    (password) => {
+      const hasLowercase = /[a-z]/.test(password);
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecialChar = /[!@#$%^&*]/.test(password);
+      return hasLowercase && hasUppercase && hasNumber && hasSpecialChar;
+    },
+    {
+      message:
+        "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character (!@#$%^&*).",
+    }
+  );
 
 export async function POST(req: Request) {
   try {
@@ -36,6 +55,15 @@ export async function POST(req: Request) {
     if (newPassword) {
       if (!currentPassword) {
         return NextResponse.json({ error: "Current password is required" }, { status: 400 });
+      }
+      
+      try {
+        passwordValidation.parse(newPassword);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+        }
+        throw error;
       }
 
       // Only check password if it's not a social account without a password
