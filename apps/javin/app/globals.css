@@ -273,18 +273,89 @@
   background: #3f3f46; /* Dark mode hover */
 }
 
-/* Firefox scrollbar */
+/* Firefox scrollbar styling */
 .custom-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  scrollbar-width: thin;
+  scrollbar-color: #a1a1aa #f3f4f6; /* thumb track */
 }
 
 .dark .custom-scrollbar {
-  scrollbar-width: none; /* Dark mode colors */
+  scrollbar-color: #52525b #1e1e1e; /* Dark mode colors */
+}
+
+/* Force scrollable behavior for sidebar content */
+[data-sidebar="content"] {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+/* Ensure sidebar groups can scroll */
+[data-sidebar="group"] {
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+[data-sidebar="group-content"] {
+  overflow: visible;
+}
+
+/* Fix for mobile sheet content */
+[data-mobile="true"] [data-sidebar="content"] {
+  overflow-y: auto !important;
+  height: calc(100vh - 160px) !important;
+}
+
+/* Visible scrollbar for sidebar specifically */
+[data-sidebar="content"]::-webkit-scrollbar {
+  width: 6px !important;
+  display: block !important;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar-track {
+  background: hsl(var(--muted)) !important;
+  border-radius: 3px !important;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3) !important;
+  border-radius: 3px !important;
+}
+
+[data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
+}
+
+/* Firefox */
+[data-sidebar="content"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted)) !important;
+}
+
+/* Alternative: Remove custom-scrollbar class entirely from problematic elements */
+.force-scroll {
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+}
+
+.force-scroll::-webkit-scrollbar {
+  width: 6px !important;
+  display: block !important;
+}
+
+.force-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted)) !important;
+  border-radius: 3px !important;
+}
+
+.force-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3) !important;
+  border-radius: 3px !important;
+}
+
+.force-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
 }
 
 @layer base {

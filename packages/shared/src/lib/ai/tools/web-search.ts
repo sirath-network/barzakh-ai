@@ -1,10 +1,12 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { tavily } from "@tavily/core";
+import { xSearch } from "./x-search";
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, "%20");
 }
+
 async function isValidImageUrl(url: string): Promise<boolean> {
   try {
     const controller = new AbortController();
@@ -25,9 +27,10 @@ async function isValidImageUrl(url: string): Promise<boolean> {
     return false;
   }
 }
+
 export const webSearch = tool({
   description:
-    "Search the web for information with multiple queries, max results and search depth.",
+    "Search the web and X (formerly Twitter) for information with multiple queries, max results, and search depth. X search is enabled by default.",
   parameters: z.object({
     queries: z.array(
       z.string().describe("Array of search queries to look up on the web.")
@@ -54,6 +57,10 @@ export const webSearch = tool({
       .array(z.string())
       .describe("A list of domains to exclude from all search results.")
       .default([]),
+    includeXSearch: z
+      .boolean()
+      .describe("Whether to include search results from X. Defaults to true.")
+      .default(true),
   }),
   execute: async ({
     queries,
@@ -61,26 +68,29 @@ export const webSearch = tool({
     topics,
     searchDepth,
     exclude_domains,
+    includeXSearch,
   }: {
     queries: string[];
     maxResults: number[];
     topics: ("general" | "news")[];
     searchDepth: ("basic" | "advanced")[];
     exclude_domains?: string[];
+    includeXSearch?: boolean;
   }) => {
     const apiKey = process.env.TAVILY_API_KEY;
     const tvly = tavily({ apiKey });
     const includeImageDescriptions = true;
-    console.log("WEB SEARCHGG RESULT ======= ")
+    
+    console.log("WEB SEARCH STARTING =======");
     console.log("Queries:", queries);
     console.log("Max Results:", maxResults);
     console.log("Topics:", topics);
     console.log("Search Depths:", searchDepth);
     console.log("Exclude Domains:", exclude_domains);
-    console.log("WEB SEARCHGG RESULT ENDED ======= ")
+    console.log("Include X Search:", includeXSearch);
 
-    // Execute searches in parallel
-    const searchPromises = queries.map(async (query, index) => {
+    // Execute web searches in parallel
+    const webSearchPromises = queries.map(async (query, index) => {
       const data = await tvly.search(query, {
         topic: topics[index] || topics[0] || "general",
         days: topics[index] === "news" ? 7 : undefined,
@@ -150,10 +160,36 @@ export const webSearch = tool({
       };
     });
 
-    const searchResults = await Promise.all(searchPromises);
+    const webSearchResults = await Promise.all(webSearchPromises);
+
+    let xSearchResults: any = null;
+    if (includeXSearch) {
+      console.log("Starting X searches sequentially...");
+      xSearchResults = [];
+      
+      // Execute X searches SEQUENTIALLY to avoid rate limits
+      for (const query of queries) {
+        try {
+          console.log(`Searching X for: ${query}`);
+          const result = await xSearch.execute({ query });
+          xSearchResults.push(result);
+          console.log(`X search completed for: ${query}`);
+        } catch (error) {
+          console.error(`X search failed for query "${query}":`, error);
+          // Push empty result to maintain array structure
+          xSearchResults.push({
+            error: "X search failed for this query",
+            tweets: [],
+          });
+        }
+      }
+    }
+
+    console.log("WEB SEARCH COMPLETED =======");
 
     return {
-      searches: searchResults,
+      web: webSearchResults,
+      x: xSearchResults,
     };
   },
 });

@@ -28,6 +28,7 @@ import {
   DrawerContent,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { TweetCard } from "./tweet-card";
 
 type SearchImage = {
   url: string;
@@ -49,7 +50,8 @@ type SearchQueryResult = {
 };
 
 type MultiSearchResponse = {
-  searches: SearchQueryResult[];
+  web: SearchQueryResult[];
+  x: any; // Define a proper type for x results if available
 };
 
 type MultiSearchArgs = {
@@ -74,7 +76,7 @@ const SearchLoadingState = ({
       className="w-full"
     >
       <AccordionItem value="search" className="border-none">
-        <AccordionTrigger className="p-0 hover:no-underline">
+        <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
               <Globe className="h-4 w-4 text-neutral-500" />
@@ -271,8 +273,10 @@ const MultiSearch: React.FC<{
   args: MultiSearchArgs;
 }> = ({ result, args }) => {
   const [showAll, setShowAll] = React.useState(false);
+  const [showAllTweets, setShowAllTweets] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const xContainerRef = React.useRef<HTMLDivElement>(null);
 
   const PREVIEW_RESULT_COUNT = isDesktop ? 3 : 2;
 
@@ -285,11 +289,24 @@ const MultiSearch: React.FC<{
     );
   }
 
-  const allImages = result.searches.reduce<SearchImage[]>((acc, search) => [...acc, ...search.images], []);
-  const allResults = result.searches.flatMap(search => search.results);
+  const allImages = result.web.reduce<SearchImage[]>((acc, search) => [...acc, ...search.images], []);
+  const allResults = result.web.flatMap(search => search.results);
+  
+  const allTweets = result.x?.flatMap((search: any) => {
+    if (search?.error) {
+      console.warn("X Search Error:", search.error);
+      return [];
+    }
+    return search.tweets || [];
+  }) || [];
   
   const displayResults = showAll ? allResults : allResults.slice(0, PREVIEW_RESULT_COUNT);
   const hasMoreResults = allResults.length > PREVIEW_RESULT_COUNT;
+  
+  const displayTweets = showAllTweets ? allTweets : allTweets.slice(0, PREVIEW_RESULT_COUNT);
+  const hasMoreTweets = allTweets.length > PREVIEW_RESULT_COUNT;
+
+  const xSearchFailed = result.x?.every((search: any) => search?.error) || false;
 
   const handleToggleShowAll = () => {
     if (showAll) {
@@ -297,12 +314,19 @@ const MultiSearch: React.FC<{
     }
     setShowAll(!showAll);
   };
+  
+  const handleToggleShowAllTweets = () => {
+    if (showAllTweets) {
+      xContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setShowAllTweets(!showAllTweets);
+  };
 
   return (
     <div ref={containerRef} className="w-full space-y-4 scroll-mt-20">
       <Accordion type="single" collapsible defaultValue="search" className="w-full">
         <AccordionItem value="search" className="border-none">
-          <AccordionTrigger className="p-0 hover:no-underline">
+          <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
                 <Globe className="h-4 w-4 text-neutral-500" />
@@ -313,7 +337,7 @@ const MultiSearch: React.FC<{
 
           <AccordionContent className="mt-4 pt-0 border-0">
             <div className="flex overflow-x-auto gap-2 mb-4 no-scrollbar pb-1">
-              {result.searches.map((search, i) => (
+              {result.web.map((search, i) => (
                 <Badge key={i} variant="secondary" className="px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
                   <Search className="h-3 w-3 mr-1.5" />
                   {search.query}
@@ -321,12 +345,11 @@ const MultiSearch: React.FC<{
               ))}
             </div>
             
-            {/* PERUBAHAN DI SINI: Kelas grid sekarang dinamis */}
             <div 
               className={`grid gap-3 ${
                 allResults.length === 1
-                  ? 'grid-cols-1' // Jika hanya 1 hasil, gunakan 1 kolom
-                  : 'grid-cols-2 md:grid-cols-3' // Jika lebih, gunakan 2 atau 3 kolom
+                  ? 'grid-cols-1'
+                  : 'grid-cols-2 md:grid-cols-3'
               }`}
             >
               {displayResults.map((res, index) => (
@@ -361,6 +384,73 @@ const MultiSearch: React.FC<{
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {(allTweets.length > 0 || xSearchFailed) && (
+        <div ref={xContainerRef} className="w-full space-y-4 scroll-mt-20">
+          <Accordion type="single" collapsible defaultValue="x-search" className="w-full">
+            <AccordionItem value="x-search" className="border-none">
+              <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4 data-[state=closed]:mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" className="h-4 w-4 text-neutral-500">
+                      <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+                    </svg>
+                  </div>
+                  <h2 className="font-medium text-left">
+                    X Results {xSearchFailed && "(Limited due to rate limits)"}
+                  </h2>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 border-0">
+                {xSearchFailed && (
+                  <div className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                    <p className="text-sm text-red-800 dark:text-red-200">
+                      X (Twitter) search is currently rate limited. Showing web results only.
+                    </p>
+                  </div>
+                )}
+                
+                {allTweets.length > 0 && (
+                  <div className={`grid gap-3 pt-4 ${
+                      allTweets.length === 1
+                        ? 'grid-cols-1'
+                        : 'grid-cols-2 md:grid-cols-3'
+                    }`}
+                  >
+                    {displayTweets.map((tweet: any, index: number) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="h-full"
+                      >
+                        <TweetCard tweet={tweet} />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+                {hasMoreTweets && (
+                  <div className="relative mt-6">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-neutral-200 dark:border-neutral-700" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <button
+                        type="button"
+                        onClick={handleToggleShowAllTweets}
+                        className="px-4 py-1.5 text-sm font-sm rounded-full bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-neutral-900 transition-all"
+                      >
+                        {showAllTweets ? "Show Less" : "Show More"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+      )}
 
       {allImages.length > 0 && <ImageGrid images={allImages} />}
     </div>
