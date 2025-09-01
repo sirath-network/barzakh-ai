@@ -1,7 +1,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { tavily } from "@tavily/core";
-import { xSearch } from "./x-search";
+// import { xSearch } from "./x-search";
+import { newsSearch } from "./news-search";
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, "%20");
@@ -30,7 +31,7 @@ async function isValidImageUrl(url: string): Promise<boolean> {
 
 export const webSearch = tool({
   description:
-    "Search the web and X (formerly Twitter) for information with multiple queries, max results, and search depth. X search is enabled by default.",
+    "Search the web for information with multiple queries, max results, and search depth.", // Removed X search reference
   parameters: z.object({
     queries: z.array(
       z.string().describe("Array of search queries to look up on the web.")
@@ -57,10 +58,10 @@ export const webSearch = tool({
       .array(z.string())
       .describe("A list of domains to exclude from all search results.")
       .default([]),
-    includeXSearch: z
-      .boolean()
-      .describe("Whether to include search results from X. Defaults to true.")
-      .default(true),
+    // includeXSearch: z
+    //   .boolean()
+    //   .describe("Whether to include search results from X. Defaults to true.")
+    //   .default(true),
   }),
   execute: async ({
     queries,
@@ -68,14 +69,14 @@ export const webSearch = tool({
     topics,
     searchDepth,
     exclude_domains,
-    includeXSearch,
+    // includeXSearch,
   }: {
     queries: string[];
     maxResults: number[];
     topics: ("general" | "news")[];
     searchDepth: ("basic" | "advanced")[];
     exclude_domains?: string[];
-    includeXSearch?: boolean;
+    // includeXSearch?: boolean;
   }) => {
     const apiKey = process.env.TAVILY_API_KEY;
     const tvly = tavily({ apiKey });
@@ -87,7 +88,7 @@ export const webSearch = tool({
     console.log("Topics:", topics);
     console.log("Search Depths:", searchDepth);
     console.log("Exclude Domains:", exclude_domains);
-    console.log("Include X Search:", includeXSearch);
+    // console.log("Include X Search:", includeXSearch);
 
     // Execute web searches in parallel
     const webSearchPromises = queries.map(async (query, index) => {
@@ -162,24 +163,46 @@ export const webSearch = tool({
 
     const webSearchResults = await Promise.all(webSearchPromises);
 
-    let xSearchResults: any = null;
-    if (includeXSearch) {
-      console.log("Starting X searches sequentially...");
-      xSearchResults = [];
+    // let xSearchResults: any = null;
+    // if (includeXSearch) {
+    //   console.log("Starting X searches sequentially...");
+    //   xSearchResults = [];
+
+    //   for (const query of queries) {
+    //     try {
+    //       console.log(`Searching X for: ${query}`);
+    //       const result = await xSearch.execute({ query });
+    //       xSearchResults.push(result);
+    //       console.log(`X search completed for: ${query}`);
+    //     } catch (error) {
+    //       console.error(`X search failed for query "${query}":`, error);
+    //       // Push empty result to maintain array structure
+    //       xSearchResults.push({
+    //         error: "X search failed for this query",
+    //         tweets: [],
+    //       });
+    //     }
+    //   }
+    // }
+
+    let newsSearchResults: any = null;
+    if (topics.includes("news")) {
+      console.log("Starting News searches sequentially...");
+      newsSearchResults = [];
       
-      // Execute X searches SEQUENTIALLY to avoid rate limits
+      // Execute News searches SEQUENTIALLY to avoid rate limits
       for (const query of queries) {
         try {
-          console.log(`Searching X for: ${query}`);
-          const result = await xSearch.execute({ query });
-          xSearchResults.push(result);
-          console.log(`X search completed for: ${query}`);
+          console.log(`Searching News for: ${query}`);
+          const result = await newsSearch.execute({ query });
+          newsSearchResults.push(result);
+          console.log(`News search completed for: ${query}`);
         } catch (error) {
-          console.error(`X search failed for query "${query}":`, error);
+          console.error(`News search failed for query "${query}":`, error);
           // Push empty result to maintain array structure
-          xSearchResults.push({
-            error: "X search failed for this query",
-            tweets: [],
+          newsSearchResults.push({
+            error: "News search failed for this query",
+            articles: [],
           });
         }
       }
@@ -189,7 +212,8 @@ export const webSearch = tool({
 
     return {
       web: webSearchResults,
-      x: xSearchResults,
+      // x: xSearchResults,
+      news: newsSearchResults,
     };
   },
 });

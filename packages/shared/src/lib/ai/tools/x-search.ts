@@ -1,4 +1,3 @@
-// utils/x-search.ts
 import { tool } from "ai";
 import { z } from "zod";
 import xClient from "../../utils/x-client";
