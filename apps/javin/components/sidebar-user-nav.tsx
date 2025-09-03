@@ -58,7 +58,7 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background/80 data-[state=open]:text-sidebar-accent-foreground h-12 hover:bg-muted/60 transition-all duration-200 rounded-xl border border-border/30 shadow-sm hover:shadow-md">
-              <div className="flex w-full items-center justify-center md:justify-start md:gap-3">
+              <div className="flex w-full items-center justify-start gap-3">
                 {user?.image ? (
                   <Image
                     src={user.image}
@@ -76,7 +76,7 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
                     className="rounded-full border-2 border-border/30 shadow-sm"
                   />
                 )}
-                <div className="hidden flex-1 text-left min-w-0 md:block">
+                <div className="flex-1 text-left min-w-0">
                   <div className="text-sm font-medium text-foreground truncate">
                     {user?.name || "User"}
                   </div>
@@ -84,7 +84,7 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
                     {user?.email}
                   </div>
                 </div>
-                <ChevronDown className="hidden h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180 md:block" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </div>
             </SidebarMenuButton>
           </DropdownMenuTrigger>

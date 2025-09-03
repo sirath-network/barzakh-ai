@@ -326,7 +326,7 @@ const MultiSearch: React.FC<{
     <div ref={containerRef} className="w-full space-y-4 scroll-mt-20">
       <Accordion type="single" collapsible defaultValue="search" className="w-full">
         <AccordionItem value="search" className="border-none">
-          <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
+          <AccordionTrigger className="p-0 mb-2 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
                 <Globe className="h-4 w-4 text-neutral-500" />

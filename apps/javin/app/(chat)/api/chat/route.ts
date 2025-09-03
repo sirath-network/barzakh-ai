@@ -11,6 +11,7 @@ import {
   decrementRemainingMessageCount,
   deleteChatById,
   getChatById,
+  getMessagesByChatId,
   getUser,
   getUserById,
   saveChat,
@@ -90,12 +91,36 @@ export async function POST(request: Request) {
     messages,
     selectedChatModel,
     group,
+    history_for_context_id,
   }: {
     id: string;
     messages: Array<Message>;
     selectedChatModel: string;
     group: any;
+    history_for_context_id?: string;
   } = await request.json();
+
+  // --- Prepend History Context if ID is provided ---
+  if (history_for_context_id) {
+    try {
+      const dbMessages = await getMessagesByChatId({ id: history_for_context_id });
+
+      const contextMessages: Message[] = dbMessages.map(msg => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
+        content: msg.content as any,
+        createdAt: msg.createdAt,
+      }));
+
+      // Prepend historical messages to the current message list
+      messages.unshift(...contextMessages);
+
+    } catch (dbError) {
+      console.error("Database error while fetching context:", dbError);
+      // Continue without context if DB fetch fails
+    }
+  }
+  // --- End History Context Section ---
 
   console.log("search groupe", group);
   const session = await auth();

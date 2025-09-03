@@ -43,40 +43,6 @@ interface EnhancedSuggestion {
   frequency?: number;
 }
 
-const extractKeywords = (text: string): string[] => {
-  const stopWords = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
-    'adalah', 'dan', 'atau', 'yang', 'di', 'ke', 'dari', 'dengan', 'untuk', 'pada', 'ini', 'itu',
-    'saya', 'kamu', 'anda', 'mereka', 'kami', 'bagaimana', 'apa', 'kenapa', 'dimana', 'kapan'
-  ]);
-
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(word => word.length > 2 && !stopWords.has(word))
-    .slice(0, 10);
-};
-
-const categorizeQuery = (text: string): string => {
-  const categories = {
-    'coding': ['code', 'programming', 'function', 'bug', 'debug', 'api', 'javascript', 'react', 'python'],
-    'creative': ['write', 'create', 'design', 'story', 'poem', 'creative', 'art', 'tulis', 'buat'],
-    'explanation': ['explain', 'how', 'why', 'what', 'jelaskan', 'bagaimana', 'mengapa', 'apa'],
-    'analysis': ['analyze', 'compare', 'review', 'evaluate', 'analisis', 'bandingkan'],
-    'planning': ['plan', 'schedule', 'organize', 'rencana', 'jadwal', 'atur'],
-    'learning': ['learn', 'teach', 'tutorial', 'guide', 'belajar', 'ajar', 'panduan'],
-  };
-
-  const lowerText = text.toLowerCase();
-  for (const [category, keywords] of Object.entries(categories)) {
-    if (keywords.some(keyword => lowerText.includes(keyword))) {
-      return category;
-    }
-  }
-  return 'general';
-};
-
 const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
   {
     title: 'Explain how blockchain works',
@@ -128,192 +94,93 @@ const QuestionSuggestions = ({
   history: ChatHistory[] | undefined;
   user: User | undefined;
 }) => {
-  // MODIFIKASI: Menggunakan state untuk saran dinamis dan status loading
-  const [initialSuggestions, setInitialSuggestions] = useState<EnhancedSuggestion[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<EnhancedSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
-  
-  const { width } = useWindowSize();
 
-  // MODIFIKASI: Mengambil saran dari API saat komponen dimuat
+  // Fetch AI/global suggestions
   useEffect(() => {
     const fetchSuggestions = async () => {
       setIsLoadingSuggestions(true);
       try {
-        const response = await fetch('/api/suggestions');
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        
-        let formattedSuggestions: EnhancedSuggestion[] = data.map((item: any) => ({
-          title: item.title,
-          subtitle: item.subtitle,
-          category: 'predefined',
-          confidence: 0.8,
-        }));
-
-        // Add 2 random blockchain suggestions
-        const randomCryptoSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random()).slice(0, 2);
-        
-        // Combine and shuffle
-        let combinedSuggestions = [...formattedSuggestions, ...randomCryptoSuggestions];
-        combinedSuggestions.sort(() => 0.5 - Math.random());
-        
-        setInitialSuggestions(combinedSuggestions);
+        // Using BLOCKCHAIN_SUGGESTIONS as the primary source for AI suggestions
+        const randomBlockchainSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random());
+        setAiSuggestions(randomBlockchainSuggestions);
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
-        // Fallback to only blockchain suggestions if API fails
-        const randomCryptoSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random()).slice(0, 4);
-        setInitialSuggestions(randomCryptoSuggestions);
+        setAiSuggestions([]); // Set to empty on error
       } finally {
         setIsLoadingSuggestions(false);
       }
     };
 
     fetchSuggestions();
-  }, []); // Dependensi kosong agar hanya berjalan sekali
+  }, []);
 
-  const conversationAnalysis = useMemo(() => {
-    if (!history || history.length === 0) return null;
+  // Combine history and AI suggestions into a single list of 4
+  const suggestions = useMemo(() => {
+    const sortedHistory = [...(history || [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    const analysis = {
-      totalChats: history.length,
-      recentChats: history.filter(chat => {
-        const chatDate = new Date(chat.createdAt);
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        return chatDate > weekAgo;
-      }),
-      topicFrequency: new Map<string, number>(),
-      categoryDistribution: new Map<string, number>(),
-      commonPatterns: new Map<string, { count: number; lastUsed: Date; examples: string[] }>(),
-    };
+    // Take up to 4 of the most recent history items
+    const historyItems = sortedHistory.slice(0, 4).map(chat => ({
+      key: chat.id,
+      title: chat.title,
+      isHistory: true,
+      icon: Clock,
+      iconColor: 'text-gray-500 dark:text-gray-400',
+    }));
 
-    history.forEach(chat => {
-      const keywords = extractKeywords(chat.title);
-      const category = categorizeQuery(chat.title);
-      const chatDate = new Date(chat.createdAt);
+    const neededAiItems = 4 - historyItems.length;
 
-      keywords.forEach(keyword => {
-        analysis.topicFrequency.set(
-          keyword,
-          (analysis.topicFrequency.get(keyword) || 0) + 1
-        );
-      });
-
-      analysis.categoryDistribution.set(
-        category,
-        (analysis.categoryDistribution.get(category) || 0) + 1
-      );
-
-      const pattern = chat.title.split(' ').slice(0, 3).join(' ').toLowerCase();
-      if (pattern.length > 10) {
-        const existing = analysis.commonPatterns.get(pattern) || { count: 0, lastUsed: chatDate, examples: [] };
-        analysis.commonPatterns.set(pattern, {
-          count: existing.count + 1,
-          lastUsed: chatDate > existing.lastUsed ? chatDate : existing.lastUsed,
-          examples: [...existing.examples.slice(0, 2), chat.title].slice(0, 3)
-        });
-      }
-    });
-
-    return analysis;
-  }, [history]);
-
-  const generateIntelligentSuggestions = useCallback((): EnhancedSuggestion[] => {
-    // MODIFIKASI: Menggunakan saran dari state jika tidak ada riwayat percakapan
-    if (!conversationAnalysis) {
-        return initialSuggestions;
+    if (neededAiItems <= 0) {
+      return historyItems;
     }
 
-    const suggestions: EnhancedSuggestion[] = [];
+    // Fill the rest with AI suggestions
+    const aiItems = aiSuggestions.slice(0, neededAiItems).map((s, i) => ({
+      key: `ai-${i}`,
+      title: s.title,
+      subtitle: s.subtitle,
+      isHistory: false,
+      icon: Sparkles,
+      iconColor: 'text-purple-500 dark:text-purple-400',
+    }));
     
-    const topTopics = Array.from(conversationAnalysis.topicFrequency.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
-    topTopics.forEach(([topic, frequency]) => {
-      if (frequency > 1) {
-        suggestions.push({
-          title: `Tell me more about ${topic}`,
-          subtitle: `Asked ${frequency} times recently`,
-          category: 'trending',
-          confidence: Math.min(0.9, frequency / 5),
-          relatedTopics: [topic],
-          frequency,
-        });
-      }
-    });
+    return [...historyItems, ...aiItems];
+  }, [history, aiSuggestions]);
 
-    const recentChats = conversationAnalysis.recentChats.slice(0, 5);
-    recentChats.forEach(chat => {
-      const category = categorizeQuery(chat.title);
-      const followUps = generateFollowUpQuestions(chat.title, category);
-      followUps.forEach(followUp => {
-        suggestions.push({
-          title: followUp,
-          subtitle: `Follow-up to "${chat.title.slice(0, 30)}${chat.title.length > 30 ? '...' : ''}"`,
-          category: 'followup',
-          confidence: 0.8,
-          context: chat.title,
-          lastUsed: new Date(chat.createdAt),
-        });
+  const handleSuggestionClick = (suggestion: { key: string; title: string; isHistory: boolean; }) => {
+    if (!user) {
+      toast.error("Please log in to start a conversation.", {
+        position: "top-center",
+        duration: 3000,
       });
-    });
-    
-    const uniqueSuggestions = suggestions
-      .filter((suggestion, index, array) =>
-        array.findIndex(s => s.title.toLowerCase() === suggestion.title.toLowerCase()) === index
-      )
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 4);
-
-    // MODIFIKASI: Fallback ke saran dari state jika tidak ada saran cerdas yang dihasilkan
-    if (uniqueSuggestions.length === 0) {
-        return initialSuggestions.slice(0,4);
+      return; 
     }
-    
-    return uniqueSuggestions;
-  }, [conversationAnalysis, initialSuggestions]); // MODIFIKASI: Menambahkan initialSuggestions sebagai dependensi
 
-  const generateFollowUpQuestions = (originalQuestion: string, category: string): string[] => {
-    const followUps: { [key: string]: string[] } = {
-      'coding': [
-        'Elaborate on how I can optimize this code',
-        'Explain the best practices for this',
-        'Show me some alternative approaches',
-      ],
-      'creative': [
-        'Help me brainstorm more ideas on this topic',
-        'Explain how I can improve the creative process for this',
-        'Provide some variations on this theme',
-      ],
-      'explanation': [
-        'Provide a more detailed explanation on this',
-        'What are some practical applications for this?',
-        'How does this relate to other concepts?',
-      ],
-    };
-    return followUps[category] || ['Elaborate further on this topic'];
+    const chatRequestOptions: ChatRequestOptions = {};
+
+    if (suggestion.isHistory) {
+      chatRequestOptions.body = {
+        history_for_context_id: suggestion.key
+      };
+    }
+
+    append(
+      {
+        content: suggestion.title,
+        role: "user",
+      },
+      chatRequestOptions
+    );
   };
-
-  const suggestions = useMemo(generateIntelligentSuggestions, [generateIntelligentSuggestions]);
-
-  const isMobile = width < 640;
-  const suggestionsToShow = isMobile ? suggestions.slice(0, 2) : suggestions;
   
-  // MODIFIKASI: Menampilkan UI skeleton selama loading
-  if (isLoadingSuggestions) {
+  if (isLoadingSuggestions && (!history || history.length === 0)) {
+    // Show skeleton loader only on initial load for a better UX
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="mb-4 w-full"
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]"
-            >
+            <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]">
               <div className="h-4 bg-muted rounded mb-2 w-3/4" />
               <div className="h-3 bg-muted/60 rounded w-1/2" />
             </div>
@@ -322,53 +189,10 @@ const QuestionSuggestions = ({
       </motion.div>
     );
   }
-
-  if (!suggestionsToShow.length) {
+  
+  if (suggestions.length === 0) {
     return null;
   }
-
-  const handleSuggestionClick = (suggestion: EnhancedSuggestion) => {
-    if (!user) {
-      toast.error("Please log in to use suggestions.", {
-        position: "top-center",
-        duration: 3000,
-      });
-      return; 
-    }
-
-    let contentToSend = suggestion.title;
-
-    if (suggestion.category === 'followup' && suggestion.context) {
-      contentToSend = `Regarding my previous question about "${suggestion.context}", please ${suggestion.title.charAt(0).toLowerCase() + suggestion.title.slice(1)}`;
-    }
-
-    append({
-      content: contentToSend,
-      role: "user",
-    });
-  };
-
-  const getCategoryIcon = (category: string) => {
-    const icons = {
-      'frequent': TrendingUp,
-      'recent': Clock,
-      'trending': Sparkles,
-      'followup': MessageCircle,
-      'predefined': MessageCircle,
-    };
-    return icons[category as keyof typeof icons] || MessageCircle;
-  };
-
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      'frequent': 'text-blue-500 dark:text-blue-400',
-      'recent': 'text-green-500 dark:text-green-400',
-      'trending': 'text-purple-500 dark:text-purple-400',
-      'followup': 'text-orange-500 dark:text-orange-400',
-      'predefined': 'text-gray-500 dark:text-gray-400',
-    };
-    return colors[category as keyof typeof colors] || 'text-gray-500 dark:text-gray-400';
-  };
 
   return (
     <motion.div
@@ -378,40 +202,35 @@ const QuestionSuggestions = ({
       transition={{ duration: 0.2 }}
       className="mb-4 w-full"
     >
-      <div className={cn(
-        "grid gap-2 sm:gap-3",
-        suggestionsToShow.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
-      )}>
-        {suggestionsToShow.map((suggestion, index) => {
-          const IconComponent = getCategoryIcon(suggestion.category);
-          const iconColor = getCategoryColor(suggestion.category);
-
-          return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+        {suggestions.map((suggestion, index) => {
+           const IconComponent = suggestion.icon;
+           return (
             <motion.button
-              key={`${suggestion.title}-${index}`}
+              key={suggestion.key}
               type="button"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.05 }}
               onClick={() => handleSuggestionClick(suggestion)}
               className={cn(
-                "group p-3 text-left rounded-lg border cursor-pointer transition-all duration-200 text-sm relative overflow-hidden",
+                "group p-3 text-left rounded-lg border cursor-pointer transition-all duration-200 text-sm",
                 "bg-muted/50 hover:bg-muted border-border/30",
                 "hover:border-border/60 hover:shadow-md",
                 "transform hover:-translate-y-0.5 active:translate-y-0"
               )}
             >
               <div className="flex items-start gap-2">
-                <IconComponent
-                  className={cn("h-4 w-4 mt-0.5 shrink-0", iconColor)}
-                />
+                <IconComponent className={cn("h-4 w-4 mt-0.5 shrink-0", suggestion.iconColor)} />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground/90 truncate pr-2">
                     {suggestion.title}
                   </p>
-                  <p className="text-xs text-muted-foreground/80 mt-1">
-                    {suggestion.subtitle}
-                  </p>
+                  {suggestion.subtitle && (
+                    <p className="text-xs text-muted-foreground/80 mt-1">
+                      {suggestion.subtitle}
+                    </p>
+                  )}
                 </div>
               </div>
             </motion.button>
