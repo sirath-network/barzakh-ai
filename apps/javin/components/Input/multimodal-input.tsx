@@ -29,7 +29,7 @@ import { cn, SearchGroup, SearchGroupId } from "@javin/shared/lib/utils/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
-import { CornerLeftDown, TrendingUp, Clock, Sparkles, MessageCircle } from "lucide-react";
+import { CornerLeftDown, TrendingUp, Clock, Sparkles, MessageCircleMore } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
 interface EnhancedSuggestion {
@@ -125,7 +125,7 @@ const QuestionSuggestions = ({
       key: chat.id,
       title: chat.title,
       isHistory: true,
-      icon: Clock,
+      icon: MessageCircleMore,
       iconColor: 'text-gray-500 dark:text-gray-400',
     }));
 
