@@ -82,6 +82,9 @@ const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
   },
 ];
 
+// =====================================================================
+// AWAL DARI KODE YANG DIMODIFIKASI
+// =====================================================================
 const QuestionSuggestions = ({
   append,
   history,
@@ -96,18 +99,32 @@ const QuestionSuggestions = ({
 }) => {
   const [aiSuggestions, setAiSuggestions] = useState<EnhancedSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
+  const { width } = useWindowSize();
+
+  // SOLUSI: Gunakan state untuk totalSuggestions untuk menghindari hydration mismatch.
+  // Nilai default (6) digunakan untuk render di server dan render awal di klien.
+  const [totalSuggestions, setTotalSuggestions] = useState(6);
+
+  // SOLUSI: Gunakan useEffect untuk menyesuaikan nilai di sisi klien setelah komponen di-mount.
+  // Ini aman karena hanya berjalan di browser, bukan di server.
+  useEffect(() => {
+    if (width < 640) {
+      setTotalSuggestions(2); // Set ke nilai mobile jika layar kecil
+    } else {
+      setTotalSuggestions(6); // Set ke nilai desktop jika layar besar
+    }
+  }, [width]); // Jalankan efek ini saat komponen mount dan saat lebar layar berubah
 
   // Fetch AI/global suggestions
   useEffect(() => {
     const fetchSuggestions = async () => {
       setIsLoadingSuggestions(true);
       try {
-        // Using BLOCKCHAIN_SUGGESTIONS as the primary source for AI suggestions
         const randomBlockchainSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random());
         setAiSuggestions(randomBlockchainSuggestions);
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
-        setAiSuggestions([]); // Set to empty on error
+        setAiSuggestions([]);
       } finally {
         setIsLoadingSuggestions(false);
       }
@@ -116,12 +133,10 @@ const QuestionSuggestions = ({
     fetchSuggestions();
   }, []);
 
-  // Combine history and AI suggestions into a single list of 4
   const suggestions = useMemo(() => {
     const sortedHistory = [...(history || [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // Take up to 4 of the most recent history items
-    const historyItems = sortedHistory.slice(0, 4).map(chat => ({
+    const historyItems = sortedHistory.slice(0, totalSuggestions).map(chat => ({
       key: chat.id,
       title: chat.title,
       isHistory: true,
@@ -129,13 +144,12 @@ const QuestionSuggestions = ({
       iconColor: 'text-gray-500 dark:text-gray-400',
     }));
 
-    const neededAiItems = 4 - historyItems.length;
+    const neededAiItems = totalSuggestions - historyItems.length;
 
     if (neededAiItems <= 0) {
       return historyItems;
     }
 
-    // Fill the rest with AI suggestions
     const aiItems = aiSuggestions.slice(0, neededAiItems).map((s, i) => ({
       key: `ai-${i}`,
       title: s.title,
@@ -144,9 +158,9 @@ const QuestionSuggestions = ({
       icon: Sparkles,
       iconColor: 'text-purple-500 dark:text-purple-400',
     }));
-    
+
     return [...historyItems, ...aiItems];
-  }, [history, aiSuggestions]);
+  }, [history, aiSuggestions, totalSuggestions]);
 
   const handleSuggestionClick = (suggestion: { key: string; title: string; isHistory: boolean; }) => {
     if (!user) {
@@ -154,7 +168,7 @@ const QuestionSuggestions = ({
         position: "top-center",
         duration: 3000,
       });
-      return; 
+      return;
     }
 
     const chatRequestOptions: ChatRequestOptions = {};
@@ -173,13 +187,13 @@ const QuestionSuggestions = ({
       chatRequestOptions
     );
   };
-  
+
   if (isLoadingSuggestions && (!history || history.length === 0)) {
-    // Show skeleton loader only on initial load for a better UX
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+          {/* Skeleton loader sekarang akan selalu merender 6 item di server (sesuai state awal) */}
+          {Array.from({ length: totalSuggestions }).map((_, i) => (
             <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]">
               <div className="h-4 bg-muted rounded mb-2 w-3/4" />
               <div className="h-3 bg-muted/60 rounded w-1/2" />
@@ -189,7 +203,7 @@ const QuestionSuggestions = ({
       </motion.div>
     );
   }
-  
+
   if (suggestions.length === 0) {
     return null;
   }
@@ -202,7 +216,7 @@ const QuestionSuggestions = ({
       transition={{ duration: 0.2 }}
       className="mb-4 w-full"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
         {suggestions.map((suggestion, index) => {
            const IconComponent = suggestion.icon;
            return (
@@ -240,6 +254,9 @@ const QuestionSuggestions = ({
     </motion.div>
   );
 };
+// =====================================================================
+// AKHIR DARI KODE YANG DIMODIFIKASI
+// =====================================================================
 
 const SendIcon = ({
   size = 24,
@@ -623,13 +640,12 @@ function PureMultimodalInput({
     >
       <AnimatePresence>
         {showSuggestions && (
-          // MODIFIKASI: Meneruskan prop 'user' ke komponen QuestionSuggestions
           <QuestionSuggestions append={append} history={history} user={user} />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {!isAtBottom && (
+        {!isAtBottom && messages.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -640,7 +656,7 @@ function PureMultimodalInput({
               damping: 30,
               bounce: 0.25,
             }}
-            className="absolute right-0 bottom-32 z-50" 
+            className="absolute right-0 bottom-32 z-50"
           >
             <button
               onClick={scrollMessagesToBottom}
@@ -660,7 +676,7 @@ function PureMultimodalInput({
             >
               <span className="relative z-10 flex items-center gap-2">
                 <CornerLeftDown className="h-4 w-4 opacity-80 group-hover:opacity-100 transition-opacity" />
-                <span>Latest Messages</span>
+                <span>Scroll To Bottom</span>
               </span>
 
               <span
@@ -786,7 +802,7 @@ function PureMultimodalInput({
           accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,text/plain,text/markdown,text/csv,application/json,application/javascript,text/javascript,text/x-typescript,application/x-typescript,text/html,text/css,application/xml,text/xml"
         />
 
-        
+
 
         <div className="flex items-center justify-between w-full">
           <div className="flex flex-row gap-1.5 items-center">
