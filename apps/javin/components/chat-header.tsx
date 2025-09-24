@@ -109,10 +109,14 @@ function PureChatHeader({
         {/* === Right Section (User Nav / Login) === */}
         <div className="flex items-center justify-end text-sm space-x-2">
           {user && user.email ? (
-            <div className="scale-90">
-              <SidebarUserNav user={user} />
-            </div>
+            // User is logged in, show nav only if there's no title
+            !title && (
+              <div className="scale-90">
+                <SidebarUserNav user={user} />
+              </div>
+            )
           ) : (
+            // User is not logged in, show login button
             <Button
               className="px-3 py-1 text-sm h-auto"
               onClick={() => router.push("/login")}

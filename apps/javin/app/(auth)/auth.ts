@@ -26,47 +26,45 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account, trigger, session }) {
-      // Handle session updates from the client (e.g., profile update)
-      if (trigger === "update" && session?.user) {
-        token.name = session.user.name;
-        token.image = session.user.image;
-        token.username = session.user.username;
-      }
-
-      // Handle initial sign-in
-      if (user?.email) {
+    async jwt({ token, user }) {
+      // ✅ This is the key change. We will always re-fetch user data from the DB.
+      // This ensures that any changes (like a plan upgrade) are immediately reflected in the session.
+      if (token.email) {
+        const [dbUser] = await getUser(token.email);
+        if (dbUser) {
+          // Update the token with the latest data from the database.
+          token.id = dbUser.id;
+          token.name = dbUser.name;
+          token.email = dbUser.email;
+          token.image = dbUser.image;
+          token.username = dbUser.username;
+          token.tier = dbUser.tier; // This is the most important part!
+        } else {
+          // If user is not found in DB, invalidate the session.
+          return null;
+        }
+      } 
+      // Handle initial sign-in for OAuth providers.
+      else if (user?.email) {
         const [existingUser] = await getUser(user.email);
-
         if (existingUser) {
-          // User exists, link the account.
+          // User already exists, populate token from DB.
           token.id = existingUser.id;
           token.email = existingUser.email;
+          token.name = existingUser.name;
+          token.image = existingUser.image;
           token.username = existingUser.username;
           token.tier = existingUser.tier;
-
-          // Merge profile information: fill in missing data from provider.
-          const nameToSet = existingUser.name || user.name;
-          const imageToSet = existingUser.image || user.image;
-
-          token.name = nameToSet;
-          token.image = imageToSet;
-
-          // If we updated the name or image, persist it to the database.
-          if (nameToSet !== existingUser.name || imageToSet !== existingUser.image) {
-            await updateUserProfile({ email: existingUser.email, name: nameToSet, image: imageToSet });
-          }
         } else {
-          // If user does not exist, create a new user (primarily for OAuth)
+          // New OAuth user, create them.
           const newUserId = generateUUID();
           const [newUser] = await createUser(
             newUserId,
             user.email,
-            null, // No password for OAuth users
+            null,
             user.name,
             user.image
           );
-          
           token.id = newUser.id;
           token.name = newUser.name;
           token.email = newUser.email;
@@ -75,7 +73,6 @@ export const authOptions: NextAuthOptions = {
           token.tier = newUser.tier;
         }
       }
-      
       return token;
     },
     async session({ session, token }) {
@@ -90,7 +87,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // If this was a callback and we have a new user, force a refresh
       if (url.includes('/api/auth/callback/google')) {
         return `${baseUrl}/?newuser=true`;
       }
@@ -99,7 +95,6 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-// 👇 Tetap ekspor handler NextAuth untuk route API auth
 export const {
   handlers: { GET, POST },
   auth,

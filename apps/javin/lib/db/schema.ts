@@ -24,7 +24,31 @@ import {
   messageCount: integer("messageCount").notNull().default(0),
   dailyMessageRemaining: integer("dailyMessageRemaining")
     .notNull()
-    .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 20),
+    .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 5),
+});
+
+export const customer = pgTable("Customer", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").notNull().references(() => user.id),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }).notNull().unique(),
+});
+
+export const billingAddress = pgTable("BillingAddress", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  customerId: uuid("customerId").notNull().references(() => customer.id),
+  street: varchar("street", { length: 255 }),
+  city: varchar("city", { length: 255 }),
+  state: varchar("state", { length: 255 }),
+  zip: varchar("zip", { length: 255 }),
+  country: varchar("country", { length: 255 }),
+});
+
+export const subscription = pgTable("Subscription", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  customerId: uuid("customerId").notNull().references(() => customer.id),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }).notNull().unique(),
+  stripePriceId: varchar("stripePriceId", { length: 255 }).notNull(),
+  stripeCurrentPeriodEnd: timestamp("stripeCurrentPeriodEnd").notNull(),
 });
 
 export const otp_tokens = pgTable("OTPToken", {
