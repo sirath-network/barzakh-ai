@@ -18,6 +18,9 @@ import {
   password_reset_tokens,
   otp_tokens,
   email_change_requests,
+  customer,
+  subscription,
+  billingAddress,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -636,12 +639,21 @@ export async function deleteUserAndData(userId: string, email: string) {
         await tx.delete(document).where(eq(document.userId, userId));
       }
 
-      // 5. Delete other associated data
+      // 5. Delete customer data
+      const userCustomer = await tx.select({ id: customer.id }).from(customer).where(eq(customer.userId, userId));
+      if (userCustomer.length > 0) {
+        const customerId = userCustomer[0].id;
+        await tx.delete(billingAddress).where(eq(billingAddress.customerId, customerId));
+        await tx.delete(subscription).where(eq(subscription.customerId, customerId));
+        await tx.delete(customer).where(eq(customer.userId, userId));
+      }
+
+      // 6. Delete other associated data
       await tx.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
       await tx.delete(password_reset_tokens).where(eq(password_reset_tokens.email, email));
       await tx.delete(otp_tokens).where(eq(otp_tokens.email, email));
 
-      // 6. Finally, delete the user
+      // 7. Finally, delete the user
       await tx.delete(user).where(eq(user.id, userId));
     });
     console.log(`Successfully deleted user ${userId} and all associated data.`);

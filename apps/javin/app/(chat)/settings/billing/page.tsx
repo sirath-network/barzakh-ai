@@ -20,9 +20,9 @@ export default function BillingPage() {
   const { data: session, update: updateSession } = useSession();
 
   useEffect(() => {
-    if (searchParams.get('session_id')) {
-      toast.success('Payment successful! Your plan is now active.', {
-        description: 'It may take a moment for your session to update.',
+    if (searchParams.get("session_id")) {
+      toast.success("Payment successful! Your plan is now active.", {
+        description: "It may take a moment for your session to update.",
       });
       updateSession();
     }
