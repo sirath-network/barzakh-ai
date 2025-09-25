@@ -147,24 +147,15 @@ export async function POST(request: Request) {
   const users = await getUserById(session.user.id!);
   const user_info = users[0];
 
-  if (user_info.dailyMessageRemaining <= 0) {
-    if (user_info.tier === "free") {
-      console.warn(`User ${user_info.email} blocked: message limit exceeded`);
-
-      return new Response(
-        `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
-        {
-          status: 403,
-        }
-      );
-    } else {
-      return new Response(
-        `We're experiencing exceptionally high demand. Please hang tight as we work on scaling our systems!`,
-        {
-          status: 403,
-        }
-      );
-    }
+  // Only apply rate limiting to free tier users
+  if (user_info.tier === "free" && user_info.dailyMessageRemaining <= 0) {
+    console.warn(`User ${user_info.email} blocked: message limit exceeded`);
+    return new Response(
+      `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
+      {
+        status: 403,
+      }
+    );
   }
 
   const userMessage = getMostRecentUserMessage(messages);
@@ -211,18 +202,22 @@ export async function POST(request: Request) {
                   messages: response.messages,
                   reasoning,
                 });
-                await saveMessages({
-                  messages: sanitizedResponseMessages.map((message) => {
-                    return {
-                      id: message.id,
-                      chatId: id,
-                      role: message.role,
-                      content: message.content,
-                      createdAt: new Date(),
-                    };
-                  }),
-                });
-                await decrementRemainingMessageCount(session.user.id);
+
+                // Guard against saving empty messages if AI response fails
+                if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
+                  await saveMessages({
+                    messages: sanitizedResponseMessages.map((message) => {
+                      return {
+                        id: message.id,
+                        chatId: id,
+                        role: message.role,
+                        content: message.content,
+                        createdAt: new Date(),
+                      };
+                    }),
+                  });
+                  await decrementRemainingMessageCount(session.user.id);
+                }
               } catch (error) {
                 console.error("Failed to save chat", error);
               }
@@ -262,18 +257,22 @@ export async function POST(request: Request) {
                     messages: response.messages,
                     reasoning,
                   });
-                  await saveMessages({
-                    messages: sanitizedResponseMessages.map((message) => {
-                      return {
-                        id: message.id,
-                        chatId: id,
-                        role: message.role,
-                        content: message.content,
-                        createdAt: new Date(),
-                      };
-                    }),
-                  });
-                  await decrementRemainingMessageCount(session.user.id);
+                  
+                  // Guard against saving empty messages if AI response fails
+                  if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
+                    await saveMessages({
+                      messages: sanitizedResponseMessages.map((message) => {
+                        return {
+                          id: message.id,
+                          chatId: id,
+                          role: message.role,
+                          content: message.content,
+                          createdAt: new Date(),
+                        };
+                      }),
+                    });
+                    await decrementRemainingMessageCount(session.user.id);
+                  }
                 } catch (error) {
                   console.error("Failed to save chat", error);
                 }
@@ -294,8 +293,12 @@ export async function POST(request: Request) {
       }
     },
     onError: (error: any) => {
-      console.log("DataStream error:", error);
-      return "Oops, something went wrong!. Please try again in new chat";
+      console.error("DataStream error:", error);
+      // Check if the error is a tool execution error and has a toolName
+      if (error.name === 'AI_ToolExecutionError' && error.toolName) {
+        return `Error: The ${error.toolName} tool failed to execute. This could be due to an issue with its API key or the external service. Please check your configuration and try again.`;
+      }
+      return "Oops, something went wrong! Please try again in a new chat.";
     },
   });
 }

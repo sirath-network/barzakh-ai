@@ -18,6 +18,7 @@
     "test": "turbo run test"
   },
   "dependencies": {
+    "@tavily/core": "^0.0.3",
     "turbo": "2.4.4"
   }
 }

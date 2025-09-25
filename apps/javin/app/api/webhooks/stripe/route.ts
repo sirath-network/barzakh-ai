@@ -12,52 +12,56 @@ import Stripe from "stripe";
  * @param customerId - The ID of the Stripe customer object.
  */
 async function manageSubscriptionStatusChange(subscriptionId: string, customerId: string) {
-    // Find our internal customer record using the Stripe customer ID
+    // 1. Find our internal customer record.
     const customer = await db.select().from(customerTable).where(eq(customerTable.stripeCustomerId, customerId));
     if (customer.length === 0) {
         console.error(`Webhook Error: Could not find customer in DB with Stripe customer ID: ${customerId}`);
         return;
     }
+    const userId = customer[0].userId;
 
-    // Retrieve the full subscription details from Stripe
+    // 2. Immediately update the user's tier to "pro" to grant access.
+    await db.update(userTable)
+        .set({ tier: "pro" })
+        .where(eq(userTable.id, userId));
+    console.log(`✅ User tier set to "pro" for userId: ${userId}`);
+
+    // 3. Retrieve subscription details from Stripe to sync our records.
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-    // Correctly handle trial periods by using trial_end as a fallback for the period end date
+    // 4. Check for a valid period end date.
     const periodEndTimestamp = subscription.current_period_end ?? subscription.trial_end;
     if (typeof periodEndTimestamp !== 'number') {
-        console.error(`Webhook Error: Subscription ${subscription.id} is missing a valid period end date.`);
+        // Log a warning and exit this function, but don't throw an error.
+        // The user already has pro access. We just can't sync the subscription details yet.
+        console.warn(`⚠️ Webhook Warning: Subscription ${subscription.id} is missing a valid period end date. User access has been granted, but the subscription record could not be synced.`);
         return;
     }
     const periodEndDate = new Date(periodEndTimestamp * 1000);
 
-    // Check if we already have this subscription in our database
+    // 5. Create or update the subscription record in our database (now that we know we have a date).
+    const subscriptionData = {
+        customerId: customer[0].id,
+        stripeSubscriptionId: subscription.id,
+        stripePriceId: subscription.items.data[0].price.id,
+        stripeCurrentPeriodEnd: periodEndDate,
+    };
+
+    // Using the original if/else since upsert is more complex with conditional fields.
     const existingSubscription = await db.select().from(subscriptionTable).where(eq(subscriptionTable.stripeSubscriptionId, subscription.id));
 
     if (existingSubscription.length === 0) {
-        // This is a new subscription, so we create a new record for it.
-        await db.insert(subscriptionTable).values({
-            customerId: customer[0].id,
-            stripeSubscriptionId: subscription.id,
-            stripePriceId: subscription.items.data[0].price.id,
-            stripeCurrentPeriodEnd: periodEndDate,
-        });
+        await db.insert(subscriptionTable).values(subscriptionData);
         console.log(`✅ New subscription record created for customer: ${customer[0].id}`);
     } else {
-        // This is an existing subscription (e.g., a renewal or plan change), so we update it.
         await db.update(subscriptionTable)
             .set({
-                stripePriceId: subscription.items.data[0].price.id,
-                stripeCurrentPeriodEnd: periodEndDate,
+                stripePriceId: subscriptionData.stripePriceId,
+                stripeCurrentPeriodEnd: subscriptionData.stripeCurrentPeriodEnd,
             })
             .where(eq(subscriptionTable.stripeSubscriptionId, subscription.id));
         console.log(`✅ Existing subscription record updated for customer: ${customer[0].id}`);
     }
-    
-    // Finally, update the user's tier to "pro", granting them access to features.
-    await db.update(userTable)
-        .set({ tier: "pro" }) // <-- UPDATED FROM "premium" to "pro"
-        .where(eq(userTable.id, customer[0].userId));
-    console.log(`✅ User tier set to "pro" for userId: ${customer[0].userId}`);
 }
 
 
@@ -87,8 +91,34 @@ export async function POST(req: Request) {
     // 2. Handle the specific event type
     try {
         switch (event.type) {
-            // This event is the most reliable for granting access after a successful payment.
-            case 'invoice.paid': {
+            // This event is sent when a user successfully completes the Stripe Checkout process.
+            // It's the primary event for handling new subscriptions.
+            case 'checkout.session.completed': {
+                const session = event.data.object as Stripe.Checkout.Session;
+                if (session.subscription && session.customer) {
+                    await manageSubscriptionStatusChange(session.subscription as string, session.customer as string);
+                } else {
+                    console.error(`Webhook Error: checkout.session.completed event is missing subscription or customer ID.`);
+                }
+                break;
+            }
+
+            // These events are sent for any change in a subscription's status, including creation.
+            // They are useful for keeping our database in sync with Stripe.
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
+                const subscription = event.data.object as Stripe.Subscription;
+                if (subscription.customer) {
+                    await manageSubscriptionStatusChange(subscription.id, subscription.customer as string);
+                } else {
+                    console.error(`Webhook Error: ${event.type} event is missing customer ID.`);
+                }
+                break;
+            }
+
+            // These events can handle subscription renewals or other direct invoice payments.
+            case 'invoice.paid':
+            case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
                 // Ensure the invoice is linked to a subscription and customer before processing.
                 if (invoice.subscription && invoice.customer) {
@@ -128,4 +158,3 @@ export async function POST(req: Request) {
     // 3. Acknowledge receipt of the event with a 200 status code
     return new NextResponse(null, { status: 200 });
 }
-
