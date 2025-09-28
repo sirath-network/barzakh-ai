@@ -88,9 +88,21 @@ const PurePreviewMessage = ({
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (message.content) {
+    if (!message.content) return;
+
+    let textToCopy = "";
+    if (typeof message.content === 'string') {
+      textToCopy = message.content;
+    } else if (Array.isArray(message.content)) {
+      textToCopy = (message.content as any[])
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join('\n');
+    }
+
+    if (textToCopy) {
       navigator.clipboard
-        .writeText(message.content as string)
+        .writeText(textToCopy)
         .then(() => {
           setIsCopied(true);
           setTimeout(() => {
@@ -290,7 +302,28 @@ const PurePreviewMessage = ({
                           }
                         }}
                       >
-                        <Markdown>{message.content as string}</Markdown>
+                        {typeof message.content === "string" ? (
+                          <Markdown>{message.content}</Markdown>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {(message.content as any[]).map((part, index) => {
+                              if (part.type === "text") {
+                                return <Markdown key={index}>{part.text}</Markdown>;
+                              }
+                              if (part.type === "image" && typeof part.image === 'string') {
+                                return (
+                                  <img
+                                    key={index}
+                                    src={part.image}
+                                    alt="Uploaded image"
+                                    className="max-w-full h-auto rounded-lg border border-border/20"
+                                  />
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}

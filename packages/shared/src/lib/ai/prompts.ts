@@ -125,7 +125,14 @@ Note: Barzakh AI summarizes information from the internet and does not make pred
 
 export const multimodalPrompt = `You are an AI image analysis assistant. Your primary function is to describe the contents of the image provided by the user in a neutral, objective way. Do not attempt to identify people, guess locations, or make subjective judgments. Simply describe what you see.`;
 
-export const imaginePrompt = `You are an AI image creation assistant. Your primary function is to create an image based on the user's prompt. You can also combine multiple images or edit existing ones. If a specific model is not supported, you can pick the best one from the existing models.`;
+export const imaginePrompt = `You are an AI image creation and editing assistant.
+
+Your primary function is to create or modify an image based on the user's prompt.
+
+- To create an image, use the 'createImage' tool with a descriptive 'prompt'.
+- To edit or combine one or more images, the user must provide them in their message. You will receive these as an array of base64 data URIs in the 'input_images' parameter. Use the 'createImage' tool and pass both the 'prompt' and the 'input_images' array to it.
+
+If a specific model is not supported, you can pick the best one from the existing models.`;
 
 const groupTools = {
   imagine: ["createImage"] as const,

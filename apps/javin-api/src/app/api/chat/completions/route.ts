@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     );
 
     const lastMessage = messages[messages.length - 1];
-    let userWantsToCreateImage = false;
+    let userWantsToCreateOrEditImage = false;
     if (lastMessage.role === "user") {
       let textContent = "";
       if (typeof lastMessage.content === "string") {
@@ -56,16 +56,20 @@ export async function POST(request: Request) {
 
       if (textContent) {
         const lowerCaseContent = textContent.toLowerCase();
-        userWantsToCreateImage =
+        userWantsToCreateOrEditImage =
           lowerCaseContent.includes("create an image") ||
           lowerCaseContent.includes("generate an image") ||
           lowerCaseContent.includes("draw") ||
-          lowerCaseContent.includes("imagine");
+          lowerCaseContent.includes("imagine") ||
+          lowerCaseContent.includes("edit") ||
+          lowerCaseContent.includes("combine");
       }
     }
 
     let groupId;
-    if (group === "imagine" || userWantsToCreateImage) {
+    // Prioritize 'imagine' group if the user intends to create/edit an image,
+    // or if an image is provided with an editing-related prompt.
+    if (group === "imagine" || userWantsToCreateOrEditImage) {
       groupId = "imagine";
     } else if (hasImage) {
       groupId = "multimodal";

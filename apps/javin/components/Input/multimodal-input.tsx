@@ -491,7 +491,7 @@ function PureMultimodalInput({
     setInput(event.target.value);
   };
 
-  const submitForm = useCallback(() => {
+  const submitForm = useCallback(async () => {
     if (!user || !user.email) {
       toast.error("Please login to continue", { position: "bottom-center" });
       return;
@@ -503,35 +503,44 @@ function PureMultimodalInput({
 
     window.history.replaceState({}, "", `/chat/${chatId}`);
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-      "application/pdf",
-      "text/plain",
-      "text/markdown",
-      "text/csv",
-      "application/json",
-      "application/javascript",
-      "text/javascript",
-      "text/x-typescript",
-      "application/x-typescript",
-      "text/html",
-      "text/css",
-      "application/xml",
-      "text/xml",
-    ];
-
-    const supportedAttachments = attachments.filter((att) =>
-      allowedTypes.includes(att.contentType ?? "")
+    const imageAttachments = attachments.filter((att) =>
+      att.contentType?.startsWith("image/")
+    );
+    const otherAttachments = attachments.filter(
+      (att) => !att.contentType?.startsWith("image/")
     );
 
-    handleSubmit(undefined, {
+    let messageContent: any = input;
+    const chatRequestOptions: ChatRequestOptions = {
       body: { group: selectedGroup },
-      experimental_attachments: supportedAttachments,
-    });
+    };
+
+    if (imageAttachments.length > 0) {
+      const imageParts = imageAttachments.map((att) => ({
+        type: "image",
+        image: att.url, // Send the URL directly instead of base64
+      }));
+
+      const content = [{ type: "text", text: input }];
+      content.push(...(imageParts as any[]));
+      messageContent = content;
+    }
+
+    if (otherAttachments.length > 0) {
+      chatRequestOptions.experimental_attachments = otherAttachments;
+    }
+
+    if (Array.isArray(messageContent)) {
+      append(
+        {
+          role: "user",
+          content: messageContent,
+        },
+        chatRequestOptions
+      );
+    } else {
+      handleSubmit(undefined, chatRequestOptions);
+    }
 
     setInput("");
     setAttachments([]);
@@ -556,6 +565,8 @@ function PureMultimodalInput({
     setLocalStorageInput,
     width,
     setInput,
+    append,
+    input,
   ]);
 
   const uploadFile = async (file: File) => {
