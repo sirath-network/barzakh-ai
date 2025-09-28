@@ -38,13 +38,46 @@ export async function POST(request: Request) {
         : false
     );
 
-    const groupId = hasImage ? "multimodal" : group || "search";
+    const lastMessage = messages[messages.length - 1];
+    let userWantsToCreateImage = false;
+    if (lastMessage.role === "user") {
+      let textContent = "";
+      if (typeof lastMessage.content === "string") {
+        textContent = lastMessage.content;
+      } else if (Array.isArray(lastMessage.content)) {
+        // Find the first text part and use its content.
+        const textPart = lastMessage.content.find(
+          (part) => part.type === "text"
+        );
+        if (textPart && "text" in textPart) {
+          textContent = textPart.text;
+        }
+      }
+
+      if (textContent) {
+        const lowerCaseContent = textContent.toLowerCase();
+        userWantsToCreateImage =
+          lowerCaseContent.includes("create an image") ||
+          lowerCaseContent.includes("generate an image") ||
+          lowerCaseContent.includes("draw") ||
+          lowerCaseContent.includes("imagine");
+      }
+    }
+
+    let groupId;
+    if (group === "imagine" || userWantsToCreateImage) {
+      groupId = "imagine";
+    } else if (hasImage) {
+      groupId = "multimodal";
+    } else {
+      groupId = group || "search";
+    }
 
     const languageModel = myProvider.languageModel(selectedChatModel);
     const model = selectedChatModel;
 
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
-      groupId as any // Cast to any to satisfy the type, since we added "multimodal"
+      groupId as any
     );
 
     // Prepend system prompt if it exists and is not already in messages

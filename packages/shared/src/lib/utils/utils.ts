@@ -8,7 +8,7 @@ import type {
 } from "ai";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Globe, Network, CodeXml } from "lucide-react";
+import { Globe, Network, CodeXml, ImageIcon } from "lucide-react";
 import { PortfolioData, TokenItem } from "../../types/wallet-actions-response";
 import {
   BirdeyeTokenSearchResponse,
@@ -200,6 +200,7 @@ export type SearchGroupId =
   | "sei"
   | "monad"
   | "solana"
+  | "imagine"
   | "aptos";
 
 export const searchGroups = [
@@ -208,6 +209,13 @@ export const searchGroups = [
     name: "Web",
     description: "Search across the entire internet and blockchains",
     icon: Globe,
+    img: "",
+  },
+  {
+    id: "imagine" as const,
+    name: "Imagine",
+    description: "Create images with AI",
+    icon: ImageIcon,
     img: "",
   },
   {

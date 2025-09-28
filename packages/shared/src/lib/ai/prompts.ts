@@ -32,6 +32,7 @@ import { defiLlama } from "@javin/shared/lib/ai/tools/defi-llama";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@javin/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
+import { createImage } from "./tools/create-image";
 
 const imageAnalyzer = async ({ imageUrl, userQuery }: { imageUrl: string; userQuery: string }) => {
   console.log(`Analyzing image at ${imageUrl} with query: "${userQuery}"`);
@@ -123,7 +124,11 @@ Note: Barzakh AI summarizes information from the internet and does not make pred
 `;
 
 export const multimodalPrompt = `You are an AI image analysis assistant. Your primary function is to describe the contents of the image provided by the user in a neutral, objective way. Do not attempt to identify people, guess locations, or make subjective judgments. Simply describe what you see.`;
+
+export const imaginePrompt = `You are an AI image creation assistant. Your primary function is to create an image based on the user's prompt. You can also combine multiple images or edit existing ones. If a specific model is not supported, you can pick the best one from the existing models.`;
+
 const groupTools = {
+  imagine: ["createImage"] as const,
   multimodal: ["webSearch", "imageAnalyzer", "fileReader"] as const,
   search: [
     "webSearch",
@@ -225,6 +230,7 @@ export const allTools = {
   defiLlama,
   imageAnalyzer,
   fileReader,
+  createImage,
 };
 
 const groupPrompts = {
@@ -744,9 +750,15 @@ export const systemPrompt = ({
 };
 
 export async function getGroupConfig(
-  groupId: SearchGroupId | "multimodal" = "search"
+  groupId: SearchGroupId | "multimodal" | "imagine" = "search"
 ) {
   "use server";
+  if (groupId === "imagine") {
+    return {
+      tools: groupTools.imagine,
+      systemPrompt: imaginePrompt,
+    };
+  }
   if (groupId === "multimodal") {
     return {
       tools: groupTools.multimodal,

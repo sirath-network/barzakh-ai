@@ -2,16 +2,22 @@ import FirecrawlApp, { ScrapeResponse } from "@mendable/firecrawl-js";
 
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 const FIRECRAWL_API_ENDPOINT = process.env.FIRECRAWL_API_ENDPOINT;
-if (!FIRECRAWL_API_KEY || !FIRECRAWL_API_ENDPOINT) {
-  throw new Error(
-    "Missing required environment variables: FIRECRAWL_API_KEY or FIRECRAWL_API_ENDPOINT"
+
+let app: FirecrawlApp | undefined;
+
+if (FIRECRAWL_API_KEY && FIRECRAWL_API_ENDPOINT) {
+  app = new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY });
+} else {
+  console.warn(
+    "Missing required environment variables: FIRECRAWL_API_KEY or FIRECRAWL_API_ENDPOINT. The getStatPageScreenshot tool will not be available."
   );
 }
 
-const app = new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY });
-
 // visits stat page, clicks on fullscreen mode and takes a screenshot
 export async function getStatPageScreenshot(statsPageUrl: string) {
+  if (!app) {
+    return "The getStatPageScreenshot tool is not available due to missing environment variables.";
+  }
   try {
     console.log("visiting link : ", statsPageUrl);
 

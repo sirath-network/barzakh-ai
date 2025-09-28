@@ -26,6 +26,8 @@ export const myProvider: any = customProvider({
   imageModels: {
     "small-model": openai.image("dall-e-2"),
     "large-model": openai.image("dall-e-3"),
+    "sdxl-model": fireworks.image("stable-diffusion-xl-base-1.0"),
+    "flux-model": "accounts/fireworks/models/flux-kontext-pro",
   },
 });
 
@@ -60,5 +62,34 @@ export const chatModels: Array<ChatModel> = [
     id: "chat-model-claude",
     name: "claude-3-5-haiku",
     description: "Claude model for experimental tasks",
+  },
+];
+
+interface ImagineModel {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const imagineModels: Array<ImagineModel> = [
+  {
+    id: "flux-model",
+    name: "Flux Kontext Pro",
+    description: "Flux Kontext Pro is a powerful image generation model from Fireworks.",
+  },
+  {
+    id: "sdxl-model",
+    name: "Stable Diffusion XL",
+    description: "Stable Diffusion XL is a powerful image generation model.",
+  },
+  {
+    id: "large-model",
+    name: "DALL-E 3",
+    description: "DALL-E 3 is a powerful image generation model from OpenAI.",
+  },
+  {
+    id: "small-model",
+    name: "DALL-E 2",
+    description: "DALL-E 2 is a fast image generation model from OpenAI.",
   },
 ];
