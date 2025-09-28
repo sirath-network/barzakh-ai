@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { SubscriptionCard } from '@/components/settings/subscription-card';
@@ -17,16 +17,24 @@ const CreditCardIcon = () => (
 
 export default function BillingPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { data: session, update: updateSession } = useSession();
+  const toastShown = useRef(false);
 
   useEffect(() => {
-    if (searchParams.get("session_id")) {
+    if (searchParams.get("session_id") && !toastShown.current) {
+      toastShown.current = true;
       toast.success("Payment successful! Your plan is now active.", {
-        description: "It may take a moment for your session to update.",
+        description: "Redirecting you to the homepage...",
       });
-      updateSession();
+      
+      // Immediate redirect
+      router.push("/");
+      
+      // Update session in background (optional)
+      updateSession().catch(console.error);
     }
-  }, [searchParams, updateSession]);
+  }, [searchParams, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
