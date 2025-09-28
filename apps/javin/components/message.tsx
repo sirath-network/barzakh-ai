@@ -18,7 +18,8 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText } from "lucide-react";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
+import Image from "next/image";
 
 // HELPER: Peta dari nama tool ke ikon yang sesuai
 const toolIcons: Record<string, React.ElementType> = {
@@ -35,6 +36,7 @@ const toolIcons: Record<string, React.ElementType> = {
   ensToAddress: FileText,
   aptosNames: FileText,
   translateTransactions: FileText,
+  createImage: FileImage,
 };
 
 // HELPER: Komponen kecil untuk merender setiap ikon tool
@@ -228,15 +230,36 @@ const PurePreviewMessage = ({
                       {otherCompletedTools.map((toolInvocation) => {
                         const { toolName, toolCallId, result } = toolInvocation;
                         if (toolInvocation.state !== "result") return null;
+                        
                         const toolComponents: Record<string, React.ReactNode> = {
                           searchEvmTokenMarketData: <TokenInfoTable result={result} />,
                           searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
                           getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
                           getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
                           getTokenBalances: <PortfolioTable result={result} />,
+                          createImage: result?.imageUrl ? (
+                            <div className="max-w-full my-4">
+                              <img
+                                src={result.imageUrl}
+                                alt="AI generated image"
+                                className="max-w-full h-auto rounded-lg shadow-lg border border-border/20"
+                                style={{ maxWidth: '100%', height: 'auto' }}
+                                onLoad={() => console.log('Image loaded successfully:', result.imageUrl)}
+                                onError={(e) => {
+                                  console.error('Failed to load image:', result.imageUrl);
+                                  console.error('Error details:', e);
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
+                              No image generated
+                            </div>
+                          ),
                         };
+                        
                         return (
-                          <div key={toolCallId}>
+                          <div key={toolCallId} className="w-full">
                             {toolComponents?.[toolName] || null}
                           </div>
                         );
@@ -432,6 +455,7 @@ const PurePreviewMessage = ({
                                   ensToAddress: "ENS Resolver",
                                   aptosNames: "Aptos Names",
                                   translateTransactions: "Transaction Parser",
+                                  createImage: "Image Generation",
                                 };
 
                                 return (
