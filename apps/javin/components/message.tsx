@@ -51,6 +51,7 @@ const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "smal
 
 import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
+import { AIGeneratedImage } from "./ai-generated-image";
 
 const PurePreviewMessage = ({
   chatId,
@@ -231,54 +232,6 @@ const PurePreviewMessage = ({
                     ))
                   )}
 
-                  {/* === BAGIAN TENGAH: HASIL TOOL LAINNYA === */}
-                  {otherCompletedTools && otherCompletedTools.length > 0 && (
-                    <motion.div 
-                      className="flex flex-col items-start gap-2"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.1 }}
-                    >
-                      {otherCompletedTools.map((toolInvocation) => {
-                        const { toolName, toolCallId, result } = toolInvocation;
-                        if (toolInvocation.state !== "result") return null;
-                        
-                        const toolComponents: Record<string, React.ReactNode> = {
-                          searchEvmTokenMarketData: <TokenInfoTable result={result} />,
-                          searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
-                          getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
-                          getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
-                          getTokenBalances: <PortfolioTable result={result} />,
-                          createImage: result?.imageUrl ? (
-                            <div className="max-w-full my-4">
-                              <img
-                                src={result.imageUrl}
-                                alt="AI generated image"
-                                className="max-w-full h-auto rounded-lg shadow-lg border border-border/20"
-                                style={{ maxWidth: '100%', height: 'auto' }}
-                                onLoad={() => console.log('Image loaded successfully:', result.imageUrl)}
-                                onError={(e) => {
-                                  console.error('Failed to load image:', result.imageUrl);
-                                  console.error('Error details:', e);
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
-                              No image generated
-                            </div>
-                          ),
-                        };
-                        
-                        return (
-                          <div key={toolCallId} className="w-full">
-                            {toolComponents?.[toolName] || null}
-                          </div>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                  
                   {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
                   {(message.content) && mode === "view" && (
                     <motion.div
@@ -373,6 +326,45 @@ const PurePreviewMessage = ({
                     </motion.div>
                   )}
 
+                  {/* === BAGIAN TENGAH: HASIL TOOL LAINNYA (SETELAH TEXT) === */}
+                  {otherCompletedTools && otherCompletedTools.length > 0 && (
+                    <motion.div 
+                      className="flex flex-col items-start gap-2 mt-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.3 }}
+                    >
+                      {otherCompletedTools.map((toolInvocation) => {
+                        const { toolName, toolCallId, result } = toolInvocation;
+                        if (toolInvocation.state !== "result") return null;
+                        
+                        const toolComponents: Record<string, React.ReactNode> = {
+                          searchEvmTokenMarketData: <TokenInfoTable result={result} />,
+                          searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
+                          getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
+                          getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
+                          getTokenBalances: <PortfolioTable result={result} />,
+                          createImage: result?.imageUrl ? (
+                            <AIGeneratedImage 
+                              imageUrl={result.imageUrl}
+                              alt="AI generated image"
+                            />
+                          ) : (
+                            <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
+                              No image generated
+                            </div>
+                          ),
+                        };
+                        
+                        return (
+                          <div key={toolCallId} className="w-full">
+                            {toolComponents?.[toolName] || null}
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                  
                   {message.content && mode === "edit" && (
                     <div className="flex flex-row gap-2 items-start">
                       <div className="size-8" />

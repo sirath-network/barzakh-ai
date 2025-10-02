@@ -31,13 +31,43 @@ export function convertToUIMessages(
     let textContent = "";
     let reasoning: string | undefined = undefined;
     const toolInvocations: Array<ToolInvocation> = [];
+    let hasImages = false;
 
     if (typeof message.content === "string") {
       textContent = message.content;
     } else if (Array.isArray(message.content)) {
-      for (const content of message.content) {
-        if (content.type === "text") {
-          textContent += content.text;
+      // Check if the message contains images
+      hasImages = message.content.some((content: any) => content.type === "image");
+      
+      if (hasImages) {
+        // If message contains images, preserve the original content structure
+        // and extract reasoning and tool invocations separately
+        for (const content of message.content) {
+          if (content.type === "tool-call") {
+            toolInvocations.push({
+              state: "call",
+              toolCallId: content.toolCallId,
+              toolName: content.toolName,
+              args: content.args,
+            });
+          } else if (content.type === "tool-result") {
+            // Handle tool results (like generated images)
+            toolInvocations.push({
+              state: "result",
+              toolCallId: content.toolCallId,
+              toolName: content.toolName,
+              args: content.args || {},
+              result: content.result,
+            });
+          } else if (content.type === "reasoning") {
+            reasoning = content.reasoning;
+          }
+        }
+      } else {
+        // For messages without images, use the original logic
+        for (const content of message.content) {
+          if (content.type === "text") {
+            textContent += content.text;
         } else if (content.type === "tool-call") {
           toolInvocations.push({
             state: "call",
@@ -45,8 +75,18 @@ export function convertToUIMessages(
             toolName: content.toolName,
             args: content.args,
           });
-        } else if (content.type === "reasoning") {
-          reasoning = content.reasoning;
+        } else if (content.type === "tool-result") {
+          // Handle tool results (like generated images)
+          toolInvocations.push({
+            state: "result",
+            toolCallId: content.toolCallId,
+            toolName: content.toolName,
+            args: content.args || {},
+            result: content.result,
+          });
+          } else if (content.type === "reasoning") {
+            reasoning = content.reasoning;
+          }
         }
       }
     }
@@ -54,7 +94,7 @@ export function convertToUIMessages(
     chatMessages.push({
       id: message.id,
       role: message.role as Message["role"],
-      content: textContent,
+      content: hasImages ? message.content : textContent,
       reasoning,
       toolInvocations,
     });
