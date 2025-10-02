@@ -81,7 +81,12 @@ export async function POST(request: NextRequest) {
       
       // Development/Testing
       'localhost',
-      '127.0.0.1'
+      '127.0.0.1',
+      
+      // Ngrok tunnels (for mobile testing)
+      'ngrok.io',
+      'ngrok-free.app',
+      'ngrok.app'
     ];
 
     const url = new URL(imageUrl);
@@ -131,18 +136,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the image from external URL with mobile-optimized headers
+    const fetchHeaders: Record<string, string> = {
+      'User-Agent': mobile 
+        ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+        : 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
+      'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': mobile ? 'no-cache, no-store, must-revalidate' : 'no-cache',
+      'Pragma': 'no-cache',
+      // Add ngrok-specific headers
+      'ngrok-skip-browser-warning': 'true',
+    };
+
+    // Add additional headers for ngrok tunnels
+    if (url.hostname.includes('ngrok')) {
+      fetchHeaders['X-Forwarded-Proto'] = 'https';
+      fetchHeaders['X-Forwarded-Host'] = url.hostname;
+    }
+
     const imageResponse = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
-        'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        // Add ngrok-specific headers if needed
-        'ngrok-skip-browser-warning': 'true',
-      },
-      // Add timeout for mobile connections
-      signal: AbortSignal.timeout(30000), // 30 second timeout
+      headers: fetchHeaders,
+      // Add timeout for mobile connections (longer for mobile)
+      signal: AbortSignal.timeout(mobile ? 45000 : 30000),
     });
 
     if (!imageResponse.ok) {

@@ -27,21 +27,29 @@ import {
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 
-// biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
+// Import the shared database instance instead of creating a new client
+import { db } from './db';
 
-// Test connection on startup
-(async () => {
-  try {
-    await client`SELECT 1`;
-    console.log('✅ Database connection successful');
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    process.exit(1);
-  }
-})();
-
-const db = drizzle(client);
+// Test connection on startup (only in development)
+if (process.env.NODE_ENV === 'development') {
+  (async () => {
+    try {
+      await db.execute(sql`SELECT 1`);
+      console.log('✅ Database connection successful');
+      
+      // Import and start connection monitoring
+      const { logConnectionStats, startConnectionMonitoring } = await import('./connection-monitor');
+      await logConnectionStats();
+      startConnectionMonitoring(10); // Monitor every 10 minutes in development
+    } catch (error) {
+      console.error('❌ Database connection failed:', error);
+      // Don't exit in production, just log the error
+      if (process.env.NODE_ENV === 'development') {
+        process.exit(1);
+      }
+    }
+  })();
+}
 
 export function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
