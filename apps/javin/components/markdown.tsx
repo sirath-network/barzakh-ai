@@ -1,10 +1,54 @@
 import Link from "next/link";
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
 import "./markdown.css";
 import { AddressBlock } from "./AddressBlock"; // Impor komponen baru
+
+// Component to handle image loading with fallback
+const ImageWithFallback = ({ src, alt }: { src: string; alt: string }) => {
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 bg-muted/50 rounded-lg border border-red-200 text-center">
+        <div className="text-red-500 text-sm font-medium mb-2">Image expired or unavailable</div>
+        <div className="text-xs text-muted-foreground mb-3">This image link may have expired or is no longer accessible.</div>
+        <a 
+          href={src} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-blue-500 hover:underline text-sm"
+        >
+          Try opening in new tab
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {isLoading && (
+        <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg border border-border/20">
+          <div className="text-sm text-muted-foreground">Loading image...</div>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`max-w-full h-auto rounded-lg border border-border/20 shadow-lg transition-opacity duration-200 ${
+          isLoading ? 'opacity-0 absolute' : 'opacity-100'
+        }`}
+        style={{ maxHeight: '500px', objectFit: 'contain' }}
+        onError={() => setHasError(true)}
+        onLoad={() => setIsLoading(false)}
+        loading="lazy"
+      />
+    </div>
+  );
+};
 
 const components: Partial<Components> = {
   // @ts-expect-error
@@ -14,9 +58,46 @@ const components: Partial<Components> = {
   ),
   pre: ({ children }) => <>{children}</>,
 
-  span: ({ children }) => <span className="break-long-words">{children}</span>,
+  span: ({ children }) => {
+    const text = typeof children === 'string' ? children : '';
+    
+    // Check if this span contains a raw image URL
+    const imageUrlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?[^\s]*)?)/gi;
+    const match = text.match(imageUrlRegex);
+    
+    if (match) {
+      const parts = text.split(imageUrlRegex);
+      return (
+        <span className="break-long-words">
+          {parts.map((part, index) => {
+            if (imageUrlRegex.test(part)) {
+              return (
+                <div key={index} className="my-4 max-w-full">
+                  <ImageWithFallback 
+                    src={part} 
+                    alt="Generated image"
+                  />
+                </div>
+              );
+            }
+            return part;
+          })}
+        </span>
+      );
+    }
+    
+    return <span className="break-long-words">{children}</span>;
+  },
 
-  p: ({ children }) => <div className="break-long-words">{children}</div>,
+  p: ({ children }) => {
+    const text = typeof children === 'string' ? children : 
+      (Array.isArray(children) ? children.join('') : '');
+    
+    // Note: Removed image placeholder logic since tool-generated images are handled separately
+    // and showing placeholders when actual images are present creates confusion
+    
+    return <div className="break-long-words">{children}</div>;
+  },
 
   ol: ({ node, children, ...props }) => {
     return (
@@ -66,6 +147,39 @@ const components: Partial<Components> = {
     // ---- PERUBAHAN UTAMA BERAKHIR DI SINI ----
   },
   a: ({ node, children, ...props }) => {
+    // Check if this is an image URL
+    const href = props.href as string;
+    const isImageUrl = href && (
+      // Standard image file extensions
+      /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i.test(href) ||
+      // Google Cloud Storage URLs with image extensions
+      /storage\.googleapis\.com.*\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i.test(href) ||
+      // URLs with image extensions followed by query parameters
+      /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)\?/i.test(href) ||
+      // URLs that contain image-related paths (for generated images)
+      /\/images?\/.*\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i.test(href) ||
+      // URLs that look like generated image URLs (common patterns)
+      /\/generated.*\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i.test(href) ||
+      /\/ai.*\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i.test(href) ||
+      // Long URLs that are likely generated image URLs (like the one in the screenshot)
+      (href.length > 200 && (
+        /storage\.googleapis\.com/i.test(href) ||
+        /X-Goog-Algorithm/i.test(href) ||
+        /X-Goog-Credential/i.test(href)
+      ))
+    );
+
+    if (isImageUrl) {
+      return (
+        <div className="my-4 max-w-full">
+          <ImageWithFallback 
+            src={href} 
+            alt={typeof children === 'string' ? children : 'Generated image'}
+          />
+        </div>
+      );
+    }
+
     return (
       // @ts-expect-error
       <Link

@@ -62,14 +62,22 @@ export async function POST(request: Request) {
           lowerCaseContent.includes("draw") ||
           lowerCaseContent.includes("imagine") ||
           lowerCaseContent.includes("edit") ||
-          lowerCaseContent.includes("combine");
+          lowerCaseContent.includes("combine") ||
+          lowerCaseContent.includes("modify") ||
+          lowerCaseContent.includes("change") ||
+          lowerCaseContent.includes("add") ||
+          lowerCaseContent.includes("remove") ||
+          lowerCaseContent.includes("regenerate") ||
+          lowerCaseContent.includes("make it") ||
+          lowerCaseContent.includes("turn it into") ||
+          lowerCaseContent.includes("transform");
       }
     }
 
     let groupId;
     // Prioritize 'imagine' group if the user intends to create/edit an image,
     // or if an image is provided with an editing-related prompt.
-    if (group === "imagine" || userWantsToCreateOrEditImage) {
+    if (group === "imagine" || userWantsToCreateOrEditImage || (hasImage && userWantsToCreateOrEditImage)) {
       groupId = "imagine";
     } else if (hasImage) {
       groupId = "multimodal";
@@ -87,6 +95,69 @@ export async function POST(request: Request) {
     // Prepend system prompt if it exists and is not already in messages
     if (systemPrompt && (!messages[0] || messages[0].role !== "system")) {
       messages.unshift({ role: "system", content: systemPrompt });
+    }
+
+    // Add image URL extraction hint for imagine group
+    if (groupId === "imagine" && hasImage) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === "user" && Array.isArray(lastMessage.content)) {
+        const imageUrls = lastMessage.content
+          .filter((part: any) => part.type === "image" && part.image)
+          .map((part: any) => part.image);
+        
+        // Extract original Vercel Blob URLs from the message text
+        const textParts = lastMessage.content.filter((part: any) => part.type === "text");
+        let originalVercelUrls: string[] = [];
+        
+        for (const textPart of textParts) {
+          if (textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
+            const match = textPart.text.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
+            if (match) {
+              originalVercelUrls = match[1].split(', ').filter(url => url.trim());
+              console.log("🔗 Found original Vercel Blob URLs in message:", originalVercelUrls);
+              break;
+            }
+          }
+        }
+        
+        console.log("Image URLs received in API:", imageUrls);
+        console.log("Image URL sources:", imageUrls.map(url => {
+          if (url.includes('blob.vercel-storage.com')) return 'Vercel Blob Storage';
+          if (url.includes('generativelanguage.googleapis.com')) return 'Google AI';
+          if (url.includes('storage.googleapis.com')) return 'Google Cloud Storage';
+          return 'Unknown';
+        }));
+        
+        if (imageUrls.length > 0) {
+          // Check if URLs are from Vercel Blob Storage (which should be persistent)
+          const vercelBlobUrls = imageUrls.filter(url => url.includes('blob.vercel-storage.com'));
+          const googleAUrls = imageUrls.filter(url => url.includes('generativelanguage.googleapis.com'));
+          
+          if (vercelBlobUrls.length > 0) {
+            console.log("✅ Found Vercel Blob Storage URLs - these should be persistent for editing");
+            console.log("Vercel Blob URLs:", vercelBlobUrls);
+            const imageHint = `Available images for editing (persistent Vercel Blob URLs): ${vercelBlobUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These URLs are persistent and should work for editing.`;
+            messages.push({ role: "system", content: imageHint });
+          } else if (googleAUrls.length > 0 && originalVercelUrls.length > 0) {
+            console.log("⚠️ Google AI URLs detected, but original Vercel Blob URLs found");
+            console.log("Google AI URLs:", googleAUrls);
+            console.log("Original Vercel Blob URLs:", originalVercelUrls);
+            console.log("✅ Using original Vercel Blob URLs for editing instead of converted Google AI URLs");
+            const imageHint = `Available images for editing (original Vercel Blob URLs): ${originalVercelUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These are the original URLs before Google AI conversion and should work for editing.`;
+            messages.push({ role: "system", content: imageHint });
+          } else if (googleAUrls.length > 0) {
+            console.log("⚠️ Warning: Only Google AI URLs found - these may expire quickly");
+            console.log("Google AI URLs:", googleAUrls);
+            console.log("⚠️ This suggests the AI SDK converted Vercel Blob URLs to Google AI URLs");
+            const imageHint = `Available images for editing (may expire): ${googleAUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. Note: These URLs may expire quickly, so editing might not work. For better results, please upload images directly to the chat.`;
+            messages.push({ role: "system", content: imageHint });
+          } else {
+            console.log("Other image URLs found:", imageUrls);
+            const imageHint = `Available images for editing: ${imageUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage.`;
+            messages.push({ role: "system", content: imageHint });
+          }
+        }
+      }
     }
 
     const StreamingTrue = streaming ?? true; // Default to streaming if not provided

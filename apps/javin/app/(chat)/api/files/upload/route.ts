@@ -41,6 +41,8 @@ export async function POST(request: Request) {
     try {
       const blob = await put(filename, fileBuffer, {
         access: 'public',
+        // Add cache control to make URLs more persistent
+        cacheControlMaxAge: 31536000, // 1 year
       });
 
       return NextResponse.json({

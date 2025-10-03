@@ -63,6 +63,9 @@ export async function POST(request: NextRequest) {
       // Google AI
       'googleapis.com',
       'googleusercontent.com',
+      'generative-ai-image-store.googleapis.com',
+      'generativelanguage.googleapis.com',
+      'storage.googleapis.com',
       
       // Azure AI Services
       'cognitiveservices.azure.com',
@@ -71,6 +74,18 @@ export async function POST(request: NextRequest) {
       // AWS AI Services
       'amazonaws.com',
       's3.amazonaws.com',
+      
+      // EPAM Services
+      'r2.src.epam.com',
+      'epam.com',
+      
+      // GSW Services
+      'r2.gsw.io',
+      'gsw.io',
+      
+      // Whatz AI Services
+      'r2.src.whatz.ai',
+      'whatz.ai',
       
       // Common CDNs and image hosts
       'cloudflare.com',

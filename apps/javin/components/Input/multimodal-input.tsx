@@ -524,6 +524,30 @@ function PureMultimodalInput({
       const content = [{ type: "text", text: input }];
       content.push(...(imageParts as any[]));
       messageContent = content;
+      
+      // Log the image URLs for debugging
+      console.log("Sending images to AI:", imageParts.map(part => part.image));
+      console.log("Image attachment details:", imageAttachments.map(att => ({ url: att.url, contentType: att.contentType, name: att.name })));
+      
+      // Check if we're sending Vercel Blob URLs
+      const vercelBlobUrls = imageParts.filter(part => part.image.includes('blob.vercel-storage.com'));
+      if (vercelBlobUrls.length > 0) {
+        console.log("✅ Sending Vercel Blob URLs to AI:", vercelBlobUrls.map(part => part.image));
+        console.log("ℹ️ Note: Google's Gemini model may convert these URLs to its own format, but the original URLs are preserved for editing");
+        
+        // Store original Vercel Blob URLs for editing
+        const originalUrls = vercelBlobUrls.map(part => part.image);
+        console.log("🔗 Original Vercel Blob URLs stored for editing:", originalUrls);
+        
+        // Add original URLs to the message content for the AI to use
+        content.push({
+          type: "text",
+          text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(', ')}]`
+        });
+      } else {
+        console.warn("⚠️ No Vercel Blob URLs found in attachments - this may cause editing issues");
+        console.warn("⚠️ This suggests the AI SDK has already converted the URLs to Google AI format");
+      }
     }
 
     if (otherAttachments.length > 0) {
@@ -579,6 +603,7 @@ function PureMultimodalInput({
       });
       if (response.ok) {
         const data = await response.json();
+        console.log("✅ File uploaded successfully to Vercel Blob Storage:", data.url);
         return {
           url: data.url,
           name: data.pathname,
