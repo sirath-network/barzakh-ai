@@ -358,7 +358,7 @@ export function AIGeneratedImage({
 
   if (imageError) {
     return (
-      <div className="max-w-full my-4 p-6 bg-gradient-to-br from-gray-900/50 to-red-950/30 rounded-lg border border-red-900/40 text-center">
+      <div className="max-w-full my-4 p-6 bg-muted/50 rounded-2xl border border-border/40 text-center">
         <div className="text-muted-foreground">
           {isExpiredUrl ? (
             <>
@@ -396,9 +396,9 @@ export function AIGeneratedImage({
   }
 
   return (
-    <div className={cn("max-w-full my-6 group", className)}>
+    <div className={cn("w-full my-6 group flex justify-start", className)}>
       <div 
-        className="relative rounded-lg overflow-hidden border border-red-900/40 shadow-xl bg-gradient-to-br from-gray-900 to-red-950/30 max-w-lg mx-auto"
+        className="relative rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200 bg-muted/30 inline-block"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -407,8 +407,8 @@ export function AIGeneratedImage({
           <img
             src={imageUrl}
             alt={alt}
-            className="w-full h-auto block object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            style={{ maxHeight: '500px', objectFit: 'cover' }}
+            className="block object-contain"
+            style={{ maxHeight: '400px', width: 'auto' }}
             onError={handleImageError}
             loading="lazy"
           />
@@ -439,10 +439,10 @@ export function AIGeneratedImage({
               size="sm"
               onClick={handleDownload}
               disabled={isDownloading}
-              className="bg-red-600 hover:bg-red-700 text-white shadow-lg border border-red-500/50"
+              className="bg-background/90 hover:bg-background border-border/60 shadow-sm"
             >
               {isDownloading ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
@@ -453,10 +453,7 @@ export function AIGeneratedImage({
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="bg-gradient-to-r from-red-900 to-red-800 hover:from-red-800 hover:to-red-700 text-white shadow-xl border border-red-700/50 backdrop-blur-sm"
-                  style={{
-                    boxShadow: '0 8px 20px rgba(139, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                  }}
+                  className="bg-background/90 hover:bg-background border-border/60 shadow-sm"
                 >
                   <Eye className="w-4 h-4" />
                 </Button>
@@ -472,7 +469,7 @@ export function AIGeneratedImage({
                     src={imageUrl}
                     alt={alt}
                     className="w-full h-auto rounded-lg"
-                    style={{ maxHeight: '80vh', objectFit: 'contain' }}
+                    style={{ maxHeight: '70vh', objectFit: 'contain' }}
                   />
                   
                   {/* Mobile Preview Actions */}
@@ -528,7 +525,7 @@ export function AIGeneratedImage({
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg border border-red-500/50"
+                        className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         Preview
@@ -546,7 +543,7 @@ export function AIGeneratedImage({
                         src={imageUrl}
                         alt={alt}
                         className="w-full h-auto rounded-lg"
-                        style={{ maxHeight: '80vh', objectFit: 'contain' }}
+                        style={{ maxHeight: '70vh', objectFit: 'contain' }}
                       />
                       
                       {/* Preview Actions */}
@@ -589,7 +586,7 @@ export function AIGeneratedImage({
                     size="sm"
                     onClick={handleDownload}
                     disabled={isDownloading}
-                    className="bg-red-600 hover:bg-red-700 text-white shadow-lg border border-red-500/50"
+                    className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     {isDownloading ? 'Downloading...' : 'Download'}
@@ -605,10 +602,10 @@ export function AIGeneratedImage({
                     variant="secondary"
                     size="sm"
                     onClick={handleCopyUrl}
-                    className="bg-red-600 hover:bg-red-700 text-white shadow-lg border border-red-500/50"
+                    className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
                   >
                     {isCopied ? (
-                      <Check className="w-4 h-4 mr-2 text-green-400" />
+                      <Check className="w-4 h-4 mr-2 text-green-500" />
                     ) : (
                       <Copy className="w-4 h-4 mr-2" />
                     )}
@@ -628,7 +625,7 @@ export function AIGeneratedImage({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="px-3 py-1 bg-black/70 backdrop-blur-md rounded-full text-red-200 text-xs opacity-80"
+                className="px-3 py-1 bg-background/80 backdrop-blur-sm rounded-full text-muted-foreground text-xs border border-border/40"
               >
                 Powered by Barzakh
               </motion.div>
@@ -867,19 +864,19 @@ export function AIGeneratedImageCompact({
   };
 
   return (
-    <div className={cn("max-w-sm mx-auto", className)}>
+    <div className={cn("inline-block", className)}>
       {/* Compact Header */}
       <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
         <span>AI Generated Image</span>
       </div>
       
-      <div className="relative group border border-red-900/40 rounded-lg overflow-hidden bg-gradient-to-br from-gray-900 to-red-950/30"
+      <div className="relative group border border-border/40 rounded-2xl overflow-hidden bg-muted/30 shadow-sm hover:shadow-md transition-shadow duration-200"
       >
         <img
           src={imageUrl}
           alt={alt}
-          className="w-full h-auto object-cover filter drop-shadow-lg"
-          style={{ maxHeight: '300px', objectFit: 'cover' }}
+          className="block object-contain"
+          style={{ maxHeight: '300px', width: 'auto' }}
           loading="lazy"
         />
         
@@ -890,25 +887,22 @@ export function AIGeneratedImageCompact({
           size="sm"
           onClick={handleDownload}
           disabled={isDownloading}
-            className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white shadow-lg border border-red-500/50"
+            className="absolute top-2 right-2 bg-background/90 hover:bg-background border-border/60 shadow-sm"
         >
             {isDownloading ? (
-              <div className="w-3 h-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <div className="w-3 h-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
             ) : (
           <Download className="w-3 h-3" />
             )}
         </Button>
         ) : (
-          /* Desktop: Hover-based download button with dark fantasy theme */
+          /* Desktop: Hover-based download button */
           <Button
             variant="secondary"
             size="sm"
             onClick={handleDownload}
             disabled={isDownloading}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r from-red-900 to-red-800 hover:from-red-800 hover:to-red-700 text-white shadow-lg border border-red-700/50"
-            style={{
-              boxShadow: '0 6px 16px rgba(139, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-            }}
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
           >
             <Download className="w-3 h-3" />
           </Button>

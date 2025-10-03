@@ -140,7 +140,7 @@ export const PreviewAttachment = ({
       className="flex flex-col gap-2 items-center relative group"
     >
       <PreviewContainer>
-        <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-800 dark:to-neutral-900 w-full h-full rounded-xl relative flex items-center justify-center border border-neutral-200 dark:border-neutral-700 shadow-sm transition-all duration-300 overflow-hidden">
+        <div className="bg-muted/30 w-full h-full rounded-2xl relative flex items-center justify-center border border-border/40 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
           {isImage ? (
             <div className="relative w-full h-full">
               <img
@@ -150,20 +150,19 @@ export const PreviewAttachment = ({
                 loading="lazy"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-1 p-2">
               <Icon />
-              <div className={clsx(config.badge, "bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-md font-medium")}>
+              <div className={clsx(config.badge, "bg-muted text-foreground/80 rounded-lg font-medium border border-border/30")}>
                 {fileExtension}
               </div>
             </div>
           )}
 
           {isUploading && (
-            <div className="absolute inset-0 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm flex items-center justify-center">
-              <div className="animate-spin text-neutral-600 dark:text-neutral-400">
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+              <div className="animate-spin text-muted-foreground">
                 <LoaderIcon />
               </div>
             </div>
@@ -183,7 +182,7 @@ export const PreviewAttachment = ({
             onRemove();
           }}
           className={clsx(
-            "absolute bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 z-10 border-2 border-white dark:border-neutral-800",
+            "absolute bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-10 border-2 border-background",
             "opacity-0 group-hover:opacity-100",
             config.removeButton
           )}
@@ -193,7 +192,7 @@ export const PreviewAttachment = ({
         </motion.button>
       )}
 
-      <p className={clsx(config.text, "text-neutral-600 dark:text-neutral-400 text-center truncate px-1 leading-tight")}>
+      <p className={clsx(config.text, "text-muted-foreground text-center truncate px-1 leading-tight")}>
         {name || "Unnamed file"}
       </p>
     </motion.div>

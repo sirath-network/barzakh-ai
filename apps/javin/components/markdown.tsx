@@ -257,10 +257,11 @@ const components: Partial<Components> = {
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
+  const filteredChildren = children.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
   return (
     <div className="markdown-body">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
-        {children}
+        {filteredChildren}
       </ReactMarkdown>
     </div>
   );

@@ -29,7 +29,22 @@ export function MessageEditor({
   reload,
 }: MessageEditorProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [draftContent, setDraftContent] = useState<string>(message.content);
+  
+  // Extract text content from message (handle both string and multimodal array)
+  const getTextContent = (content: string | any[]): string => {
+    if (typeof content === 'string') {
+      return content;
+    }
+    if (Array.isArray(content)) {
+      return content
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join('\n');
+    }
+    return '';
+  };
+  
+  const [draftContent, setDraftContent] = useState<string>(getTextContent(message.content));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {

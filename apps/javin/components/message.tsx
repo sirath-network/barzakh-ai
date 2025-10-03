@@ -137,6 +137,9 @@ const PurePreviewMessage = ({
   const otherCompletedTools = completedTools?.filter(
     (tool) => tool.toolName !== 'webSearch'
   );
+  const hasCreateImage = otherCompletedTools?.some(
+    (tool) => tool.toolName === 'createImage'
+  );
 
   // Logika thinking yang lebih agresif dan responsif
   const isThinking = 
@@ -200,17 +203,6 @@ const PurePreviewMessage = ({
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {message.experimental_attachments && (
-                    <div className="flex flex-row justify-end gap-2">
-                      {message.experimental_attachments.map((attachment) => (
-                        <PreviewAttachment
-                          key={attachment.url}
-                          attachment={attachment}
-                        />
-                      ))}
-                    </div>
-                  )}
-
                   {message.reasoning && (
                     <MessageReasoning
                       isLoading={isLoading}
@@ -232,8 +224,20 @@ const PurePreviewMessage = ({
                     ))
                   )}
 
+                  {/* === USER ATTACHMENTS - SEPARATE FROM MESSAGE BUBBLE === */}
+                  {message.role === "user" && message.experimental_attachments && (
+                    <div className="flex flex-row justify-end gap-3 mb-2">
+                      {message.experimental_attachments.map((attachment) => (
+                        <PreviewAttachment
+                          key={attachment.url}
+                          attachment={attachment}
+                        />
+                      ))}
+                    </div>
+                  )}
+
                   {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
-                  {(message.content) && mode === "view" && (
+                  {(message.content) && mode === "view" && !(message.role === 'assistant' && hasCreateImage) && (
                     <motion.div
                       className={cn("flex flex-col w-full", {
                         "items-end": message.role === "user",
@@ -264,14 +268,22 @@ const PurePreviewMessage = ({
                                 return <Markdown key={index}>{part.text}</Markdown>;
                               }
                               if (part.type === "image" && typeof part.image === 'string') {
-                                return (
-                                  <img
-                                    key={index}
-                                    src={part.image}
-                                    alt="Uploaded image"
-                                    className="max-w-full h-auto rounded-lg border border-border/20"
-                                  />
-                                );
+                                // Show images in content for assistant messages or if no experimental_attachments
+                                if (message.role === "assistant" || !message.experimental_attachments) {
+                                  return (
+                                    <div 
+                                      key={index}
+                                      className="relative inline-block rounded-2xl overflow-hidden border border-border/40 shadow-sm bg-muted/30"
+                                    >
+                                      <img
+                                        src={part.image}
+                                        alt="Uploaded image"
+                                        className="block object-contain"
+                                        style={{ maxHeight: '400px', width: 'auto' }}
+                                      />
+                                    </div>
+                                  );
+                                }
                               }
                               return null;
                             })}
