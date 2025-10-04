@@ -42,6 +42,11 @@ export function AIGeneratedImage({
   const [currentImageIndex, setCurrentImageIndex] = useState(currentIndex);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
+  // Get current image for display
+  const currentImage = allImages && allImages.length > 1 
+    ? allImages[currentImageIndex] 
+    : imageUrl;
+  
   const isMobile = useIsMobile();
   
   // Check if URL is expired on component mount
@@ -267,20 +272,6 @@ export function AIGeneratedImage({
     
     // Open image directly in new tab
     window.open(urlToUse, '_blank');
-    
-    // Show clear instructions for mobile users
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isIOS) {
-      setDownloadError('📱 Image opened in new tab. Tap and hold the image, then select "Save to Photos" or "Add to Photos".');
-    } else if (isMobile) {
-      setDownloadError('📱 Image opened in new tab. Long-press the image and select "Download image" or "Save image".');
-    } else {
-      setDownloadError('🖥️ Image opened in new tab. Right-click the image and select "Save image as..."');
-    }
-    
-    setTimeout(() => setDownloadError(null), 8000);
   };
 
   const downloadImageOnMobile = async (dataUrl: string, filename: string) => {
@@ -399,11 +390,6 @@ export function AIGeneratedImage({
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
   }, [isPreviewOpen, allImages]);
-
-  // Get current image for display
-  const currentImage = allImages && allImages.length > 1 
-    ? allImages[currentImageIndex] 
-    : imageUrl;
 
   const handleImageError = () => {
     // Only check expiration for URLs that have signed URL parameters
