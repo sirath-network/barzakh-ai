@@ -396,9 +396,9 @@ export function AIGeneratedImage({
   }
 
   return (
-    <div className={cn("w-full my-6 group flex justify-start", className)}>
+    <div className={cn("w-full my-6 group flex flex-col justify-start", className)}>
       <div 
-        className="relative rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200 bg-muted/30 inline-block"
+        className="relative rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200 bg-muted/30 inline-block w-fit max-w-full"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -407,7 +407,7 @@ export function AIGeneratedImage({
           <img
             src={imageUrl}
             alt={alt}
-            className="block object-contain"
+            className="block object-contain max-w-full"
             style={{ maxHeight: '400px', width: 'auto' }}
             onError={handleImageError}
             loading="lazy"
