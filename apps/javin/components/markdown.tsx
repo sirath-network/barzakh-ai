@@ -1,52 +1,21 @@
 import Link from "next/link";
-import React, { memo, useState } from "react";
+import React, { memo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
 import "./markdown.css";
 import { AddressBlock } from "./AddressBlock"; // Impor komponen baru
 
-// Component to handle image loading with fallback
-const ImageWithFallback = ({ src, alt }: { src: string; alt: string }) => {
-  const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  if (hasError) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 bg-muted/50 rounded-lg border border-red-200 text-center">
-        <div className="text-red-500 text-sm font-medium mb-2">Image expired or unavailable</div>
-        <div className="text-xs text-muted-foreground mb-3">This image link may have expired or is no longer accessible.</div>
-        <a 
-          href={src} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-blue-500 hover:underline text-sm"
-        >
-          Try opening in new tab
-        </a>
-      </div>
-    );
-  }
-
+// Simple image component without error handling
+const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
   return (
-    <div className="relative">
-      {isLoading && (
-        <div className="flex items-center justify-center p-8 bg-muted/30 rounded-lg border border-border/20">
-          <div className="text-sm text-muted-foreground">Loading image...</div>
-        </div>
-      )}
-      <img
-        src={src}
-        alt={alt}
-        className={`max-w-full h-auto rounded-lg border border-border/20 shadow-lg transition-opacity duration-200 ${
-          isLoading ? 'opacity-0 absolute' : 'opacity-100'
-        }`}
-        style={{ maxHeight: '500px', objectFit: 'contain' }}
-        onError={() => setHasError(true)}
-        onLoad={() => setIsLoading(false)}
-        loading="lazy"
-      />
-    </div>
+    <img
+      src={src}
+      alt={alt}
+      className="max-w-full h-auto rounded-lg border border-border/20 shadow-lg"
+      style={{ maxHeight: '500px', objectFit: 'contain' }}
+      loading="lazy"
+    />
   );
 };
 
@@ -73,7 +42,7 @@ const components: Partial<Components> = {
             if (imageUrlRegex.test(part)) {
               return (
                 <div key={index} className="my-4 max-w-full">
-                  <ImageWithFallback 
+                  <SimpleImage 
                     src={part} 
                     alt="Generated image"
                   />
@@ -172,7 +141,7 @@ const components: Partial<Components> = {
     if (isImageUrl) {
       return (
         <div className="my-4 max-w-full">
-          <ImageWithFallback 
+          <SimpleImage 
             src={href} 
             alt={typeof children === 'string' ? children : 'Generated image'}
           />
@@ -257,7 +226,15 @@ const components: Partial<Components> = {
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
-  const filteredChildren = children.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
+  let filteredChildren = children.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
+  
+  // Filter out standalone image URLs from text (but preserve them in markdown links and images)
+  // This regex matches image URLs that appear as plain text (not in markdown syntax)
+  filteredChildren = filteredChildren.replace(
+    /(^|\s)(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?[^\s]*)?)(\s|$)/gi,
+    '$1$5' // Replace with just the surrounding whitespace
+  );
+  
   return (
     <div className="markdown-body">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
