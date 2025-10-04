@@ -51,7 +51,7 @@ const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "smal
 
 import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
-import { AIGeneratedImage } from "./ai-generated-image";
+import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
 
 const PurePreviewMessage = ({
   chatId,
@@ -356,7 +356,12 @@ const PurePreviewMessage = ({
                           getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
                           getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
                           getTokenBalances: <PortfolioTable result={result} />,
-                          createImage: result?.imageUrl ? (
+                          createImage: result?.imageUrls ? (
+                            <AIGeneratedImageGrid 
+                              imageUrls={result.imageUrls}
+                              alt="AI generated images"
+                            />
+                          ) : result?.imageUrl ? (
                             <AIGeneratedImage 
                               imageUrl={result.imageUrl}
                               alt="AI generated image"

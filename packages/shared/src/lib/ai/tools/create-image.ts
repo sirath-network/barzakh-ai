@@ -79,7 +79,7 @@ function sanitizePrompt(prompt: string): string {
 async function generateFluxImage(
   prompt: string,
   input_image_urls?: string[]
-): Promise<string> {
+): Promise<string[]> {
   const API_KEY = process.env.FIREWORKS_API_KEY;
 
   if (!API_KEY) {
@@ -91,7 +91,9 @@ async function generateFluxImage(
   console.log("Original prompt:", prompt);
   console.log("Sanitized prompt:", sanitizedPrompt);
   
-  const requestBody: { prompt: string; input_images?: string[] } = { prompt: sanitizedPrompt };
+  const requestBody: { prompt: string; input_images?: string[] } = { 
+    prompt: sanitizedPrompt
+  };
 
   if (input_image_urls && input_image_urls.length > 0) {
     try {
@@ -232,91 +234,156 @@ For better image editing results in the future, please:
     }
   }
 
-  // Step 1: Submit the generation request
-  const response = await fetch(
-    "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
+  // Generate 4 images by making 4 separate API calls with delays
+  const imagePromises = Array.from({ length: 4 }, async (_, index) => {
+    console.log(`Generating image ${index + 1}/4...`);
+    
+    // Add delay between API calls to prevent rate limiting
+    if (index > 0) {
+      const delay = index * 3500; // 3.5 seconds delay between each call
+      console.log(`Waiting ${delay}ms before generating image ${index + 1}...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-  );
+    
+    // Retry logic for API calls
+    const maxRetries = 3;
+    let lastError;
+    
+    for (let retry = 0; retry < maxRetries; retry++) {
+      try {
+        if (retry > 0) {
+          console.log(`Retrying image ${index + 1} generation (attempt ${retry + 1}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retry)); // Exponential backoff
+        }
+        
+        // Step 1: Submit the generation request
+        const response = await fetch(
+          "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(30000), // 30 second timeout
+          }
+        );
 
-  const result = await response.json();
-  const requestId = result.request_id;
+        const result = await response.json();
+        const requestId = result.request_id;
 
-  if (!requestId) {
-    throw new Error("No request ID returned from Flux API");
-  }
+        if (!requestId) {
+          throw new Error(`No request ID returned from Flux API for image ${index + 1}`);
+        }
 
-  console.log("Flux request submitted with ID:", requestId);
+        console.log(`Flux request ${index + 1} submitted with ID:`, requestId);
 
-  // Step 2: Poll for the result
-  const resultEndpoint =
-    "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro/get_result";
+        // Step 2: Poll for the result
+        const resultEndpoint =
+          "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro/get_result";
 
-  for (let attempts = 0; attempts < 60; attempts++) {
-    // Reduced timeout to 60 seconds for better UX
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+        let pollResult;
+        for (let attempts = 0; attempts < 60; attempts++) {
+          // Reduced timeout to 60 seconds for better UX
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const resultResponse = await fetch(resultEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "image/jpeg",
-        Authorization: `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({ id: requestId }),
-    });
+          const resultResponse = await fetch(resultEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "image/jpeg",
+              Authorization: `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({ id: requestId }),
+            signal: AbortSignal.timeout(10000), // 10 second timeout for polling
+          });
 
-    const pollResult = await resultResponse.json();
+          pollResult = await resultResponse.json();
 
-    if (["Ready", "Complete", "Finished"].includes(pollResult.status)) {
-      const imageData = pollResult.result?.sample;
+          if (["Ready", "Complete", "Finished"].includes(pollResult.status)) {
+            const imageData = pollResult.result?.sample;
 
-      if (typeof imageData === "string" && imageData.startsWith("http")) {
-        console.log("Flux returned URL:", imageData);
-        return imageData;
-      } else if (imageData) {
-        const base64Data = imageData.startsWith("data:")
-          ? imageData
-          : `data:image/jpeg;base64,${imageData}`;
-        console.log("Flux returned base64 data, length:", base64Data.length);
-        return base64Data;
-      } else {
-        throw new Error("No image data received from Flux API");
+            if (typeof imageData === "string" && imageData.startsWith("http")) {
+              console.log(`Flux returned URL for image ${index + 1}:`, imageData);
+              return imageData;
+            } else if (imageData) {
+              const base64Data = imageData.startsWith("data:")
+                ? imageData
+                : `data:image/jpeg;base64,${imageData}`;
+              console.log(`Flux returned base64 data for image ${index + 1}, length:`, base64Data.length);
+              return base64Data;
+            } else {
+              throw new Error(`No image data received from Flux API for image ${index + 1}`);
+            }
+          }
+
+          if (["Failed", "Error"].includes(pollResult.status)) {
+            throw new Error(
+              `Flux generation failed for image ${index + 1}: ${pollResult.details || "Unknown error"}`
+            );
+          }
+
+          // Check for content moderation issues
+          if (pollResult.status === "Content Moderated") {
+            console.warn(`Content moderation triggered for image ${index + 1} - prompt may contain inappropriate content`);
+            // Continue polling but note the moderation
+          }
+
+          console.log(
+            `Flux status for image ${index + 1}: ${pollResult.status}, attempt ${attempts + 1}/60`
+          );
+        }
+
+        // Check if we had content moderation issues after timeout
+        if (pollResult?.status === "Content Moderated") {
+          throw new Error(`Image ${index + 1} generation was blocked by content moderation. The prompt may contain inappropriate content. Please try a different, more appropriate prompt.`);
+        }
+        
+        throw new Error(`Flux generation timed out after 60 attempts for image ${index + 1}`);
+        
+      } catch (error) {
+        lastError = error;
+        console.warn(`Image ${index + 1} generation attempt ${retry + 1} failed:`, error.message);
+        
+        // If it's a network error and we have retries left, continue
+        if (retry < maxRetries - 1 && (
+          error.message.includes('fetch failed') || 
+          error.message.includes('ETIMEDOUT') ||
+          error.message.includes('timeout')
+        )) {
+          continue;
+        }
+        
+        // If it's not a network error or we're out of retries, throw
+        throw error;
       }
     }
+    
+    // If we get here, all retries failed
+    throw lastError || new Error(`Failed to generate image ${index + 1} after ${maxRetries} attempts`);
+  });
 
-    if (["Failed", "Error"].includes(pollResult.status)) {
-      throw new Error(
-        `Flux generation failed: ${pollResult.details || "Unknown error"}`
-      );
-    }
-
-    // Check for content moderation issues
-    if (pollResult.status === "Content Moderated") {
-      console.warn("Content moderation triggered - prompt may contain inappropriate content");
-      // Continue polling but note the moderation
-    }
-
-    console.log(
-      `Flux status: ${pollResult.status}, attempt ${attempts + 1}/60`
-    );
-  }
-
-  // Check if we had content moderation issues
-  const hasContentModeration = pollResult?.status === "Content Moderated";
-  
-  if (hasContentModeration) {
-    throw new Error("Image generation was blocked by content moderation. The prompt may contain inappropriate content. Please try a different, more appropriate prompt.");
+  // Wait for all 4 images to be generated with partial success handling
+  const results = await Promise.allSettled(imagePromises);
+  const imageUrls = results
+    .map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        console.error(`Image ${index + 1} generation failed:`, result.reason);
+        return null;
+      }
+    })
+    .filter(Boolean); // Remove null values
+    
+  if (imageUrls.length === 0) {
+    throw new Error('All image generation attempts failed. Please try again with a different prompt.');
   }
   
-  throw new Error("Flux generation timed out after 60 attempts");
+  console.log(`Successfully generated ${imageUrls.length} out of 4 images`);
+  return imageUrls;
 }
 
 export const createImage = tool({
@@ -380,9 +447,9 @@ export const createImage = tool({
     try {
       // Handle Flux Kontext Pro model
       if (selectedModelId === "flux-model") {
-        const imageUrl = await generateFluxImage(prompt, input_images);
+        const imageUrls = await generateFluxImage(prompt, input_images);
         return {
-          imageUrl: imageUrl,
+          imageUrls: imageUrls,
         };
       }
 
@@ -407,9 +474,9 @@ export const createImage = tool({
           break;
         default:
           console.log(`Unknown model ${selectedModelId}, using flux-model.`);
-          const imageUrl = await generateFluxImage(prompt, input_images);
+          const imageUrls = await generateFluxImage(prompt, input_images);
           return {
-            imageUrl: imageUrl,
+            imageUrls: imageUrls,
           };
       }
 
@@ -425,7 +492,7 @@ export const createImage = tool({
           body: JSON.stringify({
             model: selectedModelId === "large-model" ? "dall-e-3" : "dall-e-2",
             prompt: prompt,
-            n: 1,
+            n: 4,
             size: "1024x1024",
           }),
         }
@@ -433,9 +500,10 @@ export const createImage = tool({
 
       const data = await response.json();
 
-      if (data.data && data.data[0]) {
+      if (data.data && data.data.length > 0) {
+        const imageUrls = data.data.map((item: any) => item.url);
         return {
-          imageUrl: data.data[0].url,
+          imageUrls: imageUrls,
         };
       }
 

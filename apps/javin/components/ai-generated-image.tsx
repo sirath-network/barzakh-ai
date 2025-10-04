@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Eye, X, Copy, Check, AlertCircle, Share } from "lucide-react";
+import { Download, Eye, X, Copy, Check, AlertCircle, Share, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader } from "./ui/dialog";
 import { cn } from "@javin/shared/lib/utils/utils";
@@ -13,12 +13,22 @@ interface AIGeneratedImageProps {
   imageUrl: string;
   alt?: string;
   className?: string;
+  allImages?: string[];
+  currentIndex?: number;
+}
+
+interface AIGeneratedImageGridProps {
+  imageUrls: string[];
+  alt?: string;
+  className?: string;
 }
 
 export function AIGeneratedImage({ 
   imageUrl, 
   alt = "AI generated image",
-  className 
+  className,
+  allImages,
+  currentIndex = 0
 }: AIGeneratedImageProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -27,6 +37,10 @@ export function AIGeneratedImage({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [isExpiredUrl, setIsExpiredUrl] = useState(false);
+  
+  // Navigation state for multiple images
+  const [currentImageIndex, setCurrentImageIndex] = useState(currentIndex);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   const isMobile = useIsMobile();
   
@@ -77,7 +91,7 @@ export function AIGeneratedImage({
       // Extract extension properly from URL, handling signed URLs
       let extension = 'png'; // Default extension
       try {
-        const url = new URL(imageUrl);
+        const url = new URL(currentImage);
         const pathname = url.pathname;
         const pathExtension = pathname.split('.').pop();
         if (pathExtension && ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(pathExtension.toLowerCase())) {
@@ -85,7 +99,7 @@ export function AIGeneratedImage({
         }
       } catch (e) {
         // Fallback for non-URL strings
-        const urlPart = imageUrl.split('?')[0]; // Remove query parameters
+        const urlPart = currentImage.split('?')[0]; // Remove query parameters
         const pathExtension = urlPart.split('.').pop();
         if (pathExtension && ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(pathExtension.toLowerCase())) {
           extension = pathExtension.toLowerCase();
@@ -98,14 +112,14 @@ export function AIGeneratedImage({
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
       // Check if it's a data URL (base64)
-      if (imageUrl.startsWith('data:')) {
+      if (currentImage.startsWith('data:')) {
         if (isMobile) {
           // Mobile: Use different approach for data URLs
-          await downloadImageOnMobile(imageUrl, filename);
+          await downloadImageOnMobile(currentImage, filename);
         } else {
           // Desktop: Direct download
           const link = document.createElement('a');
-          link.href = imageUrl;
+          link.href = currentImage;
           link.download = filename;
           document.body.appendChild(link);
           link.click();
@@ -117,12 +131,12 @@ export function AIGeneratedImage({
       // For external URLs, try different approaches based on device
       if (isMobile) {
         // Mobile-specific download strategy
-        await handleMobileDownload(imageUrl, filename, isIOS);
+        await handleMobileDownload(currentImage, filename, isIOS);
       } else {
         // Desktop download strategy
         try {
           // First try: Direct fetch (works for same-origin or CORS-enabled images)
-          const response = await fetch(imageUrl, {
+          const response = await fetch(currentImage, {
             mode: 'cors',
             credentials: 'omit'
           });
@@ -144,7 +158,7 @@ export function AIGeneratedImage({
           console.warn('Direct fetch failed, trying server proxy:', fetchError);
           
           // Fallback: Try server-side proxy
-          await downloadViaProxy(imageUrl, filename);
+          await downloadViaProxy(currentImage, filename);
         }
       }
     } catch (error) {
@@ -169,7 +183,7 @@ export function AIGeneratedImage({
       
       // Final fallback: Open in new tab
       const link = document.createElement('a');
-      link.href = imageUrl;
+      link.href = currentImage;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
@@ -337,13 +351,59 @@ export function AIGeneratedImage({
     e.stopPropagation();
     
     try {
-      await navigator.clipboard.writeText(imageUrl);
+      await navigator.clipboard.writeText(currentImage);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy URL:', error);
     }
   };
+
+  // Navigation functions for multiple images
+  const goToPreviousImage = () => {
+    if (allImages && allImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+    }
+  };
+
+  const goToNextImage = () => {
+    if (allImages && allImages.length > 1) {
+      setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+    }
+  };
+
+  const handlePreviewOpen = () => {
+    setCurrentImageIndex(currentIndex);
+    setIsPreviewOpen(true);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isPreviewOpen || !allImages || allImages.length <= 1) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPreviousImage();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNextImage();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsPreviewOpen(false);
+      }
+    };
+
+    if (isPreviewOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isPreviewOpen, allImages]);
+
+  // Get current image for display
+  const currentImage = allImages && allImages.length > 1 
+    ? allImages[currentImageIndex] 
+    : imageUrl;
 
   const handleImageError = () => {
     // Only check expiration for URLs that have signed URL parameters
@@ -448,12 +508,13 @@ export function AIGeneratedImage({
               )}
             </Button>
             
-            <Dialog>
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
               <DialogTrigger asChild>
                 <Button
                   variant="secondary"
                   size="sm"
                   className="bg-background/90 hover:bg-background border-border/60 shadow-sm"
+                  onClick={handlePreviewOpen}
                 >
                   <Eye className="w-4 h-4" />
                 </Button>
@@ -466,11 +527,41 @@ export function AIGeneratedImage({
                 </DialogHeader>
                 <div className="relative">
                   <img
-                    src={imageUrl}
+                    src={currentImage}
                     alt={alt}
                     className="w-full h-auto rounded-lg"
                     style={{ maxHeight: '70vh', objectFit: 'contain' }}
                   />
+                  
+                  {/* Navigation for multiple images */}
+                  {allImages && allImages.length > 1 && (
+                    <>
+                      {/* Image counter */}
+                      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
+                        {currentImageIndex + 1} / {allImages.length}
+                      </div>
+                      
+                      {/* Previous button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={goToPreviousImage}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </Button>
+                      
+                      {/* Next button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={goToNextImage}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    </>
+                  )}
                   
                   {/* Mobile Preview Actions */}
                   <div className="absolute bottom-4 right-4 flex gap-2">
@@ -516,7 +607,7 @@ export function AIGeneratedImage({
             >
               <div className="flex gap-3">
                 {/* Preview Button */}
-                <Dialog>
+                <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                   <DialogTrigger asChild>
                     <motion.div
                       whileHover={{ scale: 1.05 }}
@@ -526,6 +617,7 @@ export function AIGeneratedImage({
                         variant="secondary"
                         size="sm"
                         className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
+                        onClick={handlePreviewOpen}
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         Preview
@@ -540,11 +632,41 @@ export function AIGeneratedImage({
                     </DialogHeader>
                     <div className="relative">
                       <img
-                        src={imageUrl}
+                        src={currentImage}
                         alt={alt}
                         className="w-full h-auto rounded-lg"
                         style={{ maxHeight: '70vh', objectFit: 'contain' }}
                       />
+                      
+                      {/* Navigation for multiple images */}
+                      {allImages && allImages.length > 1 && (
+                        <>
+                          {/* Image counter */}
+                          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
+                            {currentImageIndex + 1} / {allImages.length}
+                          </div>
+                          
+                          {/* Previous button */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={goToPreviousImage}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                          >
+                            <ChevronLeft className="h-5 w-5" />
+                          </Button>
+                          
+                          {/* Next button */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={goToNextImage}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </Button>
+                        </>
+                      )}
                       
                       {/* Preview Actions */}
                       <div className="absolute bottom-4 right-4 flex gap-2">
@@ -593,25 +715,6 @@ export function AIGeneratedImage({
                   </Button>
                 </motion.div>
 
-                {/* Copy URL Button */}
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleCopyUrl}
-                    className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
-                  >
-                    {isCopied ? (
-                      <Check className="w-4 h-4 mr-2 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4 mr-2" />
-                    )}
-                    {isCopied ? 'Copied!' : 'Copy'}
-                  </Button>
-                </motion.div>
               </div>
             </motion.div>
           )}
@@ -730,7 +833,7 @@ export function AIGeneratedImageCompact({
         
         // Fallback for data URLs
         const link = document.createElement('a');
-        link.href = imageUrl;
+        link.href = currentImage;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
@@ -779,7 +882,7 @@ export function AIGeneratedImageCompact({
           
           // Final mobile fallback: Open in new tab with instructions
           const link = document.createElement('a');
-          link.href = imageUrl;
+          link.href = currentImage;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           document.body.appendChild(link);
@@ -838,7 +941,7 @@ export function AIGeneratedImageCompact({
           
           // Final fallback: Open in new tab
           const link = document.createElement('a');
-          link.href = imageUrl;
+          link.href = currentImage;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           document.body.appendChild(link);
@@ -852,7 +955,7 @@ export function AIGeneratedImageCompact({
       
       // Final fallback: Open in new tab
       const link = document.createElement('a');
-      link.href = imageUrl;
+      link.href = currentImage;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
@@ -907,6 +1010,36 @@ export function AIGeneratedImageCompact({
             <Download className="w-3 h-3" />
           </Button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// New component for displaying multiple images in a grid
+export function AIGeneratedImageGrid({ 
+  imageUrls, 
+  alt = "AI generated images",
+  className 
+}: AIGeneratedImageGridProps) {
+  const isMobile = useIsMobile();
+  
+  // For mobile, show 2x2 grid, for desktop show 2x2 as well but with better spacing
+  const gridCols = isMobile ? "grid-cols-2" : "grid-cols-2";
+  const gap = isMobile ? "gap-2" : "gap-4";
+  
+  return (
+    <div className={cn("w-full my-6", className)}>
+      <div className={cn("grid", gridCols, gap)}>
+        {imageUrls.map((imageUrl, index) => (
+          <AIGeneratedImage
+            key={index}
+            imageUrl={imageUrl}
+            alt={`${alt} ${index + 1}`}
+            className="w-full"
+            allImages={imageUrls}
+            currentIndex={index}
+          />
+        ))}
       </div>
     </div>
   );
