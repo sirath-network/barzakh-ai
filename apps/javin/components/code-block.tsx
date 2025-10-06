@@ -1,7 +1,9 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Copy, Check, Play, Terminal, ChevronDown, ChevronRight, Code2, X, Maximize2 } from 'lucide-react';
+import { Copy, Check, Play, Terminal, ChevronDown, ChevronRight, Code2, X, Maximize2, ExternalLink } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark as grayscale } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { useArtifact } from '@/context/artifact-context';
+import { generateUUID } from '@javin/shared/lib/utils/utils';
 
 // --- KONFIGURASI & TIPE ---
 const DEFAULT_OUTPUT_HEIGHT = 192; // Default: 192px (h-48)
@@ -105,6 +107,7 @@ export function CodeBlock({
   fileName: initialFileName,
   showLineNumbers = true,
 }: CodeBlockProps) {
+  const { openArtifact } = useArtifact();
   const [output, setOutput] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [showOutput, setShowOutput] = useState(false);
@@ -264,6 +267,21 @@ export function CodeBlock({
     } catch (error) { setOutput(error.toString()); } finally { setIsRunning(false); }
   }, [codeContent, language, langConfig.executable]);
 
+  const handleOpenInArtifact = useCallback(() => {
+    openArtifact({
+      id: generateUUID(),
+      type: language === 'html' ? 'html' : 'code',
+      title: fileName,
+      language: language,
+      content: codeContent,
+      metadata: {
+        fileName: fileName,
+        lineCount: lineCount,
+        isExecutable: langConfig.executable,
+      },
+    });
+  }, [openArtifact, language, fileName, codeContent, lineCount, langConfig.executable]);
+
   const handleToggleView = () => {
     if (isMobile) {
       setIsFullscreen(true);
@@ -282,13 +300,9 @@ export function CodeBlock({
 
   if (inline) {
     return (
-      <span className="max-w-full overflow-hidden text-sm inline-block align-middle mx-1">
-        <span className="border rounded-lg overflow-hidden bg-card shadow-sm flex items-center">
-          <div className="flex items-center justify-between px-4 py-3 bg-card hover:bg-muted transition-colors text-left">
-            <CodeHeader fileName={fileName} langName={langConfig.name} lineCount={lineCount} />
-          </div>
-        </span>
-      </span>
+      <code className="px-1.5 py-0.5 rounded-md bg-muted text-sm font-mono">
+        {codeContent}
+      </code>
     );
   }
   
@@ -338,26 +352,39 @@ export function CodeBlock({
 
   return (
     <>
-      <div className="my-4 max-w-full overflow-hidden text-sm">
-        <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
-          <button 
-            onClick={handleToggleView} 
-            className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-muted transition-colors border-b text-left" 
-            aria-expanded={isExpanded} 
-            aria-label={isExpanded ? 'Hide code block' : 'Show code block'}
-          >
+      <div className="my-4 max-w-full overflow-hidden text-sm group">
+        <div className="border rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
+          <div className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 border-b">
             <CodeHeader fileName={fileName} langName={langConfig.name} lineCount={lineCount} />
-            <div className="flex items-center space-x-3">
-              <div className="hidden sm:flex items-center space-x-1.5 text-xs text-muted-foreground">
-                <Code2 className="w-4 h-4" />
-                <span>{isExpanded ? 'Hide' : 'Show Code'}</span>
-              </div>
-              <div className="flex sm:hidden items-center space-x-1.5 text-xs text-muted-foreground">
-                <Maximize2 className="w-4 h-4" />
-                <span>Fullscreen</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenInArtifact}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                title="Open in artifact viewer"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span className="hidden sm:inline">Open</span>
+              </button>
+              <button 
+                onClick={handleToggleView} 
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-background text-foreground border rounded-md hover:bg-muted transition-colors" 
+                aria-expanded={isExpanded} 
+                aria-label={isExpanded ? 'Hide code block' : 'Show code block'}
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronDown className="w-3 h-3" />
+                    <span className="hidden sm:inline">Collapse</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="hidden sm:inline">Expand</span>
+                  </>
+                )}
+              </button>
             </div>
-          </button>
+          </div>
           
           {isExpanded && !isMobile && (
             <div className="flex flex-row relative" style={{ height: '400px' }}>

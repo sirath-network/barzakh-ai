@@ -3,8 +3,12 @@ import React, { memo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
+import { CodeBlockCompact } from "./code-block-compact";
 import "./markdown.css";
 import { AddressBlock } from "./AddressBlock"; // Impor komponen baru
+
+// Check if we should use compact view - for cleaner chat experience
+const USE_COMPACT_CODE_BLOCKS = true;
 
 // Simple image component without error handling
 const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
@@ -20,12 +24,16 @@ const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
 };
 
 const components: Partial<Components> = {
-  // @ts-expect-error
-  code: CodeBlock,
+  // @ts-expect-error - Dynamic component selection based on preference
+  code: USE_COMPACT_CODE_BLOCKS ? CodeBlockCompact : CodeBlock,
   small: ({ children }) => (
     <small className="break-long-words">{children}</small>
   ),
-  pre: ({ children }) => <>{children}</>,
+  pre: ({ children }) => (
+    <div className="not-prose my-0">
+      {children}
+    </div>
+  ),
 
   span: ({ children }) => {
     const text = typeof children === 'string' ? children : '';
@@ -59,13 +67,19 @@ const components: Partial<Components> = {
   },
 
   p: ({ children }) => {
-    const text = typeof children === 'string' ? children : 
-      (Array.isArray(children) ? children.join('') : '');
+    // Check if children contains code blocks or other block elements
+    const hasCodeBlock = React.Children.toArray(children).some((child: any) => {
+      return child?.props?.className?.includes('language-') || 
+             child?.type?.name === 'CodeBlock' ||
+             child?.type?.name === 'CodeBlockCompact';
+    });
     
-    // Note: Removed image placeholder logic since tool-generated images are handled separately
-    // and showing placeholders when actual images are present creates confusion
+    // Use div for code blocks to avoid <p> nesting issues
+    if (hasCodeBlock) {
+      return <div className="break-long-words my-3 leading-relaxed">{children}</div>;
+    }
     
-    return <div className="break-long-words">{children}</div>;
+    return <p className="break-long-words my-3 leading-relaxed">{children}</p>;
   },
 
   ol: ({ node, children, ...props }) => {

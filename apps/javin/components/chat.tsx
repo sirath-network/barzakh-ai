@@ -24,6 +24,8 @@ import EmailSettingsPage from "@/components/settings/email/email-page";
 import PasswordSettingsPage from "@/components/settings/password/password-page";
 import BillingSettingsPage from "@/components/settings/billing/billing-page";
 import { ArchivedPage } from "@/components/settings/archived/archived-page";
+import { ArtifactProvider } from "@/context/artifact-context";
+import { ArtifactViewer } from "./artifact-viewer";
 
 const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
   account: <AccountSettingsPage />,
@@ -125,24 +127,25 @@ export function Chat({
   }, []); // Dependensi kosong agar hanya berjalan sekali saat mount
 
   return (
-    <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <ChatHeader
-        messages={messages}
-        chatId={id}
-        isReadonly={isReadonly}
-        user={user}
-        title={
-          view !== "chat"
-            ? `${view.charAt(0).toUpperCase() + view.slice(1)} Settings`
-            : undefined
-        }
-        onBackClick={view !== "chat" ? () => setView("chat") : undefined}
-        selectedModelId={view === "chat" ? selectedChatModel : undefined}
-        selectedVisibilityType={
-          view === "chat" ? selectedVisibilityType : undefined
-        }
-        className="text-sm"
-      />
+    <ArtifactProvider>
+      <div className="flex flex-col min-w-0 h-dvh bg-background">
+        <ChatHeader
+          messages={messages}
+          chatId={id}
+          isReadonly={isReadonly}
+          user={user}
+          title={
+            view !== "chat"
+              ? `${view.charAt(0).toUpperCase() + view.slice(1)} Settings`
+              : undefined
+          }
+          onBackClick={view !== "chat" ? () => setView("chat") : undefined}
+          selectedModelId={view === "chat" ? selectedChatModel : undefined}
+          selectedVisibilityType={
+            view === "chat" ? selectedVisibilityType : undefined
+          }
+          className="text-sm"
+        />
 
       <div className="relative flex-1 overflow-hidden">
         <div
@@ -209,6 +212,10 @@ export function Chat({
           </div>
         </main>
       </div>
+
+      {/* Artifact Viewer - Slides in from the right */}
+      <ArtifactViewer />
     </div>
+    </ArtifactProvider>
   );
 }

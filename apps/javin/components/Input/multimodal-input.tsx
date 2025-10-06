@@ -292,9 +292,11 @@ function PureAttachmentsButton({
   return (
     <Button
       className={cn(
-        "rounded-full p-2 h-fit w-fit transition-all duration-200",
-        "bg-neutral-200/60 hover:bg-neutral-300/60 dark:bg-neutral-800/60 dark:hover:bg-neutral-700/60",
-        "hover:scale-110 active:scale-95"
+        "rounded-xl p-2.5 h-fit w-fit transition-all duration-300",
+        "bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700",
+        "border border-neutral-200/50 dark:border-neutral-700/50",
+        "hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
+        "disabled:opacity-50 disabled:hover:translate-y-0"
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -304,7 +306,7 @@ function PureAttachmentsButton({
       variant="ghost"
       aria-label="Attach files"
     >
-      <PaperclipIcon size={16} />
+      <PaperclipIcon size={18} />
     </Button>
   );
 }
@@ -320,9 +322,11 @@ function PureStopButton({
   return (
     <Button
       className={cn(
-        "rounded-full p-2 h-fit w-fit transition-all duration-200",
-        "bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400",
-        "hover:scale-110 active:scale-95"
+        "rounded-xl p-2.5 h-fit w-fit transition-all duration-300",
+        "bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50",
+        "text-red-600 dark:text-red-400",
+        "border border-red-200/50 dark:border-red-800/50",
+        "hover:shadow-md hover:shadow-red-500/20 hover:-translate-y-0.5 active:translate-y-0"
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -331,7 +335,7 @@ function PureStopButton({
       }}
       aria-label="Stop generating"
     >
-      <StopIcon size={14} />
+      <StopIcon size={16} />
     </Button>
   );
 }
@@ -350,19 +354,22 @@ function PureSendButton({
   return (
     <motion.div
       layout
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.8, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      initial={{ scale: 0.8, opacity: 0, y: 5 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0.8, opacity: 0, y: 5 }}
+      transition={{ type: "spring", stiffness: 500, damping: 30 }}
     >
       <Button
         className={cn(
-          "group rounded-full p-2.5 h-fit w-fit",
-          "bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg",
-          "hover:shadow-xl",
-          "disabled:from-red-400 disabled:to-rose-500 dark:disabled:from-red-800 dark:disabled:to-rose-900",
-          "disabled:shadow-none disabled:cursor-not-allowed",
-          "transition-all duration-300 ease-in-out"
+          "group rounded-xl p-2.5 h-fit w-fit relative overflow-hidden",
+          "bg-gradient-to-br from-red-500 to-rose-600 text-white",
+          "shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40",
+          "hover:-translate-y-0.5 active:translate-y-0",
+          "disabled:from-red-400/50 disabled:to-rose-500/50",
+          "disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-y-0",
+          "transition-all duration-300 ease-out",
+          "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent",
+          "before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300"
         )}
         onClick={(event) => {
           event.preventDefault();
@@ -371,7 +378,7 @@ function PureSendButton({
         disabled={isDisabled}
         aria-label="Send Messages"
       >
-        <SendIcon size={16} />
+        <SendIcon size={18} className="relative z-10" />
       </Button>
     </motion.div>
   );
@@ -433,6 +440,7 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
   const [isFocused, setIsFocused] = useState(false);
+  const [previousModel, setPreviousModel] = useLocalStorage<string | null>("previousModel", null);
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     "input",
@@ -644,10 +652,51 @@ function PureMultimodalInput({
 
   const handleGroupSelect = useCallback(
     async (group: SearchGroup) => {
+      const wasCoding = selectedGroup === "coding";
+      const isNowCoding = group.id === "coding";
+      
+      // Auto-switch to Claude when entering Coding mode
+      if (!wasCoding && isNowCoding && selectedModelId !== "chat-model-claude") {
+        // IMPORTANT: Save the group selection FIRST before reload
+        setSelectedGroup(group.id);
+        setLocalStorageChatMode(group.id);
+        
+        // Save current model to restore later
+        setPreviousModel(selectedModelId);
+        
+        // Switch to Claude
+        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+        await saveChatModelAsCookie("chat-model-claude");
+        
+        // Small delay to ensure localStorage is written
+        setTimeout(() => {
+          window.location.reload(); // Reload to apply model change
+        }, 100);
+        return;
+      }
+      
+      // Restore previous model when leaving Coding mode
+      if (wasCoding && !isNowCoding && previousModel && selectedModelId === "chat-model-claude") {
+        // IMPORTANT: Save the group selection FIRST before reload
+        setSelectedGroup(group.id);
+        setLocalStorageChatMode(group.id);
+        
+        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+        await saveChatModelAsCookie(previousModel);
+        setPreviousModel(null);
+        
+        // Small delay to ensure localStorage is written
+        setTimeout(() => {
+          window.location.reload(); // Reload to apply model change
+        }, 100);
+        return;
+      }
+      
+      // Normal group selection (no reload needed)
       setSelectedGroup(group.id);
       setLocalStorageChatMode(group.id);
     },
-    [setSelectedGroup, setLocalStorageChatMode]
+    [setSelectedGroup, setLocalStorageChatMode, selectedGroup, selectedModelId, previousModel, setPreviousModel]
   );
 
   const scrollMessagesToBottom = (e: React.MouseEvent) => {
@@ -692,37 +741,30 @@ function PureMultimodalInput({
               damping: 30,
               bounce: 0.25,
             }}
-            className="absolute right-0 bottom-32 z-50"
+            className="absolute right-0 bottom-36 z-50"
           >
             <button
               onClick={scrollMessagesToBottom}
               className={cn(
-                "group relative",
-                "px-4 py-2 rounded-lg",
-                "bg-white dark:bg-neutral-800",
-                "text-sm font-medium text-neutral-700 dark:text-neutral-200",
-                "border border-neutral-200 dark:border-neutral-700",
-                "shadow-lg hover:shadow-xl",
-                "hover:bg-neutral-50 dark:hover:bg-neutral-700",
+                "group relative overflow-hidden",
+                "px-5 py-3 rounded-2xl",
+                "bg-gradient-to-br from-white to-neutral-50/80 dark:from-neutral-800 dark:to-neutral-900/80",
+                "backdrop-blur-xl border-2 border-neutral-200/50 dark:border-neutral-700/50",
+                "text-sm font-semibold text-neutral-700 dark:text-neutral-200",
+                "shadow-lg shadow-neutral-500/20 hover:shadow-xl hover:shadow-neutral-500/30",
+                "hover:border-neutral-300/60 dark:hover:border-neutral-600/60",
                 "transform transition-all duration-300 ease-out",
-                "hover:-translate-y-0.5 active:translate-y-0",
-                "overflow-hidden"
+                "hover:-translate-y-1 active:translate-y-0",
+                "before:absolute before:inset-0 before:bg-gradient-to-br",
+                "before:from-neutral-100/30 before:to-transparent dark:before:from-neutral-700/30",
+                "before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-300"
               )}
               aria-label="Scroll to bottom"
             >
-              <span className="relative z-10 flex items-center gap-2">
-                <CornerLeftDown className="h-4 w-4 opacity-80 group-hover:opacity-100 transition-opacity" />
-                <span>Scroll To Bottom</span>
+              <span className="relative z-10 flex items-center gap-2.5">
+                <CornerLeftDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">Scroll To Bottom</span>
               </span>
-
-              <span
-                className={cn(
-                  "absolute inset-0 rounded-lg z-0",
-                  "bg-gradient-to-r from-rose-100/50 to-rose-200/50 dark:from-rose-900/30 dark:to-rose-800/30",
-                  "opacity-0 group-hover:opacity-100",
-                  "transition-opacity duration-300"
-                )}
-              />
             </button>
           </motion.div>
         )}
@@ -730,13 +772,13 @@ function PureMultimodalInput({
 
       <div
         className={cn(
-          "relative w-full flex flex-col gap-2 rounded-2xl transition-all duration-300",
-          "bg-neutral-100/80 dark:bg-neutral-900/80 backdrop-blur-sm",
-          "border border-neutral-300/50 dark:border-neutral-700/50",
+          "relative w-full flex flex-col rounded-3xl transition-all duration-300",
+          "bg-gradient-to-b from-white to-neutral-50/80 dark:from-neutral-900 dark:to-neutral-950/80",
+          "backdrop-blur-xl border-2 shadow-lg",
           isFocused
-            ? "shadow-[0_0_0_4px_rgba(239,68,68,0.2)] dark:shadow-[0_0_0_4px_rgba(239,68,68,0.15)]"
-            : "",
-          "p-2"
+            ? "border-primary/50 shadow-[0_0_0_4px_rgba(239,68,68,0.1)] dark:shadow-[0_0_0_4px_rgba(239,68,68,0.15)] shadow-xl"
+            : "border-neutral-200/80 dark:border-neutral-800/80 hover:border-neutral-300 dark:hover:border-neutral-700",
+          "overflow-hidden"
         )}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
@@ -748,13 +790,7 @@ function PureMultimodalInput({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="flex flex-row gap-2 sm:gap-3 overflow-x-auto custom-scrollbar px-3 py-3 mx-1"
-              style={{
-                paddingTop: "12px",
-                paddingBottom: "12px",
-                marginTop: "-4px",
-                marginBottom: "-4px",
-              }}
+              className="flex flex-row gap-2 sm:gap-3 overflow-x-auto custom-scrollbar px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30"
             >
               {attachments.map((attachment, index) => (
                 <motion.div
@@ -793,7 +829,7 @@ function PureMultimodalInput({
           )}
         </AnimatePresence>
 
-        <div className="relative flex items-end w-full">
+        <div className="relative flex items-end w-full px-2 pt-3 pb-2">
           <Textarea
             ref={textareaRef}
             placeholder={
@@ -801,7 +837,12 @@ function PureMultimodalInput({
             }
             value={input}
             onChange={handleInput}
-            className="pl-3 pr-12 py-3"
+            className={cn(
+              "pl-4 pr-14 py-3.5 text-base",
+              "bg-transparent border-0 focus:ring-0 focus-visible:ring-0",
+              "placeholder:text-neutral-400 dark:placeholder:text-neutral-500",
+              "resize-none"
+            )}
             style={{ maxHeight: `${MAX_HEIGHT}px` }}
             rows={1}
             onKeyDown={(event) => {
@@ -811,7 +852,7 @@ function PureMultimodalInput({
               }
             }}
           />
-          <div className="absolute right-2.5 bottom-2.5 flex items-center">
+          <div className="absolute right-4 bottom-3.5 flex items-center gap-2">
             {isLoading ? (
               <StopButton stop={stop} setMessages={setMessages} />
             ) : (
@@ -840,8 +881,8 @@ function PureMultimodalInput({
 
 
 
-        <div className="flex items-center justify-between w-full">
-          <div className="flex flex-row gap-1.5 items-center">
+        <div className="flex items-center justify-between w-full px-3 pb-3 pt-1 border-t border-neutral-200/50 dark:border-neutral-800/50 bg-gradient-to-b from-transparent to-neutral-50/50 dark:to-neutral-950/50">
+          <div className="flex flex-row gap-2 items-center">
             <AttachmentsButton
               fileInputRef={fileInputRef}
               isLoading={isLoading}

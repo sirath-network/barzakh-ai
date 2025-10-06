@@ -15,6 +15,7 @@ import type { Message } from "ai";
 import TextStrip from "./text-strip";
 // Impor ikon yang diperlukan
 import { MessageCirclePlus, ArrowLeft } from 'lucide-react';
+import { ArtifactToggle } from "./artifact-toggle";
 
 // 1. Perbarui interface props untuk menyertakan props opsional baru
 // dan membuat props spesifik chat menjadi opsional.
@@ -108,6 +109,9 @@ function PureChatHeader({
 
         {/* === Right Section (User Nav / Login) === */}
         <div className="flex items-center justify-end text-sm space-x-2">
+          {/* Show artifact toggle if not in settings mode */}
+          {!title && <ArtifactToggle />}
+          
           {user && user.email ? (
             // User is logged in, show nav only if there's no title
             !title && (
