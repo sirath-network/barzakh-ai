@@ -1,204 +1,168 @@
-'use client';
+"use client";
 
-import cx from 'classnames';
-import { format, isWithinInterval } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { isWithinInterval } from "date-fns";
 
 interface WeatherAtLocation {
-  latitude: number;
-  longitude: number;
-  generationtime_ms: number;
-  utc_offset_seconds: number;
-  timezone: string;
-  timezone_abbreviation: string;
-  elevation: number;
-  current_units: {
-    time: string;
-    interval: string;
-    temperature_2m: string;
-  };
   current: {
     time: string;
-    interval: number;
     temperature_2m: number;
+    relative_humidity_2m: number;
+    apparent_temperature: number;
+    precipitation: number;
+    weather_code: number;
+    cloud_cover: number;
+    surface_pressure: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
   };
-  hourly_units: {
+  current_units: {
     time: string;
     temperature_2m: string;
+    relative_humidity_2m: string;
+    apparent_temperature: string;
+    precipitation: string;
+    weather_code: string;
+    cloud_cover: string;
+    surface_pressure: string;
+    wind_speed_10m: string;
+    wind_direction_10m: string;
+  };
+  daily: {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_sum: number[];
+    precipitation_probability_max: number[];
+    wind_speed_10m_max: number[];
+    wind_direction_10m_dominant: number[];
+    sunrise: string[];
+    sunset: string[];
+  };
+  daily_units: {
+    time: string;
+    weather_code: string;
+    temperature_2m_max: string;
+    temperature_2m_min: string;
+    precipitation_sum: string;
+    precipitation_probability_max: string;
+    wind_speed_10m_max: string;
+    wind_direction_10m_dominant: string;
+    sunrise: string;
+    sunset: string;
   };
   hourly: {
     time: string[];
     temperature_2m: number[];
+    relative_humidity_2m: number[];
+    apparent_temperature: number[];
+    precipitation: number[];
+    precipitation_probability: number[];
+    weather_code: number[];
+    cloud_cover: number[];
+    surface_pressure: number[];
+    wind_speed_10m: number[];
+    wind_direction_10m: number[];
   };
-  daily_units: {
+  hourly_units: {
     time: string;
-    sunrise: string;
-    sunset: string;
-  };
-  daily: {
-    time: string[];
-    sunrise: string[];
-    sunset: string[];
+    temperature_2m: string;
+    relative_humidity_2m: string;
+    apparent_temperature: string;
+    precipitation: string;
+    precipitation_probability: string;
+    weather_code: string;
+    cloud_cover: string;
+    surface_pressure: string;
+    wind_speed_10m: string;
+    wind_direction_10m: string;
   };
 }
 
-const SAMPLE = {
-  latitude: 37.763283,
-  longitude: -122.41286,
-  generationtime_ms: 0.027894973754882812,
-  utc_offset_seconds: 0,
-  timezone: 'GMT',
-  timezone_abbreviation: 'GMT',
-  elevation: 18,
-  current_units: { time: 'iso8601', interval: 'seconds', temperature_2m: '°C' },
-  current: { time: '2024-10-07T19:30', interval: 900, temperature_2m: 29.3 },
-  hourly_units: { time: 'iso8601', temperature_2m: '°C' },
-  hourly: {
-    time: [
-      '2024-10-07T00:00',
-      '2024-10-07T01:00',
-      '2024-10-07T02:00',
-      '2024-10-07T03:00',
-      '2024-10-07T04:00',
-      '2024-10-07T05:00',
-      '2024-10-07T06:00',
-      '2024-10-07T07:00',
-      '2024-10-07T08:00',
-      '2024-10-07T09:00',
-      '2024-10-07T10:00',
-      '2024-10-07T11:00',
-      '2024-10-07T12:00',
-      '2024-10-07T13:00',
-      '2024-10-07T14:00',
-      '2024-10-07T15:00',
-      '2024-10-07T16:00',
-      '2024-10-07T17:00',
-      '2024-10-07T18:00',
-      '2024-10-07T19:00',
-      '2024-10-07T20:00',
-      '2024-10-07T21:00',
-      '2024-10-07T22:00',
-      '2024-10-07T23:00',
-      '2024-10-08T00:00',
-      '2024-10-08T01:00',
-      '2024-10-08T02:00',
-      '2024-10-08T03:00',
-      '2024-10-08T04:00',
-      '2024-10-08T05:00',
-      '2024-10-08T06:00',
-      '2024-10-08T07:00',
-      '2024-10-08T08:00',
-      '2024-10-08T09:00',
-      '2024-10-08T10:00',
-      '2024-10-08T11:00',
-      '2024-10-08T12:00',
-      '2024-10-08T13:00',
-      '2024-10-08T14:00',
-      '2024-10-08T15:00',
-      '2024-10-08T16:00',
-      '2024-10-08T17:00',
-      '2024-10-08T18:00',
-      '2024-10-08T19:00',
-      '2024-10-08T20:00',
-      '2024-10-08T21:00',
-      '2024-10-08T22:00',
-      '2024-10-08T23:00',
-      '2024-10-09T00:00',
-      '2024-10-09T01:00',
-      '2024-10-09T02:00',
-      '2024-10-09T03:00',
-      '2024-10-09T04:00',
-      '2024-10-09T05:00',
-      '2024-10-09T06:00',
-      '2024-10-09T07:00',
-      '2024-10-09T08:00',
-      '2024-10-09T09:00',
-      '2024-10-09T10:00',
-      '2024-10-09T11:00',
-      '2024-10-09T12:00',
-      '2024-10-09T13:00',
-      '2024-10-09T14:00',
-      '2024-10-09T15:00',
-      '2024-10-09T16:00',
-      '2024-10-09T17:00',
-      '2024-10-09T18:00',
-      '2024-10-09T19:00',
-      '2024-10-09T20:00',
-      '2024-10-09T21:00',
-      '2024-10-09T22:00',
-      '2024-10-09T23:00',
-      '2024-10-10T00:00',
-      '2024-10-10T01:00',
-      '2024-10-10T02:00',
-      '2024-10-10T03:00',
-      '2024-10-10T04:00',
-      '2024-10-10T05:00',
-      '2024-10-10T06:00',
-      '2024-10-10T07:00',
-      '2024-10-10T08:00',
-      '2024-10-10T09:00',
-      '2024-10-10T10:00',
-      '2024-10-10T11:00',
-      '2024-10-10T12:00',
-      '2024-10-10T13:00',
-      '2024-10-10T14:00',
-      '2024-10-10T15:00',
-      '2024-10-10T16:00',
-      '2024-10-10T17:00',
-      '2024-10-10T18:00',
-      '2024-10-10T19:00',
-      '2024-10-10T20:00',
-      '2024-10-10T21:00',
-      '2024-10-10T22:00',
-      '2024-10-10T23:00',
-      '2024-10-11T00:00',
-      '2024-10-11T01:00',
-      '2024-10-11T02:00',
-      '2024-10-11T03:00',
-    ],
-    temperature_2m: [
-      36.6, 32.8, 29.5, 28.6, 29.2, 28.2, 27.5, 26.6, 26.5, 26, 25, 23.5, 23.9,
-      24.2, 22.9, 21, 24, 28.1, 31.4, 33.9, 32.1, 28.9, 26.9, 25.2, 23, 21.1,
-      19.6, 18.6, 17.7, 16.8, 16.2, 15.5, 14.9, 14.4, 14.2, 13.7, 13.3, 12.9,
-      12.5, 13.5, 15.8, 17.7, 19.6, 21, 21.9, 22.3, 22, 20.7, 18.9, 17.9, 17.3,
-      17, 16.7, 16.2, 15.6, 15.2, 15, 15, 15.1, 14.8, 14.8, 14.9, 14.7, 14.8,
-      15.3, 16.2, 17.9, 19.6, 20.5, 21.6, 21, 20.7, 19.3, 18.7, 18.4, 17.9,
-      17.3, 17, 17, 16.8, 16.4, 16.2, 16, 15.8, 15.7, 15.4, 15.4, 16.1, 16.7,
-      17, 18.6, 19, 19.5, 19.4, 18.5, 17.9, 17.5, 16.7, 16.3, 16.1,
-    ],
+const SAMPLE: WeatherAtLocation = {
+  current: {
+    time: "2024-01-15T12:00",
+    temperature_2m: 22.5,
+    relative_humidity_2m: 65,
+    apparent_temperature: 24.1,
+    precipitation: 0.0,
+    weather_code: 1,
+    cloud_cover: 25,
+    surface_pressure: 1013.2,
+    wind_speed_10m: 3.2,
+    wind_direction_10m: 180,
   },
-  daily_units: {
-    time: 'iso8601',
-    sunrise: 'iso8601',
-    sunset: 'iso8601',
+  current_units: {
+    time: "iso8601",
+    temperature_2m: "°C",
+    relative_humidity_2m: "%",
+    apparent_temperature: "°C",
+    precipitation: "mm",
+    weather_code: "wmo code",
+    cloud_cover: "%",
+    surface_pressure: "hPa",
+    wind_speed_10m: "m/s",
+    wind_direction_10m: "°",
   },
   daily: {
+    time: ["2024-01-15", "2024-01-16", "2024-01-17", "2024-01-18", "2024-01-19", "2024-01-20", "2024-01-21"],
+    weather_code: [1, 2, 3, 0, 1, 2, 3],
+    temperature_2m_max: [25.2, 23.8, 21.5, 24.1, 26.3, 22.7, 20.9],
+    temperature_2m_min: [18.5, 16.2, 14.8, 17.3, 19.1, 15.6, 13.2],
+    precipitation_sum: [0.0, 2.5, 8.3, 0.0, 0.0, 1.2, 5.7],
+    precipitation_probability_max: [0, 15, 45, 0, 0, 25, 60],
+    wind_speed_10m_max: [4.2, 5.1, 6.8, 3.5, 4.9, 5.7, 7.2],
+    wind_direction_10m_dominant: [180, 200, 220, 160, 190, 210, 230],
+    sunrise: ["06:30", "06:29", "06:28", "06:27", "06:26", "06:25", "06:24"],
+    sunset: ["18:45", "18:46", "18:47", "18:48", "18:49", "18:50", "18:51"],
+  },
+  daily_units: {
+    time: "iso8601",
+    weather_code: "wmo code",
+    temperature_2m_max: "°C",
+    temperature_2m_min: "°C",
+    precipitation_sum: "mm",
+    precipitation_probability_max: "%",
+    wind_speed_10m_max: "m/s",
+    wind_direction_10m_dominant: "°",
+    sunrise: "iso8601",
+    sunset: "iso8601",
+  },
+  hourly: {
     time: [
-      '2024-10-07',
-      '2024-10-08',
-      '2024-10-09',
-      '2024-10-10',
-      '2024-10-11',
+      "2024-01-15T00:00", "2024-01-15T01:00", "2024-01-15T02:00", "2024-01-15T03:00", "2024-01-15T04:00", "2024-01-15T05:00",
+      "2024-01-15T06:00", "2024-01-15T07:00", "2024-01-15T08:00", "2024-01-15T09:00", "2024-01-15T10:00", "2024-01-15T11:00",
+      "2024-01-15T12:00", "2024-01-15T13:00", "2024-01-15T14:00", "2024-01-15T15:00", "2024-01-15T16:00", "2024-01-15T17:00",
+      "2024-01-15T18:00", "2024-01-15T19:00", "2024-01-15T20:00", "2024-01-15T21:00", "2024-01-15T22:00", "2024-01-15T23:00",
     ],
-    sunrise: [
-      '2024-10-07T07:15',
-      '2024-10-08T07:16',
-      '2024-10-09T07:17',
-      '2024-10-10T07:18',
-      '2024-10-11T07:19',
-    ],
-    sunset: [
-      '2024-10-07T19:00',
-      '2024-10-08T18:58',
-      '2024-10-09T18:57',
-      '2024-10-10T18:55',
-      '2024-10-11T18:54',
-    ],
+    temperature_2m: [19.2, 18.8, 18.1, 17.5, 16.9, 16.3, 16.8, 18.2, 20.1, 22.3, 24.1, 25.2, 25.8, 25.5, 24.8, 23.9, 22.7, 21.2, 19.8, 18.9, 18.2, 17.8, 17.5, 17.2],
+    relative_humidity_2m: [75, 78, 82, 85, 88, 90, 87, 80, 70, 60, 55, 50, 48, 52, 58, 65, 72, 78, 82, 85, 88, 90, 92, 94],
+    apparent_temperature: [20.1, 19.7, 19.0, 18.4, 17.8, 17.2, 17.7, 19.1, 21.0, 23.2, 25.0, 26.1, 26.7, 26.4, 25.7, 24.8, 23.6, 22.1, 20.7, 19.8, 19.1, 18.7, 18.4, 18.1],
+    precipitation: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    precipitation_probability: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    weather_code: [1, 1, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    cloud_cover: [25, 30, 20, 15, 10, 5, 10, 20, 35, 45, 30, 25, 20, 25, 30, 35, 40, 35, 30, 25, 20, 15, 10, 5],
+    surface_pressure: [1012.5, 1012.8, 1013.0, 1013.2, 1013.5, 1013.8, 1014.0, 1013.8, 1013.5, 1013.2, 1013.0, 1012.8, 1012.5, 1012.2, 1012.0, 1011.8, 1011.5, 1011.8, 1012.0, 1012.2, 1012.5, 1012.8, 1013.0, 1013.2],
+    wind_speed_10m: [2.1, 1.8, 1.5, 1.2, 0.9, 0.6, 0.8, 1.2, 1.8, 2.5, 3.2, 3.8, 4.2, 3.9, 3.5, 3.0, 2.5, 2.0, 1.8, 1.5, 1.2, 0.9, 0.6, 0.3],
+    wind_direction_10m: [180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 235, 230, 225, 220, 215, 210, 205, 200, 195, 190, 185],
+  },
+  hourly_units: {
+    time: "iso8601",
+    temperature_2m: "°C",
+    relative_humidity_2m: "%",
+    apparent_temperature: "°C",
+    precipitation: "mm",
+    precipitation_probability: "%",
+    weather_code: "wmo code",
+    cloud_cover: "%",
+    surface_pressure: "hPa",
+    wind_speed_10m: "m/s",
+    wind_direction_10m: "°",
   },
 };
 
-function n(num: number): number {
-  return Math.ceil(num);
+function n(value: number) {
+  return Math.round(value * 10) / 10;
 }
 
 export function Weather({
@@ -206,105 +170,163 @@ export function Weather({
 }: {
   weatherAtLocation?: WeatherAtLocation;
 }) {
-  const currentHigh = Math.max(
+  const hourlyTemps = [
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
-  );
-  const currentLow = Math.min(
+  ];
+  const hourlyTimes = [
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
-  );
+  ];
 
   const isDay = isWithinInterval(new Date(weatherAtLocation.current.time), {
     start: new Date(weatherAtLocation.daily.sunrise[0]),
     end: new Date(weatherAtLocation.daily.sunset[0]),
   });
 
-  const [isMobile, setIsMobile] = useState(false);
+  const getWeatherIcon = (code: number) => {
+    if (code === 0) return "☀️"; // Clear sky
+    if (code <= 3) return "⛅"; // Partly cloudy
+    if (code <= 48) return "☁️"; // Cloudy
+    if (code <= 67) return "🌧️"; // Rain
+    if (code <= 77) return "❄️"; // Snow
+    if (code <= 82) return "🌨️"; // Snow showers
+    if (code <= 86) return "🌨️"; // Snow showers
+    return "🌤️"; // Default
+  };
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+  const getWeatherDescription = (code: number) => {
+    if (code === 0) return "Clear sky";
+    if (code <= 3) return "Partly cloudy";
+    if (code <= 48) return "Cloudy";
+    if (code <= 67) return "Rain";
+    if (code <= 77) return "Snow";
+    if (code <= 82) return "Snow showers";
+    if (code <= 86) return "Snow showers";
+    return "Unknown";
+  };
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const hoursToShow = isMobile ? 5 : 6;
-
-  // Find the index of the current time or the next closest time
   const currentTimeIndex = weatherAtLocation.hourly.time.findIndex(
     (time) => new Date(time) >= new Date(weatherAtLocation.current.time),
   );
 
-  // Slice the arrays to get the desired number of items
   const displayTimes = weatherAtLocation.hourly.time.slice(
     currentTimeIndex,
-    currentTimeIndex + hoursToShow,
+    currentTimeIndex + 12,
   );
   const displayTemperatures = weatherAtLocation.hourly.temperature_2m.slice(
     currentTimeIndex,
-    currentTimeIndex + hoursToShow,
+    currentTimeIndex + 12,
   );
 
   return (
-    <div
-      className={cx(
-        'flex flex-col gap-4 rounded-2xl p-4 skeleton-bg max-w-[500px]',
-        {
-          'bg-blue-400': isDay,
-        },
-        {
-          'bg-indigo-900': !isDay,
-        },
-      )}
-    >
-      <div className="flex flex-row justify-between items-center">
-        <div className="flex flex-row gap-2 items-center">
-          <div
-            className={cx(
-              'size-10 rounded-full skeleton-div',
-              {
-                'bg-yellow-300': isDay,
-              },
-              {
-                'bg-indigo-100': !isDay,
-              },
-            )}
-          />
-          <div className="text-4xl font-medium text-blue-50">
+    <div className="bg-gradient-to-br from-blue-400 to-blue-600 text-white p-6 rounded-xl shadow-lg">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Current Weather</h2>
+          <p className="text-blue-100">
+            {new Date(weatherAtLocation.current.time).toLocaleDateString()}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-4xl mb-2">
+            {getWeatherIcon(weatherAtLocation.current.weather_code)}
+          </div>
+          <p className="text-sm text-blue-100">
+            {getWeatherDescription(weatherAtLocation.current.weather_code)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+          <div className="text-3xl font-bold mb-1">
             {n(weatherAtLocation.current.temperature_2m)}
             {weatherAtLocation.current_units.temperature_2m}
           </div>
+          <p className="text-sm text-blue-100">Temperature</p>
         </div>
-
-        <div className="text-blue-50">{`H:${n(currentHigh)}° L:${n(currentLow)}°`}</div>
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+          <div className="text-3xl font-bold mb-1">
+            {weatherAtLocation.current.relative_humidity_2m}
+            {weatherAtLocation.current_units.relative_humidity_2m}
+          </div>
+          <p className="text-sm text-blue-100">Humidity</p>
+        </div>
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+          <div className="text-3xl font-bold mb-1">
+            {n(weatherAtLocation.current.wind_speed_10m)}
+            {weatherAtLocation.current_units.wind_speed_10m}
+          </div>
+          <p className="text-sm text-blue-100">Wind Speed</p>
+        </div>
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+          <div className="text-3xl font-bold mb-1">
+            {weatherAtLocation.current.surface_pressure}
+            {weatherAtLocation.current_units.surface_pressure}
+          </div>
+          <p className="text-sm text-blue-100">Pressure</p>
+        </div>
       </div>
 
-      <div className="flex flex-row justify-between">
-        {displayTimes.map((time, index) => (
-          <div key={time} className="flex flex-col items-center gap-1">
-            <div className="text-blue-100 text-xs">
-              {format(new Date(time), 'ha')}
-            </div>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-3">12-Hour Forecast</h3>
+        <div className="flex overflow-x-auto space-x-4 pb-2">
+          {displayTimes.map((time, index) => (
             <div
-              className={cx(
-                'size-6 rounded-full skeleton-div',
-                {
-                  'bg-yellow-300': isDay,
-                },
-                {
-                  'bg-indigo-200': !isDay,
-                },
-              )}
-            />
-            <div className="text-blue-50 text-sm">
-              {n(displayTemperatures[index])}
-              {weatherAtLocation.hourly_units.temperature_2m}
+              key={time}
+              className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg p-3 text-center min-w-[80px]"
+            >
+              <div className="text-sm text-blue-100 mb-1">
+                {new Date(time).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+              <div className="text-2xl mb-1">
+                {getWeatherIcon(weatherAtLocation.hourly.weather_code[currentTimeIndex + index])}
+              </div>
+              <div className="text-lg font-semibold">
+                {n(displayTemperatures[index])}
+                {weatherAtLocation.hourly_units.temperature_2m}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold mb-3">7-Day Forecast</h3>
+        <div className="space-y-2">
+          {weatherAtLocation.daily.time.slice(0, 7).map((day, index) => (
+            <div
+              key={day}
+              className="flex items-center justify-between bg-white/20 backdrop-blur-sm rounded-lg p-3"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="text-2xl">
+                  {getWeatherIcon(weatherAtLocation.daily.weather_code[index])}
+                </div>
+                <div>
+                  <div className="font-semibold">
+                    {new Date(day).toLocaleDateString([], {
+                      weekday: "long",
+                    })}
+                  </div>
+                  <div className="text-sm text-blue-100">
+                    {getWeatherDescription(weatherAtLocation.daily.weather_code[index])}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-semibold">
+                  {n(weatherAtLocation.daily.temperature_2m_max[index])}° / {n(weatherAtLocation.daily.temperature_2m_min[index])}°
+                </div>
+                <div className="text-sm text-blue-100">
+                  {weatherAtLocation.daily.precipitation_probability_max[index]}% chance of rain
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
