@@ -30,6 +30,7 @@ interface ModelSelectorProps {
   selectedModelId: string;
   className?: string;
   onModelSelect?: (modelId: string) => void; // Optional callback untuk parent component
+  disabled?: boolean; // Add disabled prop
 }
 
 interface ModelOptionListProps {
@@ -166,6 +167,7 @@ export function ModelSelector({
   selectedModelId,
   className,
   onModelSelect,
+  disabled = false,
   ...buttonProps
 }: ModelSelectorProps & React.ComponentProps<typeof Button>) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -189,7 +191,7 @@ export function ModelSelector({
 
   // Optimized select handler dengan debouncing dan error handling
   const handleSelect = useCallback(async (model: ChatModel) => {
-    if (isUpdating || model.id === selectedModelId) return;
+    if (disabled || isUpdating || model.id === selectedModelId) return;
     
     try {
       setIsUpdating(true);
@@ -219,22 +221,22 @@ export function ModelSelector({
     } finally {
       setIsUpdating(false);
     }
-  }, [selectedModelId, isUpdating, onModelSelect]);
+  }, [disabled, selectedModelId, isUpdating, onModelSelect]);
 
   // Handle dropdown state changes - separated for desktop/mobile
   const handleDropdownOpenChange = useCallback((open: boolean) => {
-    if (!isDesktop) return;
+    if (!isDesktop || disabled) return;
     setIsExpanded(open);
     
     if (!open) {
       // Clear search when closing
       setTimeout(() => setSearchQuery(""), 150);
     }
-  }, [isDesktop]);
+  }, [isDesktop, disabled]);
 
   // Fixed mobile button handler - prevent conflicts with dropdown trigger
   const handleMobileToggle = useCallback((e: React.MouseEvent) => {
-    if (buttonProps.disabled || isUpdating) return;
+    if (disabled || buttonProps.disabled || isUpdating) return;
     
     e.preventDefault();
     e.stopPropagation();
@@ -243,7 +245,7 @@ export function ModelSelector({
     if (!isClient || isDesktop) return;
     
     setIsExpanded(prev => !prev);
-  }, [isClient, isDesktop, isUpdating]);
+  }, [disabled, isClient, isDesktop, isUpdating]);
 
   // Clean up search query when closing
   useEffect(() => {
@@ -288,7 +290,7 @@ export function ModelSelector({
             {...buttonProps}
             variant="outline"
             onClick={handleMobileToggle}
-            disabled={isUpdating}
+            disabled={disabled || isUpdating}
             className={cn(
               "h-10 border-2 rounded-xl transition-all duration-200",
               "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700",

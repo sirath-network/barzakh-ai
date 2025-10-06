@@ -2,36 +2,31 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  X, 
-  Copy, 
-  Check, 
-  Play, 
-  Code2, 
-  FileCode,
-  Maximize2,
-  Minimize2,
-  Download,
-  Sparkles,
-  Terminal,
-  Eye,
-  SplitSquareHorizontal
-} from "lucide-react";
+  import { 
+    X, 
+    Copy, 
+    Check, 
+    Code2, 
+    FileCode,
+    Maximize2,
+    Minimize2,
+    Download,
+    Sparkles,
+    Eye
+  } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useArtifact, type Artifact } from "@/context/artifact-context";
 import { Button } from "./ui/button";
 import { cn } from "@javin/shared/lib/utils/utils";
 
-type ViewMode = 'preview' | 'code' | 'split';
+type ViewMode = 'preview' | 'code';
 
 export function ArtifactViewer() {
   const { currentArtifact, isArtifactOpen, closeArtifact } = useArtifact();
   const [isCopied, setIsCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [output, setOutput] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [viewMode, setViewMode] = useState<ViewMode>('preview');
 
   const handleCopy = useCallback(async () => {
     if (!currentArtifact) return;
@@ -45,34 +40,6 @@ export function ArtifactViewer() {
     }
   }, [currentArtifact]);
 
-  const handleRun = useCallback(async () => {
-    if (!currentArtifact) return;
-    
-    setIsRunning(true);
-    setOutput("");
-    
-    try {
-      if (currentArtifact.language === "javascript") {
-        let capturedOutput = "";
-        const originalLog = console.log;
-        console.log = (...args) => {
-          capturedOutput += args.map(arg => 
-            typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg
-          ).join(" ") + "\n";
-        };
-        
-        eval(currentArtifact.content);
-        console.log = originalLog;
-        setOutput(capturedOutput || "Code executed successfully.");
-      } else if (currentArtifact.language === "python") {
-        setOutput("Python execution requires a backend runtime.\n\n(Mock execution completed)");
-      }
-    } catch (error: any) {
-      setOutput(`Error: ${error.message}`);
-    } finally {
-      setIsRunning(false);
-    }
-  }, [currentArtifact]);
 
   const handleDownload = useCallback(() => {
     if (!currentArtifact) return;
@@ -88,10 +55,6 @@ export function ArtifactViewer() {
     URL.revokeObjectURL(url);
   }, [currentArtifact]);
 
-  useEffect(() => {
-    setOutput(null);
-    setIsRunning(false);
-  }, [currentArtifact?.id]);
 
   if (!isArtifactOpen || !currentArtifact) return null;
 
@@ -120,15 +83,9 @@ export function ArtifactViewer() {
               <Sparkles className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-base truncate flex items-center gap-2">
-                {currentArtifact.title}
-                {currentArtifact.metadata?.isExecutable && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
-                    <Play className="w-2.5 h-2.5" />
-                    LIVE
-                  </span>
-                )}
-              </h3>
+                <h3 className="font-bold text-base truncate">
+                  {currentArtifact.title}
+                </h3>
               {currentArtifact.metadata?.fileName && (
                 <p className="text-xs text-muted-foreground/80 truncate font-mono">
                   {currentArtifact.metadata.fileName}
@@ -195,19 +152,6 @@ export function ArtifactViewer() {
                   <span className="hidden sm:inline">Preview</span>
                 </button>
                 <button
-                  onClick={() => setViewMode('split')}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all",
-                    viewMode === 'split'
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "hover:bg-muted/50 text-muted-foreground"
-                  )}
-                  title="Split view"
-                >
-                  <SplitSquareHorizontal className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Split</span>
-                </button>
-                <button
                   onClick={() => setViewMode('code')}
                   className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all",
@@ -225,18 +169,6 @@ export function ArtifactViewer() {
           </div>
           
           <div className="flex items-center gap-2">
-            {currentArtifact.metadata?.isExecutable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRun}
-                disabled={isRunning}
-                className="h-9 gap-2 font-semibold border-green-500/30 bg-green-500/10 hover:bg-green-500/20 text-green-400 hover:text-green-300 transition-all"
-              >
-                <Play className="w-3.5 h-3.5" />
-                {isRunning ? "Running..." : "Run Code"}
-              </Button>
-            )}
             <Button
               variant="outline"
               size="sm"
@@ -301,62 +233,62 @@ export function ArtifactViewer() {
                 {currentArtifact.content}
               </SyntaxHighlighter>
             </div>
-          ) : currentArtifact.type === "html" ? (
-            // HTML with split/preview/code views
-            <div className="h-full flex">
-              {/* Preview Panel */}
-              {(viewMode === 'preview' || viewMode === 'split') && (
-                <div className={cn(
-                  "h-full border-r border-border/30 bg-white overflow-auto",
-                  viewMode === 'split' ? "w-1/2" : "w-full"
-                )}>
-                  <iframe
-                    srcDoc={currentArtifact.content}
-                    className="w-full h-full border-0"
-                    sandbox="allow-scripts"
-                    title="HTML Preview"
-                  />
-                </div>
-              )}
-              
-              {/* Code Panel */}
-              {(viewMode === 'code' || viewMode === 'split') && (
-                <div className={cn(
-                  "h-full overflow-auto",
-                  viewMode === 'split' ? "w-1/2" : "w-full"
-                )}>
-                  <SyntaxHighlighter
-                    language="html"
-                    style={vscDarkPlus}
-                    showLineNumbers
-                    wrapLines
-                    customStyle={{
-                      margin: 0,
-                      padding: "1.5rem",
-                      backgroundColor: "transparent",
-                      fontSize: "13px",
-                      height: "100%",
-                      lineHeight: "1.65",
-                    }}
-                    lineNumberStyle={{
-                      minWidth: "3em",
-                      paddingRight: "1.5em",
-                      color: "#858585",
-                      userSelect: "none",
-                    }}
-                    codeTagProps={{
-                      style: {
-                        fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", "Monaco", "Consolas", monospace',
-                        fontWeight: "450",
-                        letterSpacing: "0.01em",
-                      },
-                    }}
-                  >
-                    {currentArtifact.content}
-                  </SyntaxHighlighter>
-                </div>
-              )}
-            </div>
+            ) : currentArtifact.type === "html" ? (
+              // HTML with preview/code views
+              <div className="h-full">
+                {viewMode === 'preview' ? (
+                  <div className="h-full bg-white overflow-auto">
+                    <iframe
+                      srcDoc={(() => {
+                        // Fix relative paths in HTML content to prevent 404 requests
+                        let htmlContent = currentArtifact.content;
+                        
+                        // Remove or fix script and stylesheet references that would cause 404s
+                        htmlContent = htmlContent
+                          .replace(/<script[^>]*src=["']([^"']*\.js)["'][^>]*><\/script>/gi, '<!-- Script removed to prevent 404: $1 -->')
+                          .replace(/<link[^>]*href=["']([^"']*\.css)["'][^>]*>/gi, '<!-- Stylesheet removed to prevent 404: $1 -->');
+                        
+                        return htmlContent;
+                      })()}
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts"
+                      title="HTML Preview"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-full overflow-auto">
+                    <SyntaxHighlighter
+                      language="html"
+                      style={vscDarkPlus}
+                      showLineNumbers
+                      wrapLines
+                      customStyle={{
+                        margin: 0,
+                        padding: "1.5rem",
+                        backgroundColor: "transparent",
+                        fontSize: "13px",
+                        height: "100%",
+                        lineHeight: "1.65",
+                      }}
+                      lineNumberStyle={{
+                        minWidth: "3em",
+                        paddingRight: "1.5em",
+                        color: "#858585",
+                        userSelect: "none",
+                      }}
+                      codeTagProps={{
+                        style: {
+                          fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", "Monaco", "Consolas", monospace',
+                          fontWeight: "450",
+                          letterSpacing: "0.01em",
+                        },
+                      }}
+                    >
+                      {currentArtifact.content}
+                    </SyntaxHighlighter>
+                  </div>
+                )}
+              </div>
           ) : currentArtifact.type === "image" ? (
             <div className="flex items-center justify-center h-full p-4">
               <img
@@ -374,30 +306,6 @@ export function ArtifactViewer() {
           )}
         </div>
 
-        {/* Output Panel with modern design */}
-        {output !== null && (
-          <div className="border-t-2 border-green-500/20 bg-gradient-to-br from-green-950/30 to-emerald-950/20 flex-shrink-0 backdrop-blur-sm">
-            <div className="px-5 py-3 border-b border-green-500/20 flex items-center justify-between bg-green-500/10">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-green-400" />
-                <span className="text-sm font-bold text-green-400">Output</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setOutput(null)}
-                className="h-8 text-xs font-semibold hover:bg-green-500/10 hover:text-green-300"
-              >
-                Clear
-              </Button>
-            </div>
-            <div className="p-5 max-h-[250px] overflow-auto">
-              <pre className="text-sm font-mono whitespace-pre-wrap break-words text-green-100/90 leading-relaxed">
-                {output || "No output"}
-              </pre>
-            </div>
-          </div>
-        )}
       </motion.div>
     </AnimatePresence>
   );

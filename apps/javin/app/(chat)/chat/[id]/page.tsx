@@ -10,6 +10,13 @@ import { DEFAULT_CHAT_MODEL } from "@javin/shared/lib/ai/models";
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const { id } = params;
+  
+  // Validate that id is a valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    notFound();
+  }
+  
   const chat = await getChatById({ id });
 
   if (!chat) {

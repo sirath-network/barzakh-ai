@@ -29,7 +29,7 @@ import { cn, SearchGroup, SearchGroupId } from "@javin/shared/lib/utils/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
-import { CornerLeftDown, TrendingUp, Clock, Sparkles, MessageCircleMore } from "lucide-react";
+import { ArrowDown, TrendingUp, Clock, Sparkles, MessageCircleMore } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
 interface EnhancedSuggestion {
@@ -741,13 +741,13 @@ function PureMultimodalInput({
               damping: 30,
               bounce: 0.25,
             }}
-            className="absolute right-0 bottom-36 z-50"
+            className="absolute left-1/2 transform -translate-x-1/2 bottom-36 z-50"
           >
             <button
               onClick={scrollMessagesToBottom}
               className={cn(
                 "group relative overflow-hidden",
-                "px-5 py-3 rounded-2xl",
+                "w-10 h-10 rounded-full",
                 "bg-gradient-to-br from-white to-neutral-50/80 dark:from-neutral-800 dark:to-neutral-900/80",
                 "backdrop-blur-xl border-2 border-neutral-200/50 dark:border-neutral-700/50",
                 "text-sm font-semibold text-neutral-700 dark:text-neutral-200",
@@ -761,9 +761,8 @@ function PureMultimodalInput({
               )}
               aria-label="Scroll to bottom"
             >
-              <span className="relative z-10 flex items-center gap-2.5">
-                <CornerLeftDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
-                <span className="tracking-wide">Scroll To Bottom</span>
+              <span className="relative z-10 flex items-center justify-center">
+                  <ArrowDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
               </span>
             </button>
           </motion.div>
@@ -893,7 +892,7 @@ function PureMultimodalInput({
             />
           </div>
           <div className="flex flex-row gap-2 items-center">
-            {!isReadonly && <ModelSelector selectedModelId={selectedModelId} />}
+            {!isReadonly && <ModelSelector selectedModelId={selectedModelId} disabled={selectedGroup === "coding"} />}
           </div>
         </div>
       </div>

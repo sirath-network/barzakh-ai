@@ -75,7 +75,7 @@ function sanitizePrompt(prompt: string): string {
   return sanitized;
 }
 
-// Custom Flux Kontext Pro implementation
+// Custom Flux Kontext Max implementation
 async function generateFluxImage(
   prompt: string,
   input_image_urls?: string[]
@@ -258,7 +258,7 @@ For better image editing results in the future, please:
         
         // Step 1: Submit the generation request
         const response = await fetch(
-          "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro",
+          "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-max",
           {
             method: "POST",
             headers: {
@@ -282,7 +282,7 @@ For better image editing results in the future, please:
 
         // Step 2: Poll for the result
         const resultEndpoint =
-          "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-pro/get_result";
+          "https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-kontext-max/get_result";
 
         let pollResult;
         for (let attempts = 0; attempts < 60; attempts++) {
@@ -445,7 +445,7 @@ export const createImage = tool({
     }
 
     try {
-      // Handle Flux Kontext Pro model
+      // Handle Flux Kontext Max model
       if (selectedModelId === "flux-model") {
         const imageUrls = await generateFluxImage(prompt, input_images);
         return {

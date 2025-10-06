@@ -18,7 +18,7 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
+import { Check, Copy, ChevronDown, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
 import Image from "next/image";
 
 // HELPER: Peta dari nama tool ke ikon yang sesuai
@@ -166,7 +166,7 @@ const PurePreviewMessage = ({
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        className="w-full mx-auto max-w-3xl px-4 group/message"
+        className="w-full mx-auto max-w-3xl px-3 group/message"
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -5, opacity: 0 }}
@@ -190,7 +190,7 @@ const PurePreviewMessage = ({
             />
           )}
 
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col gap-1 w-full">
             <AnimatePresence mode="wait">
               {showThinking ? (
                 <motion.div key="thinking">
@@ -248,10 +248,11 @@ const PurePreviewMessage = ({
                     >
                       {/* Gelembung pesan itu sendiri */}
                       <div
-                        className={cn("flex flex-col gap-4 max-w-max", {
-                          "dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-4 py-2 rounded-t-2xl rounded-bl-2xl":
+                        className={cn("flex flex-col gap-1 max-w-max relative", {
+                          "dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-2.5 py-1 rounded-2xl cursor-pointer":
                             message.role === "user",
-                          "cursor-pointer": message.role === "user" && !isReadonly,
+                          "bg-muted/50 text-foreground px-3 py-2 rounded-2xl border border-border/20":
+                            message.role === "assistant",
                         })}
                         onClick={() => {
                           if (message.role === "user" && !isReadonly) {
@@ -259,36 +260,48 @@ const PurePreviewMessage = ({
                           }
                         }}
                       >
-                        {typeof message.content === "string" ? (
-                          <Markdown>{message.content}</Markdown>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            {(message.content as any[]).map((part, index) => {
-                              if (part.type === "text") {
-                                return <Markdown key={index}>{part.text}</Markdown>;
-                              }
-                              if (part.type === "image" && typeof part.image === 'string') {
-                                // Show images in content for assistant messages or if no experimental_attachments
-                                if (message.role === "assistant" || !message.experimental_attachments) {
-                                  return (
-                                    <div 
-                                      key={index}
-                                      className="relative inline-block rounded-2xl overflow-hidden border border-border/40 shadow-sm bg-muted/30"
-                                    >
-                                      <img
-                                        src={part.image}
-                                        alt="Uploaded image"
-                                        className="block object-contain"
-                                        style={{ maxHeight: '400px', width: 'auto' }}
-                                      />
-                                    </div>
-                                  );
-                                }
-                              }
-                              return null;
-                            })}
-                          </div>
+                        {/* User message tail */}
+                        {message.role === "user" && (
+                          <div className="absolute -top-1 right-4 w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-primary dark:border-b-muted"></div>
                         )}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            {typeof message.content === "string" ? (
+                              <Markdown>{message.content}</Markdown>
+                            ) : (
+                              <div className="flex flex-col gap-2">
+                                {(message.content as any[]).map((part, index) => {
+                                  if (part.type === "text") {
+                                    return <Markdown key={index}>{part.text}</Markdown>;
+                                  }
+                                  if (part.type === "image" && typeof part.image === 'string') {
+                                    // Show images in content for assistant messages or if no experimental_attachments
+                                    if (message.role === "assistant" || !message.experimental_attachments) {
+                                      return (
+                                        <div 
+                                          key={index}
+                                          className="relative inline-block rounded-2xl overflow-hidden border border-border/40 shadow-sm bg-muted/30"
+                                        >
+                                          <img
+                                            src={part.image}
+                                            alt="Uploaded image"
+                                            className="block object-contain"
+                                            style={{ maxHeight: '400px', width: 'auto' }}
+                                          />
+                                        </div>
+                                      );
+                                    }
+                                  }
+                                  return null;
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          {/* Chevron icon for assistant messages */}
+                          {message.role === "assistant" && (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground/60 flex-shrink-0 mt-1" />
+                          )}
+                        </div>
                       </div>
 
                       {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}

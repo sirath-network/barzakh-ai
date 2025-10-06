@@ -45,7 +45,7 @@ const components: Partial<Components> = {
     if (match) {
       const parts = text.split(imageUrlRegex);
       return (
-        <span className="break-long-words">
+        <div className="break-long-words">
           {parts.map((part, index) => {
             if (imageUrlRegex.test(part)) {
               return (
@@ -57,9 +57,9 @@ const components: Partial<Components> = {
                 </div>
               );
             }
-            return part;
+            return <span key={index}>{part}</span>;
           })}
-        </span>
+        </div>
       );
     }
     
@@ -67,15 +67,17 @@ const components: Partial<Components> = {
   },
 
   p: ({ children }) => {
-    // Check if children contains code blocks or other block elements
-    const hasCodeBlock = React.Children.toArray(children).some((child: any) => {
+    // Check if children contains code blocks, images, or other block elements
+    const hasBlockElements = React.Children.toArray(children).some((child: any) => {
       return child?.props?.className?.includes('language-') || 
              child?.type?.name === 'CodeBlock' ||
-             child?.type?.name === 'CodeBlockCompact';
+             child?.type?.name === 'CodeBlockCompact' ||
+             child?.props?.className?.includes('my-4 max-w-full') || // Image containers
+             child?.type === 'div'; // Any div elements
     });
     
-    // Use div for code blocks to avoid <p> nesting issues
-    if (hasCodeBlock) {
+    // Use div for block elements to avoid <p> nesting issues
+    if (hasBlockElements) {
       return <div className="break-long-words my-3 leading-relaxed">{children}</div>;
     }
     

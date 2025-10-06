@@ -43,24 +43,30 @@ function PureMessages({
     >
       {messages.length === 0 && <Overview />}
 
-      {messages.map((message, index) => (
-        <PreviewMessage
-          key={message.id}
-          chatId={chatId}
-          message={message}
-          isLoading={isLoading && messages.length - 1 === index}
-          vote={
-            votes
-              ? votes.find((vote) => vote.messageId === message.id)
-              : undefined
-          }
-          setMessages={setMessages}
-          selectedGroup={selectedGroup}
-          reload={reload}
-          isReadonly={isReadonly}
-          showIcon={index > 0 && messages[index - 1].role == "user"}
-        />
-      ))}
+      {messages.map((message, index) => {
+        const prevMessage = index > 0 ? messages[index - 1] : null;
+        const isNewConversationTurn = prevMessage && prevMessage.role !== message.role;
+        
+        return (
+          <div key={message.id} className={isNewConversationTurn ? "mt-2" : ""}>
+            <PreviewMessage
+              chatId={chatId}
+              message={message}
+              isLoading={isLoading && messages.length - 1 === index}
+              vote={
+                votes
+                  ? votes.find((vote) => vote.messageId === message.id)
+                  : undefined
+              }
+              setMessages={setMessages}
+              selectedGroup={selectedGroup}
+              reload={reload}
+              isReadonly={isReadonly}
+              showIcon={index > 0 && messages[index - 1].role == "user"}
+            />
+          </div>
+        );
+      })}
 
       {isLoading &&
         messages.length > 0 &&

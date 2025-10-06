@@ -27,7 +27,7 @@ export const myProvider: any = customProvider({
     "small-model": openai.image("dall-e-2"),
     "large-model": openai.image("dall-e-3"),
     "sdxl-model": fireworks.image("stable-diffusion-xl-base-1.0"),
-    "flux-model": "accounts/fireworks/models/flux-kontext-pro",
+    "flux-model": "accounts/fireworks/models/flux-kontext-max",
   },
 });
 
@@ -74,8 +74,8 @@ interface ImagineModel {
 export const imagineModels: Array<ImagineModel> = [
   {
     id: "flux-model",
-    name: "Flux Kontext Pro",
-    description: "Flux Kontext Pro is a powerful image generation model from Fireworks.",
+    name: "Flux Kontext Max",
+    description: "Flux Kontext Max is a powerful image generation model from Fireworks.",
   },
   {
     id: "sdxl-model",
