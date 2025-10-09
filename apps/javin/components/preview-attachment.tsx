@@ -61,8 +61,11 @@ const useAttachmentInfo = (attachment: Attachment) => {
     let fileType: FileType = 'default';
     if (contentType.includes('pdf')) fileType = 'pdf';
     else if (contentType.includes('json') || extension === 'json') fileType = 'json';
-    else if (contentType.includes('javascript') || contentType.includes('typescript') || ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'py', 'java', 'cpp', 'c', 'sh'].includes(extension)) fileType = 'code';
-    else if (contentType.startsWith('text/') || ['txt', 'md', 'csv'].includes(extension)) fileType = 'text';
+    else if (contentType.includes('javascript') || contentType.includes('typescript') || 
+             ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'sass', 'less', 'vue', 'svelte',
+              'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'sh', 'bat', 'ps1', 
+              'sql', 'dockerfile', 'gitignore', 'env', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'].includes(extension)) fileType = 'code';
+    else if (contentType.startsWith('text/') || ['txt', 'md', 'markdown', 'csv', 'tsv', 'log', 'rtf'].includes(extension)) fileType = 'text';
 
     const Icon = FileIcons[fileType];
     const fileExtension = extension.toUpperCase() || 'FILE';
@@ -252,38 +255,7 @@ export const PreviewAttachment = ({
             </div>
           )}
 
-          {/* Hover overlay with preview button */}
-          <AnimatePresence>
-            {isHovered && (isImage || isCodeFile) && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20 backdrop-blur-sm flex items-center justify-center"
-              >
-                <motion.div
-                  initial={{ scale: 0.9, y: 10 }}
-                  animate={{ scale: 1, y: 0 }}
-                  exit={{ scale: 0.9, y: 10 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handlePreview();
-                    }}
-                    className="bg-white/95 hover:bg-white text-gray-700 hover:text-gray-900 shadow-lg border-white/20 px-4 py-2"
-                  >
-                    {isImage ? <Eye className="w-4 h-4 mr-2" /> : <Code className="w-4 h-4 mr-2" />}
-                    {isImage ? 'Preview' : 'Code'}
-                  </Button>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Preview button removed for cleaner UI */}
 
           {isUploading && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">

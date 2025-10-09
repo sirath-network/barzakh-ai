@@ -28,18 +28,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid file upload' }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size should be less than 5MB' },
+        { error: 'File size should be less than 10MB' },
+        { status: 400 },
+      );
+    }
+
+    // Define supported file types for programming languages and common formats
+    const supportedExtensions = [
+      // Programming languages
+      'js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt',
+      'html', 'css', 'scss', 'sass', 'less', 'vue', 'svelte',
+      // Data formats
+      'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+      // Text formats
+      'txt', 'md', 'markdown', 'csv', 'tsv', 'log',
+      // Documents
+      'pdf', 'doc', 'docx', 'rtf',
+      // Images (already supported)
+      'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico',
+      // Archives
+      'zip', 'rar', '7z', 'tar', 'gz',
+      // Other
+      'sql', 'sh', 'bat', 'ps1', 'dockerfile', 'gitignore', 'env'
+    ];
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExtension || !supportedExtensions.includes(fileExtension)) {
+      return NextResponse.json(
+        { error: `Unsupported file type. Supported types: ${supportedExtensions.join(', ')}` },
         { status: 400 },
       );
     }
 
     const fileBuffer = await file.arrayBuffer();
-    const filename = file.name;
 
     try {
-      const blob = await put(filename, fileBuffer, {
+      const blob = await put(file.name, fileBuffer, {
         access: 'public',
         // Add cache control to make URLs more persistent
         cacheControlMaxAge: 31536000, // 1 year
@@ -47,9 +73,9 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         url: blob.url,
-        pathname: filename,
+        pathname: file.name,
         contentType: file.type,
-        extension: filename.split('.').pop() || null,
+        extension: file.name.split('.').pop() || null,
       });
     } catch (uploadError) {
       console.error('Upload error:', uploadError);

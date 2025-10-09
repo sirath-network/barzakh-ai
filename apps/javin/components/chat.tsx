@@ -88,7 +88,19 @@ export function Chat({
     `/api/vote?chatId=${id}`,
     fetcher
   );
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  // Persist attachments in localStorage to survive page refreshes
+  const [attachments, setAttachments] = useState<Array<Attachment>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`attachments-${id}`);
+        return stored ? JSON.parse(stored) : [];
+      } catch (error) {
+        console.error('Failed to parse stored attachments:', error);
+        return [];
+      }
+    }
+    return [];
+  });
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
   const [isAtBottom, setIsAtBottom] = useState(true);
 
@@ -102,6 +114,17 @@ export function Chat({
       el.scrollTop = el.scrollHeight;
     }
   }, [messages.length, isAtBottom]);
+
+  // Save attachments to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`attachments-${id}`, JSON.stringify(attachments));
+      } catch (error) {
+        console.error('Failed to save attachments to localStorage:', error);
+      }
+    }
+  }, [attachments, id]);
 
   // Efek untuk mendeteksi posisi scroll
   useEffect(() => {

@@ -568,7 +568,33 @@ function PureMultimodalInput({
     }
 
     if (otherAttachments.length > 0) {
-      chatRequestOptions.experimental_attachments = otherAttachments;
+      // For non-image attachments, we'll read the file content and include it in the text
+      // instead of using experimental_attachments which only supports PDFs
+      const fileContentPromises = otherAttachments.map(async (attachment) => {
+        try {
+          const response = await fetch(attachment.url);
+          const content = await response.text();
+          return `\n\n${attachment.name}\n\`\`\`${attachment.name.split('.').pop() || 'text'}\n${content}\n\`\`\``;
+        } catch (error) {
+          console.error(`Failed to read file ${attachment.name}:`, error);
+          return `\n\n${attachment.name} - Unable to read content`;
+        }
+      });
+      
+      const fileContents = await Promise.all(fileContentPromises);
+      
+      if (Array.isArray(messageContent)) {
+        // Add file contents to the text part
+        const textPart = messageContent.find(part => part.type === 'text');
+        if (textPart) {
+          textPart.text += fileContents.join('');
+        }
+      } else {
+        // Convert string message to array format and add file contents
+        messageContent = [
+          { type: "text", text: input + fileContents.join('') }
+        ];
+      }
     }
 
     if (Array.isArray(messageContent)) {
@@ -586,6 +612,15 @@ function PureMultimodalInput({
     setInput("");
     setAttachments([]);
     setLocalStorageInput("");
+    
+    // Clear attachments from localStorage after successful send
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`attachments-${chatId}`);
+      } catch (error) {
+        console.error('Failed to clear attachments from localStorage:', error);
+      }
+    }
 
     if (textareaRef.current) {
       textareaRef.current.value = "";
@@ -612,6 +647,7 @@ function PureMultimodalInput({
   ]);
 
   const uploadFile = async (file: File) => {
+    console.log("Uploading file:", file.name, "Type:", file.type, "Size:", file.size);
     const formData = new FormData();
     formData.append("file", file);
     try {
@@ -622,16 +658,22 @@ function PureMultimodalInput({
       if (response.ok) {
         const data = await response.json();
         console.log("✅ File uploaded successfully to Vercel Blob Storage:", data.url);
-        return {
+        const attachment = {
           url: data.url,
           name: data.pathname,
           contentType: data.contentType,
         };
+        console.log("Created attachment:", attachment);
+        return attachment;
       }
       const { error } = await response.json();
+      console.error("Upload failed:", error);
       toast.error(error);
+      return null;
     } catch (error) {
+      console.error("Upload error:", error);
       toast.error("Failed to upload file. Please try again.");
+      return null;
     }
   };
 
@@ -641,13 +683,20 @@ function PureMultimodalInput({
       if (files.length === 0) return;
 
       console.log("Starting upload for files:", files.map(f => f.name));
+      console.log("Files details:", files.map(f => ({ name: f.name, type: f.type, size: f.size })));
       setUploadQueue(files.map((file) => file.name));
       try {
         const uploadedAttachments = await Promise.all(files.map(uploadFile));
+        console.log("Upload results:", uploadedAttachments);
         const successfulUploads = uploadedAttachments.filter(
           Boolean
         ) as Attachment[];
-        setAttachments((prev) => [...prev, ...successfulUploads]);
+        console.log("Successful uploads:", successfulUploads);
+        setAttachments((prev) => {
+          const newAttachments = [...prev, ...successfulUploads];
+          console.log("Updated attachments:", newAttachments);
+          return newAttachments;
+        });
         console.log("Upload completed successfully");
       } catch (error) {
         console.error("Error uploading files:", error);
@@ -727,6 +776,45 @@ function PureMultimodalInput({
     [setAttachments]
   );
 
+  // Handle paste events for files and images
+  const handlePaste = useCallback(
+    async (event: React.ClipboardEvent) => {
+      const items = event.clipboardData.items;
+      const files: File[] = [];
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file) {
+            files.push(file);
+          }
+        }
+      }
+
+      if (files.length > 0) {
+        event.preventDefault();
+        console.log("Pasted files:", files.map(f => f.name));
+        
+        setUploadQueue(files.map((file) => file.name));
+        try {
+          const uploadedAttachments = await Promise.all(files.map(uploadFile));
+          const successfulUploads = uploadedAttachments.filter(
+            Boolean
+          ) as Attachment[];
+          setAttachments((prev) => [...prev, ...successfulUploads]);
+          console.log("Paste upload completed successfully");
+        } catch (error) {
+          console.error("Paste upload failed:", error);
+          toast.error("Failed to upload pasted files. Please try again.");
+        } finally {
+          setUploadQueue([]);
+        }
+      }
+    },
+    [uploadFile, setUploadQueue, setAttachments]
+  );
+
   return (
     <motion.div
       layout
@@ -796,13 +884,16 @@ function PureMultimodalInput({
         onBlur={() => setIsFocused(false)}
       >
         <AnimatePresence>
-          {(attachments.length > 0 || uploadQueue.length > 0) && (
+          {(() => {
+            console.log("Rendering attachments:", attachments.length, "upload queue:", uploadQueue.length);
+            return (attachments.length > 0 || uploadQueue.length > 0);
+          })() && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="flex flex-row gap-2 sm:gap-3 overflow-x-auto custom-scrollbar px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30"
+              className="flex flex-wrap gap-2 sm:gap-3 px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30"
             >
               {attachments.map((attachment, index) => (
                 <motion.div
@@ -870,6 +961,7 @@ function PureMultimodalInput({
                 }
               }
             }}
+            onPaste={handlePaste}
           />
           <div className="absolute right-4 bottom-3.5 flex items-center gap-2">
             {isLoading ? (
@@ -895,7 +987,7 @@ function PureMultimodalInput({
           multiple
           onChange={handleFileChange}
           tabIndex={-1}
-          accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,application/pdf,text/plain,text/markdown,text/csv,application/json,application/javascript,text/javascript,text/x-typescript,application/x-typescript,text/html,text/css,application/xml,text/xml"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/ico,application/pdf,text/plain,text/markdown,text/csv,application/json,application/javascript,text/javascript,text/x-typescript,application/x-typescript,text/html,text/css,application/xml,text/xml,text/yaml,text/x-python,text/x-java-source,text/x-c,text/x-c++,text/x-csharp,text/x-php,text/x-ruby,text/x-go,text/x-rust,text/x-swift,text/x-kotlin,text/x-sql,text/x-shellscript,text/x-batch,text/x-powershell,application/x-zip,application/x-rar,application/x-7z,application/x-tar,application/gzip,text/x-dockerfile,.js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.cs,.php,.rb,.go,.rs,.swift,.kt,.html,.css,.scss,.sass,.less,.vue,.svelte,.json,.xml,.yaml,.yml,.toml,.ini,.cfg,.conf,.txt,.md,.csv,.tsv,.log,.rtf,.sql,.sh,.bat,.ps1,.dockerfile,.gitignore,.env"
         />
 
 

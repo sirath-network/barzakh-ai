@@ -182,10 +182,10 @@ const PurePreviewMessage = ({
       >
         <div
           className={cn(
-            "flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl",
+            "flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full",
             {
               "w-full": mode === "edit",
-              "group-data-[role=user]/message:w-fit": mode !== "edit",
+              "group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:w-fit": mode !== "edit",
             }
           )}
         >
@@ -197,7 +197,10 @@ const PurePreviewMessage = ({
             />
           )}
 
-          <div className="flex flex-col gap-1 w-full">
+          <div className={cn(
+            "flex flex-col gap-1",
+            message.role === 'user' ? "w-full" : "w-full"
+          )}>
             <AnimatePresence mode="wait">
               {showThinking ? (
                 <motion.div key="thinking">
@@ -243,10 +246,10 @@ const PurePreviewMessage = ({
                     >
                       {/* USER MESSAGE: Separate attachments and text like Gemini AI */}
                       {message.role === "user" ? (
-                        <div className="flex flex-col gap-1.5 items-end">
-                          {/* Attachments displayed at the top */}
+                        <div className="flex flex-col gap-2 items-end">
+                          {/* Attachments displayed first as separate cards */}
                           {(message.experimental_attachments || (Array.isArray(message.content) && message.content.some(part => part.type === 'image'))) && (
-                            <div className="flex flex-row gap-2">
+                            <div className="flex flex-wrap gap-2 justify-end">
                               {/* Render experimental_attachments if available */}
                               {message.experimental_attachments?.map((attachment) => (
                                 <div 
@@ -288,36 +291,25 @@ const PurePreviewMessage = ({
                             </div>
                           )}
                           
-                          {/* Text content in bubble - now below attachments */}
+                          {/* Text content as separate message bubble */}
                           {(() => {
                             let textContent = "";
                             if (typeof message.content === "string") {
                               textContent = message.content;
                             } else if (Array.isArray(message.content)) {
                               textContent = (message.content as any[])
-                                .map(part => {
-                                  if (part.type === 'text') {
-                                    return part.text;
-                                  } else if (part.type === 'image' && part.image) {
-                                    // Include image URLs in the text content so they can be rendered inline
-                                    return part.image;
-                                  }
-                                  return '';
-                                })
+                                .filter(part => part.type === 'text') // Only get text parts, exclude images
+                                .map(part => part.text)
                                 .filter(text => text.trim())
                                 .join('\n');
                             }
                             
-                            // Check if there are attachments to determine border radius
-                            const hasAttachments = message.experimental_attachments && message.experimental_attachments.length > 0 || 
-                              (Array.isArray(message.content) && message.content.some(part => part.type === 'image'));
-                            
-                             if (textContent.trim()) {
+                            if (textContent.trim()) {
                                return (
                                  <div
                                    className="dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-3 cursor-pointer max-w-max relative shadow-sm"
                                    style={{
-                                     borderRadius: hasAttachments ? '10px 10px 0px 15px' : '15px 15px 0px 15px'
+                                     borderRadius: '15px 15px 0px 15px'
                                    }}
                                    onClick={() => {
                                      if (!isReadonly) {

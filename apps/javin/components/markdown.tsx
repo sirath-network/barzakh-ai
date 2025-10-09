@@ -73,7 +73,9 @@ const components: Partial<Components> = {
              child?.type?.name === 'CodeBlock' ||
              child?.type?.name === 'CodeBlockCompact' ||
              child?.props?.className?.includes('my-4 max-w-full') || // Image containers
-             child?.type === 'div'; // Any div elements
+             child?.props?.className?.includes('block my-4 max-w-full') || // Updated image containers
+             child?.type === 'div' || // Any div elements
+             child?.type === 'span' && child?.props?.className?.includes('block'); // Block spans
     });
     
     // Use div for block elements to avoid <p> nesting issues
@@ -170,12 +172,12 @@ const components: Partial<Components> = {
 
     if (isImageUrl) {
       return (
-        <div className="my-4 max-w-full">
+        <span className="block my-4 max-w-full">
           <SimpleImage 
             src={href} 
             alt={typeof children === 'string' ? children : 'Generated image'}
           />
-        </div>
+        </span>
       );
     }
 
