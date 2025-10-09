@@ -95,9 +95,23 @@ const components: Partial<Components> = {
     );
   },
   li: ({ node, children, ...props }) => {
+    // Filter out image elements from list items
+    const filteredChildren = React.Children.toArray(children).filter((child: any) => {
+      // Check if the child is an img element
+      if (child?.type === 'img' || (child?.props && child.props.src)) {
+        return false; // Remove img elements
+      }
+      // Check if the child contains image URLs in text
+      if (typeof child === 'string') {
+        const imageUrlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?[^\s]*)?)/gi;
+        return !imageUrlRegex.test(child);
+      }
+      return true; // Keep other elements
+    });
+
     return (
       <li className="break-long-words py-1" {...props}>
-        {children}
+        {filteredChildren}
       </li>
     );
   },

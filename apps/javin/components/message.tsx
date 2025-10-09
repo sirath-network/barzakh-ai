@@ -18,7 +18,7 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check, Copy, ChevronDown, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
 import Image from "next/image";
 
 // HELPER: Peta dari nama tool ke ikon yang sesuai
@@ -47,6 +47,13 @@ const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "smal
   return (
     <IconComponent className={`${iconSize} text-muted-foreground/80`} />
   );
+};
+
+// HELPER: Determine attachment size based on type
+const getAttachmentSize = (attachment: any) => {
+  const contentType = attachment.contentType || "";
+  const isImage = contentType.startsWith("image/");
+  return isImage ? "custom250" : "custom100";
 };
 
 import { AssistantAvatar } from "./assistant-avatar";
@@ -224,20 +231,8 @@ const PurePreviewMessage = ({
                     ))
                   )}
 
-                  {/* === USER ATTACHMENTS - SEPARATE FROM MESSAGE BUBBLE === */}
-                  {message.role === "user" && message.experimental_attachments && (
-                    <div className="flex flex-row justify-end gap-3 mb-2">
-                      {message.experimental_attachments.map((attachment) => (
-                        <PreviewAttachment
-                          key={attachment.url}
-                          attachment={attachment}
-                        />
-                      ))}
-                    </div>
-                  )}
-
                   {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
-                  {(message.content) && mode === "view" && !(message.role === 'assistant' && hasCreateImage) && (
+                  {(message.content) && mode === "view" && (
                     <motion.div
                       className={cn("flex flex-col w-full", {
                         "items-end": message.role === "user",
@@ -246,69 +241,134 @@ const PurePreviewMessage = ({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.2 }}
                     >
-                      {/* Gelembung pesan itu sendiri */}
-                      <div
-                        className={cn("flex flex-col gap-1 max-w-max relative", {
-                          "dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-2.5 py-1 rounded-2xl cursor-pointer":
-                            message.role === "user",
-                          "bg-muted/50 text-foreground px-3 py-2 rounded-2xl border border-border/20":
-                            message.role === "assistant",
-                        })}
-                        onClick={() => {
-                          if (message.role === "user" && !isReadonly) {
-                            setActionsVisible(!actionsVisible);
-                          }
-                        }}
-                      >
-                        {/* User message tail */}
-                        {message.role === "user" && (
-                          <div className="absolute -top-1 right-4 w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-primary dark:border-b-muted"></div>
-                        )}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            {typeof message.content === "string" ? (
-                              <Markdown>{message.content}</Markdown>
-                            ) : (
-                              <div className="flex flex-col gap-2">
-                                {(message.content as any[]).map((part, index) => {
-                                  if (part.type === "text") {
-                                    return <Markdown key={index}>{part.text}</Markdown>;
-                                  }
-                                  if (part.type === "image" && typeof part.image === 'string') {
-                                    // Show images in content for assistant messages or if no experimental_attachments
-                                    if (message.role === "assistant" || !message.experimental_attachments) {
-                                      return (
-                                        <div 
-                                          key={index}
-                                          className="relative inline-block rounded-2xl overflow-hidden border border-border/40 shadow-sm bg-muted/30"
-                                        >
-                                          <img
-                                            src={part.image}
-                                            alt="Uploaded image"
-                                            className="block object-contain"
-                                            style={{ maxHeight: '400px', width: 'auto' }}
-                                          />
-                                        </div>
-                                      );
-                                    }
-                                  }
-                                  return null;
-                                })}
-                              </div>
-                            )}
-                          </div>
-                          {/* Chevron icon for assistant messages */}
-                          {message.role === "assistant" && (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground/60 flex-shrink-0 mt-1" />
+                      {/* USER MESSAGE: Separate attachments and text like Gemini AI */}
+                      {message.role === "user" ? (
+                        <div className="flex flex-col gap-1.5 items-end">
+                          {/* Attachments displayed at the top */}
+                          {(message.experimental_attachments || (Array.isArray(message.content) && message.content.some(part => part.type === 'image'))) && (
+                            <div className="flex flex-row gap-2">
+                              {/* Render experimental_attachments if available */}
+                              {message.experimental_attachments?.map((attachment) => (
+                                <div 
+                                  key={attachment.url} 
+                                  className="bg-muted/30 p-2 border border-border/20 shadow-sm"
+                                  style={{ borderRadius: '15px 15px 10px 15px' }}
+                                >
+                                  <PreviewAttachment
+                                    attachment={attachment}
+                                    size={getAttachmentSize(attachment)}
+                                  />
+                                </div>
+                              ))}
+                              
+                              {/* Also render images from content array if no experimental_attachments */}
+                              {!message.experimental_attachments && Array.isArray(message.content) && 
+                                message.content
+                                  .filter(part => part.type === 'image' && typeof part.image === 'string')
+                                  .map((part, index) => {
+                                    const attachment = {
+                                      name: `Image ${index + 1}`,
+                                      url: part.image,
+                                      contentType: 'image/*'
+                                    };
+                                    return (
+                                      <div 
+                                        key={`content-image-${index}`} 
+                                        className="bg-muted/30 p-2 border border-border/20 shadow-sm"
+                                        style={{ borderRadius: '15px 15px 10px 15px' }}
+                                      >
+                                        <PreviewAttachment
+                                          attachment={attachment}
+                                          size={getAttachmentSize(attachment)}
+                                        />
+                                      </div>
+                                    );
+                                  })
+                              }
+                            </div>
                           )}
+                          
+                          {/* Text content in bubble - now below attachments */}
+                          {(() => {
+                            let textContent = "";
+                            if (typeof message.content === "string") {
+                              textContent = message.content;
+                            } else if (Array.isArray(message.content)) {
+                              textContent = (message.content as any[])
+                                .map(part => {
+                                  if (part.type === 'text') {
+                                    return part.text;
+                                  } else if (part.type === 'image' && part.image) {
+                                    // Include image URLs in the text content so they can be rendered inline
+                                    return part.image;
+                                  }
+                                  return '';
+                                })
+                                .filter(text => text.trim())
+                                .join('\n');
+                            }
+                            
+                            // Check if there are attachments to determine border radius
+                            const hasAttachments = message.experimental_attachments && message.experimental_attachments.length > 0 || 
+                              (Array.isArray(message.content) && message.content.some(part => part.type === 'image'));
+                            
+                             if (textContent.trim()) {
+                               return (
+                                 <div
+                                   className="dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-3 cursor-pointer max-w-max relative shadow-sm"
+                                   style={{
+                                     borderRadius: hasAttachments ? '10px 10px 0px 15px' : '15px 15px 0px 15px'
+                                   }}
+                                   onClick={() => {
+                                     if (!isReadonly) {
+                                       setActionsVisible(!actionsVisible);
+                                     }
+                                   }}
+                                 >
+                                   <Markdown>{textContent}</Markdown>
+                                 </div>
+                               );
+                             }
+                            return null;
+                          })()}
                         </div>
-                      </div>
+                      ) : (
+                        /* ASSISTANT MESSAGE: Keep original structure */
+                        <div
+                          className="bg-muted/50 text-foreground px-4 py-3 shadow-sm"
+                          style={{
+                            borderRadius: '0px 15px 15px 15px'
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              {typeof message.content === "string" ? (
+                                <Markdown>{message.content}</Markdown>
+                              ) : (
+                                <div className="flex flex-col gap-2">
+                                  {(message.content as any[]).map((part, index) => {
+                                    if (part.type === "text") {
+                                      return <Markdown key={index}>{part.text}</Markdown>;
+                                    }
+                                    if (part.type === "image" && typeof part.image === 'string') {
+                                      // Include image URLs in text content so they can be rendered inline by Markdown
+                                      // This allows the Markdown component to detect and render AI-generated images properly
+                                      return <Markdown key={index}>{part.image}</Markdown>;
+                                    }
+                                    return null;
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}
                       <AnimatePresence>
                         {message.role === "user" && !isReadonly && actionsVisible && (
                           <motion.div
-                            className="flex flex-row gap-1 mt-2"
+                            className="flex flex-row gap-1 mt-3"
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{
@@ -327,7 +387,7 @@ const PurePreviewMessage = ({
                               type="button"
                               title="Edit pesan"
                               variant="ghost"
-                              className="p-2 h-fit rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                              className="p-2 h-fit rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
                               onClick={handleEdit}
                             >
                               <PencilEditIcon className="size-4" />
@@ -336,7 +396,7 @@ const PurePreviewMessage = ({
                               type="button"
                               title={isCopied ? "Disalin!" : "Salin pesan"}
                               variant="ghost"
-                              className="p-2 h-fit rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                              className="p-2 h-fit rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
                               onClick={handleCopy}
                             >
                               {isCopied ? (

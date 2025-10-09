@@ -404,7 +404,7 @@ export function AIGeneratedImage({
 
   if (imageError) {
     return (
-      <div className="max-w-full my-4 p-6 bg-muted/50 rounded-2xl border border-border/40 text-center">
+      <div className="max-w-full p-6 bg-muted/50 rounded-2xl border border-border/40 text-center">
         <div className="text-muted-foreground">
           {isExpiredUrl ? (
             <>
@@ -442,35 +442,38 @@ export function AIGeneratedImage({
   }
 
   return (
-    <div className={cn("w-full my-6 group flex flex-col justify-start", className)}>
+    <div className={cn("w-full group flex flex-col justify-start", className)}>
       <div 
-        className="relative rounded-2xl overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow duration-200 bg-muted/30 inline-block w-fit max-w-full"
+        className="relative rounded-3xl overflow-hidden border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-muted/40 to-muted/20 inline-block w-fit max-w-full group/image"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Enhanced Image Container */}
-        <div className="relative">
+        <div className="relative overflow-hidden rounded-3xl">
           <img
             src={imageUrl}
             alt={alt}
-            className="block object-contain max-w-full"
+            className="block object-contain max-w-full transition-transform duration-300 group-hover/image:scale-[1.02]"
             style={{ maxHeight: '400px', width: 'auto' }}
             onError={handleImageError}
             loading="lazy"
           />
           
           {/* Subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
           
           {/* Mobile Download Instructions Overlay */}
           {shouldShowMobileUI && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-4 text-white">
-              <div className="text-sm font-medium mb-1">📱 To Download:</div>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3 text-white">
+              <div className="text-xs font-medium mb-1 flex items-center gap-1">
+                <Download className="w-3 h-3" />
+                Download
+              </div>
               <div className="text-xs text-gray-200 leading-relaxed">
                 {/iPad|iPhone|iPod/.test(navigator.userAgent) ? (
-                  "Tap download button → Tap & hold image → Save to Photos"
+                  "Tap button → Hold image → Save to Photos"
                 ) : (
-                  "Tap download button → Long-press image → Download image"
+                  "Tap button → Long-press image → Download"
                 )}
               </div>
             </div>
@@ -485,10 +488,10 @@ export function AIGeneratedImage({
               size="sm"
               onClick={handleDownload}
               disabled={isDownloading}
-              className="bg-background/90 hover:bg-background border-border/60 shadow-sm"
+              className="bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
             >
               {isDownloading ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
               ) : (
                 <Download className="w-4 h-4" />
               )}
@@ -499,7 +502,7 @@ export function AIGeneratedImage({
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="bg-background/90 hover:bg-background border-border/60 shadow-sm"
+                  className="bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
                   onClick={handlePreviewOpen}
                 >
                   <Eye className="w-4 h-4" />
@@ -588,21 +591,22 @@ export function AIGeneratedImage({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center"
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-black/20 backdrop-blur-md flex items-center justify-center"
             >
               <div className="flex gap-3">
                 {/* Preview Button */}
                 <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                   <DialogTrigger asChild>
                     <motion.div
-                      whileHover={{ scale: 1.05 }}
+                      whileHover={{ scale: 1.05, y: -2 }}
                       whileTap={{ scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
                     >
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
+                        className="bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200 px-4 py-2"
                         onClick={handlePreviewOpen}
                       >
                         <Eye className="w-4 h-4 mr-2" />
@@ -686,17 +690,22 @@ export function AIGeneratedImage({
 
                 {/* Download Button */}
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={handleDownload}
                     disabled={isDownloading}
-                    className="bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
+                    className="bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200 px-4 py-2"
                   >
-                    <Download className="w-4 h-4 mr-2" />
+                    {isDownloading ? (
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent mr-2" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
                     {isDownloading ? 'Downloading...' : 'Download'}
                   </Button>
                 </motion.div>
@@ -711,12 +720,12 @@ export function AIGeneratedImage({
           <div className="flex justify-end">
             {!isHovered && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="px-3 py-1 bg-background/80 backdrop-blur-sm rounded-full text-muted-foreground text-xs border border-border/40"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.3 }}
+                className="px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-gray-600 text-xs font-medium border border-white/20 shadow-lg"
               >
-                Powered by Barzakh
+                ✨ Powered by Barzakh
               </motion.div>
             )}
           </div>
@@ -819,7 +828,7 @@ export function AIGeneratedImageCompact({
         
         // Fallback for data URLs
         const link = document.createElement('a');
-        link.href = currentImage;
+        link.href = imageUrl;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
@@ -868,7 +877,7 @@ export function AIGeneratedImageCompact({
           
           // Final mobile fallback: Open in new tab with instructions
           const link = document.createElement('a');
-          link.href = currentImage;
+          link.href = imageUrl;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           document.body.appendChild(link);
@@ -927,7 +936,7 @@ export function AIGeneratedImageCompact({
           
           // Final fallback: Open in new tab
           const link = document.createElement('a');
-          link.href = currentImage;
+          link.href = imageUrl;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           document.body.appendChild(link);
@@ -941,7 +950,7 @@ export function AIGeneratedImageCompact({
       
       // Final fallback: Open in new tab
       const link = document.createElement('a');
-      link.href = currentImage;
+      link.href = imageUrl;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
@@ -955,34 +964,35 @@ export function AIGeneratedImageCompact({
   return (
     <div className={cn("inline-block", className)}>
       {/* Compact Header */}
-      <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
+      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground font-medium">
+        <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
         <span>AI Generated Image</span>
       </div>
       
-      <div className="relative group border border-border/40 rounded-2xl overflow-hidden bg-muted/30 shadow-sm hover:shadow-md transition-shadow duration-200"
+      <div className="relative group border border-border/20 rounded-3xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/20 shadow-lg hover:shadow-xl transition-all duration-300"
       >
         <img
           src={imageUrl}
           alt={alt}
-          className="block object-contain"
+          className="block object-contain transition-transform duration-300 group-hover:scale-[1.02]"
           style={{ maxHeight: '300px', width: 'auto' }}
           loading="lazy"
         />
         
-        {/* Mobile: Always visible download button with dark fantasy theme */}
+        {/* Mobile: Always visible download button */}
         {shouldShowMobileUI ? (
         <Button
           variant="secondary"
           size="sm"
           onClick={handleDownload}
           disabled={isDownloading}
-            className="absolute top-2 right-2 bg-background/90 hover:bg-background border-border/60 shadow-sm"
+          className="absolute top-3 right-3 bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
         >
-            {isDownloading ? (
-              <div className="w-3 h-3 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
-            ) : (
-          <Download className="w-3 h-3" />
-            )}
+          {isDownloading ? (
+            <div className="w-3 h-3 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
+          ) : (
+            <Download className="w-3 h-3" />
+          )}
         </Button>
         ) : (
           /* Desktop: Hover-based download button */
@@ -991,9 +1001,13 @@ export function AIGeneratedImageCompact({
             size="sm"
             onClick={handleDownload}
             disabled={isDownloading}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/95 hover:bg-background border-border shadow-sm backdrop-blur-sm"
+            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900"
           >
-            <Download className="w-3 h-3" />
+            {isDownloading ? (
+              <div className="w-3 h-3 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
+            ) : (
+              <Download className="w-3 h-3" />
+            )}
           </Button>
         )}
       </div>
@@ -1009,12 +1023,18 @@ export function AIGeneratedImageGrid({
 }: AIGeneratedImageGridProps) {
   const isMobile = useIsMobile();
   
-  // For mobile, show 2x2 grid, for desktop show 2x2 as well but with better spacing
-  const gridCols = isMobile ? "grid-cols-2" : "grid-cols-2";
-  const gap = isMobile ? "gap-2" : "gap-4";
+  // Responsive grid layout
+  const gridCols = isMobile ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2";
+  const gap = isMobile ? "gap-3" : "gap-6";
   
   return (
-    <div className={cn("w-full my-6", className)}>
+    <div className={cn("w-full my-4", className)}>
+      {/* Grid Header */}
+      <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground font-medium">
+        <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+        <span>AI Generated Images ({imageUrls.length})</span>
+      </div>
+      
       <div className={cn("grid", gridCols, gap)}>
         {imageUrls.map((imageUrl, index) => (
           <AIGeneratedImage

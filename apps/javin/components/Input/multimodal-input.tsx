@@ -351,6 +351,8 @@ function PureSendButton({
   uploadQueue: Array<string>;
 }) {
   const isDisabled = input.length === 0 || uploadQueue.length > 0;
+  const isUploading = uploadQueue.length > 0;
+  
   return (
     <motion.div
       layout
@@ -373,10 +375,12 @@ function PureSendButton({
         )}
         onClick={(event) => {
           event.preventDefault();
+          console.log("Send button clicked, uploadQueue length:", uploadQueue.length);
           submitForm();
         }}
         disabled={isDisabled}
-        aria-label="Send Messages"
+        title={isUploading ? "Please wait for file uploads to complete" : "Send Messages"}
+        aria-label={isUploading ? "Please wait for file uploads to complete" : "Send Messages"}
       >
         <SendIcon size={18} className="relative z-10" />
       </Button>
@@ -508,6 +512,11 @@ function PureMultimodalInput({
       toast.error("Please wait for the previous response to complete.");
       return;
     }
+    if (uploadQueue.length > 0) {
+      console.log("SubmitForm blocked: uploadQueue length:", uploadQueue.length);
+      toast.info("Please wait for file uploads to complete before sending.");
+      return;
+    }
 
     window.history.replaceState({}, "", `/chat/${chatId}`);
 
@@ -599,6 +608,7 @@ function PureMultimodalInput({
     setInput,
     append,
     input,
+    uploadQueue,
   ]);
 
   const uploadFile = async (file: File) => {
@@ -630,6 +640,7 @@ function PureMultimodalInput({
       const files = Array.from(event.target.files || []);
       if (files.length === 0) return;
 
+      console.log("Starting upload for files:", files.map(f => f.name));
       setUploadQueue(files.map((file) => file.name));
       try {
         const uploadedAttachments = await Promise.all(files.map(uploadFile));
@@ -637,10 +648,12 @@ function PureMultimodalInput({
           Boolean
         ) as Attachment[];
         setAttachments((prev) => [...prev, ...successfulUploads]);
+        console.log("Upload completed successfully");
       } catch (error) {
         console.error("Error uploading files:", error);
         toast.error("An error occurred during file upload.");
       } finally {
+        console.log("Clearing upload queue");
         setUploadQueue([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -741,7 +754,7 @@ function PureMultimodalInput({
               damping: 30,
               bounce: 0.25,
             }}
-            className="absolute left-1/2 transform -translate-x-1/2 bottom-36 z-50"
+            className="absolute left-1/2 transform -translate-x-1/2 -top-16 z-50"
           >
             <button
               onClick={scrollMessagesToBottom}
@@ -847,7 +860,14 @@ function PureMultimodalInput({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                submitForm();
+                console.log("Enter pressed, uploadQueue length:", uploadQueue.length);
+                // Only allow sending if no files are uploading
+                if (uploadQueue.length === 0) {
+                  submitForm();
+                } else {
+                  console.log("Blocked: Files still uploading");
+                  toast.info("Please wait for file uploads to complete before sending.");
+                }
               }
             }}
           />
