@@ -37,7 +37,7 @@ function PureMessages({
 
   return (
     <div
-      className={`relative flex flex-col min-w-0 w-full gap-4 md:gap-6 pt-4 ${
+      className={`relative flex flex-col min-w-0 w-full gap-6 md:gap-8 pt-4 ${
         messages.length === 0 ? "" : "flex-1"
       }`}
     >

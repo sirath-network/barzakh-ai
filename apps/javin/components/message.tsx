@@ -173,7 +173,10 @@ const PurePreviewMessage = ({
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        className="w-full mx-auto max-w-3xl px-3 group/message"
+        className={cn(
+          "w-full mx-auto max-w-3xl px-3 group/message",
+          message.role === "user" && "mb-4"
+        )}
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -5, opacity: 0 }}
