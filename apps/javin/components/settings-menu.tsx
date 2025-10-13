@@ -11,6 +11,7 @@ import {
   Mail,
   CreditCard,
   ArchiveIcon,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -107,6 +108,12 @@ export function SettingsMenu({
           onClick={() => handleMenuClick('password')}
         >
           Change Password
+        </SettingsMenuItem>
+        <SettingsMenuItem 
+          icon={<Shield size={18} />}
+          onClick={() => handleMenuClick('2fa')}
+        >
+          2FA Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
           icon={<Mail size={18} />}

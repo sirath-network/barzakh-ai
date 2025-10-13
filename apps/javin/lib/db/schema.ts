@@ -25,6 +25,10 @@ import {
   dailyMessageRemaining: integer("dailyMessageRemaining")
     .notNull()
     .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 5),
+  // 2FA fields
+  twoFactorSecret: text("twoFactorSecret"),
+  twoFactorEnabled: boolean("twoFactorEnabled").notNull().default(false),
+  backupCodes: text("backupCodes"), // JSON array of backup codes
 });
 
 export const customer = pgTable("Customer", {

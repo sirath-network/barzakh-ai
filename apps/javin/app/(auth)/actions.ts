@@ -86,7 +86,9 @@ const resetPasswordSchema = z.object({
 });
 
 export interface LoginActionState {
-  status: "idle" | "in_progress" | "success" | "failed" | "invalid_data";
+  status: "idle" | "in_progress" | "success" | "failed" | "invalid_data" | "requires_2fa";
+  email?: string;
+  tempToken?: string;
 }
 
 export const login = async (
@@ -106,6 +108,39 @@ export const login = async (
 
     if (!isTurnstileValid) {
       return { status: "failed" };
+    }
+
+    // Check if user has 2FA enabled
+    const users = await getUser(validatedData.email);
+    if (users.length > 0 && users[0].twoFactorEnabled) {
+      // User has 2FA enabled, get temp token for 2FA verification
+      try {
+        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/2fa/temp-login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: validatedData.email,
+            password: validatedData.password,
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          return { 
+            status: "requires_2fa", 
+            email: validatedData.email,
+            tempToken: data.tempToken
+          };
+        } else {
+          return { status: "failed" };
+        }
+      } catch (error) {
+        console.error("Temp login error:", error);
+        return { status: "failed" };
+      }
     }
 
     await signIn("credentials", {

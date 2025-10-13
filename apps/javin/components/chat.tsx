@@ -24,6 +24,7 @@ import EmailSettingsPage from "@/components/settings/email/email-page";
 import PasswordSettingsPage from "@/components/settings/password/password-page";
 import BillingSettingsPage from "@/components/settings/billing/billing-page";
 import { ArchivedPage } from "@/components/settings/archived/archived-page";
+import TwoFactorSettingsPage from "@/components/settings/2fa/two-factor-page";
 import { ArtifactProvider } from "@/context/artifact-context";
 import { ArtifactViewer } from "./artifact-viewer";
 
@@ -33,6 +34,7 @@ const settingsViews = (user: User | undefined): Record<string, React.ReactNode> 
   password: <PasswordSettingsPage />,
   billing: <BillingSettingsPage />,
   archived: <ArchivedPage user={user} />,
+  "2fa": <TwoFactorSettingsPage />,
 });
 
 export function Chat({

@@ -240,7 +240,7 @@ For better image editing results in the future, please:
     
     // Add delay between API calls to prevent rate limiting
     if (index > 0) {
-      const delay = index * 3500; // 3.5 seconds delay between each call
+      const delay = index * 5000; // 5 seconds delay between each call
       console.log(`Waiting ${delay}ms before generating image ${index + 1}...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }

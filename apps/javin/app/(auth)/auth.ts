@@ -11,12 +11,51 @@ export const authOptions: NextAuthOptions = {
   ...authConfig,
   providers: [
     Credentials({
-      credentials: {},
-      async authorize({ email, password }: any) {
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+        sessionToken: { label: "Session Token", type: "text" },
+      },
+      async authorize({ email, password, sessionToken }: any) {
+        // If sessionToken is provided, this is a 2FA completion
+        if (sessionToken && sessionToken.trim() !== "") {
+          try {
+            const { jwtVerify } = await import("jose");
+            const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret");
+            
+            const { payload } = await jwtVerify(sessionToken, secret);
+            
+            if (payload.type === "session" && payload.email) {
+              const users = await getUser(payload.email as string);
+              if (users.length > 0) {
+                console.log("2FA session token verified successfully");
+                return users[0] as any;
+              }
+            }
+          } catch (error) {
+            console.error("Session token verification failed:", error);
+          }
+          return null;
+        }
+        
+        // Regular password authentication
+        if (!email || !password) {
+          console.log("Missing email or password for regular auth");
+          return null;
+        }
+        
         const users = await getUser(email);
-        if (users.length === 0) return null;
+        if (users.length === 0) {
+          console.log("User not found:", email);
+          return null;
+        }
+        
         const passwordsMatch = await compare(password, users[0].password!);
-        if (!passwordsMatch) return null;
+        if (!passwordsMatch) {
+          console.log("Password mismatch for user:", email);
+          return null;
+        }
+        
         return users[0] as any;
       },
     }),

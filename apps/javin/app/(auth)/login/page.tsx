@@ -12,6 +12,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { LogoGoogle } from "@/components/icons";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
+import { login, type LoginActionState } from "../actions";
 
 type OverlayState = {
   status: "success" | "error" | "idle";
@@ -30,30 +31,28 @@ export default function Page() {
     message: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [loginState, setLoginState] = useState<LoginActionState>({ status: "idle" });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     const formData = new FormData(event.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    formData.set("cf-turnstile-response", turnstileToken);
 
-    const result = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-      "cf-turnstile-response": turnstileToken,
-    });
-
+    const result = await login(loginState, formData);
+    setLoginState(result);
     setIsLoading(false);
 
-    if (result?.error) {
+    if (result.status === "failed") {
       setOverlayState({ status: "error", title: "Login Failed", message: "Invalid credentials!" });
-    } else if (result?.ok) {
+    } else if (result.status === "success") {
       setOverlayState({ status: "success", title: "Login Successful", message: "You will be redirected shortly." });
       setTimeout(() => {
         router.push("/");
       }, 2000);
+    } else if (result.status === "requires_2fa") {
+      // Redirect to 2FA verification page
+      router.push(`/verify-2fa?email=${encodeURIComponent(result.email!)}&tempToken=${encodeURIComponent(result.tempToken!)}`);
     }
   };
   
