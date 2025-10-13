@@ -205,7 +205,7 @@ async function generateFluxImage(
         
         console.warn(`Image editing failed: ${errorReason}. Generating new image instead.`);
         
-        // Check if this looks like a Google AI/Gemini generated image
+        // Check if this looks like a generated image
         const isGoogleAIImage = input_image_urls.some(url => url.includes('generativelanguage.googleapis.com') || url.includes('generative-ai-image-store.googleapis.com'));
         const isGoogleCloudImage = input_image_urls.some(url => url.includes('storage.googleapis.com'));
         const isVercelBlobImage = input_image_urls.some(url => url.includes('blob.vercel-storage.com'));
@@ -413,7 +413,7 @@ export const createImage = tool({
       
       if (hasGoogleAUrls) {
         console.warn("⚠️ Google AI URLs detected - this suggests the AI SDK converted Vercel Blob URLs");
-        console.warn("⚠️ This is a known issue with Google's Gemini model - it converts image URLs to its own format");
+        console.warn("⚠️ This is a known issue with some AI models - they may convert image URLs to their own format");
         console.warn("⚠️ These URLs may not be accessible for editing due to authentication issues");
       }
     }

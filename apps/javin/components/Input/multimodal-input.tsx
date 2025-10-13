@@ -550,7 +550,7 @@ function PureMultimodalInput({
       const vercelBlobUrls = imageParts.filter(part => part.image.includes('blob.vercel-storage.com'));
       if (vercelBlobUrls.length > 0) {
         console.log("✅ Sending Vercel Blob URLs to AI:", vercelBlobUrls.map(part => part.image));
-        console.log("ℹ️ Note: Google's Gemini model may convert these URLs to its own format, but the original URLs are preserved for editing");
+        console.log("ℹ️ Note: Some AI models may convert these URLs to their own format, but the original URLs are preserved for editing");
         
         // Store original Vercel Blob URLs for editing
         const originalUrls = vercelBlobUrls.map(part => part.image);

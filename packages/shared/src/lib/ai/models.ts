@@ -8,13 +8,13 @@ import {
   wrapLanguageModel,
 } from "ai";
 
-export const DEFAULT_CHAT_MODEL: string = "chat-model-gemini";
+export const DEFAULT_CHAT_MODEL: string = "chat-model-kimi";
 
 export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-gemini": google("models/gemini-2.5-flash"),
+    "chat-model-kimi": fireworks("accounts/fireworks/models/kimi-k2-instruct-0905"),
     "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
     "chat-model-reasoning": wrapLanguageModel({
       model: fireworks("accounts/fireworks/models/deepseek-r1-0528"),
@@ -54,9 +54,9 @@ export const chatModels: Array<ChatModel> = [
     description: "Deepseek model for experimental tasks",
   },
   {
-    id: "chat-model-gemini",
-    name: "gemini-2.5-flash",
-    description: "Gemini model for experimental tasks",
+    id: "chat-model-kimi",
+    name: "kimi-k2",
+    description: "Kimi model for experimental tasks",
   },
   {
     id: "chat-model-claude",

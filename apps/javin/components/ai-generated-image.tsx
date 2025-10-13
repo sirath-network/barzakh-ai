@@ -725,7 +725,7 @@ export function AIGeneratedImage({
                 transition={{ delay: 0.5, duration: 0.3 }}
                 className="px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-gray-600 text-xs font-medium border border-white/20 shadow-lg"
               >
-                ✨ Powered by Barzakh
+                Powered by Barzakh
               </motion.div>
             )}
           </div>
@@ -1029,11 +1029,6 @@ export function AIGeneratedImageGrid({
   
   return (
     <div className={cn("w-full my-4", className)}>
-      {/* Grid Header */}
-      <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground font-medium">
-        <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-        <span>AI Generated Images ({imageUrls.length})</span>
-      </div>
       
       <div className={cn("grid", gridCols, gap)}>
         {imageUrls.map((imageUrl, index) => (

@@ -247,7 +247,7 @@ const PurePreviewMessage = ({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.2 }}
                     >
-                      {/* USER MESSAGE: Separate attachments and text like Gemini AI */}
+                      {/* USER MESSAGE: Separate attachments and text */}
                       {message.role === "user" ? (
                         <div className="flex flex-col gap-2 items-end">
                           {/* Attachments displayed first as separate cards */}
@@ -329,34 +329,73 @@ const PurePreviewMessage = ({
                         </div>
                       ) : (
                         /* ASSISTANT MESSAGE: Keep original structure */
-                        <div
-                          className="bg-muted/50 text-foreground px-4 py-3 shadow-sm"
-                          style={{
-                            borderRadius: '0px 15px 15px 15px'
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              {typeof message.content === "string" ? (
-                                <Markdown>{message.content}</Markdown>
-                              ) : (
-                                <div className="flex flex-col gap-2">
-                                  {(message.content as any[]).map((part, index) => {
-                                    if (part.type === "text") {
-                                      return <Markdown key={index}>{part.text}</Markdown>;
-                                    }
-                                    if (part.type === "image" && typeof part.image === 'string') {
-                                      // Include image URLs in text content so they can be rendered inline by Markdown
-                                      // This allows the Markdown component to detect and render AI-generated images properly
-                                      return <Markdown key={index}>{part.image}</Markdown>;
-                                    }
-                                    return null;
-                                  })}
+                        (() => {
+                          // Check if this message has image generation tool results
+                          const hasImageGeneration = hasCreateImage;
+                          
+                          // Determine if we should show the text content
+                          let shouldShowTextContent = true;
+                          if (hasImageGeneration && typeof message.content === "string") {
+                            // Only show the text if it's not a generic "here's your image" message
+                            const content = message.content.toLowerCase().trim();
+                            const isGenericImageMessage = 
+                              (content.includes("here's") || content.includes("here are")) && 
+                              (content.includes("image") || content.includes("images")) &&
+                              (content.includes("generated") || content.includes("created") || content.includes("for you") || content.includes("based on"));
+                            
+                            // Also check for text that seems to be describing images that are already shown
+                            const isImageDescription = 
+                              (content.includes("image") || content.includes("images")) &&
+                              (content.includes("shows") || content.includes("depicts") || content.includes("features") || content.includes("captures")) &&
+                              content.length < 200; // Short descriptions are likely redundant
+                            
+                            // Check for text that contains broken image references or URLs
+                            const hasBrokenImageReferences = 
+                              content.includes("here") && 
+                              (content.includes("image") || content.includes("images")) &&
+                              content.includes("view");
+                            
+                            if (isGenericImageMessage || isImageDescription || hasBrokenImageReferences) {
+                              shouldShowTextContent = false;
+                            }
+                          }
+                          
+                          // If we're suppressing text and there are tool results, don't render the message bubble at all
+                          if (!shouldShowTextContent && hasImageGeneration) {
+                            return null;
+                          }
+                          
+                          return (
+                            <div
+                              className="bg-muted/50 text-foreground px-4 py-3 shadow-sm"
+                              style={{
+                                borderRadius: '0px 15px 15px 15px'
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  {typeof message.content === "string" ? (
+                                    <Markdown>{message.content}</Markdown>
+                                  ) : (
+                                    <div className="flex flex-col gap-2">
+                                      {(message.content as any[]).map((part, index) => {
+                                        if (part.type === "text") {
+                                          return <Markdown key={index}>{part.text}</Markdown>;
+                                        }
+                                        if (part.type === "image" && typeof part.image === 'string') {
+                                          // Include image URLs in text content so they can be rendered inline by Markdown
+                                          // This allows the Markdown component to detect and render AI-generated images properly
+                                          return <Markdown key={index}>{part.image}</Markdown>;
+                                        }
+                                        return null;
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          );
+                        })()
                       )}
 
                       {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}

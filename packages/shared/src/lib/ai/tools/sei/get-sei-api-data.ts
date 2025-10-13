@@ -115,7 +115,7 @@ export const getSeiApiData = tool({
       const allPaths = await getAllPathDetails(openapidata);
 
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("chat-model-gemini"),
+        model: myProvider.languageModel("chat-model-kimi"),
         output: "array",
         schema: z.string().describe("the full api path with query parameters"),
         system: `

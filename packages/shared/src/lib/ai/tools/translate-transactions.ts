@@ -108,7 +108,7 @@ export const translateTransactions = tool({
       // console.log("transaction data is  ----------- ", transactionDetails);
 
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("chat-model-gemini"),
+        model: myProvider.languageModel("chat-model-kimi"),
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n

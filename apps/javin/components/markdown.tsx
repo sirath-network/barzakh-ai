@@ -267,6 +267,19 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
     '$1$5' // Replace with just the surrounding whitespace
   );
   
+  // Filter out broken image references that might contain "here" or other broken text
+  // This handles cases where the AI generates text like "here" as broken image placeholders
+  filteredChildren = filteredChildren.replace(
+    /(^|\s)(here)(\s|$)/gi,
+    '$1$3' // Remove standalone "here" words that might be broken image references
+  );
+  
+  // Filter out any remaining broken image references or placeholders
+  filteredChildren = filteredChildren.replace(
+    /(^|\s)(image\s+here|here\s+image|view\s+here|here\s+view)(\s|$)/gi,
+    '$1$3' // Remove broken image reference patterns
+  );
+  
   return (
     <div className="markdown-body">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>

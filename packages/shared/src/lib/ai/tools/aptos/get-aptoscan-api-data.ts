@@ -72,7 +72,7 @@ export const getAptosScanApiData = tool({
       const aptosBaseUrl = "https://api.aptoscan.com/public/v1.0";
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("chat-model-gemini"),
+        model: myProvider.languageModel("chat-model-kimi"),
         system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant aptos blockchain data in a user-friendly format.
 
         ## CRITICAL FORMATTING RULES:

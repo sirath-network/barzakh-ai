@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+import { myProvider } from "@javin/shared/src/lib/ai/models";
+import { generateText } from "ai";
 
 const BASE_SUGGESTIONS = [
   {
@@ -36,19 +35,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(BASE_SUGGESTIONS);
     }
     
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await generateText({
+      model: myProvider.languageModel("chat-model-kimi"),
+      prompt: `
+        Translate the following JSON array of objects into the language with code "${mainLang}".
+        Do not change the keys ("title", "subtitle"). Only translate the string values.
+        Return ONLY the translated JSON array, without any extra text or markdown formatting.
 
-    const prompt = `
-      Translate the following JSON array of objects into the language with code "${mainLang}".
-      Do not change the keys ("title", "subtitle"). Only translate the string values.
-      Return ONLY the translated JSON array, without any extra text or markdown formatting.
-
-      Original JSON:
-      ${JSON.stringify(BASE_SUGGESTIONS, null, 2)}
-    `;
-
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+        Original JSON:
+        ${JSON.stringify(BASE_SUGGESTIONS, null, 2)}
+      `,
+    });
+    const responseText = result.text;
     
     // Membersihkan response AI dari format markdown jika ada
     const cleanedJsonText = responseText.replace(/```json\n|```/g, "").trim();

@@ -40,10 +40,12 @@ export function convertToUIMessages(
       hasImages = message.content.some((content: any) => content.type === "image");
       
       if (hasImages) {
-        // If message contains images, preserve the original content structure
-        // and extract reasoning and tool invocations separately
+        // If message contains images, extract text content AND tool invocations
+        const textParts: string[] = [];
         for (const content of message.content) {
-          if (content.type === "tool-call") {
+          if (content.type === "text") {
+            textParts.push(content.text);
+          } else if (content.type === "tool-call") {
             toolInvocations.push({
               state: "call",
               toolCallId: content.toolCallId,
@@ -62,6 +64,26 @@ export function convertToUIMessages(
           } else if (content.type === "reasoning") {
             reasoning = content.reasoning;
           }
+        }
+        
+        // Join text parts intelligently - avoid creating split responses
+        if (textParts.length > 1) {
+          // Check if the text parts seem to be split responses that should be combined
+          const combinedText = textParts.join(" ");
+          const isLikelySplitResponse = 
+            combinedText.toLowerCase().includes("image") &&
+            (combinedText.toLowerCase().includes("here") || combinedText.toLowerCase().includes("view")) &&
+            combinedText.length < 500; // Short combined responses are likely redundant
+          
+          if (isLikelySplitResponse) {
+            // Suppress the text content entirely for split image responses
+            textContent = "";
+          } else {
+            // Otherwise, combine the text parts normally
+            textContent = combinedText;
+          }
+        } else {
+          textContent = textParts[0] || "";
         }
       } else {
         // For messages without images, use the original logic
@@ -94,7 +116,7 @@ export function convertToUIMessages(
     chatMessages.push({
       id: message.id,
       role: message.role as Message["role"],
-      content: hasImages ? message.content : textContent,
+      content: textContent, // Always use extracted text content
       reasoning,
       toolInvocations,
     });
