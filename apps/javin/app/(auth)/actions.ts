@@ -23,6 +23,12 @@ import { sendResetEmail, sendOTPEmail } from "@/lib/utils/email";
 import * as Sentry from "@sentry/nextjs";
 
 async function verifyTurnstile(token: string) {
+  // Validate token format before making request
+  if (!token || token.trim() === "" || token.length < 10) {
+    console.log("❌ Turnstile verification failed: Invalid token format");
+    return false;
+  }
+
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for");
 
@@ -31,17 +37,28 @@ async function verifyTurnstile(token: string) {
   formData.append("response", token);
   formData.append("remoteip", ip!);
 
-  const res = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      body: formData,
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+    
+    if (!data.success) {
+      console.log("❌ Turnstile verification failed:", data);
+    } else {
+      console.log("✅ Turnstile verification successful");
     }
-  );
 
-  const data = await res.json();
-
-  return data.success;
+    return data.success;
+  } catch (error) {
+    console.error("❌ Turnstile verification error:", error);
+    return false;
+  }
 }
 
 // For login: only check required + min length
@@ -369,10 +386,18 @@ export async function forgotPassword(
     const otp = formData.get("otp") as string | null;
     const turnstileResponse = formData.get("cf-turnstile-response") as string;
 
+    console.log(`🔄 ForgotPassword action called - Email: ${email}, OTP: ${otp ? 'provided' : 'not provided'}`);
+
     const isTurnstileValid = await verifyTurnstile(turnstileResponse);
 
     if (!isTurnstileValid) {
-      return { status: "failed" };
+      console.log(`❌ Turnstile verification failed for ${email} - token may be expired or already used`);
+      return { 
+        status: "failed",
+        fieldErrors: { 
+          email: ["Security verification failed. Please refresh the page and try again."] 
+        }
+      };
     }
 
     // Check if user exists
@@ -386,9 +411,12 @@ export async function forgotPassword(
 
     // If we're verifying OTP
     if (otp) {
+      console.log(`🔍 Verifying OTP for email: ${email}`);
       const verified = await verifyOTP(email, otp);
+      console.log(`✅ OTP verification result: ${verified}`);
       
       if (!verified) {
+        console.log(`❌ OTP verification failed for ${email}`);
         return { 
           status: "invalid_data",
           fieldErrors: { otp: ["Invalid or expired OTP"] },
@@ -405,16 +433,36 @@ export async function forgotPassword(
       }
 
       // OTP verified and no 2FA - send reset link
-      const resetToken = nanoid(32);
-      await savePasswordResetToken(email, resetToken);
+      try {
+        const resetToken = nanoid(32);
+        await savePasswordResetToken(email, resetToken);
 
-      const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
-      await sendResetEmail(email, resetUrl);
+        const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
+        await sendResetEmail(email, resetUrl);
 
-      return { 
-        status: "otp_verified",
-        email
-      };
+        console.log(`🎉 Successfully completed OTP verification and reset email for ${email}`);
+        return { 
+          status: "otp_verified",
+          email
+        };
+      } catch (resetError) {
+        console.error("Error sending reset email:", resetError);
+        // If reset email sending fails, provide specific error
+        if (resetError instanceof Error) {
+          if (resetError.message.includes("Email sending failed") || 
+              resetError.message.includes("Failed to authenticate") ||
+              resetError.message.includes("Unable to connect") ||
+              resetError.message.includes("timeout")) {
+            return { 
+              status: "failed",
+              fieldErrors: { 
+                email: ["Failed to send password reset link. Please try again in a moment."] 
+              }
+            };
+          }
+        }
+        throw resetError;
+      }
     }
 
     // Initial submission - validate email, then send OTP
@@ -443,16 +491,40 @@ export async function forgotPassword(
     }
 
     // Send OTP for verification
-    const otpCode = generateOTP();
-    await saveOTP(email, otpCode);
-    await sendOTPEmail(email, otpCode);
+    try {
+      const otpCode = generateOTP();
+      await saveOTP(email, otpCode);
+      await sendOTPEmail(email, otpCode);
 
-    return { 
-      status: "otp_sent",
-      email
-    };
+      return { 
+        status: "otp_sent",
+        email
+      };
+    } catch (otpError) {
+      console.error("Error sending OTP:", otpError);
+      // If email sending fails, clean up the saved OTP
+      try {
+        await deleteOTP(email);
+      } catch (cleanupError) {
+        console.error("Error cleaning up OTP:", cleanupError);
+      }
+      throw otpError;
+    }
   } catch (err) {
-    console.log("Error while running forgotPassword action = ", err);
+    console.error("Error while running forgotPassword action:", err);
+    
+    // Provide more specific error information
+    if (err instanceof Error) {
+      if (err.message.includes("OTP email sending failed") || err.message.includes("Email sending failed")) {
+        return { 
+          status: "failed",
+          fieldErrors: { 
+            email: ["Failed to send verification code. Please try again in a moment."] 
+          }
+        };
+      }
+    }
+    
     return { status: "failed" };
   }
 }

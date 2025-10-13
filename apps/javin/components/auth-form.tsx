@@ -91,9 +91,10 @@ export function AuthForm({
       isValid = isValid && otpValue.trim() !== "" && otpValue.length === 6;
     }
 
-    // Check turnstile token
-    isValid = isValid && turnstileToken !== "";
-
+    // Check turnstile token - only if Turnstile is being used (when onTurnstileSuccess is provided)
+    if (onTurnstileSuccess) {
+      isValid = isValid && turnstileToken && turnstileToken !== "" && turnstileToken.length > 10;
+    }
 
     return isValid;
   };
@@ -296,13 +297,16 @@ export function AuthForm({
         </div>
       )}
 
-      {/* UPDATED: Centered Turnstile with wrapper div */}
-      <div className="flex justify-center items-center w-full">
-        <Turnstile ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
-      </div>
-      
-      {/* Hidden input for Turnstile token */}
-      <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />
+      {/* Turnstile component - only render when Turnstile is being used */}
+      {onTurnstileSuccess && (
+        <>
+          <div className="flex justify-center items-center w-full">
+            <Turnstile ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
+          </div>
+          {/* Hidden input for Turnstile token */}
+          <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />
+        </>
+      )}
       
       {children}
     </div>

@@ -59,13 +59,19 @@ export function generateOTP(): string {
 export async function saveOTP(email: string, otp: string): Promise<void> {
   const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
   
-  await db
-    .insert(otp_tokens)
-    .values({ email, otp, expiry })
-    .onConflictDoUpdate({
-      target: otp_tokens.email,
-      set: { otp, expiry },
-    });
+  try {
+    await db
+      .insert(otp_tokens)
+      .values({ email, otp, expiry })
+      .onConflictDoUpdate({
+        target: otp_tokens.email,
+        set: { otp, expiry },
+      });
+    console.log(`✅ OTP saved successfully for ${email}`);
+  } catch (error) {
+    console.error(`❌ Error saving OTP for ${email}:`, error);
+    throw new Error("Failed to save verification code");
+  }
 }
 
 // Get OTP from database

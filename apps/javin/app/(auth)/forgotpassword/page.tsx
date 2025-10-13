@@ -27,6 +27,8 @@ export default function Page() {
   const [isFormValid, setIsFormValid] = useState(false);
   const [showOTPField, setShowOTPField] = useState(false);
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
@@ -42,18 +44,33 @@ export default function Page() {
   });
 
   useEffect(() => {
+    console.log(`📱 Frontend received status: ${state.status}`, state);
+    
+    // Reset submitting state for any final status
+    if (state.status !== "idle" && state.status !== "in_progress") {
+      setIsSubmitting(false);
+    }
+    
     if (state.status === "failed") {
       turnstileRef.current?.reset();
-      setOverlayState({ status: "error", title: "Request Failed", message: "Something went wrong! Please try again." });
+      setTurnstileToken(""); // Clear the token on failure
+      // Check if there are specific field errors for better user feedback
+      const errorMessage = state.fieldErrors?.email?.[0] || "Something went wrong! Please try again.";
+      setOverlayState({ status: "error", title: "Request Failed", message: errorMessage });
     } else if (state.status === "invalid_data") {
       turnstileRef.current?.reset();
+      setTurnstileToken(""); // Clear the token on failure
       setOverlayState({ status: "error", title: "Invalid Data", message: "Failed validating your submission." });
     } else if (state.status === "invalid_email") {
       turnstileRef.current?.reset();
+      setTurnstileToken(""); // Clear the token on failure
       setOverlayState({ status: "error", title: "Invalid Email", message: "The email address you entered is not valid." });
     } else if (state.status === "otp_sent") {
       setShowOTPField(true);
       setEmail(state.email || "");
+      // Reset Turnstile after successful OTP sending to ensure fresh token for next submission
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
     } else if (state.status === "otp_verified") {
       setIsSuccessful(true);
       setOverlayState({ status: "success", title: "Link Sent", message: "A password reset link has been sent to your email." });
@@ -64,22 +81,79 @@ export default function Page() {
       // Redirect to 2FA verification page
       router.push(`/verify-2fa?email=${encodeURIComponent(state.email!)}&context=forgot_password`);
     }
-  }, [state.status, router, state.email]);
+  }, [state.status, router, state.email, state.fieldErrors]);
 
   const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
-    if (turnstileToken) {
-      formData.set("cf-turnstile-response", turnstileToken);
+    if (isSubmitting) {
+      console.log("🚫 Form submission blocked - already submitting");
+      return;
     }
+    
+    // Check if Turnstile token is available before proceeding
+    if (!turnstileToken || turnstileToken.trim() === "") {
+      console.log("🚫 Form submission blocked - Turnstile token not available");
+      setOverlayState({ 
+        status: "error", 
+        title: "Verification Required", 
+        message: "Please complete the security verification before proceeding." 
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setEmail(formData.get("email") as string);
+    formData.set("cf-turnstile-response", turnstileToken);
+    
+    console.log("📤 Form submission started with valid Turnstile token");
     formAction(formData);
   };
 
   const handleTurnstileSuccess = (token: string) => {
     setTurnstileToken(token);
+    console.log("🔒 Turnstile token received and ready for submission");
   };
 
   const handleValidationChange = (isValid: boolean) => {
     setIsFormValid(isValid);
+  };
+
+  const handleResendOTP = async () => {
+    if (!email || isResending) return;
+    
+    setIsResending(true);
+    try {
+      const response = await fetch("/api/auth/resend-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setOverlayState({ 
+          status: "success", 
+          title: "Code Resent", 
+          message: "A new verification code has been sent to your email." 
+        });
+      } else {
+        setOverlayState({ 
+          status: "error", 
+          title: "Resend Failed", 
+          message: data.message || "Failed to resend verification code. Please try again." 
+        });
+      }
+    } catch (error) {
+      setOverlayState({ 
+        status: "error", 
+        title: "Resend Failed", 
+        message: "Failed to resend verification code. Please try again." 
+      });
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const formVariants = {
@@ -89,6 +163,11 @@ export default function Page() {
   
   const closeOverlay = () => {
     setOverlayState({ status: "idle", message: "" });
+    // Reset Turnstile when closing error overlay to ensure fresh token on retry
+    if (overlayState.status === "error") {
+      turnstileRef.current?.reset();
+      setTurnstileToken("");
+    }
   };
 
   return (
@@ -166,6 +245,18 @@ export default function Page() {
                   : "Enter your email to receive a verification code."
                 }
               </p>
+              {showOTPField && (
+                <div className="text-center mt-2">
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={isResending}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isResending ? "Sending..." : "Didn't receive the code? Resend"}
+                  </button>
+                </div>
+              )}
             </div>
             
             <form action={handleSubmit}>
@@ -183,9 +274,14 @@ export default function Page() {
                 <SubmitButton 
                   isSuccessful={isSuccessful} 
                   className="w-full"
-                  disabled={!isFormValid}
+                  disabled={!isFormValid || isSubmitting}
                 >
-                  {showOTPField ? "Verify & Send Reset Link" : "Send Verification Code"}
+                  {isSubmitting 
+                    ? "Processing..." 
+                    : showOTPField 
+                      ? "Verify & Send Reset Link" 
+                      : "Send Verification Code"
+                  }
                 </SubmitButton>
               </AuthForm>
             </form>

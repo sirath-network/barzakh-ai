@@ -187,7 +187,14 @@ const getResetContent = (resetUrl: string) => `
 
 export async function sendOTPEmail(email: string, otp: string) {
   try {
+    console.log(`📧 Attempting to send OTP email to ${email}`);
+    
     const accessToken = await oAuth2Client.getAccessToken();
+    
+    if (!accessToken.token) {
+      console.error("❌ Failed to get OAuth2 access token");
+      throw new Error("Failed to authenticate with email service");
+    }
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -216,16 +223,35 @@ export async function sendOTPEmail(email: string, otp: string) {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP email sent to ${email}`);
+    console.log(`✅ OTP email sent successfully to ${email}`);
   } catch (error) {
     console.error("❌ Error sending OTP email:", error);
+    
+    // Provide more specific error messages based on the error type
+    if (error instanceof Error) {
+      if (error.message.includes("EAUTH")) {
+        throw new Error("Email authentication failed. Please contact support.");
+      } else if (error.message.includes("ECONNECTION")) {
+        throw new Error("Unable to connect to email service. Please try again.");
+      } else if (error.message.includes("ETIMEDOUT")) {
+        throw new Error("Email service timeout. Please try again.");
+      }
+    }
+    
     throw new Error("OTP email sending failed");
   }
 }
 
 export async function sendResetEmail(email: string, resetUrl: string) {
   try {
+    console.log(`📧 Attempting to send reset email to ${email}`);
+    
     const accessToken = await oAuth2Client.getAccessToken();
+    
+    if (!accessToken.token) {
+      console.error("❌ Failed to get OAuth2 access token");
+      throw new Error("Failed to authenticate with email service");
+    }
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -254,9 +280,21 @@ export async function sendResetEmail(email: string, resetUrl: string) {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Reset email sent to ${email}`);
+    console.log(`✅ Reset email sent successfully to ${email}`);
   } catch (error) {
     console.error("❌ Error sending reset email:", error);
+    
+    // Provide more specific error messages based on the error type
+    if (error instanceof Error) {
+      if (error.message.includes("EAUTH")) {
+        throw new Error("Email authentication failed. Please contact support.");
+      } else if (error.message.includes("ECONNECTION")) {
+        throw new Error("Unable to connect to email service. Please try again.");
+      } else if (error.message.includes("ETIMEDOUT")) {
+        throw new Error("Email service timeout. Please try again.");
+      }
+    }
+    
     throw new Error("Email sending failed");
   }
 }
