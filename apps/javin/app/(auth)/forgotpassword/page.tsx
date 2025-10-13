@@ -24,6 +24,9 @@ export default function Page() {
 
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [showOTPField, setShowOTPField] = useState(false);
+  const [isSuccessful, setIsSuccessful] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
@@ -48,13 +51,20 @@ export default function Page() {
     } else if (state.status === "invalid_email") {
       turnstileRef.current?.reset();
       setOverlayState({ status: "error", title: "Invalid Email", message: "The email address you entered is not valid." });
-    } else if (state.status === "success") {
+    } else if (state.status === "otp_sent") {
+      setShowOTPField(true);
+      setEmail(state.email || "");
+    } else if (state.status === "otp_verified") {
+      setIsSuccessful(true);
       setOverlayState({ status: "success", title: "Link Sent", message: "A password reset link has been sent to your email." });
       setTimeout(() => {
         router.push("/login");
       }, 2500);
+    } else if (state.status === "requires_2fa") {
+      // Redirect to 2FA verification page
+      router.push(`/verify-2fa?email=${encodeURIComponent(state.email!)}&context=forgot_password`);
     }
-  }, [state.status, router]);
+  }, [state.status, router, state.email]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get("email") as string);
@@ -66,6 +76,10 @@ export default function Page() {
 
   const handleTurnstileSuccess = (token: string) => {
     setTurnstileToken(token);
+  };
+
+  const handleValidationChange = (isValid: boolean) => {
+    setIsFormValid(isValid);
   };
 
   const formVariants = {
@@ -135,17 +149,22 @@ export default function Page() {
               variants={formVariants}
               initial="initial"
               animate="animate"
-              className="mx-auto w-full max-w-md space-y-6"
+              className="mx-auto w-full max-w-md space-y-8"
           >
-            <div className="space-y-2 text-center">
+            <div className="space-y-4 text-center">
                <img
                 alt="Brand Banner"
                 src="/images/javin/banner/sirath-banner.svg"
                 className="w-32 h-auto mx-auto lg:hidden" 
               />
-              <h1 className="text-3xl font-bold">Reset Password</h1>
+              <h1 className="text-3xl font-bold">
+                {showOTPField ? "Verify Your Email" : "Reset Password"}
+              </h1>
               <p className="text-muted-foreground">
-                Enter your email to receive a reset link.
+                {showOTPField 
+                  ? `Enter the code sent to ${email}`
+                  : "Enter your email to receive a verification code."
+                }
               </p>
             </div>
             
@@ -153,34 +172,41 @@ export default function Page() {
               <AuthForm
                 defaultEmail={email}
                 passwordNeeded={false}
-                emailNeeded={true}
+                emailNeeded={!showOTPField}
+                showOTPField={showOTPField}
                 fieldErrors={state.fieldErrors}
                 onTurnstileSuccess={handleTurnstileSuccess}
                 turnstileToken={turnstileToken}
                 turnstileRef={turnstileRef}
+                onValidationChange={handleValidationChange}
               >
-                {/* */}
-                <SubmitButton isSuccessful={false} className="w-full">
-                    Send Reset Link
+                <SubmitButton 
+                  isSuccessful={isSuccessful} 
+                  className="w-full"
+                  disabled={!isFormValid}
+                >
+                  {showOTPField ? "Verify & Send Reset Link" : "Send Verification Code"}
                 </SubmitButton>
               </AuthForm>
             </form>
             
-            <p className="text-center text-sm text-muted-foreground">
-              Remembered your password?{" "}
-              <Link
-                href="/login"
-                className="font-semibold underline underline-offset-4 hover:text-primary"
-              >
-                Sign In
-              </Link>
-            </p>
+            <div className="space-y-3">
+              <p className="text-center text-sm text-muted-foreground">
+                Remembered your password?{" "}
+                <Link
+                  href="/login"
+                  className="font-semibold underline underline-offset-4 hover:text-primary"
+                >
+                  Sign In
+                </Link>
+              </p>
 
-            <p className="text-center text-sm text-muted-foreground">
-               <Link href="/" className="underline underline-offset-4 hover:text-primary">
-                  &larr; Back to Home
-               </Link>
-            </p>
+              <p className="text-center text-sm text-muted-foreground">
+                 <Link href="/" className="underline underline-offset-4 hover:text-primary">
+                    &larr; Back to Home
+                 </Link>
+              </p>
+            </div>
 
           </motion.div>
         </div>

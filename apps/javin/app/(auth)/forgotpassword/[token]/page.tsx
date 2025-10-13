@@ -25,6 +25,7 @@ export default function ResetPassword() {
   const router = useRouter();
 
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
     message: "",
@@ -65,6 +66,10 @@ export default function ResetPassword() {
 
   const closeOverlay = () => {
     setOverlayState({ status: "idle", message: "" });
+  };
+
+  const handleValidationChange = (isValid: boolean) => {
+    setIsFormValid(isValid);
   };
   
   const formVariants = {
@@ -129,9 +134,9 @@ export default function ResetPassword() {
                     variants={formVariants}
                     initial="initial"
                     animate="animate"
-                    className="mx-auto w-full max-w-md space-y-6"
+                    className="mx-auto w-full max-w-md space-y-8"
                 >
-                    <div className="space-y-2 text-center">
+                    <div className="space-y-4 text-center">
                        <img
                         alt="Brand Banner"
                         src="/images/javin/banner/sirath-banner.svg"
@@ -148,9 +153,17 @@ export default function ResetPassword() {
                         emailNeeded={false}
                         forgotPasswordNeeded={false}
                         passwordNeeded={true}
+                        passwordConfirmNeeded={true}
                         fieldErrors={state.fieldErrors}
+                        onValidationChange={handleValidationChange}
                       >
-                        <SubmitButton isSuccessful={isSuccessful} className="w-full">Reset Password</SubmitButton>
+                        <SubmitButton 
+                          isSuccessful={isSuccessful} 
+                          className="w-full"
+                          disabled={!isFormValid}
+                        >
+                          Reset Password
+                        </SubmitButton>
                       </AuthForm>
                     </form>
 

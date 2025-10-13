@@ -234,9 +234,9 @@ For better image editing results in the future, please:
     }
   }
 
-  // Generate 4 images by making 4 separate API calls with delays
-  const imagePromises = Array.from({ length: 4 }, async (_, index) => {
-    console.log(`Generating image ${index + 1}/4...`);
+  // Generate 2 images by making 2 separate API calls with delays
+  const imagePromises = Array.from({ length: 2 }, async (_, index) => {
+    console.log(`Generating image ${index + 1}/2...`);
     
     // Add delay between API calls to prevent rate limiting
     if (index > 0) {
@@ -382,7 +382,7 @@ For better image editing results in the future, please:
     throw new Error('All image generation attempts failed. Please try again with a different prompt.');
   }
   
-  console.log(`Successfully generated ${imageUrls.length} out of 4 images`);
+  console.log(`Successfully generated ${imageUrls.length} out of 2 images`);
   return imageUrls;
 }
 
@@ -492,7 +492,7 @@ export const createImage = tool({
           body: JSON.stringify({
             model: selectedModelId === "large-model" ? "dall-e-3" : "dall-e-2",
             prompt: prompt,
-            n: 4,
+            n: 2,
             size: "1024x1024",
           }),
         }

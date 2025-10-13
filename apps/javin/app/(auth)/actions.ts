@@ -80,9 +80,19 @@ const forgotPasswordSchema = z.object({
   email: z.string().email(),
   "cf-turnstile-response": z.string(),
 });
+
+const forgotPasswordOTPSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+  "cf-turnstile-response": z.string(),
+});
 const resetPasswordSchema = z.object({
   token: z.string(),
   password: passwordValidation,
+  passwordConfirm: z.string(),
+}).refine((data) => data.password === data.passwordConfirm, {
+  message: "Passwords don't match",
+  path: ["passwordConfirm"],
 });
 
 export interface LoginActionState {
@@ -339,9 +349,14 @@ export interface ForgotPasswordActionState {
     | "success"
     | "failed"
     | "invalid_data"
-    | "invalid_email";
+    | "invalid_email"
+    | "otp_sent"
+    | "otp_verified"
+    | "requires_2fa";
+  email?: string;
   fieldErrors?: {
     email?: string[];
+    otp?: string[];
   };
 }
 
@@ -351,6 +366,7 @@ export async function forgotPassword(
 ): Promise<ForgotPasswordActionState> {
   try {
     const email = formData.get("email") as string;
+    const otp = formData.get("otp") as string | null;
     const turnstileResponse = formData.get("cf-turnstile-response") as string;
 
     const isTurnstileValid = await verifyTurnstile(turnstileResponse);
@@ -359,6 +375,7 @@ export async function forgotPassword(
       return { status: "failed" };
     }
 
+    // Check if user exists
     const user = await getUser(email);
     if (user.length === 0) {
       return {
@@ -367,15 +384,73 @@ export async function forgotPassword(
       };
     }
 
-    const resetToken = nanoid();
-    await savePasswordResetToken(email, resetToken);
+    // If we're verifying OTP
+    if (otp) {
+      const verified = await verifyOTP(email, otp);
+      
+      if (!verified) {
+        return { 
+          status: "invalid_data",
+          fieldErrors: { otp: ["Invalid or expired OTP"] },
+          email
+        };
+      }
 
-    const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
-    console.log("Reset URL:", resetUrl);
+      // Check if user has 2FA enabled - if so, redirect to 2FA verification
+      if (user[0].twoFactorEnabled) {
+        return { 
+          status: "requires_2fa",
+          email
+        };
+      }
 
-    await sendResetEmail(email, resetUrl); // 💌 Send the actual email
+      // OTP verified and no 2FA - send reset link
+      const resetToken = nanoid(32);
+      await savePasswordResetToken(email, resetToken);
 
-    return { status: "success" };
+      const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
+      await sendResetEmail(email, resetUrl);
+
+      return { 
+        status: "otp_verified",
+        email
+      };
+    }
+
+    // Initial submission - validate email, then send OTP
+    try {
+      forgotPasswordSchema.parse({ 
+        email, 
+        "cf-turnstile-response": turnstileResponse 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return {
+          status: "invalid_data",
+          fieldErrors: error.flatten().fieldErrors,
+          email
+        };
+      }
+      throw error;
+    }
+
+    // Check if user has 2FA enabled - if so, redirect to 2FA verification
+    if (user[0].twoFactorEnabled) {
+      return { 
+        status: "requires_2fa",
+        email
+      };
+    }
+
+    // Send OTP for verification
+    const otpCode = generateOTP();
+    await saveOTP(email, otpCode);
+    await sendOTPEmail(email, otpCode);
+
+    return { 
+      status: "otp_sent",
+      email
+    };
   } catch (err) {
     console.log("Error while running forgotPassword action = ", err);
     return { status: "failed" };
@@ -393,6 +468,7 @@ export interface VerifyAndResetPasswordActionState {
     | "invalid_data";
   fieldErrors?: {
     password?: string[];
+    passwordConfirm?: string[];
   };
 }
 
@@ -404,6 +480,7 @@ export async function verifyAndResetPassword(
     const form = {
       token: formData.get("token") as string,
       password: formData.get("password") as string,
+      passwordConfirm: formData.get("passwordConfirm") as string,
     };
 
     // Validate the input using Zod
@@ -415,6 +492,7 @@ export async function verifyAndResetPassword(
         status: "invalid_data",
         fieldErrors: {
           password: fieldErrors.password || [],
+          passwordConfirm: fieldErrors.passwordConfirm || [],
         },
       };
     }

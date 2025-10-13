@@ -206,7 +206,7 @@ export async function sendOTPEmail(email: string, otp: string) {
     const mailOptions = {
       from: `"Barzakh Support" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "🔐 Your OTP Registration Code - Barzakh",
+      subject: "🔐 Your OTP - Barzakh AI",
       // Use the new template generator
       html: generateEmailTemplate(
           "Your Verification Code",

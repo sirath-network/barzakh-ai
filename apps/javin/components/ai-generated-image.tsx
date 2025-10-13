@@ -475,7 +475,7 @@ export function AIGeneratedImage({
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-800 to-red-950/50 rounded-lg flex items-center justify-center border border-red-800/30">
                 <Eye className="w-8 h-8 text-red-400/70" />
               </div>
-              <p className="text-red-300/80 font-medium mb-2">Image expired — auto-deleted after 1h</p>
+              <p className="text-red-300/80 font-medium mb-2">Image auto-deleted after 1h</p>
               <p className="text-gray-400 text-xs mb-4">Barzakh AI generates temporary links for security</p>
               <div className="space-y-2">
                 <p className="text-gray-300 text-sm">💡 What you can do:</p>

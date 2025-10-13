@@ -10,18 +10,20 @@ export function SubmitButton({
   children,
   isSuccessful,
   className,
+  disabled,
 }: {
   children: React.ReactNode;
   isSuccessful: boolean;
   className?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <Button
       type={pending ? 'button' : 'submit'}
-      aria-disabled={pending || isSuccessful}
-      disabled={pending || isSuccessful}
+      aria-disabled={pending || isSuccessful || disabled}
+      disabled={pending || isSuccessful || disabled}
       className={`relative ${className}`}
     >
       {children}

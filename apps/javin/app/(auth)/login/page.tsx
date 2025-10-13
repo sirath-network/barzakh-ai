@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 
@@ -24,6 +24,7 @@ export default function Page() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [isFormValid, setIsFormValid] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null); // Ref for the Turnstile component
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
@@ -47,6 +48,8 @@ export default function Page() {
       setOverlayState({ status: "error", title: "Login Failed", message: "Invalid credentials!" });
     } else if (result.status === "success") {
       setOverlayState({ status: "success", title: "Login Successful", message: "You will be redirected shortly." });
+      // Force session refresh to ensure user data is updated
+      await getSession();
       setTimeout(() => {
         router.push("/");
       }, 2000);
@@ -69,6 +72,10 @@ export default function Page() {
 
   const handleTurnstileSuccess = (token: string) => {
     setTurnstileToken(token);
+  };
+
+  const handleValidationChange = (isValid: boolean) => {
+    setIsFormValid(isValid);
   };
 
   return (
@@ -170,8 +177,13 @@ export default function Page() {
                   onTurnstileSuccess={handleTurnstileSuccess}
                   turnstileToken={turnstileToken}
                   turnstileRef={turnstileRef}
+                  onValidationChange={handleValidationChange}
                 >
-                  <SubmitButton isLoading={isLoading} className="w-full">
+                  <SubmitButton 
+                    isSuccessful={false}
+                    className="w-full"
+                    disabled={!isFormValid}
+                  >
                     Sign In
                   </SubmitButton>
                 </AuthForm>

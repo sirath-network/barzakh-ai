@@ -307,8 +307,8 @@ export default function TwoFactorSettingsPage() {
               <div className="space-y-4 sm:space-y-6">
                 <div className="bg-gray-50 dark:bg-gray-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm sm:text-base">
+                    <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" />
+                    <h3 className="font-semibold text-black-900 dark:text-black-100 text-sm sm:text-base">
                       Scan QR Code
                     </h3>
                   </div>

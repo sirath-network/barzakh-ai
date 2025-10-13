@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Shield, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
@@ -17,12 +17,14 @@ export default function Verify2FAPage() {
   const email = searchParams.get("email");
   const tempToken = searchParams.get("tempToken");
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const context = searchParams.get("context"); // "login" or "forgot_password"
 
   useEffect(() => {
-    if (!email || !tempToken) {
+    // For forgot password context, only email is required
+    if (!email || (!tempToken && context !== "forgot_password")) {
       router.push("/login");
     }
-  }, [email, tempToken, router]);
+  }, [email, tempToken, router, context]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,21 +37,45 @@ export default function Verify2FAPage() {
     setIsLoading(true);
     
     try {
-      // Complete login with 2FA verification
-      const response = await fetch("/api/2fa/complete-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tempToken,
-          twoFactorToken: token.trim(),
-        }),
-      });
+      if (context === "forgot_password") {
+        // Handle forgot password 2FA verification
+        const response = await fetch("/api/2fa/forgot-password-verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            twoFactorToken: token.trim(),
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (response.ok) {
+        if (response.ok) {
+          toast.success("2FA verified! Password reset link sent to your email.");
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        } else {
+          toast.error(data.message || "2FA verification failed");
+        }
+      } else {
+        // Complete login with 2FA verification
+        const response = await fetch("/api/2fa/complete-login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tempToken,
+            twoFactorToken: token.trim(),
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
         // Store the session token in localStorage temporarily
         localStorage.setItem("sessionToken", data.sessionToken);
         
@@ -64,14 +90,17 @@ export default function Verify2FAPage() {
         if (result?.ok) {
           // Clean up the temporary session token
           localStorage.removeItem("sessionToken");
+          // Force session refresh to ensure user data is updated
+          await getSession();
           toast.success("Login successful!");
           router.push(callbackUrl);
         } else {
           console.error("SignIn result:", result);
           toast.error("Session creation failed. Please try again.");
         }
-      } else {
-        toast.error(data.error || "Invalid 2FA token");
+        } else {
+          toast.error(data.error || "Invalid 2FA token");
+        }
       }
     } catch (error) {
       console.error("2FA verification error:", error);
@@ -93,7 +122,8 @@ export default function Verify2FAPage() {
     }
   };
 
-  if (!email || !tempToken) {
+  // For forgot password context, only email is required
+  if (!email || (!tempToken && context !== "forgot_password")) {
     return null;
   }
 
@@ -121,7 +151,10 @@ export default function Verify2FAPage() {
                 Two-Factor Authentication
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Enter your 2FA code to complete sign in
+                {context === "forgot_password" 
+                  ? "Enter your 2FA code to verify your identity for password reset"
+                  : "Enter your 2FA code to complete sign in"
+                }
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
                 {email}

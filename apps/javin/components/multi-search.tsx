@@ -58,7 +58,7 @@ type MultiSearchArgs = {
   queries: string[];
 };
 
-const PREVIEW_IMAGE_COUNT = 4;
+const PREVIEW_IMAGE_COUNT = 2;
 
 // Loading state component
 const SearchLoadingState = ({
@@ -227,7 +227,7 @@ const ImageGrid = ({ images }: { images: SearchImage[] }) => {
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {displayImages.map((image, index) => (
           <motion.button
             key={index}

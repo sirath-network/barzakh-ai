@@ -18,6 +18,7 @@ export default function Page() {
   const [showOTPField, setShowOTPField] = useState(false);
   const [formData, setFormData] = useState<{ email: string; password: string } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [isFormValid, setIsFormValid] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
 
@@ -127,6 +128,10 @@ export default function Page() {
     setTurnstileToken(token);
   };
 
+  const handleValidationChange = (isValid: boolean) => {
+    setIsFormValid(isValid);
+  };
+
   const formVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -213,11 +218,12 @@ export default function Page() {
                             turnstileToken={turnstileToken}
                             turnstileRef={turnstileRef}
                             formRef={formRef}
+                            onValidationChange={handleValidationChange}
                         >
                             <SubmitButton 
                               isSuccessful={isSuccessful} 
                               className="w-full"
-                              disabled={isPending}
+                              disabled={!isFormValid || isPending}
                             >
                                 {isPending 
                                   ? (showOTPField ? "Verifying..." : "Sending Code...") 

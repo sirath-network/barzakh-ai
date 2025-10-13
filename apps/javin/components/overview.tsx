@@ -40,27 +40,36 @@ interface ExtendedUser {
 
 export const Overview = () => {
   const [isMounted, setIsMounted] = useState(false);
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const user: ExtendedUser | undefined = session?.user;
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // Force session update when component mounts to ensure fresh data
+  useEffect(() => {
+    if (isMounted && !user?.name && !user?.username) {
+      update();
+    }
+  }, [isMounted, user?.name, user?.username, update]);
+
   const greeting = getGreeting();
   
   // MODIFIKASI: Logika untuk menentukan nama yang akan ditampilkan
   const displayName = user?.username 
     ? user.username // 1. Prioritaskan username jika ada
+    : user?.name 
+    ? user.name     // 2. Jika ada name, gunakan name
     : session 
-    ? "User"         // 2. Jika login tapi tidak ada username, tampilkan "User"
-    : "Guest";       // 3. Jika tidak login, tampilkan "Guest"
+    ? "User"         // 3. Jika login tapi tidak ada username/name, tampilkan "User"
+    : "Guest";       // 4. Jika tidak login, tampilkan "Guest"
 
   const userImage = user?.image;
   
   // MODIFIKASI: Kondisi untuk menampilkan avatar
-  // Tampilkan avatar hanya jika pengguna login DAN sudah setup username
-  const showAvatar = !!user?.username;
+  // Tampilkan avatar jika pengguna login DAN sudah setup username atau name
+  const showAvatar = !!(user?.username || user?.name);
 
   if (!isMounted) {
     return <div className="h-40 sm:h-28" />;
