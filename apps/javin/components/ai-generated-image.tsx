@@ -37,6 +37,7 @@ export function AIGeneratedImage({
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [showMobileActions, setShowMobileActions] = useState(false);
   const [isExpiredUrl, setIsExpiredUrl] = useState(false);
+  const [mobileDownloadStatus, setMobileDownloadStatus] = useState<string | null>(null);
   
   // Navigation state for multiple images
   const [currentImageIndex, setCurrentImageIndex] = useState(currentIndex);
@@ -201,7 +202,10 @@ export function AIGeneratedImage({
 
   const handleMobileDownload = async (imageUrl: string, filename: string, isIOS: boolean) => {
     try {
+      setMobileDownloadStatus('Preparing download...');
+      
       // Method 1: Try server proxy with mobile-optimized approach
+      setMobileDownloadStatus('Connecting to server...');
       const response = await fetch('/api/proxy-image', {
         method: 'POST',
         headers: {
@@ -218,13 +222,19 @@ export function AIGeneratedImage({
         throw new Error(`Proxy failed: ${response.status}`);
       }
 
+      setMobileDownloadStatus('Downloading image...');
       const blob = await response.blob();
       
       // Method 2: Use the most compatible mobile download approach
+      setMobileDownloadStatus('Saving to device...');
       await downloadBlobOnMobile(blob, filename, isIOS);
+      
+      setMobileDownloadStatus('Download complete!');
+      setTimeout(() => setMobileDownloadStatus(null), 2000);
       
     } catch (proxyError) {
       console.warn('Proxy download failed on mobile:', proxyError);
+      setMobileDownloadStatus('Trying alternative method...');
       
       try {
         // Method 3: Direct fetch as fallback
@@ -245,33 +255,87 @@ export function AIGeneratedImage({
         const blob = await response.blob();
         await downloadBlobOnMobile(blob, filename, isIOS);
         
+        setMobileDownloadStatus('Download complete!');
+        setTimeout(() => setMobileDownloadStatus(null), 2000);
+        
       } catch (fetchError) {
         console.warn('All download methods failed on mobile:', fetchError);
+        setMobileDownloadStatus('Opening image for download...');
         
         // Method 4: Open image directly for mobile download
         await openImageForMobileDownload(imageUrl, filename);
+        
+        setMobileDownloadStatus('Image opened - tap and hold to save');
+        setTimeout(() => setMobileDownloadStatus(null), 3000);
       }
     }
   };
 
   const downloadBlobOnMobile = async (blob: Blob, filename: string, isIOS: boolean) => {
-    // Skip Web Share API - go directly to URL opening for mobile
-    // This prevents the unwanted share popup
-    
-    console.log('📱 Skipping Web Share API, opening image directly for mobile download');
-    
-    // Direct image opening without share popup
-    await openImageForMobileDownload(imageUrl, filename);
+    try {
+      // Method 1: Try Web Share API for iOS (if available and user wants it)
+      if (isIOS && navigator.share && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: blob.type });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'AI Generated Image',
+              text: 'Download this AI generated image'
+            });
+            console.log('📱 Successfully shared via Web Share API');
+            return;
+          }
+        } catch (shareError) {
+          console.warn('Web Share API failed:', shareError);
+        }
+      }
+
+      // Method 2: Create blob URL and trigger download
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL after a delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      
+      console.log('📱 Downloaded via blob URL method');
+      
+    } catch (error) {
+      console.error('Mobile blob download failed:', error);
+      // Fallback: Open image directly
+      await openImageForMobileDownload(imageUrl, filename);
+    }
   };
 
   const openImageForMobileDownload = async (imageUrl: string, filename: string) => {
-    // For mobile: Use ORIGINAL Fireworks URL (not proxy) as requested
-    const urlToUse = imageUrl; // Always use original URL
-    
-    console.log('📱 Opening original image URL for mobile download:', urlToUse);
-    
-    // Open image directly in new tab
-    window.open(urlToUse, '_blank');
+    try {
+      // Try to create a download link with the original URL
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = filename;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      // Add to DOM temporarily
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('📱 Opened download link for mobile:', imageUrl);
+      
+    } catch (error) {
+      console.warn('Download link failed, opening in new tab:', error);
+      // Final fallback: Open in new tab
+      window.open(imageUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const downloadImageOnMobile = async (dataUrl: string, filename: string) => {
@@ -462,22 +526,6 @@ export function AIGeneratedImage({
           {/* Subtle gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
           
-          {/* Mobile Download Instructions Overlay */}
-          {shouldShowMobileUI && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-3 text-white">
-              <div className="text-xs font-medium mb-1 flex items-center gap-1">
-                <Download className="w-3 h-3" />
-                Download
-              </div>
-              <div className="text-xs text-gray-200 leading-relaxed">
-                {/iPad|iPhone|iPod/.test(navigator.userAgent) ? (
-                  "Tap button → Hold image → Save to Photos"
-                ) : (
-                  "Tap button → Long-press image → Download"
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Mobile Action Buttons - Always visible on mobile */}
@@ -578,6 +626,13 @@ export function AIGeneratedImage({
                       {isDownloading ? 'Downloading...' : 'Download'}
                     </Button>
                   </div>
+                  
+                  {/* Mobile Download Status */}
+                  {mobileDownloadStatus && (
+                    <div className="absolute top-4 left-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm text-center">
+                      {mobileDownloadStatus}
+                    </div>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
@@ -723,7 +778,7 @@ export function AIGeneratedImage({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
-                className="px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-gray-600 text-xs font-medium border border-white/20 shadow-lg"
+                className="px-3 py-1.5 bg-black/20 backdrop-blur-sm rounded-full text-white text-xs font-semibold border border-white/10 shadow-lg"
               >
                 Powered by Barzakh
               </motion.div>
@@ -770,6 +825,7 @@ export function AIGeneratedImageCompact({
   
   // Fallback mobile detection
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [mobileDownloadStatus, setMobileDownloadStatus] = useState<string | null>(null);
   
   useEffect(() => {
     const checkMobile = () => {
@@ -840,7 +896,10 @@ export function AIGeneratedImageCompact({
       if (isMobileDevice) {
         // Mobile-specific download strategy
         try {
+          setMobileDownloadStatus('Preparing download...');
+          
           // Try server proxy with mobile optimization
+          setMobileDownloadStatus('Connecting to server...');
           const response = await fetch('/api/proxy-image', {
             method: 'POST',
             headers: {
@@ -857,25 +916,51 @@ export function AIGeneratedImageCompact({
             throw new Error(`Proxy failed: ${response.status}`);
           }
 
+          setMobileDownloadStatus('Downloading image...');
           const blob = await response.blob();
           
-          // Skip Web Share API to avoid unwanted share popup
+          // Try Web Share API for iOS first
+          if (isIOS && navigator.share && navigator.canShare) {
+            try {
+              setMobileDownloadStatus('Opening share dialog...');
+              const file = new File([blob], filename, { type: blob.type });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  files: [file],
+                  title: 'AI Generated Image',
+                  text: 'Download this AI generated image'
+                });
+                console.log('📱 Successfully shared via Web Share API');
+                setMobileDownloadStatus('Shared successfully!');
+                setTimeout(() => setMobileDownloadStatus(null), 2000);
+                return;
+              }
+            } catch (shareError) {
+              console.warn('Web Share API failed:', shareError);
+            }
+          }
           
           // Fallback: Create download link
+          setMobileDownloadStatus('Saving to device...');
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
           link.download = filename;
           link.target = '_blank';
+          link.style.display = 'none';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
           
+          setMobileDownloadStatus('Download complete!');
+          setTimeout(() => setMobileDownloadStatus(null), 2000);
+          
         } catch (mobileError) {
           console.warn('Mobile download failed:', mobileError);
+          setMobileDownloadStatus('Trying alternative method...');
           
-          // Final mobile fallback: Open in new tab with instructions
+          // Final mobile fallback: Create download link with original URL
           const link = document.createElement('a');
           link.href = imageUrl;
           link.target = '_blank';
@@ -883,6 +968,9 @@ export function AIGeneratedImageCompact({
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+          
+          setMobileDownloadStatus('Image opened - tap and hold to save');
+          setTimeout(() => setMobileDownloadStatus(null), 3000);
         }
       } else {
         // Desktop download strategy
@@ -981,19 +1069,28 @@ export function AIGeneratedImageCompact({
         
         {/* Mobile: Always visible download button */}
         {shouldShowMobileUI ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleDownload}
-          disabled={isDownloading}
-          className="absolute top-3 right-3 bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
-        >
-          {isDownloading ? (
-            <div className="w-3 h-3 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
-          ) : (
-            <Download className="w-3 h-3" />
-          )}
-        </Button>
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="absolute top-3 right-3 bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
+            >
+              {isDownloading ? (
+                <div className="w-3 h-3 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
+              ) : (
+                <Download className="w-3 h-3" />
+              )}
+            </Button>
+            
+            {/* Mobile Download Status for Compact */}
+            {mobileDownloadStatus && (
+              <div className="absolute top-12 left-3 right-3 bg-black/80 backdrop-blur-sm text-white px-2 py-1 rounded text-xs text-center">
+                {mobileDownloadStatus}
+              </div>
+            )}
+          </>
         ) : (
           /* Desktop: Hover-based download button */
           <Button
