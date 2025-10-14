@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Archive, MessageCircle, RotateCcw, Trash2, MoreHorizontal } from "lucide-react";
+import { useView } from "@/context/view-context";
 
 import {
   archiveChat,
@@ -50,19 +51,24 @@ const ArchivedChatItem = ({
   onDelete,
   onRestore,
   setOpenMobile,
+  setView,
 }: {
   chat: Chat;
   isActive: boolean;
   onDelete: (chatId: string) => void;
   onRestore: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
+  setView: (view: any) => void;
 }) => {
   return (
     <div className="group bg-white dark:bg-black/40 rounded-xl border border-gray-200 dark:border-red-900/30 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-sm">
       <div className="relative flex items-center p-4">
         <Link
           href={`/chat/${chat.id}`}
-          onClick={() => setOpenMobile(false)}
+          onClick={() => {
+            setOpenMobile(false);
+            setView('chat');
+          }}
           className={`
             flex items-center gap-4 flex-1 min-w-0 rounded-lg p-3 transition-all duration-200
             ${
@@ -145,6 +151,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
   const { mutate: globalMutate } = useSWRConfig();
+  const { setView } = useView();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -200,10 +207,34 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
       <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-            <div className="p-8 flex items-center justify-center min-h-[400px]">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-gray-300 dark:border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-600 dark:text-gray-300 font-medium">Loading archived chats...</p>
+            {/* Header skeleton */}
+            <div className="p-8 border-b border-gray-200 dark:border-red-900/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gray-100 dark:bg-red-800/50 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50 animate-pulse">
+                  <Archive className="w-6 h-6 text-gray-600 dark:text-red-300" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Content skeleton */}
+            <div className="p-8">
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white dark:bg-black/40 rounded-xl border border-gray-200 dark:border-red-900/30 shadow-lg overflow-hidden backdrop-blur-sm">
+                    <div className="flex items-center p-4">
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse flex-shrink-0"></div>
+                      <div className="flex-1 ml-4 space-y-2">
+                        <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <div className="h-3 w-1/2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                      </div>
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse flex-shrink-0"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -248,6 +279,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                     }}
                     onRestore={handleRestore}
                     setOpenMobile={setOpenMobile}
+                    setView={setView}
                   />
                 ))}
               </div>

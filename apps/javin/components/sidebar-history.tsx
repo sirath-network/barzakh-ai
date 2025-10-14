@@ -64,6 +64,7 @@ import {
 import type { Chat } from "@/lib/db/schema";
 import { fetcher } from "@javin/shared/lib/utils/utils";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
+import { useView } from "@/context/view-context";
 
 type GroupedChats = {
   today: Chat[];
@@ -79,12 +80,14 @@ const PureChatItem = ({
   onDelete,
   onArchive,
   setOpenMobile,
+  onChatClick,
 }: {
   chat: Chat;
   isActive: boolean;
   onDelete: (chatId: string) => void;
   onArchive: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
+  onChatClick: () => void;
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
@@ -108,7 +111,10 @@ const PureChatItem = ({
         >
           <Link
             href={`/chat/${chat.id}`}
-            onClick={() => setOpenMobile(false)}
+            onClick={() => {
+              setOpenMobile(false);
+              onChatClick();
+            }}
             className="flex items-center gap-3 px-3 py-2.5 w-full min-w-0"
           >
             <div
@@ -223,6 +229,7 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
+  const { setView } = useView();
   const { id } = useParams();
   const pathname = usePathname();
   const {
@@ -240,6 +247,10 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+
+  const handleChatClick = () => {
+    setView('chat');
+  };
 
   const handleArchive = async (chatId: string) => {
     const archivePromise = archiveChat({ chatId });
@@ -427,6 +438,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               }}
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
+                              onChatClick={handleChatClick}
                             />
                           ))}
                         </div>
@@ -446,6 +458,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               }}
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
+                              onChatClick={handleChatClick}
                             />
                           ))}
                         </div>
@@ -465,6 +478,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               }}
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
+                              onChatClick={handleChatClick}
                             />
                           ))}
                         </div>
@@ -484,6 +498,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               }}
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
+                              onChatClick={handleChatClick}
                             />
                           ))}
                         </div>
@@ -503,6 +518,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               }}
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
+                              onChatClick={handleChatClick}
                             />
                           ))}
                         </div>

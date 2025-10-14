@@ -182,8 +182,8 @@ export default function EmailSettingsPage() {
       <div className="max-w-2xl mx-auto">
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-800 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg">
-              <Mail className="w-5 h-5 md:w-6 md:h-6 text-white" />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
+              <Mail className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Email Settings</h1>

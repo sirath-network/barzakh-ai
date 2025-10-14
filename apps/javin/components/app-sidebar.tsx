@@ -20,16 +20,19 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { SidebarUserNav } from "@/components/sidebar-user-nav";
+import { useView } from "@/context/view-context";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile, sidebarView, setSidebarView } = useSidebar();
+  const { setView } = useView();
 
   const handleNewChat = () => {
     setOpenMobile(false);
     if (setSidebarView) {
       setSidebarView('history'); 
     }
+    setView('chat');
     router.push("/");
     router.refresh();
   };
@@ -66,7 +69,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <div className="flex items-center justify-between gap-2">
                   <Link
                     href="/"
-                    onClick={() => setOpenMobile(false)}
+                    onClick={() => {
+                      setOpenMobile(false);
+                      setView('chat');
+                    }}
                     className="flex items-center gap-3"
                   >
                     <span className="text-md font-bold px-3 py-2 rounded-lg bg-muted/60 bg-gradient-to-r from-primary/10 to-primary/5 text-foreground cursor-pointer">
