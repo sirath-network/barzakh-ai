@@ -716,6 +716,8 @@ function PureMultimodalInput({
     async (group: SearchGroup) => {
       const wasCoding = selectedGroup === "coding";
       const isNowCoding = group.id === "coding";
+      const wasImagine = selectedGroup === "imagine";
+      const isNowImagine = group.id === "imagine";
       
       // Auto-switch to Claude when entering Coding mode
       if (!wasCoding && isNowCoding && selectedModelId !== "chat-model-claude") {
@@ -737,8 +739,45 @@ function PureMultimodalInput({
         return;
       }
       
+      // Auto-switch to gpt-4.1 when entering Imagine mode
+      if (!wasImagine && isNowImagine && selectedModelId !== "chat-model-large") {
+        // IMPORTANT: Save the group selection FIRST before reload
+        setSelectedGroup(group.id);
+        setLocalStorageChatMode(group.id);
+        
+        // Save current model to restore later
+        setPreviousModel(selectedModelId);
+        
+        // Switch to gpt-4.1
+        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+        await saveChatModelAsCookie("chat-model-large");
+        
+        // Small delay to ensure localStorage is written
+        setTimeout(() => {
+          window.location.reload(); // Reload to apply model change
+        }, 100);
+        return;
+      }
+      
       // Restore previous model when leaving Coding mode
       if (wasCoding && !isNowCoding && previousModel && selectedModelId === "chat-model-claude") {
+        // IMPORTANT: Save the group selection FIRST before reload
+        setSelectedGroup(group.id);
+        setLocalStorageChatMode(group.id);
+        
+        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+        await saveChatModelAsCookie(previousModel);
+        setPreviousModel(null);
+        
+        // Small delay to ensure localStorage is written
+        setTimeout(() => {
+          window.location.reload(); // Reload to apply model change
+        }, 100);
+        return;
+      }
+      
+      // Restore previous model when leaving Imagine mode
+      if (wasImagine && !isNowImagine && previousModel && selectedModelId === "chat-model-large") {
         // IMPORTANT: Save the group selection FIRST before reload
         setSelectedGroup(group.id);
         setLocalStorageChatMode(group.id);
@@ -1004,7 +1043,7 @@ function PureMultimodalInput({
             />
           </div>
           <div className="flex flex-row gap-2 items-center">
-            {!isReadonly && <ModelSelector selectedModelId={selectedModelId} disabled={selectedGroup === "coding"} />}
+            {!isReadonly && <ModelSelector selectedModelId={selectedModelId} disabled={selectedGroup === "coding" || selectedGroup === "imagine"} />}
           </div>
         </div>
       </div>

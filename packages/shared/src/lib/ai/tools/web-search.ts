@@ -51,24 +51,30 @@ export const webSearch = tool({
     queries: z.array(
       z.string().describe("Array of search queries to look up on the web.")
     ),
-    maxResults: z.array(
-      z
-        .number()
-        .describe("Array of maximum number of results to return per query.")
-        .default(10)
-    ),
-    topics: z.array(
-      z
-        .enum(["general", "news"])
-        .describe("Array of topic types to search for.")
-        .default("general")
-    ),
-    searchDepth: z.array(
-      z
-        .enum(["basic", "advanced"])
-        .describe("Array of search depths to use.")
-        .default("basic")
-    ),
+    maxResults: z
+      .array(
+        z
+          .number()
+          .describe("Array of maximum number of results to return per query.")
+      )
+      .optional()
+      .default([10]),
+    topics: z
+      .array(
+        z
+          .enum(["general", "news"])
+          .describe("Array of topic types to search for.")
+      )
+      .optional()
+      .default(["general"]),
+    searchDepth: z
+      .array(
+        z
+          .enum(["basic", "advanced"])
+          .describe("Array of search depths to use.")
+      )
+      .optional()
+      .default(["basic"]),
     exclude_domains: z
       .array(z.string())
       .describe("A list of domains to exclude from all search results.")
@@ -76,15 +82,15 @@ export const webSearch = tool({
   }),
   execute: async ({
     queries,
-    maxResults,
-    topics,
-    searchDepth,
-    exclude_domains,
+    maxResults = [10],
+    topics = ["general"],
+    searchDepth = ["basic"],
+    exclude_domains = [],
   }: {
     queries: string[];
-    maxResults: number[];
-    topics: ("general" | "news")[];
-    searchDepth: ("basic" | "advanced")[];
+    maxResults?: number[];
+    topics?: ("general" | "news")[];
+    searchDepth?: ("basic" | "advanced")[];
     exclude_domains?: string[];
   }) => {
     const includeImageDescriptions = true;
