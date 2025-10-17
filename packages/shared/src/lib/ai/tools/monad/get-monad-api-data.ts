@@ -12,7 +12,7 @@ import {
 } from "../../../utils/openapi";
 import { makeBlockscoutApiRequest } from "../../../utils/make-blockscout-api-request";
 import monadJson from "./monad-opanapi.json";
-import { makeBlockVisionApiRequest } from "@javin/shared/lib/utils/make-blockvision-api-request";
+import { makeBlockVisionApiRequest } from "@barzakh/shared/lib/utils/make-blockvision-api-request";
 
 export const getMonadApiData = tool({
   description: "Get real-time Monad blockchain data.",

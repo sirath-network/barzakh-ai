@@ -1,6 +1,6 @@
 import { generateText, tool } from "ai";
 import { z } from "zod";
-import { myProvider } from "@javin/shared/lib/ai/models";
+import { myProvider } from "@barzakh/shared/lib/ai/models";
 import {
   getAccountTransactionsData,
   getOwnedCoinsData,

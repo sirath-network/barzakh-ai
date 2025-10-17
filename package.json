@@ -7,13 +7,13 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:javin": "turbo run dev --filter=javin",
-    "dev:api": "turbo run dev --filter=javin-api",
+    "dev:frontend": "turbo run dev --filter=barzakh",
+    "dev:api": "turbo run dev --filter=barzakh-api",
     "build": "turbo run build",
-    "build:javin": "turbo run build --filter=javin",
-    "build:api": "turbo run build --filter=javin-api",
+    "build:frontend": "turbo run build --filter=barzakh",
+    "build:api": "turbo run build --filter=barzakh-api",
     "start": "turbo run start",
-    "start:api": "turbo run start --filter=javin-api",
+    "start:api": "turbo run start --filter=barzakh-api",
     "lint": "turbo run lint",
     "test": "turbo run test"
   },

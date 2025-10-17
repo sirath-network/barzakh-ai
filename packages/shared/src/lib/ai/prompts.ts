@@ -1,4 +1,4 @@
-import { aptosNames } from "@javin/shared/lib/ai/tools/aptos/aptos-names";
+import { aptosNames } from "@barzakh/shared/lib/ai/tools/aptos/aptos-names";
 import { SearchGroupId } from "../utils/utils";
 import { getAptosApiData } from "./tools/aptos/get-aptos-api-data";
 import { getAptosStats } from "./tools/aptos/get-stats";
@@ -28,10 +28,10 @@ import { getZetaStats } from "./tools/zeta/get-stats";
 import { getZetaApiData } from "./tools/zeta/get-zeta-api-data";
 import { getSeiStats } from "./tools/sei/get-stats";
 import { getSeiApiData } from "./tools/sei/get-sei-api-data";
-import { defiLlama } from "@javin/shared/lib/ai/tools/defi-llama";
+import { defiLlama } from "@barzakh/shared/lib/ai/tools/defi-llama";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
-import { getAptosGraphqlData } from "@javin/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
+import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
 import { createImage } from "./tools/create-image";
 
 const imageAnalyzer = async ({ imageUrl, userQuery }: { imageUrl: string; userQuery: string }) => {

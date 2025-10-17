@@ -40,7 +40,7 @@ Barzakh is an intelligent blockchain analytics platform that combines real-time 
 barzakh-ai/
 ├── README.md
 ├── apps
-│   ├── javin
+│   ├── frontend
 │   │   ├── app
 │   │   │   ├── (auth)/...
 │   │   │   ├── (chat)/...
@@ -61,11 +61,11 @@ barzakh-ai/
 │   │   ├── public
 │   │   │   ├── fonts/
 │   │   │   ├── images/
-│   │   │   └── javin/
+│   │   │   └── frontend/
 │   │   ├── tailwind.config.ts
 │   │   ├── tsconfig.json
 │   │   └── vercel.json
-│   └── javin-api
+│   └── backend
 │       ├── public/...
 │       └── src/app/api/...
 ├── packages
@@ -89,15 +89,15 @@ barzakh-ai/
 
 ## 🛠️ Development
 
-### Frontend (Javin)
-Located in `apps/javin/`
+### Frontend (Barzakh)
+Located in `apps/frontend/`
 - **Framework**: React 18+ with modern hooks
 - **Styling**: Tailwind CSS / Styled Components
 - **State Management**: Context API / Redux Toolkit
 - **Build Tool**: Vite / Create React App
 
-### Backend (Javin API)
-Located in `apps/javin-api/`
+### Backend (Barzakh API)
+Located in `apps/backend/`
 - **Runtime**: Node.js with Express/Fastify
 - **Database**: PostgreSQL / MongoDB
 - **AI Integration**: OpenAI API / Custom models

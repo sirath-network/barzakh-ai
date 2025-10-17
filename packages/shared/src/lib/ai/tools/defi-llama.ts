@@ -1,10 +1,10 @@
-import { myProvider } from "@javin/shared/lib/ai/models";
+import { myProvider } from "@barzakh/shared/lib/ai/models";
 import {
   getAllPathsAndDesc,
   getAllPathsAndSummary,
   getPathDetails,
   loadOpenAPIFromJson,
-} from "@javin/shared/lib/utils/openapi";
+} from "@barzakh/shared/lib/utils/openapi";
 import { generateText, tool } from "ai";
 import { z } from "zod";
 import defillamaJson from "./defillama-openapi.json";
