@@ -3,13 +3,27 @@ import { auth } from '@/app/(auth)/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await auth();
-    if (!session || !session.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const body = await request.json();
+    const { imageUrl, mobile = false, forceDownload = false, internalRequest = false } = body;
 
-    const { imageUrl, mobile = false, forceDownload = false } = await request.json();
+    // For internal requests (backend-to-backend), skip session auth
+    // This allows the createImage tool to fetch images for editing
+    if (!internalRequest) {
+      // Check authentication for external requests
+      const session = await auth();
+      if (!session || !session.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      // Verify internal request is from localhost or same origin
+      const host = request.headers.get('host');
+      const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1');
+      const isVercel = process.env.VERCEL === '1'; // Running on Vercel
+      
+      if (!isLocalhost && !isVercel) {
+        return NextResponse.json({ error: 'Forbidden - Internal requests only from same origin' }, { status: 403 });
+      }
+    }
 
     if (!imageUrl || typeof imageUrl !== 'string') {
       return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });

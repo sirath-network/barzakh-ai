@@ -53,7 +53,6 @@ export function convertToUIMessages(
               args: content.args,
             });
           } else if (content.type === "tool-result") {
-            // Handle tool results (like generated images)
             toolInvocations.push({
               state: "result",
               toolCallId: content.toolCallId,
@@ -68,18 +67,15 @@ export function convertToUIMessages(
         
         // Join text parts intelligently - avoid creating split responses
         if (textParts.length > 1) {
-          // Check if the text parts seem to be split responses that should be combined
           const combinedText = textParts.join(" ");
           const isLikelySplitResponse = 
             combinedText.toLowerCase().includes("image") &&
             (combinedText.toLowerCase().includes("here") || combinedText.toLowerCase().includes("view")) &&
-            combinedText.length < 500; // Short combined responses are likely redundant
+            combinedText.length < 500;
           
           if (isLikelySplitResponse) {
-            // Suppress the text content entirely for split image responses
             textContent = "";
           } else {
-            // Otherwise, combine the text parts normally
             textContent = combinedText;
           }
         } else {
@@ -90,22 +86,21 @@ export function convertToUIMessages(
         for (const content of message.content) {
           if (content.type === "text") {
             textContent += content.text;
-        } else if (content.type === "tool-call") {
-          toolInvocations.push({
-            state: "call",
-            toolCallId: content.toolCallId,
-            toolName: content.toolName,
-            args: content.args,
-          });
-        } else if (content.type === "tool-result") {
-          // Handle tool results (like generated images)
-          toolInvocations.push({
-            state: "result",
-            toolCallId: content.toolCallId,
-            toolName: content.toolName,
-            args: content.args || {},
-            result: content.result,
-          });
+          } else if (content.type === "tool-call") {
+            toolInvocations.push({
+              state: "call",
+              toolCallId: content.toolCallId,
+              toolName: content.toolName,
+              args: content.args,
+            });
+          } else if (content.type === "tool-result") {
+            toolInvocations.push({
+              state: "result" as const,
+              toolCallId: content.toolCallId,
+              toolName: content.toolName,
+              args: content.args || {},
+              result: content.result,
+            });
           } else if (content.type === "reasoning") {
             reasoning = content.reasoning;
           }
@@ -113,13 +108,27 @@ export function convertToUIMessages(
       }
     }
 
-    chatMessages.push({
+    // CORE FIX: For user messages with images, preserve the full content array
+    // For other messages (especially assistant), use extracted text content
+    const shouldPreserveContent = 
+      message.role === "user" && 
+      hasImages && 
+      Array.isArray(message.content);
+    
+    const uiMessage: Message = {
       id: message.id,
       role: message.role as Message["role"],
-      content: textContent, // Always use extracted text content
+      content: shouldPreserveContent 
+        ? message.content.filter((part: any) => 
+            // Keep image and text parts, exclude metadata
+            (part.type === 'image' || (part.type === 'text' && !part.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING')))
+          )
+        : textContent, // For assistant/other messages, use extracted text
       reasoning,
       toolInvocations,
-    });
+    };
+
+    chatMessages.push(uiMessage);
 
     return chatMessages;
   }, []);

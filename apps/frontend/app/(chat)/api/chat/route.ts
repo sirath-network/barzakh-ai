@@ -22,6 +22,7 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from "@barzakh/shared/lib/utils/utils";
+import { cleanMessageContentForStorage } from "@barzakh/shared/lib/utils/restore-image-urls";
 import { generateTitleFromUserMessage } from "../../actions";
 
 // Function to validate and clean messages
@@ -170,8 +171,16 @@ export async function POST(request: Request) {
     await saveChat({ id, userId: session.user.id, title });
   }
 
+  // Clean user message content to restore original Vercel Blob URLs before saving
+  const cleanedUserContent = cleanMessageContentForStorage(userMessage.content);
+
   await saveMessages({
-    messages: [{ ...userMessage, createdAt: new Date(), chatId: id }],
+    messages: [{ 
+      ...userMessage, 
+      content: cleanedUserContent, // Use cleaned content with restored URLs
+      createdAt: new Date(), 
+      chatId: id 
+    }],
   });
 
   // SOLUTION 1: Clean messages before passing to streamText
@@ -205,17 +214,20 @@ export async function POST(request: Request) {
 
                 // Guard against saving empty messages if AI response fails
                 if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                  await saveMessages({
-                    messages: sanitizedResponseMessages.map((message) => {
-                      return {
-                        id: message.id,
-                        chatId: id,
-                        role: message.role,
-                        content: message.content,
-                        createdAt: new Date(),
-                      };
-                    }),
+                  const messagesToSave = sanitizedResponseMessages.map((message) => {
+                    // Clean message content to restore original Vercel Blob URLs
+                    const cleanedContent = cleanMessageContentForStorage(message.content);
+                    
+                    return {
+                      id: message.id,
+                      chatId: id,
+                      role: message.role,
+                      content: cleanedContent,
+                      createdAt: new Date(),
+                    };
                   });
+                  
+                  await saveMessages({ messages: messagesToSave });
                   await decrementRemainingMessageCount(session.user.id);
                 }
               } catch (error) {
@@ -262,11 +274,14 @@ export async function POST(request: Request) {
                   if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
                     await saveMessages({
                       messages: sanitizedResponseMessages.map((message) => {
+                        // Clean message content to restore original Vercel Blob URLs
+                        const cleanedContent = cleanMessageContentForStorage(message.content);
+                        
                         return {
                           id: message.id,
                           chatId: id,
                           role: message.role,
-                          content: message.content,
+                          content: cleanedContent,
                           createdAt: new Date(),
                         };
                       }),
