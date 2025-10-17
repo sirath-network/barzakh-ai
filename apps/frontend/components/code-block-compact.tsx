@@ -1,23 +1,23 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { ExternalLink, FileCode, Sparkles, Code2, Play } from "lucide-react";
+import { ExternalLink, FileCode, Sparkles, Code2 } from "lucide-react";
 import { useArtifact } from "@/context/artifact-context";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 
 const languageConfig = {
-  python: { name: 'Python', executable: true, icon: '🐍', color: 'from-blue-500/20 to-cyan-500/20', border: 'border-blue-500/30' },
-  javascript: { name: 'JavaScript', executable: true, icon: '⚡', color: 'from-yellow-500/20 to-orange-500/20', border: 'border-yellow-500/30' },
-  typescript: { name: 'TypeScript', executable: false, icon: '📘', color: 'from-blue-600/20 to-indigo-600/20', border: 'border-blue-600/30' },
-  jsx: { name: 'JSX', executable: false, icon: '⚛️', color: 'from-cyan-500/20 to-blue-500/20', border: 'border-cyan-500/30' },
-  tsx: { name: 'TSX', executable: false, icon: '⚛️', color: 'from-cyan-600/20 to-blue-600/20', border: 'border-cyan-600/30' },
-  html: { name: 'HTML', executable: false, icon: '🌐', color: 'from-orange-500/20 to-red-500/20', border: 'border-orange-500/30' },
-  css: { name: 'CSS', executable: false, icon: '🎨', color: 'from-pink-500/20 to-purple-500/20', border: 'border-pink-500/30' },
-  json: { name: 'JSON', executable: false, icon: '📋', color: 'from-gray-500/20 to-slate-500/20', border: 'border-gray-500/30' },
-  bash: { name: 'Bash', executable: false, icon: '💻', color: 'from-green-500/20 to-emerald-500/20', border: 'border-green-500/30' },
-  sql: { name: 'SQL', executable: false, icon: '🗄️', color: 'from-indigo-500/20 to-violet-500/20', border: 'border-indigo-500/30' },
-  text: { name: 'Text', executable: false, icon: '📄', color: 'from-gray-400/20 to-gray-500/20', border: 'border-gray-400/30' }
+  python: { name: 'Python', icon: '🐍', color: 'from-blue-500/20 to-cyan-500/20', border: 'border-blue-500/30' },
+  javascript: { name: 'JavaScript', icon: '⚡', color: 'from-yellow-500/20 to-orange-500/20', border: 'border-yellow-500/30' },
+  typescript: { name: 'TypeScript', icon: '📘', color: 'from-blue-600/20 to-indigo-600/20', border: 'border-blue-600/30' },
+  jsx: { name: 'JSX', icon: '⚛️', color: 'from-cyan-500/20 to-blue-500/20', border: 'border-cyan-500/30' },
+  tsx: { name: 'TSX', icon: '⚛️', color: 'from-cyan-600/20 to-blue-600/20', border: 'border-cyan-600/30' },
+  html: { name: 'HTML', icon: '🌐', color: 'from-orange-500/20 to-red-500/20', border: 'border-orange-500/30' },
+  css: { name: 'CSS', icon: '🎨', color: 'from-pink-500/20 to-purple-500/20', border: 'border-pink-500/30' },
+  json: { name: 'JSON', icon: '📋', color: 'from-gray-500/20 to-slate-500/20', border: 'border-gray-500/30' },
+  bash: { name: 'Bash', icon: '💻', color: 'from-green-500/20 to-emerald-500/20', border: 'border-green-500/30' },
+  sql: { name: 'SQL', icon: '🗄️', color: 'from-indigo-500/20 to-violet-500/20', border: 'border-indigo-500/30' },
+  text: { name: 'Text', icon: '📄', color: 'from-gray-400/20 to-gray-500/20', border: 'border-gray-400/30' }
 };
 
 type Language = keyof typeof languageConfig;
@@ -39,7 +39,53 @@ export function CodeBlockCompact({
   const codeContent = String(children).trim();
   const lineCount = codeContent.split('\n').length;
   const langConfig = languageConfig[language] || languageConfig.text;
-  const fileName = initialFileName || `file.${language}`;
+  
+  // Smart filename detection from code content
+  const detectFileNameFromContent = (code: string, lang: string): string => {
+    const lines = code.split('\n').slice(0, 5); // Check first 5 lines
+    
+    // Try to find file path in comments
+    for (const line of lines) {
+      // Python, Bash, SQL: # path/to/file.ext
+      const hashMatch = line.match(/^#\s+(.+?\.(py|sh|sql|js|ts|jsx|tsx|html|css|json|txt|yaml|yml|md|go|rs|java|cpp|c|h))\s*$/i);
+      if (hashMatch) {
+        const fullPath = hashMatch[1];
+        return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+      }
+      
+      // JavaScript/TypeScript/CSS: // path/to/file.ext
+      const slashMatch = line.match(/^\/\/\s+(.+?\.(js|ts|jsx|tsx|html|css|json|txt|yaml|yml|md))\s*$/i);
+      if (slashMatch) {
+        const fullPath = slashMatch[1];
+        return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+      }
+      
+      // HTML: <!-- path/to/file.ext -->
+      const htmlMatch = line.match(/^<!--\s+(.+?\.(html|htm))\s+-->\s*$/i);
+      if (htmlMatch) {
+        const fullPath = htmlMatch[1];
+        return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+      }
+    }
+    
+    // Fallback: Smart defaults based on language
+    const smartDefaults: Record<string, string> = {
+      python: 'main.py',
+      javascript: 'index.js',
+      typescript: 'main.ts',
+      jsx: 'App.jsx',
+      tsx: 'App.tsx',
+      html: 'index.html',
+      css: 'styles.css',
+      json: 'data.json',
+      bash: 'script.sh',
+      sql: 'query.sql',
+      text: 'file.txt'
+    };
+    return smartDefaults[lang] || `file.${lang}`;
+  };
+  
+  const fileName = initialFileName || detectFileNameFromContent(codeContent, language);
 
   // Show preview of first few lines
   const previewLines = codeContent.split('\n').slice(0, 3).join('\n');
@@ -55,15 +101,14 @@ export function CodeBlockCompact({
       metadata: {
         fileName: fileName,
         lineCount: lineCount,
-        isExecutable: langConfig.executable,
       },
     });
-  }, [openArtifact, language, fileName, codeContent, lineCount, langConfig.executable]);
+  }, [openArtifact, language, fileName, codeContent, lineCount]);
 
   return (
-    <div className="my-4 max-w-full overflow-hidden group">
+    <div className="my-4 max-w-full min-w-0 overflow-hidden group">
       <div className={cn(
-        "relative rounded-xl overflow-hidden",
+        "relative rounded-xl overflow-hidden max-w-full",
         "bg-gradient-to-br", langConfig.color,
         "border-2", langConfig.border,
         "shadow-lg shadow-black/5",
@@ -97,12 +142,6 @@ export function CodeBlockCompact({
                 <span className="text-[10px] text-muted-foreground/80">
                   {lineCount} {lineCount === 1 ? 'line' : 'lines'}
                 </span>
-                {langConfig.executable && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
-                    <Play className="w-2.5 h-2.5" />
-                    Executable
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -130,9 +169,9 @@ export function CodeBlockCompact({
         </div>
 
         {/* Code Preview with better styling */}
-        <div className="relative bg-black/40 backdrop-blur-sm">
-          <pre className="text-xs leading-relaxed p-4 overflow-x-auto font-mono">
-            <code className="text-gray-300">
+        <div className="relative bg-black/40 backdrop-blur-sm max-w-full overflow-hidden">
+          <pre className="text-xs leading-relaxed p-4 overflow-x-auto font-mono max-w-full break-words">
+            <code className="text-gray-300 break-words">
               {previewLines}
             </code>
           </pre>

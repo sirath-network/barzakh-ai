@@ -174,7 +174,7 @@ const PurePreviewMessage = ({
     <AnimatePresence mode="wait">
       <motion.div
         className={cn(
-          "w-full mx-auto max-w-3xl px-3 group/message",
+          "w-full max-w-full mx-auto md:max-w-3xl px-3 group/message min-w-0",
           message.role === "user" && "mb-4"
         )}
         initial={{ y: 10, opacity: 0 }}
@@ -185,7 +185,7 @@ const PurePreviewMessage = ({
       >
         <div
           className={cn(
-            "flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full",
+            "flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full min-w-0 max-w-full",
             {
               "w-full": mode === "edit",
               "group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:w-fit": mode !== "edit",
@@ -201,7 +201,7 @@ const PurePreviewMessage = ({
           )}
 
           <div className={cn(
-            "flex flex-col gap-1",
+            "flex flex-col gap-1 min-w-0 max-w-full",
             message.role === 'user' ? "w-full" : "w-full"
           )}>
             <AnimatePresence mode="wait">
@@ -249,10 +249,10 @@ const PurePreviewMessage = ({
                     >
                       {/* USER MESSAGE: Separate attachments and text */}
                       {message.role === "user" ? (
-                        <div className="flex flex-col gap-2 items-end">
+                        <div className="flex flex-col gap-2 items-end w-full">
                           {/* Attachments displayed first as separate cards */}
                           {(message.experimental_attachments || (Array.isArray(message.content) && message.content.some(part => part.type === 'image'))) && (
-                            <div className="flex flex-wrap gap-2 justify-end">
+                            <div className="flex flex-wrap gap-2 justify-end w-full">
                               {/* Render experimental_attachments if available */}
                               {message.experimental_attachments?.map((attachment) => (
                                 <div 
@@ -310,7 +310,7 @@ const PurePreviewMessage = ({
                             if (textContent.trim()) {
                                return (
                                  <div
-                                   className="dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-3 cursor-pointer max-w-max relative shadow-sm"
+                                   className="dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
                                    style={{
                                      borderRadius: '15px 15px 0px 15px'
                                    }}
@@ -367,13 +367,13 @@ const PurePreviewMessage = ({
                           
                           return (
                             <div
-                              className="bg-muted/50 text-foreground px-4 py-3 shadow-sm"
+                              className="bg-muted/50 text-foreground px-4 py-3 shadow-sm max-w-full"
                               style={{
                                 borderRadius: '0px 15px 15px 15px'
                               }}
                             >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
+                              <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
+                                <div className="flex-1 min-w-0 max-w-full">
                                   {typeof message.content === "string" ? (
                                     <Markdown>{message.content}</Markdown>
                                   ) : (

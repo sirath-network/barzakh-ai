@@ -184,7 +184,7 @@ export function Chat({
           {messages.length === 0 && <div className="h-[18vh]"></div>}
           
           {/* DIUBAH: Tambahkan ref dan id yang benar di sini */}
-          <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto custom-scrollbar">
+          <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             <Messages
               chatId={id}
               isLoading={isLoading}

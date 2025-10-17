@@ -20,7 +20,6 @@ export interface Artifact {
   metadata?: {
     fileName?: string;
     lineCount?: number;
-    isExecutable?: boolean;
   };
 }
 

@@ -1,6 +1,36 @@
+.markdown-body {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow: visible;
+}
+
 .markdown-body img {
   max-width: 100%;
   height: auto;
+  display: block;
+}
+
+.markdown-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.markdown-body code {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.markdown-body pre code {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: pre;
+  display: block;
 }
 
 @media (min-width: 640px) {

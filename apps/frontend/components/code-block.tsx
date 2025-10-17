@@ -1,27 +1,24 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Copy, Check, Play, Terminal, ChevronDown, ChevronRight, Code2, X, Maximize2, ExternalLink } from 'lucide-react';
+import { Copy, Check, ChevronDown, ChevronRight, Code2, X, Maximize2, ExternalLink } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark as grayscale } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { useArtifact } from '@/context/artifact-context';
 import { generateUUID } from '@barzakh/shared/lib/utils/utils';
 
 // --- KONFIGURASI & TIPE ---
-const DEFAULT_OUTPUT_HEIGHT = 192; // Default: 192px (h-48)
-const MIN_OUTPUT_HEIGHT = 80;    // Min height 80px
-const MAX_OUTPUT_HEIGHT_RATIO = 0.8; // Max 80% of viewport height
 
 const languageConfig = {
-  python: { name: 'Python', executable: true },
-  javascript: { name: 'JavaScript', executable: true },
-  typescript: { name: 'TypeScript', executable: false },
-  jsx: { name: 'JSX', executable: false },
-  tsx: { name: 'TSX', executable: false },
-  html: { name: 'HTML', executable: false },
-  css: { name: 'CSS', executable: false },
-  json: { name: 'JSON', executable: false },
-  bash: { name: 'Bash', executable: false },
-  sql: { name: 'SQL', executable: false },
-  text: { name: 'Text', executable: false }
+  python: { name: 'Python' },
+  javascript: { name: 'JavaScript' },
+  typescript: { name: 'TypeScript' },
+  jsx: { name: 'JSX' },
+  tsx: { name: 'TSX' },
+  html: { name: 'HTML' },
+  css: { name: 'CSS' },
+  json: { name: 'JSON' },
+  bash: { name: 'Bash' },
+  sql: { name: 'SQL' },
+  text: { name: 'Text' }
 };
 
 type Language = keyof typeof languageConfig;
@@ -48,55 +45,14 @@ const CodeHeader = ({ fileName, langName, lineCount }) => (
   </div>
 );
 
-const CodeActions = ({ onCopy, onRun, isCopied, isRunning, isExecutable, isCompact = false }) => (
+const CodeActions = ({ onCopy, isCopied, isCompact = false }) => (
   <div className="flex items-center space-x-2">
-    {isExecutable && (
-      <button onClick={onRun} disabled={isRunning} className={`flex items-center space-x-1.5 ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-transparent text-foreground rounded-md border hover:bg-muted transition-colors disabled:opacity-50 disabled:text-gray-400`} aria-label="Run code snippet">
-        <Play className={isCompact ? "w-3 h-3" : "w-4 h-4"} />
-        <span>{isRunning ? 'Running...' : 'Run'}</span>
-      </button>
-    )}
     <button onClick={onCopy} className={`flex items-center space-x-1.5 ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-muted text-muted-foreground rounded-md border hover:bg-accent transition-colors`} aria-label="Copy code to clipboard">
       {isCopied ? <span role="status" className="flex items-center space-x-1.5 font-medium"><Check className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copied</span></span> : <span className="flex items-center space-x-1.5"><Copy className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copy</span></span>}
     </button>
   </div>
 );
 
-/** Handle untuk mengubah ukuran panel */
-const ResizeHandle = ({ onResizeStart }) => (
-  <div
-    className="absolute -top-1 left-0 w-full h-2 cursor-row-resize flex items-center justify-center"
-    onMouseDown={onResizeStart}
-    onTouchStart={onResizeStart}
-  >
-    <div className="w-8 h-1 bg-muted rounded-full" />
-  </div>
-);
-
-/** Panel output yang bisa diubah ukurannya */
-const OutputPanel = ({ output, isRunning, onClose, height, onResizeStart }) => (
-  <div className="relative border-t" style={{ height: `${height}px` }}>
-    <ResizeHandle onResizeStart={onResizeStart} />
-    <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-4 py-2 bg-muted text-foreground flex-shrink-0">
-        <div className="flex items-center space-x-2">
-          <Terminal className="w-4 h-4" />
-          <span className="text-sm font-medium">Output</span>
-        </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs" aria-label="Hide output">
-          Close
-        </button>
-      </div>
-      <div className="bg-background text-foreground p-4 overflow-y-auto flex-grow">
-        {isRunning ? (
-          <div className="flex items-center space-x-2 text-sm"><div className="animate-spin w-4 h-4 border-2 border-border border-t-transparent rounded-full"></div><span>Running...</span></div>
-        ) : (
-          <pre className="font-mono whitespace-pre-wrap break-words text-sm">{output || 'No output.'}</pre>
-        )}
-      </div>
-    </div>
-  </div>
-);
 
 // --- KOMPONEN UTAMA ---
 
@@ -108,18 +64,10 @@ export function CodeBlock({
   showLineNumbers = true,
 }: CodeBlockProps) {
   const { openArtifact } = useArtifact();
-  const [output, setOutput] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [showOutput, setShowOutput] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
-  // State untuk mengubah ukuran panel output
-  const [outputHeight, setOutputHeight] = useState(DEFAULT_OUTPUT_HEIGHT);
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeRef = useRef<{ startY: number, startHeight: number } | null>(null);
 
   // State untuk side-by-side view
   const [panelWidth, setPanelWidth] = useState(50); // 50% width default
@@ -137,44 +85,6 @@ export function CodeBlock({
     document.body.style.overflow = isFullscreen ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [isFullscreen]);
-  
-  // Efek untuk menangani event resize vertikal
-  useEffect(() => {
-    const handleResizeMove = (e: MouseEvent | TouchEvent) => {
-      if (!isResizing || !resizeRef.current) return;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-      const deltaY = clientY - resizeRef.current.startY;
-      let newHeight = resizeRef.current.startHeight - deltaY;
-
-      // Batasi ukuran
-      const maxHeight = window.innerHeight * MAX_OUTPUT_HEIGHT_RATIO;
-      if (newHeight < MIN_OUTPUT_HEIGHT) newHeight = MIN_OUTPUT_HEIGHT;
-      if (newHeight > maxHeight) newHeight = maxHeight;
-      
-      setOutputHeight(newHeight);
-    };
-
-    const handleResizeEnd = () => {
-      setIsResizing(false);
-      resizeRef.current = null;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    if (isResizing) {
-      document.addEventListener('mousemove', handleResizeMove);
-      document.addEventListener('touchmove', handleResizeMove);
-      document.addEventListener('mouseup', handleResizeEnd);
-      document.addEventListener('touchend', handleResizeEnd);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleResizeMove);
-      document.removeEventListener('touchmove', handleResizeMove);
-      document.removeEventListener('mouseup', handleResizeEnd);
-      document.removeEventListener('touchend', handleResizeEnd);
-    };
-  }, [isResizing]);
   
   // Efek untuk menangani event resize horizontal
   useEffect(() => {
@@ -214,15 +124,6 @@ export function CodeBlock({
     };
   }, [isResizingWidth]);
   
-  const handleResizeStart = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    resizeRef.current = { startY: clientY, startHeight: outputHeight };
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
-  };
-  
   const handleResizeWidthStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     setIsResizingWidth(true);
@@ -237,7 +138,52 @@ export function CodeBlock({
   const lineCount = codeContent.split('\n').length;
   const langConfig = languageConfig[language] || languageConfig.text;
 
-  const fileName = initialFileName || `file.${language}`;
+  // Smart filename detection from code content
+  const detectFileNameFromContent = (code: string, lang: string): string => {
+    const lines = code.split('\n').slice(0, 5); // Check first 5 lines
+    
+    // Try to find file path in comments
+    for (const line of lines) {
+      // Python, Bash, SQL: # path/to/file.ext
+      const hashMatch = line.match(/^#\s+(.+?\.(py|sh|sql|js|ts|jsx|tsx|html|css|json|txt|yaml|yml|md|go|rs|java|cpp|c|h))\s*$/i);
+      if (hashMatch) {
+        const fullPath = hashMatch[1];
+        return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+      }
+      
+      // JavaScript/TypeScript/CSS: // path/to/file.ext
+      const slashMatch = line.match(/^\/\/\s+(.+?\.(js|ts|jsx|tsx|html|css|json|txt|yaml|yml|md))\s*$/i);
+      if (slashMatch) {
+        const fullPath = slashMatch[1];
+        return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+      }
+      
+      // HTML: <!-- path/to/file.ext -->
+      const htmlMatch = line.match(/^<!--\s+(.+?\.(html|htm))\s+-->\s*$/i);
+      if (htmlMatch) {
+        const fullPath = htmlMatch[1];
+        return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+      }
+    }
+    
+    // Fallback: Smart defaults based on language
+    const smartDefaults: Record<string, string> = {
+      python: 'main.py',
+      javascript: 'index.js',
+      typescript: 'main.ts',
+      jsx: 'App.jsx',
+      tsx: 'App.tsx',
+      html: 'index.html',
+      css: 'styles.css',
+      json: 'data.json',
+      bash: 'script.sh',
+      sql: 'query.sql',
+      text: 'file.txt'
+    };
+    return smartDefaults[lang] || `file.${lang}`;
+  };
+
+  const fileName = initialFileName || detectFileNameFromContent(codeContent, language);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -247,25 +193,6 @@ export function CodeBlock({
     } catch (err) { console.error('Failed to copy code:', err); }
   }, [codeContent]);
 
-  const handleRun = useCallback(async () => {
-    if (!langConfig.executable) return;
-    setIsRunning(true);
-    setShowOutput(true);
-    setOutput('');
-    await new Promise(resolve => setTimeout(resolve, 750));
-    try {
-      if (language === 'javascript') {
-        let capturedOutput = '';
-        const originalLog = console.log;
-        console.log = (...args) => { capturedOutput += args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ') + '\n'; };
-        eval(codeContent);
-        console.log = originalLog;
-        setOutput(capturedOutput || 'Code executed without console output.');
-      } else if (language === 'python') {
-        setOutput(`Simulating Python execution...\n\nOutput:\n${codeContent.includes('print') ? 'Hello from Python!' : 'Execution finished.'}\n\n# Note: This is a mock execution.`);
-      }
-    } catch (error) { setOutput(error.toString()); } finally { setIsRunning(false); }
-  }, [codeContent, language, langConfig.executable]);
 
   const handleOpenInArtifact = useCallback(() => {
     openArtifact({
@@ -277,10 +204,9 @@ export function CodeBlock({
       metadata: {
         fileName: fileName,
         lineCount: lineCount,
-        isExecutable: langConfig.executable,
       },
     });
-  }, [openArtifact, language, fileName, codeContent, lineCount, langConfig.executable]);
+  }, [openArtifact, language, fileName, codeContent, lineCount]);
 
   const handleToggleView = () => {
     if (isMobile) {
@@ -291,11 +217,6 @@ export function CodeBlock({
         setPanelWidth(50); // Reset ke 50% saat pertama kali dibuka
       }
     }
-  };
-
-  const handleCloseOutput = () => {
-    setShowOutput(false);
-    setOutputHeight(DEFAULT_OUTPUT_HEIGHT); // Reset tinggi saat ditutup
   };
 
   if (inline) {
@@ -341,11 +262,10 @@ export function CodeBlock({
       </div>
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b flex-shrink-0">
         <span className="text-xs text-muted-foreground">Swipe to scroll</span>
-        <CodeActions onCopy={handleCopy} onRun={handleRun} isCopied={isCopied} isRunning={isRunning} isExecutable={langConfig.executable} />
+        <CodeActions onCopy={handleCopy} isCopied={isCopied} />
       </div>
       <div className="flex-grow flex flex-col overflow-hidden">
         <CodeContentDisplay inModal={true} />
-        {showOutput && <OutputPanel output={output} isRunning={isRunning} onClose={handleCloseOutput} height={outputHeight} onResizeStart={handleResizeStart} />}
       </div>
     </div>
   );
@@ -396,10 +316,7 @@ export function CodeBlock({
                 <div className="flex items-center justify-end px-4 py-2 bg-card border-b">
                   <CodeActions 
                     onCopy={handleCopy} 
-                    onRun={handleRun} 
                     isCopied={isCopied} 
-                    isRunning={isRunning} 
-                    isExecutable={langConfig.executable} 
                     isCompact={true} 
                   />
                 </div>
@@ -414,35 +331,16 @@ export function CodeBlock({
                 onTouchStart={handleResizeWidthStart}
               />
               
-              {/* Panel Preview/Output */}
+              {/* Panel Preview */}
               <div 
                 className="flex-1 overflow-auto bg-muted" 
                 style={{ width: `${100 - panelWidth}%`, minWidth: '20%' }}
               >
                 <div className="p-4 h-full">
-                  {showOutput ? (
-                    <OutputPanel 
-                      output={output} 
-                      isRunning={isRunning} 
-                      onClose={handleCloseOutput} 
-                      height={outputHeight} 
-                      onResizeStart={handleResizeStart} 
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-                      <Terminal className="w-8 h-8 mb-2 text-muted-foreground" />
-                      <p className="text-center">Code output will appear here when you run the code</p>
-                      {langConfig.executable && (
-                        <button 
-                          onClick={handleRun}
-                          className="mt-4 flex items-center space-x-1.5 px-3 py-1.5 text-sm bg-card text-foreground rounded-md border hover:bg-muted transition-colors"
-                        >
-                          <Play className="w-4 h-4" />
-                          <span>Run Code</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
+                    <Code2 className="w-8 h-8 mb-2 text-muted-foreground" />
+                    <p className="text-center">Extended code view</p>
+                  </div>
                 </div>
               </div>
             </div>

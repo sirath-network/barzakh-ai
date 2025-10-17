@@ -4,6 +4,9 @@ import { savePasswordResetToken } from "@/lib/db/queries";
 import { sendResetEmail } from "@/lib/utils/email";
 import { nanoid } from "nanoid";
 import * as speakeasy from "speakeasy";
+import { db } from "@/lib/db/db";
+import { user } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,7 +62,11 @@ export async function POST(request: NextRequest) {
           // Remove used backup code
           backupCodes.splice(codeIndex, 1);
           // Update user with remaining backup codes
-          // Note: You'll need to add an updateUserBackupCodes function to your queries
+          await db
+            .update(user)
+            .set({ backupCodes: JSON.stringify(backupCodes) })
+            .where(eq(user.email, email));
+          
           isValid = true;
         }
       } catch (error) {

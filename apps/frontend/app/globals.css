@@ -238,6 +238,27 @@
   max-width: 100%;
 }
 
+/* Mobile-specific overflow prevention */
+@media (max-width: 768px) {
+  /* Ensure all containers stay within viewport */
+  #chat-scroll {
+    max-width: 100vw;
+    overflow-x: hidden !important;
+  }
+  
+  /* Force all pre and code elements to respect max-width */
+  pre {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+  
+  /* Ensure all message bubbles respect viewport */
+  [data-role="user"] > div,
+  [data-role="assistant"] > div {
+    max-width: 100% !important;
+  }
+}
+
 /* Custom scrollbar only for elements with 'custom-scrollbar' class */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px; /* Vertical scrollbar width */
@@ -365,6 +386,14 @@
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Prevent horizontal overflow on mobile */
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   @font-face {

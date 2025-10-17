@@ -111,13 +111,26 @@ export default function Verify2FAPage() {
   };
 
   const handleTokenChange = (value: string) => {
-    // Auto-detect if it's a backup code (8 characters) or TOTP (6 digits)
-    const cleanValue = value.replace(/\s/g, "").toUpperCase();
+    // Clean the input value
+    let cleanValue = value.replace(/\s/g, "");
+    
+    // For TOTP mode, only allow digits and limit to 6 characters
+    // For backup code mode, allow alphanumeric and limit to 8 characters
+    if (!isBackupCode) {
+      cleanValue = cleanValue.replace(/[^0-9]/g, "").slice(0, 6);
+    } else {
+      cleanValue = cleanValue.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8);
+    }
+    
     setToken(cleanValue);
     
-    if (cleanValue.length === 8) {
+    // Auto-detect mode based on input length and content
+    // Only auto-detect if we're in the default TOTP mode and user types 8 characters
+    if (!isBackupCode && cleanValue.length === 8 && /^[A-Z0-9]+$/.test(cleanValue)) {
       setIsBackupCode(true);
-    } else if (cleanValue.length === 6) {
+    }
+    // Or if we're in backup code mode and user types 6 digits
+    else if (isBackupCode && cleanValue.length === 6 && /^[0-9]+$/.test(cleanValue)) {
       setIsBackupCode(false);
     }
   };
@@ -153,7 +166,7 @@ export default function Verify2FAPage() {
               <p className="text-gray-600 dark:text-gray-400">
                 {context === "forgot_password" 
                   ? "Enter your 2FA code to verify your identity for password reset"
-                  : "Enter your 2FA code to complete sign in"
+                  : "Enter your 2FA code to sign in"
                 }
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
@@ -174,6 +187,8 @@ export default function Verify2FAPage() {
                     onChange={(e) => handleTokenChange(e.target.value)}
                     placeholder={isBackupCode ? "Enter 8-character backup code" : "Enter 6-digit code"}
                     maxLength={isBackupCode ? 8 : 6}
+                    inputMode={isBackupCode ? "text" : "numeric"}
+                    pattern={isBackupCode ? "[A-Za-z0-9]*" : "[0-9]*"}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     autoComplete="one-time-code"
                     autoFocus
@@ -213,16 +228,12 @@ export default function Verify2FAPage() {
             {/* Help Text */}
             <div className="mt-6 text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Don't have your authenticator app?{" "}
+                {isBackupCode ? "Don't have a backup code?" : "Don't have your authenticator app?"}{" "}
                 <button
                   onClick={() => {
-                    if (token.length === 8) {
-                      setIsBackupCode(false);
-                      setToken("");
-                    } else {
-                      setIsBackupCode(true);
-                      setToken("");
-                    }
+                    // Toggle between backup code and TOTP mode
+                    setIsBackupCode(!isBackupCode);
+                    setToken(""); // Clear the input when switching modes
                   }}
                   className="text-red-600 dark:text-red-400 hover:underline"
                 >

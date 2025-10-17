@@ -30,7 +30,7 @@ const components: Partial<Components> = {
     <small className="break-long-words">{children}</small>
   ),
   pre: ({ children }) => (
-    <div className="not-prose my-0">
+    <div className="not-prose my-0 max-w-full overflow-x-auto">
       {children}
     </div>
   ),
@@ -281,7 +281,7 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   );
   
   return (
-    <div className="markdown-body">
+    <div className="markdown-body max-w-full min-w-0">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
         {filteredChildren}
       </ReactMarkdown>
