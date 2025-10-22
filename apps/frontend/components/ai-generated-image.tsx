@@ -30,6 +30,7 @@ export function AIGeneratedImage({
   allImages,
   currentIndex = 0
 }: AIGeneratedImageProps) {
+  const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & import("framer-motion").MotionProps>;
   const [isHovered, setIsHovered] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -642,7 +643,7 @@ export function AIGeneratedImage({
         {/* Desktop Hover Overlay with Actions */}
         <AnimatePresence>
           {!shouldShowMobileUI && isHovered && (
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -766,7 +767,7 @@ export function AIGeneratedImage({
                 </motion.div>
 
               </div>
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
 
@@ -774,14 +775,14 @@ export function AIGeneratedImage({
         <div className="absolute bottom-3 left-3 right-3">
           <div className="flex justify-end">
             {!isHovered && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
                 className="px-3 py-1.5 bg-black/20 backdrop-blur-sm rounded-full text-white text-xs font-semibold border border-white/10 shadow-lg"
               >
                 Powered by Barzakh
-              </motion.div>
+              </MotionDiv>
             )}
           </div>
         </div>
@@ -790,7 +791,7 @@ export function AIGeneratedImage({
       {/* Error Display */}
       <AnimatePresence>
         {downloadError && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -806,7 +807,7 @@ export function AIGeneratedImage({
             >
               <X className="w-3 h-3" />
             </Button>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 

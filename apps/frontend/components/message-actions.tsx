@@ -84,7 +84,7 @@ export function PureMessageActions({
                 toast.success('Copied to clipboard!');
               }}
             >
-              <CopyIcon className="h-4 w-4" />
+              <CopyIcon size={16} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Copy</TooltipContent>
@@ -101,10 +101,7 @@ export function PureMessageActions({
             >
               {/* */}
               <ThumbUpIcon
-                className={cn(
-                  'h-4 w-4',
-                  vote?.isUpvoted && 'fill-blue-500 text-blue-500',
-                )}
+                size={16}
               />
             </Button>
           </TooltipTrigger>
@@ -122,10 +119,7 @@ export function PureMessageActions({
             >
               {/* */}
               <ThumbDownIcon
-                className={cn(
-                  'h-4 w-4',
-                  vote && !vote.isUpvoted && 'fill-red-500 text-red-500',
-                )}
+                size={16}
               />
             </Button>
           </TooltipTrigger>

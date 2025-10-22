@@ -1,5 +1,5 @@
 import { compare } from "bcrypt-ts";
-import NextAuth, { type Session, type User, type NextAuthOptions } from "next-auth";
+import NextAuth, { type Session, type User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
@@ -7,7 +7,7 @@ import { createUser, getUser, updateUserProfile } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   ...authConfig,
   providers: [
     Credentials({
@@ -65,7 +65,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user: any }) {
       // ✅ This is the key change. We will always re-fetch user data from the DB.
       // This ensures that any changes (like a plan upgrade) are immediately reflected in the session.
       if (token.email) {
@@ -114,7 +114,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (token) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
@@ -125,7 +125,7 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
       if (url.includes('/api/auth/callback/google')) {
         return `${baseUrl}/?newuser=true`;
       }

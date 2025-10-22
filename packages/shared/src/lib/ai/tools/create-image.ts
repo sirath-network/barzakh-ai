@@ -134,13 +134,19 @@ async function generateFluxImage(
             // Try direct fetch first
             let response;
             try {
+              // Create AbortController for timeout
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+              
               response = await fetch(url, {
                 headers: {
                   'User-Agent': 'Mozilla/5.0 (compatible; BarzakhAI/1.0)',
                   'Accept': 'image/*',
                 },
-                timeout: 15000, // Increased to 15 second timeout
+                signal: controller.signal,
               });
+              
+              clearTimeout(timeoutId);
             } catch (directFetchError) {
               // If direct fetch fails, try using the internal proxy
               
@@ -159,6 +165,10 @@ async function generateFluxImage(
                 
                 const proxyUrl = `${frontendUrl}/api/proxy-image`;
                 
+                // Create AbortController for proxy timeout
+                const proxyController = new AbortController();
+                const proxyTimeoutId = setTimeout(() => proxyController.abort(), 20000); // 20 second timeout
+                
                 response = await fetch(proxyUrl, {
                   method: 'POST',
                   headers: {
@@ -168,15 +178,17 @@ async function generateFluxImage(
                     imageUrl: url,
                     internalRequest: true, // Flag this as an internal backend request
                   }),
-                  timeout: 20000, // Even longer timeout for proxy
+                  signal: proxyController.signal,
                 });
+                
+                clearTimeout(proxyTimeoutId);
               } catch (proxyError) {
                 console.error(`Proxy also failed for ${url}:`, proxyError);
                 
                 // Provide more specific error messages based on the error type
-                if (directFetchError.message?.includes('ETIMEDOUT')) {
+                if (directFetchError instanceof Error && directFetchError.message?.includes('ETIMEDOUT')) {
                   throw new Error(`Network timeout when accessing image: ${url}. This may be due to network connectivity issues or the image service being temporarily unavailable.`);
-                } else if (directFetchError.message?.includes('fetch failed')) {
+                } else if (directFetchError instanceof Error && directFetchError.message?.includes('fetch failed')) {
                   throw new Error(`Failed to fetch image: ${url}. The image may be inaccessible or the network connection failed.`);
                 } else {
                   throw new Error(`Image URL is not accessible: ${url}. The image may have expired or be from a private source.`);
@@ -223,11 +235,12 @@ async function generateFluxImage(
       
       // If we had input images but couldn't process any, modify the prompt to inform the user
       if (input_image_urls && input_image_urls.length > 0) {
-        const errorReason = error.message.includes('404') 
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorReason = errorMessage.includes('404') 
           ? "the attached image is no longer accessible (it may have expired or been deleted)"
-          : error.message.includes('403')
+          : errorMessage.includes('403')
           ? "the attached image is private or requires authentication"
-          : error.message.includes('401')
+          : errorMessage.includes('401')
           ? "the attached image requires authentication or the proxy is not configured for this domain"
           : "unable to access the attached image for editing";
         
@@ -355,10 +368,11 @@ For better image editing results in the future, please:
         lastError = error;
         
         // If it's a network error and we have retries left, continue
+        const errorMessage = error instanceof Error ? error.message : String(error);
         if (retry < maxRetries - 1 && (
-          error.message.includes('fetch failed') || 
-          error.message.includes('ETIMEDOUT') ||
-          error.message.includes('timeout')
+          errorMessage.includes('fetch failed') || 
+          errorMessage.includes('ETIMEDOUT') ||
+          errorMessage.includes('timeout')
         )) {
           continue;
         }
@@ -506,15 +520,16 @@ export const createImage = tool({
       console.error("Error in createImage:", error);
       
       // Provide more specific error messages
-      if (error.message.includes("Failed to process input images")) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("Failed to process input images")) {
         throw new Error("Unable to access the provided image for editing. The image may be from a private source or no longer accessible. Please try uploading the image again or generate a new image instead.");
-      } else if (error.message.includes("timed out")) {
+      } else if (errorMessage.includes("timed out")) {
         throw new Error("Image generation timed out. This may be due to content moderation or server issues. Please try a simpler, more appropriate prompt or try again later.");
-      } else if (error.message.includes("Content Moderated")) {
+      } else if (errorMessage.includes("Content Moderated")) {
         throw new Error("Image generation was blocked by content moderation. The prompt may contain inappropriate content. Please try a different, more appropriate prompt.");
-      } else if (error.message.includes("401")) {
+      } else if (errorMessage.includes("401")) {
         throw new Error("Unable to access the attached image. The image may require authentication or the domain is not supported. Please try uploading the image again or use a different image source.");
-      } else if (error.message.includes("ETIMEDOUT") || error.message.includes("timeout")) {
+      } else if (errorMessage.includes("ETIMEDOUT") || errorMessage.includes("timeout")) {
         throw new Error("Network timeout when accessing the attached image. This may be due to network connectivity issues or the image service being temporarily unavailable. Please try again later or upload a different image.");
       } else {
         throw error;

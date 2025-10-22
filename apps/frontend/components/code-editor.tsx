@@ -57,7 +57,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
           fontFamily: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace',
         },
       }),
-      EditorView.lineWrapping.of(wordWrap),
+      EditorView.lineWrapping,
     ];
 
     return extensions;

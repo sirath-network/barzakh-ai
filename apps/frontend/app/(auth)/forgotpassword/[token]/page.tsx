@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -31,20 +31,18 @@ export default function ResetPassword() {
     message: "",
   });
 
-  const [state, formAction] = useActionState<
-    VerifyAndResetPasswordActionState,
-    FormData
-  >(verifyAndResetPassword, {
+  const [state, setState] = useState<VerifyAndResetPasswordActionState>({
     status: "idle",
   });
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
     if (typeof token !== "string") {
       setOverlayState({ status: "error", title: "Invalid Token", message: "The provided token is invalid." });
       return;
     }
     formData.set("token", token);
-    formAction(formData);
+    const result = await verifyAndResetPassword(state, formData);
+    setState(result);
   };
 
   useEffect(() => {
@@ -134,8 +132,8 @@ export default function ResetPassword() {
                     variants={formVariants}
                     initial="initial"
                     animate="animate"
-                    className="mx-auto w-full max-w-md space-y-8"
                 >
+                    <div className="mx-auto w-full max-w-md space-y-8">
                     <div className="space-y-4 text-center">
                        <img
                         alt="Brand Banner"
@@ -148,7 +146,7 @@ export default function ResetPassword() {
                       </p>
                     </div>
                     
-                    <form action={handleSubmit}>
+                    <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleSubmit(formData); }}>
                       <AuthForm
                         emailNeeded={false}
                         forgotPasswordNeeded={false}
@@ -168,11 +166,11 @@ export default function ResetPassword() {
                     </form>
 
                     <p className="text-center text-sm text-muted-foreground">
-                       <Link href="/login" className="underline underline-offset-4 hover:text-primary">
+                       <a href="/login" className="underline underline-offset-4 hover:text-primary">
                           &larr; Back to Login
-                       </Link>
+                       </a>
                     </p>
-
+                    </div>
                 </motion.div>
             </div>
         </div>

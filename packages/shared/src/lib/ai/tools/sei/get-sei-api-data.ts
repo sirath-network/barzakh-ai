@@ -184,9 +184,10 @@ export const getSeiApiData = tool({
           return JSON.stringify(responseObject);
         } catch (error) {
           console.error(`Error processing endpoint ${endpoint}:`, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
           return JSON.stringify({ 
             error: `Failed to fetch data from ${endpoint}`, 
-            message: error.message,
+            message: errorMessage,
             items: [] 
           });
         }

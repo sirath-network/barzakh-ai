@@ -46,7 +46,7 @@ export const AssistantAvatar = ({
               maxWidth: `${size}px`,
               maxHeight: `${size}px`,
               objectFit: 'cover',
-              imageRendering: 'optimizeQuality',
+              imageRendering: 'auto',
             }}
           />
         ) : (

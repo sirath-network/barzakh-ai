@@ -193,7 +193,7 @@ export async function updateUserPassword(email: string, newPassword: string) {
   }
 }
 
-export async function saveEmailChangeRequest({ userId, newEmail, code, expiresAt }) {
+export async function saveEmailChangeRequest({ userId, newEmail, code, expiresAt }: { userId: string; newEmail: string; code: string; expiresAt: Date }) {
   // Hapus request lama user kalau ada
   await db.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
 
@@ -412,7 +412,7 @@ export async function saveDocument({
 }: {
   id: string;
   title: string;
-  kind: BlockKind;
+  kind: "text" | "code" | "image" | "sheet";
   content: string;
   userId: string;
 }) {

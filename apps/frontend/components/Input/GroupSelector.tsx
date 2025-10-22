@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   cn,
   SearchGroup,
@@ -7,8 +8,6 @@ import {
   searchGroups,
 } from "@barzakh/shared/lib/utils/utils";
 import {
-  ForwardRefExoticComponent,
-  RefAttributes,
   startTransition,
   useState,
   useCallback,
@@ -66,12 +65,14 @@ const GroupOptionList = ({
   isDropdown = false,
   searchQuery = "",
 }: GroupOptionListProps) => {
-  const filteredGroups = useGroupSearch(searchGroups, searchQuery);
+  const filteredGroups = useGroupSearch([...searchGroups], searchQuery);
 
   if (filteredGroups.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground">
-        <SearchX className="size-12 opacity-50" />
+        <div className="size-12 opacity-50 flex items-center justify-center">
+          <span className="text-4xl">🔍</span>
+        </div>
         <p className="font-semibold">Tools Not Found</p>
         <p className="text-sm">Try using different keywords.</p>
       </div>
@@ -81,14 +82,14 @@ const GroupOptionList = ({
   return (
     <>
       {filteredGroups.map((group) => {
-        const IconComponent = group.icon;
+        const IconComponent = group.icon as React.ComponentType<LucideProps>;
         const isSelected = selectedGroupId === group.id;
 
         const content = (
           <>
             <div className="flex-shrink-0">
               {group.img ? (
-                <Image
+                <img
                   src={group.img}
                   alt={`${group.name} icon`}
                   width={28}
@@ -106,7 +107,9 @@ const GroupOptionList = ({
               </p>
             </div>
             {isSelected && (
-              <CheckCircleFillIcon className="text-primary size-5 flex-shrink-0" />
+              <div className="text-primary size-5 flex-shrink-0">
+                <CheckCircleFillIcon size={20} />
+              </div>
             )}
           </>
         );
@@ -164,10 +167,12 @@ const MobileSearchHeader = ({
 }: {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-}) => (
+}) => {
+  const SearchIcon = Search as React.ComponentType<LucideProps>;
+  return (
   <div className="sticky top-0 bg-background border-b p-4">
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+      <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
       <input
         type="text"
         placeholder="Search Tools"
@@ -182,7 +187,8 @@ const MobileSearchHeader = ({
       />
     </div>
   </div>
-);
+  );
+};
 
 // --- Main Component ---
 export const GroupSelector = ({
@@ -198,6 +204,13 @@ export const GroupSelector = ({
   const [isClient, setIsClient] = useState(false);
   const { width } = useWindowSize();
 
+  // Type cast Lucide components
+  const ChevronDownIcon = ChevronDown as React.ComponentType<LucideProps>;
+  const SearchIcon = Search as React.ComponentType<LucideProps>;
+  
+  // Type cast Next.js Image component
+  const NextImage = Image as React.ComponentType<any>;
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -209,9 +222,7 @@ export const GroupSelector = ({
     [selectedGroupId]
   );
 
-  const SelectedIcon = selectedGroup?.icon as ForwardRefExoticComponent<
-    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
-  >;
+  const SelectedIcon = selectedGroup?.icon as React.ComponentType<LucideProps>;
 
   const handleSelect = useCallback(
     (group: SearchGroup) => {
@@ -305,7 +316,7 @@ export const GroupSelector = ({
             <div className="flex items-center gap-2.5">
               <div className="flex-shrink-0">
                 {selectedGroup?.img ? (
-                  <Image
+                  <NextImage
                     src={selectedGroup.img}
                     alt="Selected group icon"
                     width={24}
@@ -323,7 +334,7 @@ export const GroupSelector = ({
               )}
             </div>
             {isDesktop && (
-              <ChevronDown
+              <ChevronDownIcon
                 className={cn(
                   "size-4 transition-transform duration-200",
                   isExpanded && "rotate-180"
@@ -345,7 +356,7 @@ export const GroupSelector = ({
         >
           <div className="p-2 border-b">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search Tools"

@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = users[0];
+    const userData = users[0];
 
-    if (!user.twoFactorEnabled) {
+    if (!userData.twoFactorEnabled) {
       return NextResponse.json(
         { message: "2FA is not enabled for this user" },
         { status: 400 }
@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
     let isValid = false;
     
     // Try TOTP first
-    if (user.twoFactorSecret) {
+    if (userData.twoFactorSecret) {
       isValid = speakeasy.totp.verify({
-        secret: user.twoFactorSecret,
+        secret: userData.twoFactorSecret,
         encoding: "base32",
         token: twoFactorToken,
         window: 2,
@@ -51,9 +51,9 @@ export async function POST(request: NextRequest) {
     }
     
     // If TOTP fails, try backup codes
-    if (!isValid && user.backupCodes) {
+    if (!isValid && userData.backupCodes) {
       try {
-        const backupCodes = JSON.parse(user.backupCodes);
+        const backupCodes = JSON.parse(userData.backupCodes);
         const codeIndex = backupCodes.findIndex((code: string) => 
           code === twoFactorToken.toUpperCase()
         );

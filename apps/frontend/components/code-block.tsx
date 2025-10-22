@@ -33,7 +33,7 @@ interface CodeBlockProps {
 
 // --- SUB-KOMPONEN ---
 
-const CodeHeader = ({ fileName, langName, lineCount }) => (
+const CodeHeader = ({ fileName, langName, lineCount }: { fileName?: string; langName: string; lineCount: number }) => (
   <div className="flex items-center space-x-2">
     <span className="font-medium text-foreground truncate max-w-[180px]">{fileName}</span>
     <div className="px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-muted-foreground">
@@ -45,7 +45,7 @@ const CodeHeader = ({ fileName, langName, lineCount }) => (
   </div>
 );
 
-const CodeActions = ({ onCopy, isCopied, isCompact = false }) => (
+const CodeActions = ({ onCopy, isCopied, isCompact = false }: { onCopy: () => void; isCopied: boolean; isCompact?: boolean }) => (
   <div className="flex items-center space-x-2">
     <button onClick={onCopy} className={`flex items-center space-x-1.5 ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-muted text-muted-foreground rounded-md border hover:bg-accent transition-colors`} aria-label="Copy code to clipboard">
       {isCopied ? <span role="status" className="flex items-center space-x-1.5 font-medium"><Check className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copied</span></span> : <span className="flex items-center space-x-1.5"><Copy className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copy</span></span>}

@@ -29,7 +29,7 @@ import { cn, SearchGroup, SearchGroupId } from "@barzakh/shared/lib/utils/utils"
 import { motion, AnimatePresence } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
-import { ArrowDown, TrendingUp, Clock, Sparkles, MessageCircleMore } from "lucide-react";
+import { ArrowDown, TrendingUp, Clock, Sparkles, MessageCircleMore, type LucideProps } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
 interface EnhancedSuggestion {
@@ -42,6 +42,15 @@ interface EnhancedSuggestion {
   lastUsed?: Date;
   frequency?: number;
 }
+
+type SuggestionItem = {
+  key: string;
+  title: string;
+  isHistory: boolean;
+  icon: React.ComponentType<LucideProps>;
+  iconColor: string;
+  subtitle?: string;
+};
 
 const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
   {
@@ -133,12 +142,13 @@ const QuestionSuggestions = ({
     fetchSuggestions();
   }, []);
 
-  const suggestions = useMemo(() => {
+  const suggestions = useMemo<SuggestionItem[]>(() => {
     const sortedHistory = [...(history || [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const historyItems = sortedHistory.slice(0, totalSuggestions).map(chat => ({
       key: chat.id,
       title: chat.title,
+      subtitle: undefined,
       isHistory: true,
       icon: MessageCircleMore,
       iconColor: 'text-gray-500 dark:text-gray-400',
@@ -162,7 +172,7 @@ const QuestionSuggestions = ({
     return [...historyItems, ...aiItems];
   }, [history, aiSuggestions, totalSuggestions]);
 
-  const handleSuggestionClick = (suggestion: { key: string; title: string; isHistory: boolean; }) => {
+  const handleSuggestionClick = (suggestion: SuggestionItem) => {
     if (!user) {
       toast.error("Please log in to start a conversation.", {
         position: "top-center",
@@ -189,8 +199,9 @@ const QuestionSuggestions = ({
   };
 
   if (isLoadingSuggestions && (!history || history.length === 0)) {
+    const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & import("framer-motion").MotionProps>;
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
+      <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
           {/* Skeleton loader sekarang akan selalu merender 6 item di server (sesuai state awal) */}
           {Array.from({ length: totalSuggestions }).map((_, i) => (
@@ -200,7 +211,7 @@ const QuestionSuggestions = ({
             </div>
           ))}
         </div>
-      </motion.div>
+      </MotionDiv>
     );
   }
 
@@ -208,8 +219,9 @@ const QuestionSuggestions = ({
     return null;
   }
 
+  const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & import("framer-motion").MotionProps>;
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -218,9 +230,10 @@ const QuestionSuggestions = ({
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
         {suggestions.map((suggestion, index) => {
-           const IconComponent = suggestion.icon;
+           const IconComponent = suggestion.icon as React.ComponentType<LucideProps>;
+           const MotionButton = motion.button as React.ComponentType<React.ComponentProps<'button'> & import("framer-motion").MotionProps>;
            return (
-            <motion.button
+            <MotionButton
               key={suggestion.key}
               type="button"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -247,11 +260,11 @@ const QuestionSuggestions = ({
                   )}
                 </div>
               </div>
-            </motion.button>
+            </MotionButton>
           );
         })}
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };
 // =====================================================================
@@ -527,44 +540,36 @@ function PureMultimodalInput({
       (att) => !att.contentType?.startsWith("image/")
     );
 
-    let messageContent: any = input;
+    let messageText: string = input;
     const chatRequestOptions: ChatRequestOptions = {
       body: { group: selectedGroup },
     };
 
     if (imageAttachments.length > 0) {
-      const imageParts = imageAttachments.map((att) => ({
-        type: "image",
-        image: att.url, // Send the URL directly instead of base64
-      }));
+      const imageUrls = imageAttachments.map(att => att.url);
 
-      const content = [{ type: "text", text: input }];
-      content.push(...(imageParts as any[]));
-      messageContent = content;
-      
       // Log the image URLs for debugging
-      console.log("Sending images to AI:", imageParts.map(part => part.image));
+      console.log("Sending images to AI:", imageUrls);
       console.log("Image attachment details:", imageAttachments.map(att => ({ url: att.url, contentType: att.contentType, name: att.name })));
       
       // Check if we're sending Vercel Blob URLs
-      const vercelBlobUrls = imageParts.filter(part => part.image.includes('blob.vercel-storage.com'));
+      const vercelBlobUrls = imageUrls.filter(url => url.includes('blob.vercel-storage.com'));
       if (vercelBlobUrls.length > 0) {
-        console.log("✅ Sending Vercel Blob URLs to AI:", vercelBlobUrls.map(part => part.image));
+        console.log("✅ Sending Vercel Blob URLs to AI:", vercelBlobUrls);
         console.log("ℹ️ Note: Some AI models may convert these URLs to their own format, but the original URLs are preserved for editing");
         
         // Store original Vercel Blob URLs for editing
-        const originalUrls = vercelBlobUrls.map(part => part.image);
+        const originalUrls = vercelBlobUrls;
         console.log("🔗 Original Vercel Blob URLs stored for editing:", originalUrls);
         
         // Add original URLs to the message content for the AI to use
-        content.push({
-          type: "text",
-          text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(', ')}]`
-        });
+        messageText += `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(', ')}]`;
       } else {
         console.warn("⚠️ No Vercel Blob URLs found in attachments - this may cause editing issues");
         console.warn("⚠️ This suggests the AI SDK has already converted the URLs to Google AI format");
       }
+      // Also append the image URLs to the message to preserve references
+      messageText += `\n\n[IMAGE_URLS: ${imageUrls.join(', ')}]`;
     }
 
     if (otherAttachments.length > 0) {
@@ -574,40 +579,27 @@ function PureMultimodalInput({
         try {
           const response = await fetch(attachment.url);
           const content = await response.text();
-          return `\n\n${attachment.name}\n\`\`\`${attachment.name.split('.').pop() || 'text'}\n${content}\n\`\`\``;
+          const name = attachment.name ?? 'file.txt';
+          const lang = name.includes('.') ? name.split('.').pop() || 'text' : 'text';
+          return `\n\n${name}\n\`\`\`${lang}\n${content}\n\`\`\``;
         } catch (error) {
-          console.error(`Failed to read file ${attachment.name}:`, error);
-          return `\n\n${attachment.name} - Unable to read content`;
+          const name = attachment.name ?? 'file';
+          console.error(`Failed to read file ${name}:`, error);
+          return `\n\n${name} - Unable to read content`;
         }
       });
       
       const fileContents = await Promise.all(fileContentPromises);
-      
-      if (Array.isArray(messageContent)) {
-        // Add file contents to the text part
-        const textPart = messageContent.find(part => part.type === 'text');
-        if (textPart) {
-          textPart.text += fileContents.join('');
-        }
-      } else {
-        // Convert string message to array format and add file contents
-        messageContent = [
-          { type: "text", text: input + fileContents.join('') }
-        ];
-      }
+      messageText += fileContents.join('');
     }
 
-    if (Array.isArray(messageContent)) {
-      append(
-        {
-          role: "user",
-          content: messageContent,
-        },
-        chatRequestOptions
-      );
-    } else {
-      handleSubmit(undefined, chatRequestOptions);
-    }
+    append(
+      {
+        role: "user",
+        content: messageText,
+      },
+      chatRequestOptions
+    );
 
     setInput("");
     setAttachments([]);
@@ -854,8 +846,9 @@ function PureMultimodalInput({
     [uploadFile, setUploadQueue, setAttachments]
   );
 
+  const MotionDiv = motion.div as React.ComponentType<React.HTMLAttributes<HTMLDivElement> & import("framer-motion").MotionProps>;
   return (
-    <motion.div
+    <MotionDiv
       layout
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className={cn(
@@ -871,7 +864,7 @@ function PureMultimodalInput({
 
       <AnimatePresence>
         {!isAtBottom && messages.length > 0 && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
@@ -905,7 +898,7 @@ function PureMultimodalInput({
                   <ArrowDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
               </span>
             </button>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
@@ -927,7 +920,7 @@ function PureMultimodalInput({
             console.log("Rendering attachments:", attachments.length, "upload queue:", uploadQueue.length);
             return (attachments.length > 0 || uploadQueue.length > 0);
           })() && (
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
@@ -967,7 +960,7 @@ function PureMultimodalInput({
                   />
                 </motion.div>
               ))}
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
 
@@ -1047,7 +1040,7 @@ function PureMultimodalInput({
           </div>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 

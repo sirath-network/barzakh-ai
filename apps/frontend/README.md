@@ -11,6 +11,10 @@ _you need to have postgress db up and running at localhost:5432 with database na
 3. pnpm db:push
 4. pnpm run dev
 
+Additional Build Command:
+
+pnpm run build:with-migrate
+
 ### Tools required
 
 1.  [PostgreSQL](https://www.postgresql.org/)

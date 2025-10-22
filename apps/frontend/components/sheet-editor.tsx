@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { DataGrid, type DataGridProps, type Column } from 'react-data-grid';
+import React, { useState, useCallback, useMemo, useEffect, memo } from 'react';
+import DataGrid, { type DataGridProps, type Column } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { useTheme } from 'next-themes';
 import { cn } from "@barzakh/shared/lib/utils/utils";
@@ -254,7 +254,7 @@ function areEqual(prevProps: SheetEditorProps, nextProps: SheetEditorProps) {
   );
 }
 
-export default React.memo(PureSheetEditor, areEqual);
+export default memo(PureSheetEditor, areEqual);
 
 // Demo component for testing
 export function SheetEditorDemo() {
@@ -283,7 +283,7 @@ Bob Johnson,35,Chicago,Manager`);
 
   return (
     <div className="h-[600px] border rounded-lg">
-      <SheetEditor
+      <PureSheetEditor
         content={content}
         onSaveContent={handleSaveContent}
         status="idle"

@@ -91,7 +91,9 @@ const ModelOptionList = ({
               </p>
             </div>
             {isSelected && (
-              <CheckCircleFillIcon className="text-primary size-5 flex-shrink-0" />
+              <div className="text-primary size-5 flex-shrink-0">
+                <CheckCircleFillIcon size={20} />
+              </div>
             )}
           </>
         );
@@ -174,7 +176,8 @@ export function ModelSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const { width } = useWindowSize();
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const parentDisabled = (buttonProps as React.ButtonHTMLAttributes<HTMLButtonElement>).disabled ?? false;
 
   // Client-side hydration fix
   const [isClient, setIsClient] = useState(false);
@@ -236,7 +239,7 @@ export function ModelSelector({
 
   // Fixed mobile button handler - prevent conflicts with dropdown trigger
   const handleMobileToggle = useCallback((e: React.MouseEvent) => {
-    if (disabled || buttonProps.disabled || isUpdating) return;
+    if (disabled || parentDisabled || isUpdating) return;
     
     e.preventDefault();
     e.stopPropagation();
@@ -245,7 +248,7 @@ export function ModelSelector({
     if (!isClient || isDesktop) return;
     
     setIsExpanded(prev => !prev);
-  }, [disabled, isClient, isDesktop, isUpdating]);
+  }, [disabled, parentDisabled, isClient, isDesktop, isUpdating]);
 
   // Clean up search query when closing
   useEffect(() => {
@@ -290,7 +293,7 @@ export function ModelSelector({
             {...buttonProps}
             variant="outline"
             onClick={handleMobileToggle}
-            disabled={disabled || isUpdating}
+            disabled={disabled || parentDisabled || isUpdating}
             className={cn(
               "h-10 border-2 rounded-xl transition-all duration-200",
               "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700",

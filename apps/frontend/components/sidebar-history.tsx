@@ -142,7 +142,7 @@ const PureChatItem = ({
                 ${isActive ? "opacity-70 hover:opacity-100" : ""}
               `}
             >
-              <MoreHorizontalIcon className="h-4 w-4" />
+              <MoreHorizontalIcon size={16} />
               <span className="sr-only">More options</span>
             </Button>
           </DropdownMenuTrigger>
@@ -157,7 +157,7 @@ const PureChatItem = ({
               className="cursor-pointer"
               onSelect={() => onArchive(chat.id)}
             >
-              <ArchiveIcon className="mr-2 h-4 w-4" />
+              <ArchiveIcon size={16} />
               <span className="font-medium">Archive chat</span>
             </DropdownMenuItem>
             {visibilityType === "public" && (
@@ -169,13 +169,13 @@ const PureChatItem = ({
                   toast.success("Link copied to clipboard");
                 }}
               >
-                <LinkIcon className="mr-2 h-4 w-4" />
+                <LinkIcon size={16} />
                 <span className="font-medium">Copy link</span>
               </DropdownMenuItem>
             )}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <ShareIcon className="mr-2 h-4 w-4" />
+                <ShareIcon size={16} />
                 <span className="font-medium">Share</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
@@ -187,20 +187,20 @@ const PureChatItem = ({
                     className="cursor-pointer"
                     onClick={() => setVisibilityType("public")}
                   >
-                    <GlobeIcon className="mr-2 h-4 w-4" />
+                    <GlobeIcon size={16} />
                     <span className="font-medium">Public</span>
                     {visibilityType === "public" && (
-                      <CheckCircleFillIcon className="ml-auto h-4 w-4 text-primary" />
+                      <CheckCircleFillIcon size={16} />
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer"
                     onClick={() => setVisibilityType("private")}
                   >
-                    <LockIcon className="mr-2 h-4 w-4" />
+                    <LockIcon size={16} />
                     <span className="font-medium">Private</span>
                     {visibilityType === "private" && (
-                      <CheckCircleFillIcon className="ml-auto h-4 w-4 text-primary" />
+                      <CheckCircleFillIcon size={16} />
                     )}
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
@@ -211,7 +211,7 @@ const PureChatItem = ({
               className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
               onSelect={() => onDelete(chat.id)}
             >
-              <TrashIcon className="mr-2 h-4 w-4" />
+              <TrashIcon size={16} />
               <span className="font-medium">Delete chat</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

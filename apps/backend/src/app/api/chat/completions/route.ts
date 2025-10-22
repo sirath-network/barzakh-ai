@@ -1,10 +1,18 @@
 import { allTools, getGroupConfig } from "@barzakh/shared/src/lib/ai/prompts";
 import { generateUUID } from "@barzakh/shared/src/lib/utils/utils";
-import { openai } from "@ai-sdk/openai";
 import { myProvider } from "@barzakh/shared/src/lib/ai/models";
 import { smoothStream, streamText, generateText } from "ai";
 import { PromptRequestSchema, ChatCompletionStreaming } from "./type";
 import { z } from "zod";
+
+// Convert our custom message format to AI SDK compatible format
+function convertToAISDKMessages(messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image?: string; mimeType?: string }> }>) {
+  return messages.map((message) => ({
+    id: generateUUID(),
+    role: message.role as "user" | "assistant" | "system",
+    content: message.content,
+  }));
+}
 
 export async function POST(request: Request) {
   try {
@@ -89,7 +97,7 @@ export async function POST(request: Request) {
     const model = selectedChatModel;
 
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
-      groupId as any
+      groupId as "search" | "imagine" | "multimodal" | "on_chain" | "wormhole" | "creditcoin" | "vana" | "flow" | "aptos" | "zeta" | "sei" | "monad"
     );
 
     // Prepend system prompt if it exists and is not already in messages
@@ -102,15 +110,15 @@ export async function POST(request: Request) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.role === "user" && Array.isArray(lastMessage.content)) {
         const imageUrls = lastMessage.content
-          .filter((part: any) => part.type === "image" && part.image)
-          .map((part: any) => part.image);
+          .filter((part) => part.type === "image" && "image" in part && part.image)
+          .map((part) => part.type === "image" && "image" in part ? part.image : "");
         
         // Extract original Vercel Blob URLs from the message text
-        const textParts = lastMessage.content.filter((part: any) => part.type === "text");
+        const textParts = lastMessage.content.filter((part) => part.type === "text");
         let originalVercelUrls: string[] = [];
         
         for (const textPart of textParts) {
-          if (textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
+          if (textPart.type === "text" && textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
             const match = textPart.text.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
             if (match) {
               originalVercelUrls = match[1].split(', ').filter(url => url.trim());
@@ -169,17 +177,21 @@ export async function POST(request: Request) {
     // No manual conversion is needed here.
     const system_fingerprint = process.env.VERCEL_GIT_COMMIT_SHA || "";
 
+    // Convert messages to AI SDK format
+    const aiSDKMessages = convertToAISDKMessages(messages);
+
     // Build the options object for the AI SDK calls.
-    const options: any = {
+    const options = {
       model: languageModel,
-      messages: messages,
+      messages: aiSDKMessages,
       maxSteps: 10,
       experimental_activeTools: [...activeTools],
       tools: allTools,
       experimental_generateMessageId: generateUUID,
       temperature: temperature, // Initially set the temperature
       maxTokens: max_tokens,   // Initially set the max_tokens
-    };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any; // Type assertion needed for AI SDK compatibility
 
     // Aggressively remove temperature if it's 0 or not a positive number.
     // The OpenAI API throws an error for `temperature: 0` on some models.

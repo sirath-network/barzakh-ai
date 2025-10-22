@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState, useTransition, useRef } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
@@ -24,10 +24,9 @@ export default function Page() {
 
   const [isPending, startTransition] = useTransition();
 
-  const [state, formAction] = useActionState<RegisterActionState, FormData>(
-    register,
-    { status: "idle" },
-  );
+  const [state, setState] = useState<RegisterActionState>({
+    status: "idle",
+  });
 
   useEffect(() => {
     console.log('State changed:', state);
@@ -62,7 +61,7 @@ export default function Page() {
     }
   }, [state, router, email]);
 
-  const handleFormAction = (currentFormData: FormData) => {
+  const handleFormAction = async (currentFormData: FormData) => {
     // Add the turnstile token if it's not already in the form data
     const existingToken = currentFormData.get("cf-turnstile-response") as string;
     
@@ -102,26 +101,26 @@ export default function Page() {
       return;
     }
 
-    return formAction(currentFormData);
+    const result = await register(state, currentFormData);
+    setState(result);
   };
 
-  const handleResendOTP = () => {
-    startTransition(() => {
-      if (formData?.email && formData?.password && turnstileToken) {
-        console.log('Resending OTP for:', formData.email);
-        
-        const resendData = new FormData();
-        resendData.append("email", formData.email);
-        resendData.append("password", formData.password);
-        
-        // Use the stored turnstile token for resend
-        resendData.append("cf-turnstile-response", turnstileToken);
-        
-        formAction(resendData);
-      } else {
-        toast.error("Missing required information for resend. Please refresh and try again.");
-      }
-    });
+  const handleResendOTP = async () => {
+    if (formData?.email && formData?.password && turnstileToken) {
+      console.log('Resending OTP for:', formData.email);
+      
+      const resendData = new FormData();
+      resendData.append("email", formData.email);
+      resendData.append("password", formData.password);
+      
+      // Use the stored turnstile token for resend
+      resendData.append("cf-turnstile-response", turnstileToken);
+      
+      const result = await register(state, resendData);
+      setState(result);
+    } else {
+      toast.error("Missing required information for resend. Please refresh and try again.");
+    }
   };
 
   const handleTurnstileSuccess = (token: string) => {
@@ -188,8 +187,8 @@ export default function Page() {
                     initial="initial"
                     animate="animate"
                     exit="exit"
-                    className="space-y-6"
                 >
+                    <div className="space-y-6">
                     <div className="space-y-2 text-center">
                         <img
                           alt="Brand Banner"
@@ -206,7 +205,7 @@ export default function Page() {
                         </p>
                     </div>
 
-                    <form action={handleFormAction}>
+                    <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleFormAction(formData); }}>
                         <AuthForm
                             defaultEmail={email}
                             fieldErrors={state.fieldErrors}
@@ -217,7 +216,6 @@ export default function Page() {
                             onTurnstileSuccess={handleTurnstileSuccess}
                             turnstileToken={turnstileToken}
                             turnstileRef={turnstileRef}
-                            formRef={formRef}
                             onValidationChange={handleValidationChange}
                         >
                             <SubmitButton 
@@ -232,14 +230,15 @@ export default function Page() {
                             </SubmitButton>
                         </AuthForm>
                     </form>
+                    </div>
                 </motion.div>
             </AnimatePresence>
 
             <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <Link href="/login" className="font-semibold underline underline-offset-4 hover:text-primary">
+                <a href="/login" className="font-semibold underline underline-offset-4 hover:text-primary">
                     Sign In
-                </Link>
+                </a>
             </p>
         </div>
       </div>

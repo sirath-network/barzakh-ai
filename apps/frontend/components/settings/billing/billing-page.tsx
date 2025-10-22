@@ -5,7 +5,7 @@ export default function BillingPage() {
     return (
         <div className="space-y-4 p-4 md:p-8">
             <SubscriptionCard />
-            <BillingAddressCard />
+            <BillingAddressCard address={null} isLoading={false} />
         </div>
     );
 }

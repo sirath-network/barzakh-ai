@@ -86,7 +86,7 @@ export default function BillingPage() {
           </div>
         </div>
 
-        <BillingAddressCard />
+        <BillingAddressCard address={null} isLoading={false} />
       </div>
     </div>
   );

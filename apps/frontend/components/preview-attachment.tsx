@@ -5,6 +5,18 @@ import { LoaderIcon } from "./icons";
 import { X, Eye, Code, Download, Copy, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
+
+const MotionDiv = motion.div as React.ComponentType<
+  React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps
+>;
+
+const MotionSpan = motion.span as React.ComponentType<
+  React.HTMLAttributes<HTMLSpanElement> & import('framer-motion').MotionProps
+>;
+
+const MotionButton = motion.button as React.ComponentType<
+  React.ComponentProps<'button'> & import('framer-motion').MotionProps
+>;
 import clsx from "clsx";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -134,7 +146,7 @@ export const PreviewAttachment = ({
   const isCodeFile = contentType?.includes('javascript') || contentType?.includes('typescript') || 
     contentType?.includes('json') || contentType?.includes('html') || contentType?.includes('css') ||
     ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'py', 'java', 'cpp', 'c', 'sh', 'json'].includes(
-      name.split('.').pop()?.toLowerCase() || ''
+      (name || 'file').split('.').pop()?.toLowerCase() || ''
     );
   const { Icon, fileExtension } = useAttachmentInfo(attachment);
   const config = sizeConfig[size];
@@ -174,7 +186,7 @@ export const PreviewAttachment = ({
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = name;
+      link.download = name || 'file';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -212,7 +224,7 @@ export const PreviewAttachment = ({
     );
 
   return (
-    <motion.div
+    <MotionDiv
       layout
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -249,14 +261,14 @@ export const PreviewAttachment = ({
                 <Icon />
                 {/* Enhanced glow effect for code files */}
                 {isCodeFile && (
-                  <motion.div 
+                  <MotionDiv 
                     className="absolute inset-0 bg-blue-500/20 rounded-full blur-sm -z-10"
                     animate={isHovered ? { scale: 1.2, opacity: 0.4 } : { scale: 1, opacity: 0.2 }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
                   />
                 )}
               </div>
-              <motion.div 
+              <MotionDiv 
                 className={clsx(
                   config.badge, 
                   "bg-white/90 text-gray-700 rounded-full font-semibold border border-white/30 shadow-sm",
@@ -266,73 +278,73 @@ export const PreviewAttachment = ({
                 transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 {fileExtension}
-              </motion.div>
+              </MotionDiv>
             </div>
           )}
 
           {/* Enhanced preview overlay indicator */}
           <AnimatePresence>
             {isHovered && (
-              <motion.div
+              <MotionDiv
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center"
               >
-                <motion.div 
+                <MotionDiv 
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
                   className="bg-white/90 text-gray-600 px-2 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 text-xs font-medium border border-white/30 backdrop-blur-sm"
                 >
-                  <motion.div
+                  <MotionDiv
                     animate={{ rotate: [0, 10, -10, 0] }}
                     transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
                   >
                     <Eye className="w-3 h-3" />
-                  </motion.div>
+                  </MotionDiv>
                   {isImage ? 'View' : 'Preview'}
-                </motion.div>
-              </motion.div>
+                </MotionDiv>
+              </MotionDiv>
             )}
           </AnimatePresence>
 
           {isUploading && (
-            <motion.div 
+            <MotionDiv 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center"
             >
-              <motion.div 
+              <MotionDiv 
                 className="flex flex-col items-center gap-2"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
               >
-                <motion.div
+                <MotionDiv
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="text-muted-foreground"
                 >
                   <LoaderIcon />
-                </motion.div>
-                <motion.span 
+                </MotionDiv>
+                <MotionSpan 
                   className="text-xs text-muted-foreground"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
                   Uploading...
-                </motion.span>
-              </motion.div>
-            </motion.div>
+                </MotionSpan>
+              </MotionDiv>
+            </MotionDiv>
           )}
         </div>
       </PreviewContainer>
 
       {onRemove && !isUploading && (
-        <motion.button
+        <MotionButton
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.15, rotate: 90 }}
@@ -356,7 +368,7 @@ export const PreviewAttachment = ({
           >
             <X size={config.removeButtonIconSize} />
           </motion.div>
-        </motion.button>
+        </MotionButton>
       )}
 
       <div className="flex flex-col items-center gap-1">
@@ -480,6 +492,6 @@ export const PreviewAttachment = ({
           </div>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </MotionDiv>
   );
 };

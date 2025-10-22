@@ -11,7 +11,9 @@ import {
   boolean,
   integer,
   serial,
-} from "drizzle-orm/pg-core";export const user = pgTable("User", {
+} from "drizzle-orm/pg-core";
+
+export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   email: varchar("email", { length: 64 }).unique(),
   walletAddress: varchar("walletAddress", { length: 64 }),

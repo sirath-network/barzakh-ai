@@ -23,7 +23,8 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     const userId = customer[0].userId;
 
     // 2. Retrieve the latest subscription details from Stripe to get the real status.
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = subscriptionResponse as Stripe.Subscription;
 
     // 3. ✅ NEW LOGIC: Determine user's tier based on the subscription status.
     // Only 'active' and 'trialing' statuses grant "pro" access.
@@ -43,7 +44,9 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     // 4. Determine the period end date for active subscriptions.
     let periodEndTimestamp: number | null | undefined = invoice?.period_end;
     if (typeof periodEndTimestamp !== 'number') {
-        periodEndTimestamp = subscription.current_period_end ?? subscription.trial_end;
+        // Use type assertion to access properties that might not be in the TypeScript types
+        const subscriptionData = subscription as any;
+        periodEndTimestamp = subscriptionData.current_period_end ?? subscription.trial_end;
     }
 
     if (typeof periodEndTimestamp !== 'number') {
@@ -134,8 +137,10 @@ export async function POST(req: Request) {
             case 'invoice.paid':
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
-                if (invoice.subscription && invoice.customer) {
-                    await manageSubscriptionStatusChange(invoice.subscription as string, invoice.customer as string, invoice);
+                // Use type assertion to access properties that might not be in the TypeScript types
+                const invoiceData = invoice as any;
+                if (invoiceData.subscription && invoice.customer) {
+                    await manageSubscriptionStatusChange(invoiceData.subscription as string, invoice.customer as string, invoice);
                 }
                 break;
             }

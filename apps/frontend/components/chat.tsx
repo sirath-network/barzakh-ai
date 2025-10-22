@@ -169,7 +169,6 @@ export function Chat({
           selectedVisibilityType={
             view === "chat" ? selectedVisibilityType : undefined
           }
-          className="text-sm"
         />
 
       <div className="relative flex-1 overflow-hidden">

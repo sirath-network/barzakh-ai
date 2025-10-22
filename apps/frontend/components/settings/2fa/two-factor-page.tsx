@@ -332,7 +332,7 @@ export default function TwoFactorSettingsPage() {
                     </h3>
                   </div>
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    If you can't scan the QR code, enter this key manually in your authenticator app:
+                    If you can&apos;t scan the QR code, enter this key manually in your authenticator app:
                   </p>
                   <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
                     <code className="flex-1 font-mono text-xs sm:text-sm text-gray-900 dark:text-white break-all">
@@ -513,7 +513,7 @@ export default function TwoFactorSettingsPage() {
                       Security Warning
                     </h4>
                     <p className="text-sm text-red-800 dark:text-red-200">
-                      Disabling 2FA will make your account less secure. You'll lose the extra protection against unauthorized access.
+                      Disabling 2FA will make your account less secure. You&apos;ll lose the extra protection against unauthorized access.
                     </p>
                   </div>
                 </div>
@@ -527,7 +527,7 @@ export default function TwoFactorSettingsPage() {
                   <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <li>• Your account will only be protected by your password</li>
                     <li>• Backup codes will be deleted</li>
-                    <li>• You'll need to set up 2FA again to re-enable it</li>
+                    <li>• You&apos;ll need to set up 2FA again to re-enable it</li>
                   </ul>
                 </div>
               </div>

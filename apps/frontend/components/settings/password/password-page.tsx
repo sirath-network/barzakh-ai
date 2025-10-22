@@ -14,10 +14,14 @@ export default function PasswordSettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{
+    currentPassword?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const router = useRouter();
 
-  const validatePassword = (password) => {
+  const validatePassword = (password: string) => {
     const errors = [];
     if (password.length < 8) errors.push("At least 8 characters");
     if (!/(?=.*[a-z])/.test(password)) errors.push("One lowercase letter");
@@ -27,7 +31,7 @@ export default function PasswordSettingsPage() {
     return errors;
   };
 
-  const getPasswordStrength = (password) => {
+  const getPasswordStrength = (password: string) => {
     const errors = validatePassword(password);
     if (password.length === 0) return { strength: 0, label: "", color: "" };
     if (errors.length === 0) return { strength: 100, label: "Strong", color: "text-emerald-500 dark:text-emerald-400" };
@@ -37,12 +41,16 @@ export default function PasswordSettingsPage() {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: {
+      currentPassword?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {};
     if (!currentPassword) newErrors.currentPassword = "Current password is required";
     if (!password) {
       newErrors.password = "New password is required";
     } else if (validatePassword(password).length > 0) {
-      newErrors.password = "Password doesn't meet requirements";
+      newErrors.password = "Password doesn&apos;t meet requirements";
     } else if (currentPassword && password === currentPassword) {
       newErrors.password = "New password must be different from current password";
     }
@@ -90,8 +98,12 @@ export default function PasswordSettingsPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    await submitPasswordChange();
+  };
+
+  const submitPasswordChange = async () => {
     if (!validateForm()) return;
     setIsLoading(true);
 
@@ -128,7 +140,7 @@ export default function PasswordSettingsPage() {
       setConfirmPassword("");
       setTimeout(async () => await handleLogout(), 2000);
     } catch (err) {
-      toast.error(err.message || "Failed to update password");
+      toast.error(err instanceof Error ? err.message : "Failed to update password");
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +170,7 @@ export default function PasswordSettingsPage() {
             <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
               <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Change Password</h2>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Create a strong password to keep your account secure. You'll be logged out after updating.
+                Create a strong password to keep your account secure. You&apos;ll be logged out after updating.
               </p>
             </div>
             <div className="p-6 md:p-8 space-y-6">
@@ -261,7 +273,7 @@ export default function PasswordSettingsPage() {
                   <div>
                     <h3 className="font-semibold text-red-800 dark:text-red-300 mb-1">Security Notice</h3>
                     <p className="text-sm text-red-700 dark:text-red-200">
-                      After updating your password, you'll be automatically logged out and need to sign in again.
+                      After updating your password, you&apos;ll be automatically logged out and need to sign in again.
                     </p>
                   </div>
                 </div>
@@ -269,7 +281,7 @@ export default function PasswordSettingsPage() {
             </div>
 
             <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
-              <button type="button" onClick={handleSubmit} disabled={isLoading || !currentPassword || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || currentPassword === password}
+              <button type="button" onClick={submitPasswordChange} disabled={isLoading || !currentPassword || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || currentPassword === password}
                 className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 {isLoading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Updating...</>) : (<><Lock className="w-4 h-4" />Update Password</>)}
               </button>
@@ -309,7 +321,7 @@ export default function PasswordSettingsPage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm">Avoid common patterns</h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Don't use "123456" or "password"</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Don&apos;t use &quot;123456&quot; or &quot;password&quot;</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -318,7 +330,7 @@ export default function PasswordSettingsPage() {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm">Use unique passwords</h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Don't reuse passwords from other accounts</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Don&apos;t reuse passwords from other accounts</p>
                   </div>
                 </div>
               </div>
@@ -335,7 +347,7 @@ export default function PasswordSettingsPage() {
                   <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm">Automatic Logout</h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">You'll be logged out after changing your password</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">You&apos;ll be logged out after changing your password</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

@@ -30,23 +30,24 @@ export function SubmitButton({
 
       <AnimatePresence>
         {(pending || isSuccessful) && (
-          <motion.span
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            className="absolute right-4"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{
-                repeat: Infinity,
-                duration: 1,
-                ease: "linear",
-              }}
+          <span className="absolute right-4">
+            <motion.span
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
             >
-              <LoaderIcon />
-            </motion.div>
-          </motion.span>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1,
+                  ease: "linear",
+                }}
+              >
+                <LoaderIcon />
+              </motion.div>
+            </motion.span>
+          </span>
         )}
       </AnimatePresence>
 

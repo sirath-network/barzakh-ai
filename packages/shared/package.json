@@ -10,10 +10,11 @@
     "lint": "eslint \"**/*.ts*\""
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.1.9",
     "@ai-sdk/fireworks": "^0.1.8",
-    "@ai-sdk/groq": "^1.1.11",
+    "@ai-sdk/groq": "^1.1.9",
     "@ai-sdk/openai": "1.1.9",
-    "@ai-sdk/xai": "^1.1.12",
+    "@ai-sdk/xai": "^1.1.9",
     "@apidevtools/json-schema-ref-parser": "^11.9.1",
     "@aptos-labs/ts-sdk": "^4.0.0",
     "@codemirror/lang-javascript": "^6.2.2",
@@ -99,8 +100,6 @@
     "@types/node": "^22.8.6",
     "@types/papaparse": "^5.3.15",
     "@types/pdf-parse": "^1.1.4",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.25.0",
     "eslint": "^8.57.0",

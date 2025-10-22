@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai";
 import { fireworks } from "@ai-sdk/fireworks";
-import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
 import {
   customProvider,
@@ -15,7 +14,8 @@ export const myProvider: any = customProvider({
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
     "chat-model-kimi": fireworks("accounts/fireworks/models/kimi-k2-instruct-0905"),
-    "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    "chat-model-claude": anthropic("claude-3-5-haiku-latest") as any,
     "chat-model-reasoning": wrapLanguageModel({
       model: fireworks("accounts/fireworks/models/deepseek-r1-0528"),
       middleware: extractReasoningMiddleware({ tagName: "think" }),
@@ -27,11 +27,11 @@ export const myProvider: any = customProvider({
     "small-model": openai.image("dall-e-2"),
     "large-model": openai.image("dall-e-3"),
     "sdxl-model": fireworks.image("stable-diffusion-xl-base-1.0"),
-    "flux-model": "accounts/fireworks/models/flux-kontext-max",
+    "flux-model": fireworks.image("accounts/fireworks/models/flux-kontext-max"),
   },
 });
 
-interface ChatModel {
+export interface ChatModel {
   id: string;
   name: string;
   description: string;
@@ -65,7 +65,7 @@ export const chatModels: Array<ChatModel> = [
   },
 ];
 
-interface ImagineModel {
+export interface ImagineModel {
   id: string;
   name: string;
   description: string;

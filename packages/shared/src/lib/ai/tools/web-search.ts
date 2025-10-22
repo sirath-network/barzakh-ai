@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { tavily } from "@tavily/core";
-import { newsSearch } from "./news-search";
+import { searchNews } from "./news-search";
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, "%20");
@@ -210,7 +210,7 @@ export const webSearch = tool({
       for (const query of queries) {
         try {
           console.log(`Searching News for: ${query}`);
-          const result = await newsSearch.execute({ query });
+          const result = await searchNews(query);
           newsSearchResults.push(result);
           console.log(`News search completed for: ${query}`);
         } catch (error) {

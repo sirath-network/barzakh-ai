@@ -24,7 +24,6 @@ const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
 };
 
 const components: Partial<Components> = {
-  // @ts-expect-error - Dynamic component selection based on preference
   code: USE_COMPACT_CODE_BLOCKS ? CodeBlockCompact : CodeBlock,
   small: ({ children }) => (
     <small className="break-long-words">{children}</small>
@@ -182,7 +181,6 @@ const components: Partial<Components> = {
     }
 
     return (
-      // @ts-expect-error
       <Link
         className="break-long-words text-blue-500 hover:underline inline-block"
         target="_blank"

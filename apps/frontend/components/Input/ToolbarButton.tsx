@@ -4,7 +4,7 @@ import {
   HoverCardTrigger,
 } from "@/components/hover-card";
 import { cn, SearchGroup } from "@barzakh/shared/lib/utils/utils";
-import {motion} from "framer-motion";
+import { motion, type MotionProps } from "framer-motion";
 import Image from "next/image";
 
 interface ToolbarButtonProps {
@@ -16,10 +16,13 @@ interface ToolbarButtonProps {
 export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
   const Icon = group.icon;
   const iconImg = group.img;
+  const MotionButton = motion.button as React.ComponentType<
+    React.ComponentProps<'button'> & MotionProps
+  >;
   return (
     <HoverCard openDelay={100} closeDelay={50}>
       <HoverCardTrigger asChild>
-        <motion.button
+        <MotionButton
           type="button"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -49,7 +52,7 @@ export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps
           ) : (
             <Icon className="size-4" />
           )}
-        </motion.button>
+        </MotionButton>
       </HoverCardTrigger>
       <HoverCardContent
         side="bottom"

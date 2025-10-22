@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Shield, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
-export default function Verify2FAPage() {
+function Verify2FAPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState("");
@@ -252,5 +252,29 @@ export default function Verify2FAPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Verify2FAPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full space-y-8 p-8">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+              <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
+              Loading...
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Please wait while we load the verification page.
+            </p>
+          </div>
+        </div>
+      </div>
+    }>
+      <Verify2FAPageContent />
+    </Suspense>
   );
 }

@@ -39,7 +39,7 @@ export function AuthForm({
   onResendOTP?: () => void;
   onTurnstileSuccess?: (token: string) => void;
   turnstileToken?: string;
-  turnstileRef?: RefObject<TurnstileInstance>;
+  turnstileRef?: RefObject<TurnstileInstance | null>;
   onValidationChange?: (isValid: boolean) => void;
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -93,7 +93,8 @@ export function AuthForm({
 
     // Check turnstile token - only if Turnstile is being used (when onTurnstileSuccess is provided)
     if (onTurnstileSuccess) {
-      isValid = isValid && turnstileToken && turnstileToken !== "" && turnstileToken.length > 10;
+      const hasValidTurnstileToken = typeof turnstileToken === "string" && turnstileToken.trim().length > 10;
+      isValid = isValid && hasValidTurnstileToken;
     }
 
     return isValid;

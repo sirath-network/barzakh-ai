@@ -11,7 +11,9 @@ export function InstallPrompt() {
     "ios" | "android" | "chrome" | "other"
   >("other");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  
+  const MotionDiv = motion.div as React.ComponentType<
+    React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps & React.RefAttributes<HTMLDivElement>
+  >;
   useEffect(() => {
     const isDismissed = getWithExpiry("installPromptDismissed");
     if (isDismissed) return;
@@ -100,7 +102,7 @@ export function InstallPrompt() {
   return (
     <AnimatePresence>
       {showPrompt && (
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
@@ -136,7 +138,7 @@ export function InstallPrompt() {
               </div>
             )}
           </Card>
-        </motion.div>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

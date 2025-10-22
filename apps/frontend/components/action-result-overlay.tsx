@@ -53,17 +53,20 @@ export function ActionResultOverlay({
   children, 
 }: ActionResultOverlayProps) {
   const isVisible = status === "success" || status === "error";
+  const MotionDiv = motion.div as React.ComponentType<
+    React.HTMLAttributes<HTMLDivElement> & import("framer-motion").MotionProps
+  >;
 
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
         >
-          <motion.div
+          <MotionDiv
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -123,20 +126,20 @@ export function ActionResultOverlay({
             </motion.div>
 
             {/* Text Content */}
-            <motion.div variants={itemVariants} className="text-center">
+            <MotionDiv variants={itemVariants} className="text-center">
               {/* */}
               <h2 className="text-2xl font-bold capitalize">{title || status}</h2>
               <p className="mt-2 text-muted-foreground">{message}</p>
-            </motion.div>
+            </MotionDiv>
 
             {/* */}
             {children && (
-              <motion.div variants={itemVariants} className="w-full pt-2">
+              <MotionDiv variants={itemVariants} className="w-full pt-2">
                 {children}
-              </motion.div>
+              </MotionDiv>
             )}
-          </motion.div>
-        </motion.div>
+          </MotionDiv>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

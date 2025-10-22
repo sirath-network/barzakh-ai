@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
@@ -118,8 +119,8 @@ export default function Page() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="z-10" // Pastikan konten berada di atas video dan gradien
           >
+              <div className="z-10"> {/* Pastikan konten berada di atas video dan gradien */}
               <img
                 alt="Brand Banner"
                 src="/images/barzakh/banner/sirath-banner.svg" 
@@ -129,6 +130,7 @@ export default function Page() {
               <p className="text-gray-200 mt-2 max-w-sm">
                 Intelligent, focused AI search powering crypto and blockchain insights.
               </p>
+              </div>
           </motion.div>
         </div>
         {/* --- PERUBAHAN SELESAI DI SINI --- */}
@@ -139,8 +141,8 @@ export default function Page() {
               variants={formVariants}
               initial="initial"
               animate="animate"
-              className="mx-auto w-full max-w-md space-y-6"
           >
+              <div className="mx-auto w-full max-w-md space-y-6">
             <div className="space-y-2 text-center">
               <img
                 alt="Brand Banner"
@@ -192,20 +194,20 @@ export default function Page() {
             
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
-              <Link
+              <a
                 href="/register"
                 className="font-semibold underline underline-offset-4 hover:text-primary"
               >
                 Sign Up
-              </Link>
+              </a>
             </p>
 
             <p className="text-center text-sm text-muted-foreground">
-              <Link href="/" className="underline underline-offset-4 hover:text-primary">
+              <a href="/" className="underline underline-offset-4 hover:text-primary">
                   &larr; Back to Home
-              </Link>
+              </a>
             </p>
-
+              </div>
           </motion.div>
         </div>
       </div>

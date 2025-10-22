@@ -22,7 +22,7 @@ export function SidebarToggle({
           size="sm"
           className="h-9 px-3 border-border/50 hover:bg-muted/60 hover:border-primary/30 transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md rounded-lg bg-background/80 backdrop-blur-sm"
         >
-          <SidebarLeftIcon size={16} className="text-muted-foreground hover:text-primary transition-colors duration-200" />
+          <SidebarLeftIcon size={16} />
         </Button>
       </TooltipTrigger>
       <TooltipContent align="start" className="font-medium">

@@ -56,7 +56,7 @@ async function fetchGraphQL(
 
       return json.data;
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error(`Request timed out after ${timeout}ms`);
         if (attempt < retries) {
           console.log(`Retrying in ${(attempt + 1) * 2} seconds...`);

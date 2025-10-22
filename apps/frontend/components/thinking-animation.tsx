@@ -63,47 +63,52 @@ export const ThinkingAnimation = () => {
     };
 
     return (
-        <motion.div 
-            className="flex items-center gap-3 py-3 px-1"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{ 
-                opacity: 0, 
-                y: -5,
-                transition: { duration: 0.25, ease: "easeIn" } 
-            }}
-        >
-            {/* Text di sebelah kiri */}
-            <motion.span 
-                className="text-sm font-medium text-muted-foreground select-none leading-none"
-                variants={textVariants}
+        <div className="flex items-center gap-3 py-3 px-1">
+            <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ 
+                    opacity: 0, 
+                    y: -5,
+                    transition: { duration: 0.25, ease: "easeIn" } 
+                }}
             >
-                Thinking
-            </motion.span>
+            {/* Text di sebelah kiri */}
+            <span className="text-sm font-medium text-muted-foreground select-none leading-none">
+                <motion.span 
+                    variants={textVariants}
+                >
+                    Thinking
+                </motion.span>
+            </span>
             
             {/* Dots animation di sebelah kanan dengan baseline alignment */}
-            <motion.div
-                className="flex items-center gap-1 h-[14px]"
-                variants={dotsContainerVariants}
-                style={{ alignItems: 'center' }}
-            >
+            <div className="flex items-center gap-1 h-[14px]" style={{ alignItems: 'center' }}>
                 <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
+                    variants={dotsContainerVariants}
+                >
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60">
+                        <motion.div
+                            variants={dotVariants}
+                            style={{ transformOrigin: 'center center' }}
+                        />
+                    </div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60">
+                        <motion.div
+                            variants={dotVariants}
+                            style={{ transformOrigin: 'center center' }}
+                        />
+                    </div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60">
+                        <motion.div
+                            variants={dotVariants}
+                            style={{ transformOrigin: 'center center' }}
+                        />
+                    </div>
+                </motion.div>
+            </div>
             </motion.div>
-        </motion.div>
+        </div>
     );
 };

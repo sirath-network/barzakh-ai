@@ -28,6 +28,9 @@ export default function BottomSheet({
   maxHeight = "90vh",
   snapPoints = [0.3, 0.6, 0.9], // Default snap points
 }: BottomSheetProps) {
+  const MotionDiv = motion.div as React.ComponentType<
+    React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps & React.RefAttributes<HTMLDivElement>
+  >;
   const [isMounted, setIsMounted] = useState(false);
   const [currentSnapPoint, setCurrentSnapPoint] = useState(snapPoints[snapPoints.length - 1]);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -69,7 +72,11 @@ export default function BottomSheet({
     }
   };
 
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (
+    event: MouseEvent | TouchEvent | PointerEvent | React.DragEvent,
+    info?: PanInfo,
+  ) => {
+    if (!info) return; // Ignore HTML drag events without PanInfo
     const dragVelocity = info.velocity.y;
     const dragOffset = info.offset.y;
     const sheetHeight = sheetRef.current?.clientHeight || 0;
@@ -90,7 +97,7 @@ export default function BottomSheet({
       {isOpen && (
         <>
           {/* */}
-          <motion.div
+          <MotionDiv
             className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -99,7 +106,7 @@ export default function BottomSheet({
           />
 
           {/* */}
-          <motion.div
+          <MotionDiv
             ref={sheetRef}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
@@ -131,7 +138,7 @@ export default function BottomSheet({
           >
             {/* */}
             {showHandle && (
-              <motion.div 
+              <MotionDiv 
                 className="flex-shrink-0 cursor-grab active:cursor-grabbing p-4 pt-3 pb-2"
                 drag="y"
                 dragConstraints={{ top: 0, bottom: 0 }}
@@ -143,7 +150,7 @@ export default function BottomSheet({
                     {title}
                   </h2>
                 )}
-              </motion.div>
+              </MotionDiv>
             )}
 
             {/* */}
@@ -175,7 +182,7 @@ export default function BottomSheet({
 
             {/* */}
             <div className="flex-shrink-0 h-safe-area-inset-bottom" />
-          </motion.div>
+          </MotionDiv>
         </>
       )}
     </AnimatePresence>

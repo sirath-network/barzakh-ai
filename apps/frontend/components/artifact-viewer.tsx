@@ -23,6 +23,9 @@ import { cn } from "@barzakh/shared/lib/utils/utils";
 type ViewMode = 'preview' | 'code';
 
 export function ArtifactViewer() {
+  const MotionDiv = motion.div as React.ComponentType<
+    React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps
+  >;
   const { currentArtifact, isArtifactOpen, closeArtifact } = useArtifact();
   const [isCopied, setIsCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -60,7 +63,7 @@ export function ArtifactViewer() {
 
   return (
     <AnimatePresence>
-      <motion.div
+      <MotionDiv
         initial={{ x: "100%", opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0 }}
@@ -306,7 +309,7 @@ export function ArtifactViewer() {
           )}
         </div>
 
-      </motion.div>
+      </MotionDiv>
     </AnimatePresence>
   );
 }

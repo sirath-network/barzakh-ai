@@ -16,7 +16,7 @@ export default function EmailSettingsPage() {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ newEmail?: string; password?: string }>({});
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -42,13 +42,13 @@ export default function EmailSettingsPage() {
     return null;
   }
 
-  const validateEmail = (email) => {
+  const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: { newEmail?: string; password?: string } = {};
     if (!newEmail) {
       newErrors.newEmail = "Email address is required";
     } else if (!validateEmail(newEmail)) {
@@ -315,7 +315,7 @@ export default function EmailSettingsPage() {
                 </button>
                 <div>
                   <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-1 md:mb-2">Verify Your Email</h2>
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">We've sent a verification code to <strong className="text-red-600 dark:text-red-400">{currentEmail}</strong></p>
+                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">We&apos;ve sent a verification code to <strong className="text-red-600 dark:text-red-400">{currentEmail}</strong></p>
                 </div>
                 <div className="space-y-3 md:space-y-5">
                   <div>
@@ -327,7 +327,7 @@ export default function EmailSettingsPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
-                      Didn't receive the code?{" "}
+                      Didn&apos;t receive the code?{" "}
                       <button onClick={handleRequestChange} disabled={isLoading} className="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 font-medium">Resend</button>
                     </p>
                   </div>

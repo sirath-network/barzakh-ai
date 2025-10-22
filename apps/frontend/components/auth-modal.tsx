@@ -76,7 +76,8 @@ export default function AuthModal({
               Use your email and password to sign in
             </p>
           </div>
-          <AuthForm action={handleSubmit} defaultEmail={email}>
+          <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); handleSubmit(fd); }}>
+            <AuthForm defaultEmail={email}>
             <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
             <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
               {"Don't have an account? "}
@@ -88,7 +89,8 @@ export default function AuthModal({
               </button>
               {" for free."}
             </p>
-          </AuthForm>
+            </AuthForm>
+          </form>
         </div>
       ) : (
         <div className="flex flex-col h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
@@ -121,7 +123,8 @@ export default function AuthModal({
                 Create an account with your email and password
               </p>
             </div>
-            <AuthForm action={handleSubmit} defaultEmail={email}>
+            <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); handleSubmit(fd); }}>
+              <AuthForm defaultEmail={email}>
               <SubmitButton isSuccessful={isSuccessful}>Sign Up</SubmitButton>
               <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
                 {"Already have an account? "}
@@ -133,7 +136,8 @@ export default function AuthModal({
                 </button>
                 {" instead."}
               </p>
-            </AuthForm>
+              </AuthForm>
+            </form>
           </div>
         </div>
       )}

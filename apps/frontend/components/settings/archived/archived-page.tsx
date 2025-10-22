@@ -292,7 +292,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                   No archived conversations
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
-                  When you archive conversations, they'll appear here. You can restore them anytime or delete them permanently.
+                  When you archive conversations, they&apos;ll appear here. You can restore them anytime or delete them permanently.
                 </p>
               </div>
             )}

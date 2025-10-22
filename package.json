@@ -20,5 +20,15 @@
   "dependencies": {
     "@tavily/core": "^0.0.3",
     "turbo": "2.4.4"
+  },
+  "devDependencies": {
+    "@types/react": "npm:types-react@rc",
+    "@types/react-dom": "npm:types-react-dom@rc"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "npm:types-react@rc",
+      "@types/react-dom": "npm:types-react-dom@rc"
+    }
   }
 }

@@ -33,16 +33,32 @@ import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
 import { createImage } from "./tools/create-image";
+import { tool } from "ai";
+import { z } from "zod";
 
-const imageAnalyzer = async ({ imageUrl, userQuery }: { imageUrl: string; userQuery: string }) => {
-  console.log(`Analyzing image at ${imageUrl} with query: "${userQuery}"`);
-  return { success: true, description: "The AI will describe the image here." };
-};
+const imageAnalyzer = tool({
+  description: "Analyze an image and provide a description based on a user query",
+  parameters: z.object({
+    imageUrl: z.string().url().describe("The URL of the image to analyze"),
+    userQuery: z.string().describe("The user's query about the image"),
+  }),
+  execute: async ({ imageUrl, userQuery }) => {
+    console.log(`Analyzing image at ${imageUrl} with query: "${userQuery}"`);
+    return { success: true, description: "The AI will describe the image here." };
+  },
+});
 
-const fileReader = async ({ fileUrl, fileType }: { fileUrl: string; fileType: string }) => {
-  console.log(`Reading ${fileType} file from ${fileUrl}`);
-  return { success: true, content: "Extracted text content from the file will be here." };
-};
+const fileReader = tool({
+  description: "Read and extract content from a file",
+  parameters: z.object({
+    fileUrl: z.string().url().describe("The URL of the file to read"),
+    fileType: z.string().describe("The type of file (e.g., 'pdf', 'txt', 'docx')"),
+  }),
+  execute: async ({ fileUrl, fileType }) => {
+    console.log(`Reading ${fileType} file from ${fileUrl}`);
+    return { success: true, content: "Extracted text content from the file will be here." };
+  },
+});
 
 export const codePrompt = `You are a world-class engineer. Respond to coding requests with:
 
@@ -182,6 +198,7 @@ If a specific model is not supported, you can pick the best one from the existin
 const groupTools = {
   imagine: ["createImage"] as const,
   multimodal: ["webSearch", "imageAnalyzer", "fileReader"] as const,
+  coding: ["webSearch"] as const,
   search: [
     "webSearch",
     "getSolanaChainWalletPortfolio",
@@ -228,6 +245,11 @@ const groupTools = {
     "getAptosScanApiData",
     "aptosNames",
     "defiLlama",
+  ] as const,
+  solana: [
+    "webSearch",
+    "getSolanaChainWalletPortfolio",
+    "searchSolanaTokenMarketData",
   ] as const,
   zeta: [
     "webSearch",
@@ -722,6 +744,25 @@ remember that the units are in MON, not in ether, so use MON , instead of ETH
   User Intent: Check real-time wallet transactions, gas fees, and token holdings.
   Response Strategy: Fetch real-time on-chain data using getMonadApiData and return formatted insights.
 `,
+
+  solana: `
+You are an AI assistant specialized in Solana blockchain. Help users with Solana-related queries including:
+
+## Key Areas:
+- Solana wallet portfolio analysis
+- Token market data and pricing
+- Blockchain transactions and addresses
+- DeFi protocols and applications
+- NFT collections and marketplaces
+- Staking and validator information
+
+## Tools Available:
+- webSearch: For general Solana information and documentation
+- getSolanaChainWalletPortfolio: Get comprehensive wallet portfolio data
+- searchSolanaTokenMarketData: Search for token market information
+
+Always provide accurate, up-to-date information about the Solana ecosystem.
+  `,
 
   coding: `Role & Functionality
 You are an expert AI pair programmer and senior software engineer. Your primary function is to assist users with writing, debugging, refactoring, and understanding code across various programming languages and frameworks. You must always produce clean, efficient, and well-documented code.

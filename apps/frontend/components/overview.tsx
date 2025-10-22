@@ -1,4 +1,12 @@
 import { motion } from "framer-motion";
+
+const MotionDiv = motion.div as React.ComponentType<
+  React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps
+>;
+
+const MotionP = motion.p as React.ComponentType<
+  React.HTMLAttributes<HTMLParagraphElement> & import('framer-motion').MotionProps
+>;
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { TypeAnimation } from "react-type-animation";
@@ -76,7 +84,7 @@ export const Overview = () => {
   }
 
   return (
-    <motion.div
+    <MotionDiv
       key="overview"
       className="max-w-3xl mx-auto mb-6"
       variants={containerVariants}
@@ -120,15 +128,15 @@ export const Overview = () => {
                 WebkitTextFillColor: "transparent"
               }}
             />
-            <motion.p
+            <MotionP
               variants={itemVariants}
               className="mt-1 text-sm text-gray-400 sm:text-base"
             >
-              Welcome back! Let's make today productive.
-            </motion.p>
+              Welcome back! Let&apos;s make today productive.
+            </MotionP>
           </div>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 };

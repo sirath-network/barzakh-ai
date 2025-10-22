@@ -9,7 +9,6 @@ import {
   ChevronRight,
   KeyRound,
   Mail,
-  CreditCard,
   ArchiveIcon,
   Shield,
 } from "lucide-react";
@@ -120,12 +119,6 @@ export function SettingsMenu({
           onClick={() => handleMenuClick('email')}
         >
           Email Address
-        </SettingsMenuItem>
-        <SettingsMenuItem 
-          icon={<CreditCard size={18} />}
-          onClick={() => handleMenuClick('billing')}
-        >
-          Billing Address
         </SettingsMenuItem>
       </div>
 

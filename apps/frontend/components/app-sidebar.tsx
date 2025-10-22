@@ -23,6 +23,9 @@ import { SidebarUserNav } from "@/components/sidebar-user-nav";
 import { useView } from "@/context/view-context";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
+  const MotionDiv = motion.div as React.ComponentType<
+    React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps
+  >;
   const router = useRouter();
   const { setOpenMobile, sidebarView, setSidebarView } = useSidebar();
   const { setView } = useView();
@@ -39,17 +42,15 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   // 2. Definisikan varian animasi
   const viewAnimation = {
-    initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 20 },
-    transition: { duration: 0.2, ease: "easeInOut" },
+    initial: { opacity: 0, x: -20, transition: { duration: 0.2, ease: "easeInOut" } },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: "easeInOut" } },
+    exit: { opacity: 0, x: 20, transition: { duration: 0.2, ease: "easeInOut" } },
   };
   
   const headerAnimation = {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-    transition: { duration: 0.15 },
+    initial: { opacity: 0, transition: { duration: 0.15 } },
+    animate: { opacity: 1, transition: { duration: 0.15 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
   };
 
   return (
@@ -58,7 +59,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         <SidebarMenu className="custom-scrollbar">
           {/* 3. Gunakan AnimatePresence untuk header */}
           <AnimatePresence initial={false} mode="wait">
-            <motion.div
+            <MotionDiv
               key={sidebarView} // Kunci animasi berdasarkan tampilan
               initial="initial"
               animate="animate"
@@ -121,7 +122,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   </span>
                 </div>
               )}
-            </motion.div>
+            </MotionDiv>
           </AnimatePresence>
         </SidebarMenu>
       </SidebarHeader>
@@ -129,7 +130,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarContent className="px-2 py-4 overflow-hidden">
         {/* 4. Gunakan AnimatePresence untuk konten */}
         <AnimatePresence initial={false} mode="wait">
-            <motion.div
+            <MotionDiv
               key={sidebarView}
               initial="initial"
               animate="animate"
@@ -142,7 +143,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               ) : (
                 <SettingsMenu user={user} />
               )}
-            </motion.div>
+            </MotionDiv>
         </AnimatePresence>
       </SidebarContent>
 

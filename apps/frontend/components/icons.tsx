@@ -907,8 +907,9 @@ export const ThumbDownIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-export const ChevronDownIcon = ({ size = 16 }: { size?: number }) => (
+export const ChevronDownIcon = ({ size = 16, className }: { size?: number; className?: string }) => (
   <svg
+    className={className}
     height={size}
     strokeLinejoin="round"
     viewBox="0 0 16 16"

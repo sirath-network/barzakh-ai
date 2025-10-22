@@ -1,8 +1,9 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 // import { toast } from "sonner";
 import { motion } from "framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
@@ -36,10 +37,7 @@ export default function Page() {
     message: "",
   });
 
-  const [state, formAction] = useActionState<
-    ForgotPasswordActionState,
-    FormData
-  >(forgotPassword, {
+  const [state, setState] = useState<ForgotPasswordActionState>({
     status: "idle",
   });
 
@@ -83,7 +81,7 @@ export default function Page() {
     }
   }, [state.status, router, state.email, state.fieldErrors]);
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
     if (isSubmitting) {
       console.log("🚫 Form submission blocked - already submitting");
       return;
@@ -105,7 +103,8 @@ export default function Page() {
     formData.set("cf-turnstile-response", turnstileToken);
     
     console.log("📤 Form submission started with valid Turnstile token");
-    formAction(formData);
+    const result = await forgotPassword(state, formData);
+    setState(result);
   };
 
   const handleTurnstileSuccess = (token: string) => {
@@ -228,8 +227,8 @@ export default function Page() {
               variants={formVariants}
               initial="initial"
               animate="animate"
-              className="mx-auto w-full max-w-md space-y-8"
           >
+              <div className="mx-auto w-full max-w-md space-y-8">
             <div className="space-y-4 text-center">
                <img
                 alt="Brand Banner"
@@ -259,7 +258,7 @@ export default function Page() {
               )}
             </div>
             
-            <form action={handleSubmit}>
+            <form onSubmit={(e) => { e.preventDefault(); const formData = new FormData(e.currentTarget); handleSubmit(formData); }}>
               <AuthForm
                 defaultEmail={email}
                 passwordNeeded={false}
@@ -289,21 +288,21 @@ export default function Page() {
             <div className="space-y-3">
               <p className="text-center text-sm text-muted-foreground">
                 Remembered your password?{" "}
-                <Link
+                <a
                   href="/login"
                   className="font-semibold underline underline-offset-4 hover:text-primary"
                 >
                   Sign In
-                </Link>
+                </a>
               </p>
 
               <p className="text-center text-sm text-muted-foreground">
-                 <Link href="/" className="underline underline-offset-4 hover:text-primary">
+                 <a href="/" className="underline underline-offset-4 hover:text-primary">
                     &larr; Back to Home
-                 </Link>
+                 </a>
               </p>
             </div>
-
+              </div>
           </motion.div>
         </div>
       </div>

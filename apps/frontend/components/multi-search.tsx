@@ -2,6 +2,14 @@
 /* eslint-disable @next/next/no-img-element */
 import React from "react";
 import { motion } from "framer-motion";
+
+const MotionButton = motion.button as React.ComponentType<
+  React.ComponentProps<'button'> & import('framer-motion').MotionProps
+>;
+
+const MotionDiv = motion.div as React.ComponentType<
+  React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps
+>;
 import {
   Globe,
   Search,
@@ -229,7 +237,7 @@ const ImageGrid = ({ images }: { images: SearchImage[] }) => {
     <div>
       <div className="grid grid-cols-2 gap-3">
         {displayImages.map((image, index) => (
-          <motion.button
+          <MotionButton
             key={index}
             className="relative aspect-square rounded-lg overflow-hidden group hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 transition-all"
             onClick={() => handleImageClick(index)}
@@ -246,7 +254,7 @@ const ImageGrid = ({ images }: { images: SearchImage[] }) => {
                 <span className="text-xl font-medium text-white">+{images.length - PREVIEW_IMAGE_COUNT}</span>
               </div>
             )}
-          </motion.button>
+          </MotionButton>
         ))}
       </div>
 
@@ -353,7 +361,7 @@ const MultiSearch: React.FC<{
               }`}
             >
               {displayResults.map((res, index) => (
-                <motion.div
+                <MotionDiv
                   key={`${res.url}-${index}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -361,7 +369,7 @@ const MultiSearch: React.FC<{
                   className="h-full"
                 >
                   <ResultCard result={res} />
-                </motion.div>
+                </MotionDiv>
               ))}
             </div>
 
@@ -418,7 +426,7 @@ const MultiSearch: React.FC<{
                     }`}
                   >
                     {displayTweets.map((tweet: any, index: number) => (
-                      <motion.div
+                      <MotionDiv
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -426,7 +434,7 @@ const MultiSearch: React.FC<{
                         className="h-full"
                       >
                         <TweetCard tweet={tweet} />
-                      </motion.div>
+                      </MotionDiv>
                     ))}
                   </div>
                 )}

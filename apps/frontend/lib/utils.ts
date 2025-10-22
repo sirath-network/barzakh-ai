@@ -33,35 +33,38 @@ export function convertToUIMessages(
     const toolInvocations: Array<ToolInvocation> = [];
     let hasImages = false;
 
-    if (typeof message.content === "string") {
-      textContent = message.content;
-    } else if (Array.isArray(message.content)) {
+    // Type assertion for message.content since it comes from JSON field
+    const content = message.content as any;
+
+    if (typeof content === "string") {
+      textContent = content;
+    } else if (Array.isArray(content)) {
       // Check if the message contains images
-      hasImages = message.content.some((content: any) => content.type === "image");
+      hasImages = content.some((contentItem: any) => contentItem.type === "image");
       
       if (hasImages) {
         // If message contains images, extract text content AND tool invocations
         const textParts: string[] = [];
-        for (const content of message.content) {
-          if (content.type === "text") {
-            textParts.push(content.text);
-          } else if (content.type === "tool-call") {
+        for (const contentItem of content) {
+          if (contentItem.type === "text") {
+            textParts.push(contentItem.text);
+          } else if (contentItem.type === "tool-call") {
             toolInvocations.push({
               state: "call",
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args,
+              toolCallId: contentItem.toolCallId,
+              toolName: contentItem.toolName,
+              args: contentItem.args,
             });
-          } else if (content.type === "tool-result") {
+          } else if (contentItem.type === "tool-result") {
             toolInvocations.push({
               state: "result",
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args || {},
-              result: content.result,
+              toolCallId: contentItem.toolCallId,
+              toolName: contentItem.toolName,
+              args: contentItem.args || {},
+              result: contentItem.result,
             });
-          } else if (content.type === "reasoning") {
-            reasoning = content.reasoning;
+          } else if (contentItem.type === "reasoning") {
+            reasoning = contentItem.reasoning;
           }
         }
         
@@ -83,26 +86,26 @@ export function convertToUIMessages(
         }
       } else {
         // For messages without images, use the original logic
-        for (const content of message.content) {
-          if (content.type === "text") {
-            textContent += content.text;
-          } else if (content.type === "tool-call") {
+        for (const contentItem of content) {
+          if (contentItem.type === "text") {
+            textContent += contentItem.text;
+          } else if (contentItem.type === "tool-call") {
             toolInvocations.push({
               state: "call",
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args,
+              toolCallId: contentItem.toolCallId,
+              toolName: contentItem.toolName,
+              args: contentItem.args,
             });
-          } else if (content.type === "tool-result") {
+          } else if (contentItem.type === "tool-result") {
             toolInvocations.push({
               state: "result" as const,
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args || {},
-              result: content.result,
+              toolCallId: contentItem.toolCallId,
+              toolName: contentItem.toolName,
+              args: contentItem.args || {},
+              result: contentItem.result,
             });
-          } else if (content.type === "reasoning") {
-            reasoning = content.reasoning;
+          } else if (contentItem.type === "reasoning") {
+            reasoning = contentItem.reasoning;
           }
         }
       }
@@ -113,16 +116,16 @@ export function convertToUIMessages(
     const shouldPreserveContent = 
       message.role === "user" && 
       hasImages && 
-      Array.isArray(message.content);
+      Array.isArray(content);
     
     const uiMessage: Message = {
       id: message.id,
       role: message.role as Message["role"],
       content: shouldPreserveContent 
-        ? message.content.filter((part: any) => 
+        ? content.filter((part: any) => 
             // Keep image and text parts, exclude metadata
             (part.type === 'image' || (part.type === 'text' && !part.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING')))
-          )
+          ) as any
         : textContent, // For assistant/other messages, use extracted text
       reasoning,
       toolInvocations,

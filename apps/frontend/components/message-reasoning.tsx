@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import { ChevronDownIcon, LoaderIcon } from './icons';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const MotionDiv = motion.div as React.ComponentType<
+  React.HTMLAttributes<HTMLDivElement> & import('framer-motion').MotionProps
+>;
 import { Markdown } from './markdown';
 
 interface MessageReasoningProps {
@@ -56,7 +60,7 @@ export function MessageReasoning({
 
       <AnimatePresence initial={false}>
         {isExpanded && (
-          <motion.div
+          <MotionDiv
             key="content"
             initial="collapsed"
             animate="expanded"
@@ -67,7 +71,7 @@ export function MessageReasoning({
             className="pl-4 text-zinc-600 dark:text-zinc-400 border-l flex flex-col gap-4"
           >
             <Markdown>{reasoning}</Markdown>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
