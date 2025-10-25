@@ -6,6 +6,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "../(auth)/auth";
 import Script from "next/script";
 import { ViewProvider } from "@/context/view-context"; // 1. Import ViewProvider
+import { PasswordSetupToast } from "@/components/password-setup-toast";
 
 export const experimental_ppr = true;
 
@@ -27,7 +28,10 @@ export default async function Layout({
       <ViewProvider>
         <SidebarProvider defaultOpen={!isCollapsed}>
           <AppSidebar user={session?.user} />
-          <SidebarInset>{children}</SidebarInset>
+          <SidebarInset>
+            <PasswordSetupToast />
+            {children}
+          </SidebarInset>
         </SidebarProvider>
       </ViewProvider>
     </>

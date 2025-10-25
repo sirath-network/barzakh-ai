@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
+import { handleLogout } from "@/lib/auth-utils";
 import { Mail, Shield, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function EmailSettingsPage() {
@@ -132,10 +132,10 @@ export default function EmailSettingsPage() {
         setTimeout(async () => {
           try {
             await signOut({ redirect: false, callbackUrl: "/login" });
-            await handleLogout();
+            await handleLogoutClick();
           } catch (error) {
             console.error("SignOut error:", error);
-            await handleLogout();
+            await handleLogoutClick();
           }
         }, 3000);
       } else {
@@ -149,32 +149,8 @@ export default function EmailSettingsPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (typeof window !== "undefined") {
-        localStorage.clear();
-        sessionStorage.clear();
-        const authCookies = [
-          'authjs.session-token', 'authjs.csrf-token', 'authjs.callback-url',
-          '__Secure-authjs.session-token', '__Secure-authjs.callback-url', '__Secure-authjs.csrf-token',
-          'next-auth.session-token', 'next-auth.csrf-token', '__Host-next-auth.csrf-token', '__Secure-next-auth.session-token'
-        ];
-        authCookies.forEach(cookieName => {
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
-        });
-      }
-      window.location.replace("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      window.location.replace("/login");
-    }
+  const handleLogoutClick = async () => {
+    await handleLogout();
   };
 
   return (

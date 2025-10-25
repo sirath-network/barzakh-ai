@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { handleLogout } from "@/lib/auth-utils";
 import { Lock, Shield, Eye, EyeOff, CheckCircle, AlertCircle, Key } from "lucide-react";
 
 export default function PasswordSettingsPage() {
+  const { data: session } = useSession();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,6 +18,9 @@ export default function PasswordSettingsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const router = useRouter();
+
+  // Check if user is a Google OAuth user (no password set)
+  const isGoogleUser = !session?.user?.hasPassword;
 
   const validatePassword = (password) => {
     const errors = [];
@@ -38,56 +43,32 @@ export default function PasswordSettingsPage() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!currentPassword) newErrors.currentPassword = "Current password is required";
+    
+    // Only require current password for users who have one (not Google OAuth users)
+    if (!isGoogleUser && !currentPassword) {
+      newErrors.currentPassword = "Current password is required";
+    }
+    
     if (!password) {
       newErrors.password = "New password is required";
     } else if (validatePassword(password).length > 0) {
       newErrors.password = "Password doesn't meet requirements";
-    } else if (currentPassword && password === currentPassword) {
+    } else if (!isGoogleUser && currentPassword && password === currentPassword) {
       newErrors.password = "New password must be different from current password";
     }
+    
     if (!confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
     } else if (password !== confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut({ redirect: false });
-      try {
-        await fetch("/api/auth/signout", { method: "POST", headers: { "Content-Type": "application/json" } });
-      } catch (apiError) {
-        console.log("API signout failed, continuing with manual cleanup:", apiError);
-      }
-
-      if (typeof window !== "undefined") {
-        localStorage.clear();
-        sessionStorage.clear();
-        const authCookies = [
-          'next-auth.session-token', 'next-auth.csrf-token', 'next-auth.callback-url',
-          'authjs.session-token', 'authjs.csrf-token', 'authjs.callback-url',
-          '__Secure-next-auth.session-token', '__Secure-next-auth.callback-url', '__Secure-next-auth.csrf-token',
-          '__Secure-authjs.session-token', '__Secure-authjs.callback-url', '__Secure-authjs.csrf-token'
-        ];
-        authCookies.forEach(cookieName => {
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure`;
-        });
-        setTimeout(() => window.location.replace("/login"), 100);
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-      if (typeof window !== "undefined") {
-        toast.error("Session ended. Redirecting to login...");
-        setTimeout(() => window.location.replace("/login"), 1000);
-      }
-    }
+  const handleLogoutClick = async () => {
+    await handleLogout();
   };
 
   const handleSubmit = async (e) => {
@@ -99,7 +80,10 @@ export default function PasswordSettingsPage() {
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, password }),
+        body: JSON.stringify({ 
+          currentPassword: isGoogleUser ? null : currentPassword, 
+          password 
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -126,7 +110,7 @@ export default function PasswordSettingsPage() {
       setCurrentPassword("");
       setPassword("");
       setConfirmPassword("");
-      setTimeout(async () => await handleLogout(), 2000);
+      setTimeout(async () => await handleLogoutClick(), 2000);
     } catch (err) {
       toast.error(err.message || "Failed to update password");
     } finally {
@@ -162,19 +146,37 @@ export default function PasswordSettingsPage() {
               </p>
             </div>
             <div className="p-6 md:p-8 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Password</label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); if (errors.currentPassword) setErrors({ ...errors, currentPassword: "" }); if (errors.password && errors.password.includes("different from current")) setErrors({ ...errors, password: "" }); }}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${errors.currentPassword ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'}`}
-                    placeholder="Enter your current password" />
-                  <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
-                    {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+              {/* Only show current password field for users who have a password (not Google OAuth users) */}
+              {!isGoogleUser && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Password</label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); if (errors.currentPassword) setErrors({ ...errors, currentPassword: "" }); if (errors.password && errors.password.includes("different from current")) setErrors({ ...errors, password: "" }); }}
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${errors.currentPassword ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'}`}
+                      placeholder="Enter your current password" />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                      {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {errors.currentPassword && <p className="mt-2 text-sm text-red-500 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.currentPassword}</p>}
                 </div>
-                {errors.currentPassword && <p className="mt-2 text-sm text-red-500 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.currentPassword}</p>}
-              </div>
+              )}
+
+              {/* Show info message for Google OAuth users */}
+              {isGoogleUser && (
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200">Google Account</h3>
+                      <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                        You're signed in with Google. Set up a password to enable email/password login as an alternative.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">New Password</label>
@@ -188,14 +190,14 @@ export default function PasswordSettingsPage() {
                   </button>
                 </div>
 
-                {currentPassword && password && currentPassword === password && (
+                {!isGoogleUser && currentPassword && password && currentPassword === password && (
                   <div className="mt-2 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
                     <span className="text-sm text-yellow-600 dark:text-yellow-400">New password must be different</span>
                   </div>
                 )}
 
-                {password && currentPassword !== password && (
+                {password && (isGoogleUser || currentPassword !== password) && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-gray-500 dark:text-gray-400">Password Strength</span>
@@ -207,7 +209,7 @@ export default function PasswordSettingsPage() {
                   </div>
                 )}
 
-                {password && passwordRequirements.length > 0 && currentPassword !== password && (
+                {password && passwordRequirements.length > 0 && (isGoogleUser || currentPassword !== password) && (
                   <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg">
                     <p className="text-xs text-red-700 dark:text-red-300 font-medium mb-2">Password must include:</p>
                     <ul className="space-y-1">
