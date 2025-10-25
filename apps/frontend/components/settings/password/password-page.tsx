@@ -271,7 +271,7 @@ export default function PasswordSettingsPage() {
             </div>
 
             <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
-              <button type="button" onClick={handleSubmit} disabled={isLoading || !currentPassword || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || currentPassword === password}
+              <button type="button" onClick={handleSubmit} disabled={isLoading || (!isGoogleUser && !currentPassword) || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || (!isGoogleUser && currentPassword === password)}
                 className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 {isLoading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Updating...</>) : (<><Lock className="w-4 h-4" />Update Password</>)}
               </button>
