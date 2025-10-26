@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import type { Application } from '@splinetool/runtime';
+import Spline from '@splinetool/react-spline';
 import {
   verifyAndResetPassword,
   VerifyAndResetPasswordActionState,
@@ -26,6 +28,9 @@ export default function ResetPassword() {
 
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
+  const spline = useRef<Application | null>(null);
+  const [splineVisible, setSplineVisible] = useState(false);
+  const [mouseHasMoved, setMouseHasMoved] = useState(false);
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
     message: "",
@@ -37,6 +42,71 @@ export default function ResetPassword() {
   >(verifyAndResetPassword, {
     status: "idle",
   });
+
+  // Handle mouse movement to enable Spline scene
+  useEffect(() => {
+    const handleMouseMove = () => {
+      setTimeout(() => {
+        if (!mouseHasMoved) {
+          setMouseHasMoved(true);
+        }
+      }, 50);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseHasMoved]);
+
+  // Load Spline scene - this makes it interactive  
+  const onLoad = (splineApp: Application) => {
+    if (splineApp) {
+      spline.current = splineApp;
+      
+      setTimeout(() => {
+        try {
+          const internalScene = (splineApp as any)._scene;
+          
+          if (internalScene) {
+            internalScene.traverse((object: any) => {
+              if (object.isMesh && object.material) {
+                const materials = Array.isArray(object.material) 
+                  ? object.material 
+                  : [object.material];
+                
+                materials.forEach((mat: any) => {
+                  if (mat) {
+                    if (mat.emissive) {
+                      mat.emissive.setHex(0x000000);
+                      mat.emissiveIntensity = 0;
+                    }
+                    if (mat.emissiveMap) {
+                      mat.emissiveMap = null;
+                      mat.needsUpdate = true;
+                    }
+                    mat.needsUpdate = true;
+                  }
+                });
+              }
+              
+              if (object.isPointLight) {
+                object.intensity = 0;
+                object.visible = false;
+              }
+              
+              if (object.type === 'AmbientLight') {
+                object.intensity = 0;
+              }
+            });
+            
+            setSplineVisible(true);
+          }
+        } catch (error) {
+          console.log('Could not reset Spline scene:', error);
+          setSplineVisible(true);
+        }
+      }, 800);
+    }
+  };
 
   const handleSubmit = (formData: FormData) => {
     if (typeof token !== "string") {
@@ -92,37 +162,56 @@ export default function ResetPassword() {
         </ActionResultOverlay>
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
             <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-              {/* 1. Video Background (lapisan paling belakang) */}
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+              {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
+              <div 
+                className="absolute inset-0"
+                style={{
+                  pointerEvents: mouseHasMoved ? 'auto' : 'none'
+                }}
               >
-                <source src="/video/reset.mp4" type="video/mp4" />
-                Browser Anda tidak mendukung tag video.
-              </video>
+                <Spline 
+                  scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
+                  onLoad={onLoad}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    opacity: splineVisible ? 1 : 0,
+                    transition: 'opacity 0.5s ease-in'
+                  }}
+                />
+              </div>
+              
+              {/* Overlay to block ALL pointer events until mouse moves */}
+              {!mouseHasMoved && (
+                <div 
+                  className="absolute inset-0 z-[50] bg-black/0" 
+                  style={{ 
+                    pointerEvents: 'auto',
+                    cursor: 'default'
+                  }}
+                />
+              )}
 
               {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-              {/* Gradien Atas */}
-              <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" />
+              {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
+              <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
               {/* Gradien Bawah */}
-              <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
 
               {/* 3. Konten Teks (lapisan paling depan) */}
               <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
+                  className="relative z-[10] pointer-events-none"
               >
                   <img
                     alt="Brand Banner"
                     src="/images/barzakh/banner/sirath-banner.svg" 
                     className="w-48 h-auto mb-4 mx-auto"
                   />
-                  <h1 className="text-3xl font-bold">Reset Your Password</h1>
-                  <p className="text-muted-foreground mt-2 max-w-sm">
+                  <h1 className="text-3xl font-bold text-white">Reset Your Password</h1>
+                  <p className="text-gray-200 mt-2 max-w-sm">
                     Create a new, strong password to secure your account.
                   </p>
               </motion.div>
