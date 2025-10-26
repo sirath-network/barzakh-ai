@@ -7,13 +7,15 @@ import { Shield } from "lucide-react";
 import { useView } from "@/context/view-context";
 
 export function PasswordSetupToast() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { setView } = useView();
   const hasShownToast = useRef(false);
 
   useEffect(() => {
     // Only show toast for authenticated users without password
+    // Add status check to prevent showing toast while session is loading
     if (
+      status === "authenticated" &&
       session?.user && 
       !session.user.hasPassword && 
       !hasShownToast.current
@@ -33,7 +35,7 @@ export function PasswordSetupToast() {
         icon: <Shield className="w-4 h-4" />,
       });
     }
-  }, [session?.user, setView]);
+  }, [status, session?.user?.hasPassword, setView]); // Use status and specific property instead of entire user object
 
   return null; // This component doesn't render anything
 }

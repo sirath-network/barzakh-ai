@@ -1,9 +1,17 @@
 import { signOut } from "next-auth/react";
 
+// Prevent multiple simultaneous logout attempts
+let isLoggingOut = false;
+
 /**
  * Centralized logout function that properly clears all authentication data
  */
 export const handleLogout = async () => {
+  // Prevent multiple simultaneous logout attempts
+  if (isLoggingOut) {
+    return;
+  }
+  isLoggingOut = true;
   try {
     // First, call NextAuth signOut without redirect
     await signOut({ redirect: false });
@@ -50,5 +58,10 @@ export const handleLogout = async () => {
     if (typeof window !== "undefined") {
       window.location.replace("/login");
     }
+  } finally {
+    // Reset the flag after a delay to allow for future logouts
+    setTimeout(() => {
+      isLoggingOut = false;
+    }, 1000);
   }
 };

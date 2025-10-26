@@ -7,6 +7,10 @@ import { createUser, getUser, updateUserProfile } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 
+// Cache for user data to prevent excessive DB queries
+const userCache = new Map<string, { user: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export const authOptions: NextAuthOptions = {
   ...authConfig,
   session: {
@@ -101,22 +105,40 @@ export const authOptions: NextAuthOptions = {
           token.hasPassword = false; // Google OAuth users don't have password initially
         }
       } 
-      // ✅ This is the key change. We will always re-fetch user data from the DB.
-      // This ensures that any changes (like a plan upgrade) are immediately reflected in the session.
+      // ✅ Optimized: Use caching to prevent excessive DB queries while still keeping data fresh
       else if (token.email) {
-        const [dbUser] = await getUser(token.email);
-        if (dbUser) {
-          // Update the token with the latest data from the database.
+        const now = Date.now();
+        const cached = userCache.get(token.email);
+        
+        // Use cached data if it's still fresh (less than 5 minutes old)
+        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+          const dbUser = cached.user;
           token.id = dbUser.id;
           token.name = dbUser.name;
           token.email = dbUser.email;
           token.image = dbUser.image;
           token.username = dbUser.username;
-          token.tier = dbUser.tier; // This is the most important part!
+          token.tier = dbUser.tier;
           token.hasPassword = !!dbUser.password;
         } else {
-          // If user is not found in DB, invalidate the session.
-          return null;
+          // Cache miss or expired, fetch from DB
+          const [dbUser] = await getUser(token.email);
+          if (dbUser) {
+            // Update the token with the latest data from the database.
+            token.id = dbUser.id;
+            token.name = dbUser.name;
+            token.email = dbUser.email;
+            token.image = dbUser.image;
+            token.username = dbUser.username;
+            token.tier = dbUser.tier;
+            token.hasPassword = !!dbUser.password;
+            
+            // Cache the result
+            userCache.set(token.email, { user: dbUser, timestamp: now });
+          } else {
+            // If user is not found in DB, invalidate the session.
+            return null;
+          }
         }
       }
       return token;
