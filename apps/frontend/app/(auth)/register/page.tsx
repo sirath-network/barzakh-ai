@@ -21,6 +21,7 @@ export default function Page() {
   const [formData, setFormData] = useState<{ email: string; password: string } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
+  const [lastProcessedStatus, setLastProcessedStatus] = useState<string>("");
   const formRef = useRef<HTMLFormElement>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
   const spline = useRef<Application | null>(null);
@@ -102,25 +103,36 @@ export default function Page() {
   useEffect(() => {
     console.log('State changed:', state);
     
+    // Only process if status actually changed to prevent duplicate toasts
+    if (lastProcessedStatus === state.status) {
+      return;
+    }
+    
     if (state.status === "user_exists") {
+      setLastProcessedStatus("user_exists");
       toast.error("Account already exists");
       turnstileRef.current?.reset();
     } else if (state.status === "failed") {
+      setLastProcessedStatus("failed");
       toast.error("Failed to create account. Please check your connection and try again.");
       turnstileRef.current?.reset();
     } else if (state.status === "invalid_data") {
+      setLastProcessedStatus("invalid_data");
       // Inline errors are displayed by the AuthForm component, so we only need a generic fallback toast.
       if (!state.fieldErrors || Object.keys(state.fieldErrors).length === 0) {
         toast.error("Please check your input and try again.");
       }
       turnstileRef.current?.reset();
     } else if (state.status === "too_small") {
+      setLastProcessedStatus("too_small");
       toast.error("Password should be at least 8 characters long.");
       turnstileRef.current?.reset();
     } else if (state.status === "otp_sent") {
+      setLastProcessedStatus("otp_sent");
       setShowOTPField(true);
       toast.success("Verification code sent to your email");
     } else if (state.status === "otp_verified") {
+      setLastProcessedStatus("otp_verified");
       setIsSuccessful(true);
       toast.success("Account created successfully! Redirecting...");
       setTimeout(() => router.push("/login"), 2000);
@@ -130,9 +142,15 @@ export default function Page() {
     if (state.email && state.email !== email) {
       setEmail(state.email);
     }
-  }, [state, router, email]);
+  }, [state, router, email, lastProcessedStatus]);
 
   const handleFormAction = (currentFormData: FormData) => {
+    // Don't submit if already successful
+    if (isSuccessful) {
+      console.log('Registration already successful, ignoring submission');
+      return;
+    }
+
     // Add the turnstile token if it's not already in the form data
     const existingToken = currentFormData.get("cf-turnstile-response") as string;
     
