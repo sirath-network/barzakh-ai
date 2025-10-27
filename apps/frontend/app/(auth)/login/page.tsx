@@ -6,6 +6,8 @@ import { useEffect, useState, useRef } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
+import Spline from '@splinetool/react-spline';
+import type { Application } from '@splinetool/runtime';
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -26,6 +28,9 @@ export default function Page() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null); // Ref for the Turnstile component
+  const spline = useRef<Application | null>(null); // Ref for the Spline application
+  const [splineVisible, setSplineVisible] = useState(false); // Control visibility to reset initial state
+  const [mouseHasMoved, setMouseHasMoved] = useState(false); // Track if mouse has moved to avoid initial hover state
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
@@ -33,6 +38,87 @@ export default function Page() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loginState, setLoginState] = useState<LoginActionState>({ status: "idle" });
+
+  // Handle mouse movement to enable Spline scene
+  useEffect(() => {
+    const handleMouseMove = () => {
+      // Small delay before enabling to ensure initial cursor position doesn't trigger
+      setTimeout(() => {
+        if (!mouseHasMoved) {
+          setMouseHasMoved(true);
+        }
+      }, 50);
+    };
+
+    // Listen for mouse movement - with slight delay
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseHasMoved]);
+
+  // Load Spline scene - this makes it interactive  
+  const onLoad = (splineApp: Application) => {
+    if (splineApp) {
+      spline.current = splineApp;
+      console.log('Spline scene loaded successfully - interactive mode enabled');
+      
+      // Reset hexagons to inactive state on initial load
+      // Wait a bit longer to ensure Spline is fully initialized
+      setTimeout(() => {
+        try {
+          // Access the internal Three.js scene
+          const internalScene = (splineApp as any)._scene;
+          
+          if (internalScene) {
+            // Recursively traverse and reset all meshes
+            internalScene.traverse((object: any) => {
+              // Reset mesh material properties
+              if (object.isMesh && object.material) {
+                const materials = Array.isArray(object.material) 
+                  ? object.material 
+                  : [object.material];
+                
+                materials.forEach((mat: any) => {
+                  if (mat) {
+                    // Turn off emission
+                    if (mat.emissive) {
+                      mat.emissive.setHex(0x000000);
+                      mat.emissiveIntensity = 0;
+                    }
+                    // Remove emissive map
+                    if (mat.emissiveMap) {
+                      mat.emissiveMap = null;
+                      mat.needsUpdate = true;
+                    }
+                    // Update material
+                    mat.needsUpdate = true;
+                  }
+                });
+              }
+              
+              // Handle PointLights - reduce intensity or disable
+              if (object.isPointLight) {
+                object.intensity = 0;
+                object.visible = false;
+              }
+              
+              // Handle ambient lights  
+              if (object.type === 'AmbientLight') {
+                object.intensity = 0;
+              }
+            });
+            
+            console.log('Spline hexagons and lights reset to inactive state');
+            // Make scene visible after reset
+            setSplineVisible(true);
+          }
+        } catch (error) {
+          console.log('Could not reset Spline scene:', error);
+          // Show anyway if reset fails
+          setSplineVisible(true);
+        }
+      }, 800); // Increased timeout to ensure scene is fully loaded and stabilized
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -95,30 +181,48 @@ export default function Page() {
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
         {/* --- PERUBAHAN DIMULAI DI SINI --- */}
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Video Background (lapisan paling belakang) */}
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+          {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
+          <div 
+            className="absolute inset-0"
+            style={{
+              pointerEvents: mouseHasMoved ? 'auto' : 'none'
+            }}
           >
-            <source src="/video/login.mp4" type="video/mp4" />
-            Browser Anda tidak mendukung tag video.
-          </video>
+            <Spline 
+              scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
+              onLoad={onLoad}
+              style={{ 
+                width: '100%', 
+                height: '100%',
+                opacity: splineVisible ? 1 : 0,
+                transition: 'opacity 0.5s ease-in'
+              }}
+            />
+          </div>
+          
+          {/* Overlay to block ALL pointer events until mouse moves */}
+          {!mouseHasMoved && (
+            <div 
+              className="absolute inset-0 z-[50] bg-black/0" 
+              style={{ 
+                pointerEvents: 'auto',
+                cursor: 'default'
+              }}
+            />
+          )}
 
           {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-          {/* Gradien Atas */}
-          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" />
+          {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
+          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
           {/* Gradien Bawah */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
 
           {/* 3. Konten Teks (lapisan paling depan) */}
           <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="z-10" // Pastikan konten berada di atas video dan gradien
+              className="relative z-[10] pointer-events-none" // Pastikan konten berada di atas video dan gradien, don't block Spline interactions
           >
               <img
                 alt="Brand Banner"

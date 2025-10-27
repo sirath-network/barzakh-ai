@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { signOut } from '@/app/(auth)/auth';
+import { handleLogout } from '@/lib/auth-utils';
 
 function SignOutUI() {
   const { pending } = useFormStatus();
@@ -36,9 +36,7 @@ export const SignOutForm = () => {
       className="w-full"
       action={async () => {
         'use server';
-        await signOut({
-          redirectTo: '/',
-        });
+        await handleLogout();
       }}
     >
       <SignOutUI />

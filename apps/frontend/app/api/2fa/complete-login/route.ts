@@ -39,13 +39,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "2FA not enabled for this user" }, { status: 400 });
     }
 
-    // Verify 2FA token
-    let verified = speakeasy.totp.verify({
+    // Verify 2FA token - only accept current or immediately previous time step
+    // Reject tokens older than ~60 seconds (delta <= -2)
+    const verifyResult = speakeasy.totp.verifyDelta({
       secret: dbUser.twoFactorSecret,
       encoding: "base32",
       token: twoFactorToken,
-      window: 2,
+      window: 3, // Check wider window for delta calculation
     });
+
+    // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
+    // Reject tokens from 2+ steps ago (older than ~60 seconds)
+    // Check if verifyResult has a delta property and it's in the valid range
+    let verified = false;
+    if (verifyResult && typeof verifyResult === 'object' && 'delta' in verifyResult) {
+      const delta = verifyResult.delta;
+      verified = delta >= -1 && delta <= 1;
+    }
 
     // If TOTP verification failed, check if it's a backup code
     if (!verified && dbUser.backupCodes) {

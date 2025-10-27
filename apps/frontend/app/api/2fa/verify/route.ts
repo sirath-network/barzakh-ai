@@ -40,13 +40,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "2FA not set up" }, { status: 400 });
     }
 
-    // Verify the token
-    const verified = speakeasy.totp.verify({
+    // Verify the token - only accept current or immediately previous time step
+    // Reject tokens older than ~60 seconds (delta <= -2)
+    const verifyResult = speakeasy.totp.verifyDelta({
       secret: dbUser.twoFactorSecret,
       encoding: "base32",
       token: token,
-      window: 2, // Allow tokens from 2 time windows (1 minute) before and after
+      window: 3, // Check wider window for delta calculation
     });
+
+    // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
+    // Reject tokens from 2+ steps ago (older than ~60 seconds)
+    // Check if verifyResult has a delta property and it's in the valid range
+    let verified = false;
+    if (verifyResult && typeof verifyResult === 'object' && 'delta' in verifyResult) {
+      const delta = verifyResult.delta;
+      verified = delta >= -1 && delta <= 1;
+    }
 
     if (!verified) {
       return NextResponse.json({ error: "Invalid token" }, { status: 400 });

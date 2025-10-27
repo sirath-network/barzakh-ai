@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { handleLogout } from "@/lib/auth-utils";
 import { Mail, Shield, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function EmailSettingsPage() {
@@ -17,6 +17,7 @@ export default function EmailSettingsPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -40,6 +41,18 @@ export default function EmailSettingsPage() {
       window.location.replace("/login");
     }
     return null;
+  }
+
+  // Prevent rendering during logout to avoid request loops
+  if (isLoggingOut) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-900 dark:text-white">Signing you out...</p>
+        </div>
+      </div>
+    );
   }
 
   const validateEmail = (email) => {
@@ -129,13 +142,17 @@ export default function EmailSettingsPage() {
       if (response.ok) {
         setCurrentEmail(newEmail);
         setMessage({ type: "success", text: "🎉 Email updated successfully! You'll be signed out in 3 seconds to complete the change." });
+        setIsLoggingOut(true);
         setTimeout(async () => {
           try {
-            await signOut({ redirect: false, callbackUrl: "/login" });
-            await handleLogout();
+            // Use only handleLogout which already handles signOut internally
+            await handleLogoutClick();
           } catch (error) {
-            console.error("SignOut error:", error);
-            await handleLogout();
+            console.error("Logout error:", error);
+            // Force redirect even if there's an error
+            if (typeof window !== "undefined") {
+              window.location.replace("/login");
+            }
           }
         }, 3000);
       } else {
@@ -149,32 +166,8 @@ export default function EmailSettingsPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (typeof window !== "undefined") {
-        localStorage.clear();
-        sessionStorage.clear();
-        const authCookies = [
-          'authjs.session-token', 'authjs.csrf-token', 'authjs.callback-url',
-          '__Secure-authjs.session-token', '__Secure-authjs.callback-url', '__Secure-authjs.csrf-token',
-          'next-auth.session-token', 'next-auth.csrf-token', '__Host-next-auth.csrf-token', '__Secure-next-auth.session-token'
-        ];
-        authCookies.forEach(cookieName => {
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
-        });
-      }
-      window.location.replace("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      window.location.replace("/login");
-    }
+  const handleLogoutClick = async () => {
+    await handleLogout();
   };
 
   return (

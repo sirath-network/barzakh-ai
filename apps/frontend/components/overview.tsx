@@ -47,12 +47,17 @@ export const Overview = () => {
     setIsMounted(true);
   }, []);
 
-  // Force session update when component mounts to ensure fresh data
+  // Force session update when component mounts to ensure fresh data (only once)
   useEffect(() => {
     if (isMounted && !user?.name && !user?.username) {
-      update();
+      // Only update once when component first mounts and user data is missing
+      const timeoutId = setTimeout(() => {
+        update();
+      }, 100); // Small delay to prevent immediate re-renders
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [isMounted, user?.name, user?.username, update]);
+  }, [isMounted]); // Remove user dependencies to prevent continuous updates
 
   const greeting = getGreeting();
   

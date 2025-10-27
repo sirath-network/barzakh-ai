@@ -51,9 +51,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // If changing password, verify current password
+    // If changing password, verify current password (only for users with existing passwords)
     if (newPassword) {
-      if (!currentPassword) {
+      // Only require current password for users who have one (not Google OAuth users)
+      if (existingUser.password && !currentPassword) {
         return NextResponse.json({ error: "Current password is required" }, { status: 400 });
       }
       

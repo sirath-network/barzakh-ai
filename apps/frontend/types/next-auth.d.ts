@@ -5,6 +5,7 @@ declare module "next-auth" {
     username: string | null;
     tier: string;
     messageCount: number;
+    hasPassword: boolean;
   }
 
   interface Session extends DefaultSession {
@@ -15,6 +16,7 @@ declare module "next-auth" {
       image: string | null;
       username: string | null;
       tier: string;
+      hasPassword: boolean;
     } & DefaultSession["user"];
   }
 }

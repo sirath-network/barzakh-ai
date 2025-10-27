@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OTPInput } from "@/components/ui/otp-input";
 
 interface TwoFactorStatus {
   twoFactorEnabled: boolean;
@@ -369,22 +370,21 @@ export default function TwoFactorSettingsPage() {
                   <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 mb-4">
                     Enter the 6-digit code from your authenticator app to complete the setup:
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Input
-                      type="text"
-                      placeholder="000000"
-                      value={verificationToken}
-                      onChange={(e) => setVerificationToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      className="flex-1 text-center text-base sm:text-lg font-mono tracking-widest"
-                      maxLength={6}
-                    />
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <OTPInput
+                        length={6}
+                        value={verificationToken}
+                        onChange={(value) => setVerificationToken(value)}
+                      />
+                    </div>
                     <Button
                       onClick={handleVerifyAndEnable}
                       disabled={isVerifying || verificationToken.length !== 6}
-                      className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto text-sm sm:text-base"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base"
                     >
                       {isVerifying ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <RefreshCw className="w-4 h-4 animate-spin" />
                           Verifying...
                         </div>
@@ -409,23 +409,22 @@ export default function TwoFactorSettingsPage() {
                 <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 mb-4">
                   To disable 2FA, enter a current 2FA code from your authenticator app:
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Input
-                    type="text"
-                    placeholder="000000"
-                    value={verificationToken}
-                    onChange={(e) => setVerificationToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    className="flex-1 text-center text-base sm:text-lg font-mono tracking-widest"
-                    maxLength={6}
-                  />
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <OTPInput
+                      length={6}
+                      value={verificationToken}
+                      onChange={(value) => setVerificationToken(value)}
+                    />
+                  </div>
                   <Button
                     onClick={() => setShowDisableConfirm(true)}
                     disabled={isDisabling || verificationToken.length !== 6}
                     variant="destructive"
-                    className="w-full sm:w-auto text-sm sm:text-base"
+                    className="w-full text-sm sm:text-base"
                   >
                     {isDisabling ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <RefreshCw className="w-4 h-4 animate-spin" />
                         Disabling...
                       </div>

@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { toast } from "sonner";
-import { Shield, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Shield, ArrowLeft } from "lucide-react";
+import { OTPInput } from "@/components/ui/otp-input";
 
 export default function Verify2FAPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showToken, setShowToken] = useState(false);
   const [isBackupCode, setIsBackupCode] = useState(false);
 
   const email = searchParams.get("email");
@@ -111,28 +111,7 @@ export default function Verify2FAPage() {
   };
 
   const handleTokenChange = (value: string) => {
-    // Clean the input value
-    let cleanValue = value.replace(/\s/g, "");
-    
-    // For TOTP mode, only allow digits and limit to 6 characters
-    // For backup code mode, allow alphanumeric and limit to 8 characters
-    if (!isBackupCode) {
-      cleanValue = cleanValue.replace(/[^0-9]/g, "").slice(0, 6);
-    } else {
-      cleanValue = cleanValue.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8);
-    }
-    
-    setToken(cleanValue);
-    
-    // Auto-detect mode based on input length and content
-    // Only auto-detect if we're in the default TOTP mode and user types 8 characters
-    if (!isBackupCode && cleanValue.length === 8 && /^[A-Z0-9]+$/.test(cleanValue)) {
-      setIsBackupCode(true);
-    }
-    // Or if we're in backup code mode and user types 6 digits
-    else if (isBackupCode && cleanValue.length === 6 && /^[0-9]+$/.test(cleanValue)) {
-      setIsBackupCode(false);
-    }
+    setToken(value);
   };
 
   // For forgot password context, only email is required
@@ -177,34 +156,21 @@ export default function Verify2FAPage() {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">
                   {isBackupCode ? "Backup Code" : "Authentication Code"}
                 </label>
-                <div className="relative">
-                  <input
-                    type={showToken ? "text" : "password"}
-                    value={token}
-                    onChange={(e) => handleTokenChange(e.target.value)}
-                    placeholder={isBackupCode ? "Enter 8-character backup code" : "Enter 6-digit code"}
-                    maxLength={isBackupCode ? 8 : 6}
-                    inputMode={isBackupCode ? "text" : "numeric"}
-                    pattern={isBackupCode ? "[A-Za-z0-9]*" : "[0-9]*"}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                    autoComplete="one-time-code"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowToken(!showToken)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <OTPInput
+                  length={isBackupCode ? 8 : 6}
+                  value={token}
+                  onChange={handleTokenChange}
+                  backupCode={isBackupCode}
+                  autoFocus
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
                   {isBackupCode 
-                    ? "Backup codes are 8 characters long" 
-                    : "Use your authenticator app to get a 6-digit code"
+                    ? "Paste or type your 8-character backup code" 
+                    : "Enter the 6-digit code from your authenticator app"
                   }
                 </p>
               </div>

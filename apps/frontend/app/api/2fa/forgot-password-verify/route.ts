@@ -28,32 +28,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = users[0];
+    const dbUser = users[0];
 
-    if (!user.twoFactorEnabled) {
+    if (!dbUser.twoFactorEnabled) {
       return NextResponse.json(
         { message: "2FA is not enabled for this user" },
         { status: 400 }
       );
     }
 
-    // Verify 2FA token
+    // Verify 2FA token - only accept current or immediately previous time step
+    // Reject tokens older than ~60 seconds (delta <= -2)
     let isValid = false;
     
     // Try TOTP first
-    if (user.twoFactorSecret) {
-      isValid = speakeasy.totp.verify({
-        secret: user.twoFactorSecret,
+    if (dbUser.twoFactorSecret) {
+      const verifyResult = speakeasy.totp.verifyDelta({
+        secret: dbUser.twoFactorSecret,
         encoding: "base32",
         token: twoFactorToken,
-        window: 2,
+        window: 3, // Check wider window for delta calculation
       });
+      // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
+      // Reject tokens from 2+ steps ago (older than ~60 seconds)
+      // Check if verifyResult has a delta property and it's in the valid range
+      if (verifyResult && typeof verifyResult === 'object' && 'delta' in verifyResult) {
+        const delta = verifyResult.delta;
+        isValid = delta >= -1 && delta <= 1;
+      }
     }
     
     // If TOTP fails, try backup codes
-    if (!isValid && user.backupCodes) {
+    if (!isValid && dbUser.backupCodes) {
       try {
-        const backupCodes = JSON.parse(user.backupCodes);
+        const backupCodes = JSON.parse(dbUser.backupCodes);
         const codeIndex = backupCodes.findIndex((code: string) => 
           code === twoFactorToken.toUpperCase()
         );

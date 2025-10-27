@@ -2,6 +2,7 @@
 
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { OTPInput } from "./ui/otp-input";
 import { EyeOff, Eye } from "lucide-react";
 import { useState, useEffect, type RefObject } from "react";
 import Link from "next/link";
@@ -63,8 +64,8 @@ export function AuthForm({
     setStoredPasswordConfirm(e.target.value);
   };
 
-  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setOtpValue(e.target.value);
+  const handleOtpChange = (value: string) => {
+    setOtpValue(value);
   };
 
   // Validation function
@@ -242,30 +243,27 @@ export function AuthForm({
       )}
 
       {showOTPField && (
-        <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="otp"
-            className="text-zinc-600 font-normal dark:text-zinc-400"
-          >
-            Verification Code
-          </Label>
-          <div className="relative">
-            <Input
-              id="otp"
-              name="otp"
-              className="bg-muted text-md md:text-sm"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              required
-              placeholder="Enter 6-digit code"
-              onChange={handleOtpChange}
-            />
-          </div>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            We&apos;ve sent a code to your email
-          </p>
+        <>
+          {/* Hidden input to submit OTP value with the form */}
+          <input type="hidden" name="otp" value={otpValue} />
+          
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="otp"
+              className="text-zinc-600 font-normal dark:text-zinc-400 text-center"
+            >
+              Verification Code
+            </Label>
+            <div className="flex justify-center">
+              <OTPInput
+                length={6}
+                value={otpValue}
+                onChange={handleOtpChange}
+              />
+            </div>
+            <p className="text-sm text-gray-500 dark:text-zinc-400 text-center">
+              We&apos;ve sent a code to your email
+            </p>
           {onResendOTP && (
             <div className="flex flex-col gap-1">
               <button
@@ -295,6 +293,7 @@ export function AuthForm({
             </p>
           ))}
         </div>
+        </>
       )}
 
       {/* Turnstile component - only render when Turnstile is being used */}

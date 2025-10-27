@@ -3,8 +3,8 @@
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import type { User } from "next-auth";
-import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+import { handleLogout } from "@/lib/auth-utils";
 
 import {
   DropdownMenu,
@@ -129,11 +129,7 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
               <button
                 type="button"
                 className="w-full cursor-pointer focus:bg-destructive/10 focus:text-destructive rounded-lg mx-1 transition-colors duration-200 font-medium"
-                onClick={() => {
-                  signOut({
-                    redirectTo: "/",
-                  });
-                }}
+                onClick={handleLogout}
               >
                 Sign out
               </button>
