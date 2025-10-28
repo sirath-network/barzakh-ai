@@ -95,12 +95,29 @@ export async function getAllPathDetails(openapiData: any) {
   return await Promise.all(pathDetailsPromises);
 }
 
+// Helper function to decode HTML entities
+function decodeHTMLEntities(text: string): string {
+  const entities: { [key: string]: string } = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+  };
+  
+  return text.replace(/&[a-z]+;|&#\d+;/gi, (match) => entities[match] || match);
+}
+
 export async function getPathDetails(openapiData: any, pathUrl: string) {
   //give all the parameters for a path
-  const pathObj = openapiData.paths?.[pathUrl];
+  // Decode HTML entities (e.g., &amp; -> &)
+  const decodedPathUrl = decodeHTMLEntities(pathUrl);
+  
+  const pathObj = openapiData.paths?.[decodedPathUrl];
 
   if (!pathObj) {
-    throw new Error(`Path '${pathUrl}' not found in the OpenAPI spec.`);
+    throw new Error(`Path '${decodedPathUrl}' not found in the OpenAPI spec. (Original: ${pathUrl})`);
   }
 
   const details = Object.entries(pathObj).map(

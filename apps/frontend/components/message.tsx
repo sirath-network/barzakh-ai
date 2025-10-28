@@ -93,6 +93,7 @@ const PurePreviewMessage = ({
   const [actionsVisible, setActionsVisible] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
+  const [hasContentStarted, setHasContentStarted] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,24 +149,36 @@ const PurePreviewMessage = ({
     (tool) => tool.toolName === 'createImage'
   );
 
-  // Logika thinking yang lebih agresif dan responsif
+  // Track when content has started appearing to prevent glitchy toggling
+  useEffect(() => {
+    if (message.role === 'assistant' && message.content) {
+      setHasContentStarted(true);
+    }
+  }, [message.content, message.role]);
+
+  // Reset for new messages
+  useEffect(() => {
+    setHasContentStarted(false);
+  }, [message.id]);
+
+  // Show thinking ONLY before content starts streaming
+  // Once content appears, NEVER show thinking again (prevents glitch)
   const isThinking = 
     message.role === 'assistant' && 
-    isLoading && ( // only when the chat is actively loading
-      (!message.content && (!message.toolInvocations || message.toolInvocations.length === 0)) ||
-      (pendingTools && pendingTools.length > 0)
-    );
+    isLoading &&
+    !hasContentStarted; // Hide thinking once content starts streaming
 
-  // Effect untuk menampilkan thinking tanpa delay sama sekali
+  // Effect to manage thinking state smoothly
   useEffect(() => {
     if (isThinking) {
-      // Tampilkan thinking SEGERA tanpa delay
+      // Show thinking immediately when loading starts
       setShowThinking(true);
     } else {
-      // Berikan sedikit delay sebelum menghilangkan thinking
+      // Hide thinking when content starts streaming
+      // Smooth transition delay
       const timer = setTimeout(() => {
         setShowThinking(false);
-      }, 150);
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [isThinking]);
