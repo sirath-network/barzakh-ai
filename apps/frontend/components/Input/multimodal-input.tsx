@@ -924,7 +924,6 @@ function PureMultimodalInput({
       >
         <AnimatePresence>
           {(() => {
-            console.log("Rendering attachments:", attachments.length, "upload queue:", uploadQueue.length);
             return (attachments.length > 0 || uploadQueue.length > 0);
           })() && (
             <motion.div
@@ -990,7 +989,6 @@ function PureMultimodalInput({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                console.log("Enter pressed, uploadQueue length:", uploadQueue.length);
                 // Only allow sending if no files are uploading
                 if (uploadQueue.length === 0) {
                   submitForm();

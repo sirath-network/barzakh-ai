@@ -54,10 +54,44 @@ export const getEvmMultiChainWalletPortfolio = tool({
         return "Wallet has no balances.";
       }
 
+      // Fetch DeFi protocol positions
+      let defiPositions: any[] = [];
+      try {
+        const defiResponse = await fetch(
+          `https://api.zerion.io/v1/wallets/${wallet_address}/positions/?filter[positions]=only_complex&filter[trash]=only_non_trash&currency=${currency}&sort=value`,
+          options
+        );
+        if (defiResponse.ok) {
+          const defiData = await defiResponse.json();
+          defiPositions = defiData.data || [];
+        }
+      } catch (error) {
+        console.error("Error fetching DeFi positions:", error);
+        // Continue without DeFi data if it fails
+      }
+
       // filter for tokens with < 1 usd and only show top 10
       const filteredPortfolio = filterAndLimitPortfolio(portfolioData.data);
 
-      return { ...filteredPortfolio, currency };
+      // Add DeFi summary to the response
+      const defiSummary = {
+        hasDefiPositions: defiPositions.length > 0,
+        totalDefiValue: defiPositions.reduce((sum: number, pos: any) => sum + (pos.attributes?.value || 0), 0),
+        positionCount: defiPositions.length,
+        positions: defiPositions.slice(0, 20).map((pos: any) => ({
+          protocol: pos.attributes?.application_metadata?.name || pos.attributes?.protocol || 'Unknown',
+          type: pos.attributes?.position_type || pos.type || 'unknown',
+          chain: pos.relationships?.chain?.data?.id || 'unknown',
+          value: pos.attributes?.value || 0,
+          tokens: pos.attributes?.fungible_info ? [{
+            symbol: pos.attributes.fungible_info.symbol,
+            name: pos.attributes.fungible_info.name,
+            amount: pos.attributes.quantity?.float || 0,
+          }] : []
+        }))
+      };
+
+      return { ...filteredPortfolio, currency, defi: defiSummary };
     } catch (error) {
       console.error("Error fetching wallet portfolio:", error);
       return "Failed to fetch wallet portfolio";

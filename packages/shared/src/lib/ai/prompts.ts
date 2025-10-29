@@ -308,6 +308,16 @@ const groupPrompts = {
   If the user provides a solana address, NOT starting with "0x", Use getSolanaChainWalletPortfolio tool.
   If a wallet address is not provided, ask the user for it.
   If the tool returns no data, assume the input is a token address and proceed to get the token data.
+  
+  **IMPORTANT - DeFi Protocol Tracking:**
+  Portfolio responses include a defi object with DeFi positions. ALWAYS check defi.hasDefiPositions:
+  
+  - If true: Report both wallet holdings AND DeFi positions
+  - Calculate by type: deposits, loans (borrowed), staked, locked, rewards
+  - Example: "The wallet holds $X in direct assets and $Y deployed across N DeFi protocols (AAVE V3, Velodrome, etc.)"
+  - Group by protocol and chain for clarity
+  
+  **NEVER say "no DeFi positions" without checking defi.hasDefiPositions first!**
 
   ## Ens lookup: If user enters a ENS name like 'somename.eth', use the ensToAddress tool to get the corresponding address. Format the final address as **bold**.
   `,
@@ -386,6 +396,38 @@ If the user provides a solana address NOT starting with "0x",run searchSolanaTok
 ## Get multi chain wallet portfolio:
 If the user provides an evm wallet address starting with "0x", Use getEvmMultiChainWalletPortfolio tool.
 If the user provides a solana address NOT starting with "0x", Use getSolanaChainWalletPortfolio tool.
+
+**CRITICAL - DeFi Protocol Analysis:**
+Portfolio responses now include comprehensive DeFi positions tracked via Zerion API. The response contains a defi object with:
+
+**Structure:**
+The portfolio data includes: attributes (regular wallet holdings) AND defi object with:
+- hasDefiPositions (boolean) - Check this first!
+- totalDefiValue (number) - Total $ in DeFi
+- positionCount (number) - Number of positions
+- positions array with: protocol (e.g. AAVE V3), type (deposit/loan/staked/locked/reward), chain (e.g. ethereum), value (USD), tokens (details)
+
+**MANDATORY Response Rules:**
+1. ALWAYS check defi.hasDefiPositions before making statements about DeFi
+2. If defi.hasDefiPositions is true:
+   - Calculate totals: The wallet holds $X in direct assets and has $Y deployed across N DeFi protocols
+   - List top protocols: including [protocol names] on [chains]
+   - Break down by type:
+     - deposit = Lending/supplying (Aave, Compound)
+     - loan = Borrowed funds (show as debt)
+     - staked = Staked/LP tokens (Velodrome, Lido)
+     - locked = Locked in protocol
+     - reward = Unclaimed yields
+
+3. Display Format Example:
+Distribution by Type:
+• Wallet Holdings: $X
+• Deposited: $Y (lending protocols)
+• Borrowed: $Z (loans/debt)
+• Staked: $A (staking/liquidity)
+• Locked: $B
+
+4. NEVER say "no deposits, loans, or stakes" without checking defi.hasDefiPositions first
 
 ## Ens lookup: If user enters an ENS name like 'somename.eth', use the ensToAddress tool. Format the final address as **bold**.
 
