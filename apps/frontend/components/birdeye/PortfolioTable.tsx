@@ -304,7 +304,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   };
 
   return (
-    <div className={`relative bg-white dark:bg-black/80 rounded-xl border overflow-hidden backdrop-blur-sm shadow-lg dark:shadow-2xl w-full ${
+    <div className={`relative bg-white dark:bg-black/80 rounded-lg sm:rounded-xl border overflow-hidden backdrop-blur-sm shadow-lg dark:shadow-2xl w-full max-w-full ${
       isPositiveChange
         ? 'border-gray-200 dark:border-green-900/50'
         : 'border-gray-200 dark:border-red-900/50'
@@ -318,38 +318,38 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       
       <div className="relative">
       {/* Portfolio Header */}
-        <div className={`flex flex-col p-4 md:p-5 border-b ${
+        <div className={`flex flex-col p-4 sm:p-5 md:p-6 border-b ${
           isPositiveChange 
             ? 'border-gray-200 dark:border-green-900/30' 
             : 'border-gray-200 dark:border-red-900/30'
         }`}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-sm border ${
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shadow-sm border ${
                 isPositiveChange
                   ? 'bg-gray-100 dark:bg-green-800/50 border-gray-200 dark:border-green-700/50'
                   : 'bg-gray-100 dark:bg-red-800/50 border-gray-200 dark:border-red-700/50'
               }`}>
-                <Wallet className={`w-5 h-5 ${
+                <Wallet className={`w-4 h-4 sm:w-5 sm:h-5 ${
                   isPositiveChange
                     ? 'text-gray-600 dark:text-green-300'
                     : 'text-gray-600 dark:text-red-300'
                 }`} />
               </div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 Portfolio
               </h2>
             </div>
       </div>
 
-          <div className="flex items-end justify-between">
+          <div className="flex items-end justify-between gap-3 flex-wrap sm:flex-nowrap">
             {totalPositions && totalPositions > 0 && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              <div className="flex items-baseline gap-1.5 sm:gap-2 min-w-0 flex-1">
+                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white truncate">
                   {formatNumber(totalPositions)}
                 </span>
                 {currency !== "units" && (
-                  <span className="text-base font-medium text-gray-500 dark:text-gray-400">
+                  <span className="text-sm sm:text-base font-medium text-gray-500 dark:text-gray-400 flex-shrink-0">
                     {currency?.toUpperCase() ?? ""}
                   </span>
                 )}
@@ -357,18 +357,18 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             )}
             
             {percentChange !== undefined && (
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
+              <div className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg flex-shrink-0 ${
                 isPositiveChange 
                   ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50' 
                   : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50'
               }`}>
                 {isPositiveChange ? (
-                  <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 dark:text-red-400" />
                 )}
                 <div className="flex flex-col items-end">
-                  <span className={`text-xs font-bold ${
+                  <span className={`text-xs sm:text-sm font-bold ${
                     isPositiveChange 
                       ? 'text-green-700 dark:text-green-400' 
                       : 'text-red-700 dark:text-red-400'
@@ -383,47 +383,47 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         </div>
 
         {/* DeFi Protocols Button */}
-        <div className="px-4 md:px-5 pt-2 pb-3 border-b border-gray-200 dark:border-gray-700/50">
+        <div className="px-3 sm:px-4 md:px-5 pt-2 pb-3 border-b border-gray-200 dark:border-gray-700/50">
           <button
             onClick={toggleProtocols}
-            className={`group w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
+            className={`group w-full flex items-center justify-between px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl transition-all duration-200 touch-manipulation active:scale-[0.98] ${
               showProtocols
                 ? 'bg-gradient-to-br from-gray-50 to-grey-50 dark:from-gray-900/20 dark:to-grey-900/20 border-2 border-gray-300 dark:border-gray-700/50 shadow-sm'
                 : 'bg-white dark:bg-gray-800/40 border-2 border-gray-200 dark:border-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600/50 hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800/60'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm flex-shrink-0 ${
                 showProtocols
                   ? 'bg-gradient-to-br from-gray-500 to-grey-600'
                   : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 group-hover:from-gray-500 group-hover:to-grey-600'
               }`}>
-                <span className={`text-xl transition-all duration-200 ${
+                <span className={`text-lg sm:text-xl transition-all duration-200 ${
                   showProtocols ? '' : 'group-hover:scale-110'
                 }`}>
                   🏦
                 </span>
               </div>
-              <div className="text-left">
-                <div className={`text-sm font-bold transition-colors duration-200 ${
+              <div className="text-left min-w-0">
+                <div className={`text-xs sm:text-sm font-bold transition-colors duration-200 truncate ${
                   showProtocols 
                     ? 'text-gray-900 dark:text-gray-100' 
                     : 'text-gray-900 dark:text-white group-hover:text-gray-600 dark:group-hover:text-gray-400'
                 }`}>
                   DeFi Protocols
                 </div>
-                <div className="text-[11px] text-gray-600 dark:text-gray-400 font-medium">
+                <div className="text-[10px] sm:text-[11px] text-gray-600 dark:text-gray-400 font-medium truncate">
                   Lending, Staking, Liquidity & more
                 </div>
               </div>
             </div>
-            <div className={`transition-all duration-200 ${
+            <div className={`transition-all duration-200 flex-shrink-0 ml-2 ${
               showProtocols ? 'rotate-0' : 'group-hover:translate-x-0.5'
             }`}>
               {showProtocols ? (
-                <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400" />
               ) : (
-                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400" />
               )}
             </div>
           </button>
@@ -431,16 +431,16 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
         {/* DeFi Protocol Positions */}
         {showProtocols && (
-          <div className="px-4 md:px-5 pb-4 pt-3">
+          <div className="px-3 sm:px-4 md:px-5 pb-4 pt-3">
             {loadingProtocols ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
-                <span className="ml-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+                <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-gray-500 dark:text-gray-400" />
+                <span className="ml-2 sm:ml-3 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300">
                   Loading DeFi positions...
                 </span>
               </div>
             ) : protocolPositions.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2.5 sm:space-y-3">
                 {protocolPositions.map((position, idx) => (
                   <div
                     key={idx}
@@ -456,14 +456,14 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                       'bg-gradient-to-br from-gray-500 to-gray-600'
                     } pointer-events-none`} />
                     
-                    <div className="relative p-4">
+                    <div className="relative p-3 sm:p-4">
                       {/* Protocol Header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-start justify-between mb-3 gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           {/* Protocol Icon */}
-                          <div className="relative">
+                          <div className="relative flex-shrink-0">
                             {position.protocolIcon ? (
-                              <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2 shadow-sm">
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-1.5 sm:p-2 shadow-sm">
                                 <Image
                                   src={position.protocolIcon}
                                   alt={position.protocol}
@@ -473,29 +473,29 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                                 />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-500 to-grey-600 flex items-center justify-center text-sm font-bold text-white shadow-sm">
+                              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-gray-500 to-grey-600 flex items-center justify-center text-xs sm:text-sm font-bold text-white shadow-sm">
                                 {position.protocol.charAt(0).toUpperCase()}
                               </div>
                             )}
                           </div>
                           
                           {/* Protocol Info */}
-                          <div className="flex flex-col">
-                            <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <div className="flex flex-col min-w-0">
+                            <div className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 truncate">
                               {position.protocol}
                             </div>
-                            <div className="text-[11px] text-gray-500 dark:text-gray-400 capitalize flex items-center gap-1.5 mt-0.5">
+                            <div className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 capitalize flex items-center gap-1.5 mt-0.5 truncate">
                               <span>{position.chain.replace(/-/g, ' ')}</span>
                             </div>
                           </div>
                         </div>
                         
                         {/* Value and Badge */}
-                        <div className="text-right flex flex-col items-end gap-1.5">
-                          <div className="text-base font-bold text-gray-900 dark:text-white">
+                        <div className="text-right flex flex-col items-end gap-1 sm:gap-1.5 flex-shrink-0">
+                          <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
                             ${formatNumber(position.totalValue)}
                           </div>
-                          <div className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold shadow-sm border ${
+                          <div className={`text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg font-semibold shadow-sm border ${
                             position.type === 'deposit' 
                               ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/50' 
                               : position.type === 'loan' 
@@ -514,34 +514,34 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                       </div>
 
                       {/* Divider */}
-                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mb-3" />
+                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mb-2 sm:mb-3" />
 
                       {/* Tokens in this position */}
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 sm:space-y-2">
                         {position.tokens.map((token, tokenIdx) => (
                           <div
                             key={tokenIdx}
-                            className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/70 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-150"
+                            className="flex items-center justify-between py-2 px-2.5 sm:px-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/70 hover:border-gray-300 dark:hover:border-gray-600/50 transition-all duration-150 gap-2"
                           >
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                               {token.icon ? (
                                 <Image
                                   src={token.icon}
                                   alt={token.symbol}
                                   width={20}
                                   height={20}
-                                  className="w-5 h-5 rounded-full border border-gray-200 dark:border-gray-700"
+                                  className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-gray-200 dark:border-gray-700 flex-shrink-0"
                                 />
                               ) : (
-                                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-[8px] font-bold text-white">
+                                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-[7px] sm:text-[8px] font-bold text-white flex-shrink-0">
                                   {token.symbol.charAt(0)}
                                 </div>
                               )}
-                              <div className="flex flex-col">
-                                <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[11px] sm:text-xs font-semibold text-gray-900 dark:text-white truncate">
                                   {token.symbol}
                                 </span>
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 truncate">
                                   {token.amount >= 0.01 
                                     ? token.amount.toLocaleString('en-US', { maximumFractionDigits: 4 })
                                     : token.amount.toExponential(2)
@@ -549,12 +549,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                                 </span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-xs font-bold text-gray-900 dark:text-white">
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-[11px] sm:text-xs font-bold text-gray-900 dark:text-white">
                                 ${formatNumber(token.value)}
                               </div>
                               {token.value > 0 && token.amount > 0 && (
-                                <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400">
                                   ${(token.value / token.amount) >= 0.01 
                                     ? (token.value / token.amount).toLocaleString('en-US', { maximumFractionDigits: 2 })
                                     : (token.value / token.amount).toExponential(2)
@@ -570,14 +570,14 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-10 px-4">
-                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                  <span className="text-2xl">🏦</span>
+              <div className="text-center py-8 sm:py-10 px-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <span className="text-xl sm:text-2xl">🏦</span>
                 </div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
                   No DeFi Positions Found
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                   This wallet doesn't have any active DeFi protocol positions
                 </p>
               </div>
@@ -586,13 +586,13 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         )}
 
         {/* Portfolio Breakdown by Chain */}
-        <div className="max-h-80 overflow-y-auto custom-scrollbar p-4 md:p-5">
+        <div className="max-h-80 overflow-y-auto custom-scrollbar p-3 sm:p-4 md:p-5">
           {chains.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-8 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               No holdings available.
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-2 sm:space-y-2.5">
               {chains.map(([chain, value]) => {
                 const percentage = totalPositions && totalPositions > 0 
                   ? ((value || 0) / totalPositions) * 100 
@@ -614,22 +614,22 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     {/* Chain Header - Clickable */}
                     <button
                       onClick={() => toggleChainExpansion(chain)}
-                      className={`w-full p-3 transition-all duration-200 hover:shadow-sm ${
+                      className={`w-full p-2.5 sm:p-3 transition-all duration-200 hover:shadow-sm touch-manipulation active:scale-[0.98] ${
                         isPositiveChange
                           ? 'hover:bg-gray-100 dark:hover:bg-green-950/20 hover:border-gray-300 dark:hover:border-green-800/50'
                           : 'hover:bg-gray-100 dark:hover:bg-red-950/20 hover:border-gray-300 dark:hover:border-red-800/50'
                       }`}
                     >
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex gap-2.5 items-center">
-                          <div className="flex items-center gap-2">
+                      <div className="flex justify-between items-center mb-2 gap-2">
+                        <div className="flex gap-2 sm:gap-2.5 items-center min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                             {/* Expand/Collapse Icon */}
                             {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                              <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-400" />
                             ) : (
-                              <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-400" />
                             )}
-                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-900/50 p-1.5 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white dark:bg-gray-900/50 p-1 sm:p-1.5 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
                               <Image
                                 src={getChainLogo(chain, chainIcons[chain])}
                                 alt={chain}
@@ -639,21 +639,21 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                               />
                             </div>
                           </div>
-                          <div className="flex flex-col text-left">
-                            <div className="font-semibold text-sm text-gray-900 dark:text-white capitalize">
+                          <div className="flex flex-col text-left min-w-0">
+                            <div className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white capitalize truncate">
                               {chain.replace(/-/g, ' ')}
                             </div>
-                            <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                            <div className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400">
                               {percentage.toFixed(1)}%
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold text-sm text-gray-900 dark:text-white">
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white">
                             {value ? formatNumber(value) : "0.00"}
                           </div>
                           {currency !== "units" && (
-                            <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase">
+                            <div className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 uppercase">
                               {currency ?? ""}
                             </div>
                           )}
@@ -679,36 +679,36 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
                     {/* Expanded Token Details */}
                     {isExpanded && (
-                      <div className="px-3 pb-3 pt-1 border-t border-gray-200 dark:border-gray-700/50">
+                      <div className="px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1 border-t border-gray-200 dark:border-gray-700/50">
                         {isLoading ? (
                           <div className="flex items-center justify-center py-4">
-                            <Loader2 className="w-5 h-5 animate-spin text-gray-500 dark:text-gray-400" />
-                            <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-gray-500 dark:text-gray-400" />
+                            <span className="ml-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                               Loading tokens...
                             </span>
                           </div>
                         ) : tokens && tokens.length > 0 ? (
-                          <div className="space-y-2 mt-2">
+                          <div className="space-y-1.5 sm:space-y-2 mt-2">
                             {tokens.map((token, idx) => (
                               <div
                                 key={idx}
-                                className="flex justify-between items-center py-2 px-3 bg-white dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                                className="flex justify-between items-center py-2 px-2.5 sm:px-3 bg-white dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors gap-2"
                               >
-                                <div className="flex items-center gap-2.5">
+                                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                                   {token.icon && (
                                     <Image
                                       src={token.icon}
                                       alt={token.symbol}
                                       width={24}
                                       height={24}
-                                      className="w-6 h-6 rounded-full"
+                                      className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex-shrink-0"
                                     />
                                   )}
-                                  <div className="flex flex-col">
-                                    <div className="text-xs font-semibold text-gray-900 dark:text-white">
+                                  <div className="flex flex-col min-w-0">
+                                    <div className="text-[11px] sm:text-xs font-semibold text-gray-900 dark:text-white truncate">
                                       {token.symbol}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 truncate">
                                       {token.balance >= 0.01 
                                         ? token.balance.toLocaleString('en-US', { maximumFractionDigits: 4 })
                                         : token.balance.toExponential(2)
@@ -716,12 +716,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <div className="text-xs font-bold text-gray-900 dark:text-white">
+                                <div className="text-right flex-shrink-0">
+                                  <div className="text-[11px] sm:text-xs font-bold text-gray-900 dark:text-white">
                                     ${formatNumber(token.value)}
                                   </div>
                                   {token.price > 0 && (
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                    <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400">
                                       ${token.price >= 0.01 
                                         ? token.price.toLocaleString('en-US', { maximumFractionDigits: 2 })
                                         : token.price.toExponential(2)
@@ -733,7 +733,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-4 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-center py-4 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                             No tokens found on this chain
                           </div>
                         )}

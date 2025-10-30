@@ -20,7 +20,7 @@ export function cn(...inputs: ClassValue[]) {
 export function convertToUIMessages(
   messages: Array<DBMessage>
 ): Array<Message> {
-  return messages.reduce((chatMessages: Array<Message>, message) => {
+  const uiMessages = messages.reduce((chatMessages: Array<Message>, message) => {
     if (message.role === "tool") {
       return addToolMessageToChat({
         toolMessage: message as CoreToolMessage,
@@ -132,4 +132,57 @@ export function convertToUIMessages(
 
     return chatMessages;
   }, []);
+  
+  // Post-process: Merge consecutive assistant messages with tool invocations
+  // This fixes the issue where after page refresh, sources are displayed separately
+  const mergedMessages: Array<Message> = [];
+  
+  for (let i = 0; i < uiMessages.length; i++) {
+    const currentMessage = uiMessages[i];
+    
+    // If this is an assistant message with tool invocations
+    if (
+      currentMessage.role === "assistant" && 
+      currentMessage.toolInvocations && 
+      currentMessage.toolInvocations.length > 0
+    ) {
+      // Check if the previous message in mergedMessages is also an assistant with tools
+      const prevMessage = mergedMessages[mergedMessages.length - 1];
+      
+      if (
+        prevMessage && 
+        prevMessage.role === "assistant" && 
+        prevMessage.toolInvocations && 
+        prevMessage.toolInvocations.length > 0
+      ) {
+        // Merge tool invocations into the previous message
+        prevMessage.toolInvocations = [
+          ...prevMessage.toolInvocations,
+          ...currentMessage.toolInvocations,
+        ];
+        
+        // Append content if the current message has meaningful content
+        if (currentMessage.content && typeof currentMessage.content === "string" && currentMessage.content.trim()) {
+          if (typeof prevMessage.content === "string") {
+            prevMessage.content = prevMessage.content + "\n\n" + currentMessage.content;
+          } else {
+            prevMessage.content = currentMessage.content;
+          }
+        }
+        
+        // Keep the reasoning from the latest message if available
+        if (currentMessage.reasoning) {
+          prevMessage.reasoning = currentMessage.reasoning;
+        }
+        
+        // Don't push the current message as it's been merged
+        continue;
+      }
+    }
+    
+    // If not mergeable, add the message as is
+    mergedMessages.push(currentMessage);
+  }
+  
+  return mergedMessages;
 }

@@ -536,21 +536,21 @@ const PurePreviewMessage = ({
                   {/* === BAGIAN BAWAH: SEMUA IKON & LABEL SUMBER === */}
                   {completedTools && completedTools.length > 0 && message.role === "assistant" && (
                     <motion.div 
-                      className="flex flex-col gap-3 pt-4 mt-4 border-t border-border/50"
+                      className="flex flex-col gap-2 sm:gap-3 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-border/50"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.4 }}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 sm:justify-between">
                         {/* Container kiri: Icons dengan background dan shadow yang lebih baik */}
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex items-center h-6">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-x-auto w-full sm:w-auto">
+                          <div className="relative flex items-center h-5 sm:h-6 flex-shrink-0">
                             {completedTools.map((tool, index) => (
                               <motion.div
                                 key={tool.toolCallId}
                                 className="absolute"
                                 style={{
-                                  left: `${index * 16}px`,
+                                  left: `${index * 14}px`,
                                   zIndex: completedTools.length - index,
                                 }}
                                 initial={{ scale: 0, opacity: 0, rotate: -10 }}
@@ -568,7 +568,7 @@ const PurePreviewMessage = ({
                                   transition: { duration: 0.2 }
                                 }}
                               >
-                                <div className="flex items-center justify-center w-6 h-6 bg-background/80 backdrop-blur-sm rounded-full border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
+                                <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-background/80 backdrop-blur-sm rounded-full border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
                                   <ToolIcon toolName={tool.toolName} />
                                 </div>
                               </motion.div>
@@ -576,28 +576,28 @@ const PurePreviewMessage = ({
                           </div>
                           
                           {/* Label dengan styling yang lebih baik */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0">
                             <motion.div
-                              className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-full border border-border/40"
+                              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 bg-muted/50 rounded-full border border-border/40 flex-shrink-0"
                               style={{
-                                marginLeft: `${Math.max(0, (completedTools.length - 1) * 16 + 16)}px`,
+                                marginLeft: `${Math.max(0, (completedTools.length - 1) * 14 + 14)}px`,
                               }}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: 0.6 }}
                             >
-                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                              <span className="text-xs font-medium text-muted-foreground">
+                              <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
+                              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground whitespace-nowrap">
                                 {completedTools.length} source
                                 {completedTools.length > 1 ? "s" : ""}
                               </span>
                             </motion.div>
 
                             {/* separator */}
-                            <div className="text-border/60">|</div>
+                            <div className="text-border/60 hidden sm:block">|</div>
 
                             <motion.div
-                              className="flex flex-wrap gap-1.5"
+                              className="flex flex-wrap gap-1 sm:gap-1.5 min-w-0"
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.3, delay: 0.9 }}
@@ -623,20 +623,21 @@ const PurePreviewMessage = ({
                                 return (
                                   <motion.span
                                     key={tool.toolCallId}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-accent/50 text-accent-foreground rounded-md border border-accent/20 hover:bg-accent/70 transition-colors cursor-default"
+                                    className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-accent/50 text-accent-foreground rounded-md border border-accent/20 hover:bg-accent/70 transition-colors cursor-default whitespace-nowrap"
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.2, delay: 0.9 + index * 0.05 }}
                                     whileHover={{ scale: 1.02 }}
                                   >
                                     <ToolIcon toolName={tool.toolName} />
-                                    {toolNames[tool.toolName] || tool.toolName}
+                                    <span className="hidden sm:inline">{toolNames[tool.toolName] || tool.toolName}</span>
+                                    <span className="inline sm:hidden">{(toolNames[tool.toolName] || tool.toolName).split(' ')[0]}</span>
                                   </motion.span>
                                 );
                               })}
                               {completedTools.length > 3 && (
                                 <motion.span
-                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-md border border-border/40"
+                                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-muted text-muted-foreground rounded-md border border-border/40 whitespace-nowrap"
                                   initial={{ opacity: 0, scale: 0.8 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{ duration: 0.2, delay: 1.1 }}
