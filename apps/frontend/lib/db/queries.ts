@@ -109,6 +109,16 @@ export async function getUser(email: string): Promise<Array<User>> {
     throw error;
   }
 }
+
+// Look up user by username
+export async function getUserByUsername(username: string): Promise<Array<User>> {
+  try {
+    return await db.select().from(user).where(eq(user.username, username));
+  } catch (error) {
+    console.error("Failed to get user by username from database");
+    throw error;
+  }
+}
 export async function getUserById(id: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.id, id));

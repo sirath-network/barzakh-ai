@@ -73,7 +73,20 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }: any) {
+      // If the client explicitly triggers a session update, merge the incoming
+      // session data into the JWT and invalidate the local cache so UI updates
+      // are reflected immediately without requiring a re-login.
+      if (trigger === "update") {
+        if (session?.user) {
+          if (typeof session.user.name !== "undefined") token.name = session.user.name as any;
+          if (typeof (session.user as any).username !== "undefined") token.username = (session.user as any).username as any;
+          if (typeof session.user.image !== "undefined") token.image = session.user.image as any;
+        }
+        if (token.email) {
+          userCache.delete(token.email as string);
+        }
+      }
       // Handle initial sign-in for OAuth providers.
       if (user?.email) {
         const [existingUser] = await getUser(user.email);
@@ -143,7 +156,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
@@ -155,13 +168,13 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: any) {
       if (url.includes('/api/auth/callback/google')) {
         return `${baseUrl}/?newuser=true`;
       }
       return url.startsWith(baseUrl) ? url : baseUrl;
     },
-    async signOut({ token }) {
+    async signOut({ token }: any) {
       // Clear the token to ensure proper logout
       return {};
     }

@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import {
   createUser,
   getUser,
+  getUserByUsername,
   getPasswordResetToken,
   savePasswordResetToken,
   updateUserPassword,
@@ -63,7 +64,8 @@ async function verifyTurnstile(token: string) {
 
 // For login: only check required + min length
 const loginSchema = z.object({
-  email: z.string().email(),
+  // Accept either email or username; we'll resolve to email server-side
+  email: z.string().min(1, "Required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   "cf-turnstile-response": z.string(),
 });
@@ -137,8 +139,24 @@ export const login = async (
       return { status: "failed" };
     }
 
+    // Resolve identifier to email (supports username)
+    let resolvedEmail = validatedData.email;
+    if (!resolvedEmail.includes("@")) {
+      // Enforce lowercase a-z0-9 only for username logins. Do not normalize; reject instead.
+      const isLowerAlnum = /^[a-z0-9]+$/.test(resolvedEmail);
+      if (!isLowerAlnum) {
+        return { status: "failed" };
+      }
+      const usernameLookup = resolvedEmail; // already validated as lowercase a-z0-9
+      const byUsername = await getUserByUsername(usernameLookup);
+      if (byUsername.length === 0) {
+        return { status: "failed" };
+      }
+      resolvedEmail = byUsername[0].email!;
+    }
+
     // Check if user has 2FA enabled
-    const users = await getUser(validatedData.email);
+    const users = await getUser(resolvedEmail);
     if (users.length > 0 && users[0].twoFactorEnabled) {
       // User has 2FA enabled, get temp token for 2FA verification
       try {
@@ -148,7 +166,7 @@ export const login = async (
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: validatedData.email,
+            email: resolvedEmail,
             password: validatedData.password,
           }),
         });
@@ -158,7 +176,7 @@ export const login = async (
         if (response.ok) {
           return { 
             status: "requires_2fa", 
-            email: validatedData.email,
+            email: resolvedEmail,
             tempToken: data.tempToken
           };
         } else {
@@ -171,7 +189,7 @@ export const login = async (
     }
 
     await signIn("credentials", {
-      email: validatedData.email,
+      email: resolvedEmail,
       password: validatedData.password,
       redirect: false,
     });

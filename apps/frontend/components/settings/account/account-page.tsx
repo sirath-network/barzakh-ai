@@ -356,6 +356,9 @@ export default function AccountSettingsPage() {
     username !== initialData.username ||
     avatar !== initialData.avatar;
 
+  const normalizedUsernameLive = (username || "").toLowerCase();
+  const isUsernameValid = normalizedUsernameLive.length > 0 && /^[a-z0-9]+$/.test(normalizedUsernameLive);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const file = e.target.files[0];
@@ -421,21 +424,47 @@ export default function AccountSettingsPage() {
     setIsLoading(true);
 
     try {
+      // Normalize and validate username before sending
+      const normalizedUsername = (username || "").toLowerCase();
+      if (!normalizedUsername) {
+        toast.error("Username is required.");
+        setIsLoading(false);
+        return;
+      }
+      if (!/^[a-z0-9]+$/.test(normalizedUsername)) {
+        toast.error("Username must be lowercase letters and numbers only (no spaces or symbols).");
+        setIsLoading(false);
+        return;
+      }
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, username, avatar }),
+        body: JSON.stringify({ fullName, username: normalizedUsername, avatar }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update profile");
+      if (!res.ok) {
+        if (res.status === 400 && data?.error === "USERNAME_INVALID") {
+          toast.error("Username must be lowercase letters and numbers only (no spaces or symbols).");
+          return;
+        }
+        if (res.status === 400 && data?.error === "USERNAME_REQUIRED") {
+          toast.error("Username is required.");
+          return;
+        }
+        if (res.status === 409 && data?.error === "USERNAME_TAKEN") {
+          toast.error("Username is already taken. Please choose another.");
+          return;
+        }
+        throw new Error(data.error || "Failed to update profile");
+      }
 
       await updateSession({
         ...session,
         user: {
           ...session?.user,
           name: fullName,
-          username: username,
+          username: normalizedUsername,
           image: avatar,
         },
       });
@@ -548,7 +577,7 @@ export default function AccountSettingsPage() {
               <div className="p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
                 <button
                   type="submit"
-                  disabled={isLoading || isUploading || !hasChanges}
+                  disabled={isLoading || isUploading || !hasChanges || !isUsernameValid}
                   className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isLoading ? (

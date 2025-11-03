@@ -74,7 +74,8 @@ export function AuthForm({
 
     // Check email if needed
     if (emailNeeded && !showOTPField) {
-      isValid = isValid && storedEmail.trim() !== "" && storedEmail.includes("@");
+      // Accept either email or username (non-empty)
+      isValid = isValid && storedEmail.trim() !== "";
     }
 
     // Check password if needed
@@ -94,7 +95,8 @@ export function AuthForm({
 
     // Check turnstile token - only if Turnstile is being used (when onTurnstileSuccess is provided)
     if (onTurnstileSuccess) {
-      isValid = isValid && turnstileToken && turnstileToken !== "" && turnstileToken.length > 10;
+      const tokenStr = typeof turnstileToken === "string" ? turnstileToken : "";
+      isValid = isValid && !!tokenStr && tokenStr.length > 10;
     }
 
     return isValid;
@@ -142,14 +144,13 @@ export function AuthForm({
             htmlFor="email"
             className="text-zinc-600 font-normal dark:text-zinc-400"
           >
-            Email Address
+            Email or Username
           </Label>
           <Input
             id="email"
             name="email"
             className="bg-muted text-md md:text-sm"
-            type="email"
-            placeholder="satoshi@sirath.network"
+            type="text"
             autoComplete="email"
             required
             autoFocus

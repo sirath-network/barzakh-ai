@@ -86,7 +86,27 @@ export async function POST(req: Request) {
       updateData.name = fullName?.trim() || null;
     }
     if (username !== undefined) {
-      updateData.username = username?.trim() || null;
+      const trimmed = username?.trim() || null;
+      if (trimmed) {
+        const normalized = trimmed.toLowerCase();
+        // Validate allowed characters: lowercase letters and digits only
+        const valid = /^[a-z0-9]+$/.test(normalized);
+        if (!valid) {
+          return NextResponse.json({ error: "USERNAME_INVALID" }, { status: 400 });
+        }
+        // Check uniqueness against other users
+        const existingSameUsername = await db
+          .select()
+          .from(user)
+          .where(eq(user.username, normalized));
+        if (existingSameUsername.length > 0 && existingSameUsername[0].email !== session.user.email) {
+          return NextResponse.json({ error: "USERNAME_TAKEN" }, { status: 409 });
+        }
+        updateData.username = normalized;
+      } else {
+        // Reject attempts to clear username
+        return NextResponse.json({ error: "USERNAME_REQUIRED" }, { status: 400 });
+      }
     }
     if (avatar !== undefined) {
       updateData.image = avatar?.trim() || null;
