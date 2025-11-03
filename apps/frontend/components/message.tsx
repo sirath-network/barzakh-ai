@@ -59,6 +59,7 @@ const getAttachmentSize = (attachment: any) => {
 import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
 import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
+import { generateStatusFromMessage } from "@/lib/status-generator";
 
 const PurePreviewMessage = ({
   chatId,
@@ -72,6 +73,7 @@ const PurePreviewMessage = ({
   showIcon = true,
   staticAvatarSrc,
   avatarSize = 32,
+  allMessages = [],
 }: {
   chatId: string;
   message: Message;
@@ -88,6 +90,7 @@ const PurePreviewMessage = ({
   showIcon?: boolean;
   staticAvatarSrc?: string;
   avatarSize?: number;
+  allMessages?: Message[];
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [actionsVisible, setActionsVisible] = useState(false);
@@ -148,6 +151,38 @@ const PurePreviewMessage = ({
   const hasCreateImage = otherCompletedTools?.some(
     (tool) => tool.toolName === 'createImage'
   );
+
+  // Generate dynamic status from pending tools
+  const getStatusText = (): string | undefined => {
+    if (!isLoading || !pendingTools || pendingTools.length === 0) {
+      return undefined;
+    }
+
+    // Find the previous user message to get the prompt
+    const messageIndex = allMessages.findIndex(m => m.id === message.id);
+    let userPrompt: string | undefined;
+    
+    // Look for the most recent user message before this assistant message
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (allMessages[i].role === 'user') {
+        const content = allMessages[i].content;
+        if (typeof content === 'string') {
+          userPrompt = content;
+        } else if (Array.isArray(content)) {
+          userPrompt = (content as any[])
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join(' ');
+        }
+        break;
+      }
+    }
+
+    const status = generateStatusFromMessage(message, userPrompt);
+    return status || undefined;
+  };
+
+  const statusText = getStatusText();
 
   // Track when content has started appearing to prevent glitchy toggling
   useEffect(() => {
@@ -220,7 +255,7 @@ const PurePreviewMessage = ({
             <AnimatePresence mode="wait">
               {showThinking ? (
                 <motion.div key="thinking">
-                  <ThinkingAnimation />
+                  <ThinkingAnimation statusText={statusText} />
                 </motion.div>
               ) : (
                 <motion.div 
@@ -671,6 +706,7 @@ export const PreviewMessage = memo(
     if (!equal(prevProps.message.toolInvocations, nextProps.message.toolInvocations)) return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
     if (!equal(prevProps.selectedGroup, nextProps.selectedGroup)) return false;
+    if (!equal(prevProps.allMessages, nextProps.allMessages)) return false;
     return true;
   }
 );

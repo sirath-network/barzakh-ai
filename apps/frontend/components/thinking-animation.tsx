@@ -1,9 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface ThinkingAnimationProps {
+    statusText?: string;
+}
 
 // Komponen animasi 'Thinking' yang diperbaiki
-export const ThinkingAnimation = () => {
+export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
+    // Use dynamic status text if provided, otherwise fallback to "Thinking"
+    const displayText = statusText || "Thinking";
     const containerVariants = {
         hidden: {
             opacity: 0,
@@ -75,12 +81,19 @@ export const ThinkingAnimation = () => {
             }}
         >
             {/* Text di sebelah kiri */}
-            <motion.span 
-                className="text-sm font-medium text-muted-foreground select-none leading-none"
-                variants={textVariants}
-            >
-                Thinking
-            </motion.span>
+            <AnimatePresence mode="wait">
+                <motion.span 
+                    key={displayText}
+                    className="text-sm font-medium text-muted-foreground select-none leading-none"
+                    variants={textVariants}
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 5 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    {displayText}
+                </motion.span>
+            </AnimatePresence>
             
             {/* Dots animation di sebelah kanan dengan baseline alignment */}
             <motion.div
