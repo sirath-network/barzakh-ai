@@ -59,6 +59,7 @@ const getAttachmentSize = (attachment: any) => {
 import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
 import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
+import { generateStatusFromMessage } from "@/lib/status-generator";
 
 const PurePreviewMessage = ({
   chatId,
@@ -72,6 +73,7 @@ const PurePreviewMessage = ({
   showIcon = true,
   staticAvatarSrc,
   avatarSize = 32,
+  allMessages = [],
 }: {
   chatId: string;
   message: Message;
@@ -88,11 +90,13 @@ const PurePreviewMessage = ({
   showIcon?: boolean;
   staticAvatarSrc?: string;
   avatarSize?: number;
+  allMessages?: Message[];
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [actionsVisible, setActionsVisible] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
+  const [hasContentStarted, setHasContentStarted] = useState(false);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,24 +152,68 @@ const PurePreviewMessage = ({
     (tool) => tool.toolName === 'createImage'
   );
 
-  // Logika thinking yang lebih agresif dan responsif
+  // Generate dynamic status from pending tools
+  const getStatusText = (): string | undefined => {
+    if (!isLoading || !pendingTools || pendingTools.length === 0) {
+      return undefined;
+    }
+
+    // Find the previous user message to get the prompt
+    const messageIndex = allMessages.findIndex(m => m.id === message.id);
+    let userPrompt: string | undefined;
+    
+    // Look for the most recent user message before this assistant message
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (allMessages[i].role === 'user') {
+        const content = allMessages[i].content;
+        if (typeof content === 'string') {
+          userPrompt = content;
+        } else if (Array.isArray(content)) {
+          userPrompt = (content as any[])
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join(' ');
+        }
+        break;
+      }
+    }
+
+    const status = generateStatusFromMessage(message, userPrompt);
+    return status || undefined;
+  };
+
+  const statusText = getStatusText();
+
+  // Track when content has started appearing to prevent glitchy toggling
+  useEffect(() => {
+    if (message.role === 'assistant' && message.content) {
+      setHasContentStarted(true);
+    }
+  }, [message.content, message.role]);
+
+  // Reset for new messages
+  useEffect(() => {
+    setHasContentStarted(false);
+  }, [message.id]);
+
+  // Show thinking ONLY before content starts streaming
+  // Once content appears, NEVER show thinking again (prevents glitch)
   const isThinking = 
     message.role === 'assistant' && 
-    isLoading && ( // only when the chat is actively loading
-      (!message.content && (!message.toolInvocations || message.toolInvocations.length === 0)) ||
-      (pendingTools && pendingTools.length > 0)
-    );
+    isLoading &&
+    !hasContentStarted; // Hide thinking once content starts streaming
 
-  // Effect untuk menampilkan thinking tanpa delay sama sekali
+  // Effect to manage thinking state smoothly
   useEffect(() => {
     if (isThinking) {
-      // Tampilkan thinking SEGERA tanpa delay
+      // Show thinking immediately when loading starts
       setShowThinking(true);
     } else {
-      // Berikan sedikit delay sebelum menghilangkan thinking
+      // Hide thinking when content starts streaming
+      // Smooth transition delay
       const timer = setTimeout(() => {
         setShowThinking(false);
-      }, 150);
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [isThinking]);
@@ -207,7 +255,7 @@ const PurePreviewMessage = ({
             <AnimatePresence mode="wait">
               {showThinking ? (
                 <motion.div key="thinking">
-                  <ThinkingAnimation />
+                  <ThinkingAnimation statusText={statusText} />
                 </motion.div>
               ) : (
                 <motion.div 
@@ -235,6 +283,50 @@ const PurePreviewMessage = ({
                         <MultiSearch result={tool.result} args={tool.args} />
                       </motion.div>
                     ))
+                  )}
+
+                  {/* === BAGIAN ATAS: HASIL TOOL LAINNYA (PORTFOLIO, TOKEN INFO, etc.) === */}
+                  {otherCompletedTools && otherCompletedTools.length > 0 && (
+                    <motion.div 
+                      className="flex flex-col items-start gap-2 mb-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                    >
+                      {otherCompletedTools.map((toolInvocation) => {
+                        const { toolName, toolCallId, result } = toolInvocation;
+                        if (toolInvocation.state !== "result") return null;
+                        
+                        const toolComponents: Record<string, React.ReactNode> = {
+                          searchEvmTokenMarketData: <TokenInfoTable result={result} />,
+                          searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
+                          getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
+                          getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
+                          getTokenBalances: <PortfolioTable result={result} />,
+                          createImage: result?.imageUrls ? (
+                            <AIGeneratedImageGrid 
+                              imageUrls={result.imageUrls}
+                              alt="AI generated images"
+                            />
+                          ) : result?.imageUrl ? (
+                            <AIGeneratedImage 
+                              imageUrl={result.imageUrl}
+                              alt="AI generated image"
+                            />
+                          ) : (
+                            <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
+                              No image generated
+                            </div>
+                          ),
+                        };
+                        
+                        return (
+                          <div key={toolCallId} className="w-full">
+                            {toolComponents?.[toolName] || null}
+                          </div>
+                        );
+                      })}
+                    </motion.div>
                   )}
 
                   {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
@@ -444,50 +536,6 @@ const PurePreviewMessage = ({
                       </AnimatePresence>
                     </motion.div>
                   )}
-
-                  {/* === BAGIAN TENGAH: HASIL TOOL LAINNYA (SETELAH TEXT) === */}
-                  {otherCompletedTools && otherCompletedTools.length > 0 && (
-                    <motion.div 
-                      className="flex flex-col items-start gap-2 mt-4"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.3 }}
-                    >
-                      {otherCompletedTools.map((toolInvocation) => {
-                        const { toolName, toolCallId, result } = toolInvocation;
-                        if (toolInvocation.state !== "result") return null;
-                        
-                        const toolComponents: Record<string, React.ReactNode> = {
-                          searchEvmTokenMarketData: <TokenInfoTable result={result} />,
-                          searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
-                          getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
-                          getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
-                          getTokenBalances: <PortfolioTable result={result} />,
-                          createImage: result?.imageUrls ? (
-                            <AIGeneratedImageGrid 
-                              imageUrls={result.imageUrls}
-                              alt="AI generated images"
-                            />
-                          ) : result?.imageUrl ? (
-                            <AIGeneratedImage 
-                              imageUrl={result.imageUrl}
-                              alt="AI generated image"
-                            />
-                          ) : (
-                            <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
-                              No image generated
-                            </div>
-                          ),
-                        };
-                        
-                        return (
-                          <div key={toolCallId} className="w-full">
-                            {toolComponents?.[toolName] || null}
-                          </div>
-                        );
-                      })}
-                    </motion.div>
-                  )}
                   
                   {message.content && mode === "edit" && (
                     <div className="flex flex-row gap-2 items-start">
@@ -523,21 +571,21 @@ const PurePreviewMessage = ({
                   {/* === BAGIAN BAWAH: SEMUA IKON & LABEL SUMBER === */}
                   {completedTools && completedTools.length > 0 && message.role === "assistant" && (
                     <motion.div 
-                      className="flex flex-col gap-3 pt-4 mt-4 border-t border-border/50"
+                      className="flex flex-col gap-2 sm:gap-3 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-border/50"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.4 }}
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 sm:justify-between">
                         {/* Container kiri: Icons dengan background dan shadow yang lebih baik */}
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex items-center h-6">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-x-auto w-full sm:w-auto">
+                          <div className="relative flex items-center h-5 sm:h-6 flex-shrink-0">
                             {completedTools.map((tool, index) => (
                               <motion.div
                                 key={tool.toolCallId}
                                 className="absolute"
                                 style={{
-                                  left: `${index * 16}px`,
+                                  left: `${index * 14}px`,
                                   zIndex: completedTools.length - index,
                                 }}
                                 initial={{ scale: 0, opacity: 0, rotate: -10 }}
@@ -555,7 +603,7 @@ const PurePreviewMessage = ({
                                   transition: { duration: 0.2 }
                                 }}
                               >
-                                <div className="flex items-center justify-center w-6 h-6 bg-background/80 backdrop-blur-sm rounded-full border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
+                                <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-background/80 backdrop-blur-sm rounded-full border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
                                   <ToolIcon toolName={tool.toolName} />
                                 </div>
                               </motion.div>
@@ -563,28 +611,28 @@ const PurePreviewMessage = ({
                           </div>
                           
                           {/* Label dengan styling yang lebih baik */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0">
                             <motion.div
-                              className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-full border border-border/40"
+                              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 bg-muted/50 rounded-full border border-border/40 flex-shrink-0"
                               style={{
-                                marginLeft: `${Math.max(0, (completedTools.length - 1) * 16 + 16)}px`,
+                                marginLeft: `${Math.max(0, (completedTools.length - 1) * 14 + 14)}px`,
                               }}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: 0.6 }}
                             >
-                              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                              <span className="text-xs font-medium text-muted-foreground">
+                              <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
+                              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground whitespace-nowrap">
                                 {completedTools.length} source
                                 {completedTools.length > 1 ? "s" : ""}
                               </span>
                             </motion.div>
 
                             {/* separator */}
-                            <div className="text-border/60">|</div>
+                            <div className="text-border/60 hidden sm:block">|</div>
 
                             <motion.div
-                              className="flex flex-wrap gap-1.5"
+                              className="flex flex-wrap gap-1 sm:gap-1.5 min-w-0"
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               transition={{ duration: 0.3, delay: 0.9 }}
@@ -610,20 +658,21 @@ const PurePreviewMessage = ({
                                 return (
                                   <motion.span
                                     key={tool.toolCallId}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-accent/50 text-accent-foreground rounded-md border border-accent/20 hover:bg-accent/70 transition-colors cursor-default"
+                                    className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-accent/50 text-accent-foreground rounded-md border border-accent/20 hover:bg-accent/70 transition-colors cursor-default whitespace-nowrap"
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.2, delay: 0.9 + index * 0.05 }}
                                     whileHover={{ scale: 1.02 }}
                                   >
                                     <ToolIcon toolName={tool.toolName} />
-                                    {toolNames[tool.toolName] || tool.toolName}
+                                    <span className="hidden sm:inline">{toolNames[tool.toolName] || tool.toolName}</span>
+                                    <span className="inline sm:hidden">{(toolNames[tool.toolName] || tool.toolName).split(' ')[0]}</span>
                                   </motion.span>
                                 );
                               })}
                               {completedTools.length > 3 && (
                                 <motion.span
-                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-md border border-border/40"
+                                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-muted text-muted-foreground rounded-md border border-border/40 whitespace-nowrap"
                                   initial={{ opacity: 0, scale: 0.8 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{ duration: 0.2, delay: 1.1 }}
@@ -657,6 +706,7 @@ export const PreviewMessage = memo(
     if (!equal(prevProps.message.toolInvocations, nextProps.message.toolInvocations)) return false;
     if (!equal(prevProps.vote, nextProps.vote)) return false;
     if (!equal(prevProps.selectedGroup, nextProps.selectedGroup)) return false;
+    if (!equal(prevProps.allMessages, nextProps.allMessages)) return false;
     return true;
   }
 );

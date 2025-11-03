@@ -2,20 +2,29 @@ import { openai } from "@ai-sdk/openai";
 import { fireworks } from "@ai-sdk/fireworks";
 import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import {
   customProvider,
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from "ai";
 
-export const DEFAULT_CHAT_MODEL: string = "chat-model-kimi";
+// CometAPI provider (OpenAI-compatible)
+const cometai = createOpenAI({
+  baseURL: "https://api.cometapi.com/v1",
+  apiKey: process.env.COMETAPI_API_KEY,
+});
+
+export const DEFAULT_CHAT_MODEL: string = "chat-model-grok";
 
 export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-kimi": fireworks("accounts/fireworks/models/kimi-k2-instruct-0905"),
+    "chat-model-llama": fireworks("accounts/fireworks/models/llama-v3p1-8b-instruct"),
     "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
+    "chat-model-grok": cometai("grok-4-fast-reasoning"),
+    "chat-model-doubao": cometai("Doubao-1.5-lite-32k"),
     "chat-model-reasoning": wrapLanguageModel({
       model: fireworks("accounts/fireworks/models/deepseek-r1-0528"),
       middleware: extractReasoningMiddleware({ tagName: "think" }),
@@ -54,14 +63,24 @@ export const chatModels: Array<ChatModel> = [
     description: "Deepseek model for experimental tasks",
   },
   {
-    id: "chat-model-kimi",
-    name: "kimi-k2",
-    description: "Kimi model for experimental tasks",
+    id: "chat-model-llama",
+    name: "llama-instruct",
+    description: "Llama model for experimental tasks",
   },
   {
     id: "chat-model-claude",
     name: "claude-3-5-haiku",
     description: "Claude model for experimental tasks",
+  },
+  {
+    id: "chat-model-grok",
+    name: "grok-4-fast-reasoning",
+    description: "Grok model for experimental tasks",
+  },
+  {
+    id: "chat-model-doubao",
+    name: "Doubao-1.5-lite-32k",
+    description: "Doubao model for experimental tasks",
   },
 ];
 

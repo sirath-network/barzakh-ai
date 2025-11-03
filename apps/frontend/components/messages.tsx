@@ -63,6 +63,7 @@ function PureMessages({
               reload={reload}
               isReadonly={isReadonly}
               showIcon={index > 0 && messages[index - 1].role == "user"}
+              allMessages={messages}
             />
           </div>
         );
@@ -70,7 +71,9 @@ function PureMessages({
 
       {isLoading &&
         messages.length > 0 &&
-        messages[messages.length - 1].role === "user" && <ThinkingMessage />}
+        messages[messages.length - 1].role === "user" && (
+          <ThinkingMessage messages={messages} />
+        )}
 
       <div className="shrink-0 h-8 w-full" />
     </div>

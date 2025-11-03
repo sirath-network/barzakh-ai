@@ -24,7 +24,7 @@ export const defiLlama = tool({
       );
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("chat-model-kimi"),
+        model: myProvider.languageModel("chat-model-grok"),
         system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
       
         ## How to Process User Queries:
