@@ -340,7 +340,7 @@ export default function Page() {
                     type="button"
                     onClick={handleResendOTP}
                     disabled={isResending}
-                    className="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-sm text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300 underline disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isResending ? "Sending..." : "Didn't receive the code? Resend"}
                   </button>

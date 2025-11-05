@@ -15,6 +15,9 @@ import { LogoGoogle } from "@/components/icons";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
 import { login, type LoginActionState } from "../actions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { OTPInput } from "@/components/ui/otp-input";
+import { toast } from "sonner";
 
 type OverlayState = {
   status: "success" | "error" | "idle";
@@ -38,6 +41,14 @@ export default function Page() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loginState, setLoginState] = useState<LoginActionState>({ status: "idle" });
+
+  // 2FA modal state
+  const [isTwoFAModalOpen, setIsTwoFAModalOpen] = useState(false);
+  const [twoFAEmail, setTwoFAEmail] = useState("");
+  const [twoFATempToken, setTwoFATempToken] = useState("");
+  const [twoFAToken, setTwoFAToken] = useState("");
+  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
+  const [useBackupCode, setUseBackupCode] = useState(false);
 
   // Handle mouse movement to enable Spline scene
   useEffect(() => {
@@ -140,8 +151,12 @@ export default function Page() {
         router.push("/");
       }, 2000);
     } else if (result.status === "requires_2fa") {
-      // Redirect to 2FA verification page
-      router.push(`/verify-2fa?email=${encodeURIComponent(result.email!)}&tempToken=${encodeURIComponent(result.tempToken!)}`);
+      // Open 2FA modal instead of redirecting to a separate page
+      setTwoFAEmail(result.email!);
+      setTwoFATempToken(result.tempToken!);
+      setTwoFAToken("");
+      setUseBackupCode(false);
+      setIsTwoFAModalOpen(true);
     }
   };
   
@@ -162,6 +177,49 @@ export default function Page() {
 
   const handleValidationChange = (isValid: boolean) => {
     setIsFormValid(isValid);
+  };
+
+  const handleTwoFAVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!twoFAToken.trim()) {
+      toast.error("Please enter your 2FA token");
+      return;
+    }
+    setIsVerifying2FA(true);
+    try {
+      const response = await fetch("/api/2fa/complete-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempToken: twoFATempToken, twoFactorToken: twoFAToken.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Store the session token temporarily
+        localStorage.setItem("sessionToken", data.sessionToken);
+        const result = await signIn("credentials", {
+          email: data.user.email,
+          password: "",
+          sessionToken: data.sessionToken,
+          redirect: false,
+        });
+        if (result?.ok) {
+          localStorage.removeItem("sessionToken");
+          await getSession();
+          toast.success("Login successful!");
+          setIsTwoFAModalOpen(false);
+          router.push("/");
+        } else {
+          toast.error("Session creation failed. Please try again.");
+        }
+      } else {
+        toast.error(data.error || "Invalid 2FA token");
+      }
+    } catch (err) {
+      console.error("2FA verification error:", err);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsVerifying2FA(false);
+    }
   };
 
   return (
@@ -313,6 +371,53 @@ export default function Page() {
           </motion.div>
         </div>
       </div>
+
+      {/* 2FA Verification Modal */}
+      <Dialog 
+        open={isTwoFAModalOpen} 
+        onOpenChange={(open) => {
+          setIsTwoFAModalOpen(open);
+          // Reset Turnstile widget when modal is closed so user can get a fresh token
+          if (!open) {
+            turnstileRef.current?.reset();
+            setTurnstileToken("");
+            setTwoFAToken("");
+            setUseBackupCode(false);
+          }
+        }}
+      >
+        <DialogContent className="w-[92vw] max-w-md sm:max-w-lg p-4 sm:p-6 rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl">Two-Factor Authentication</DialogTitle>
+            <DialogDescription className="text-center">
+              {useBackupCode ? "Enter your 8-character backup code" : "Enter the 6-digit code from your authenticator app"}
+              {twoFAEmail ? ` • ${twoFAEmail}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleTwoFAVerify} className="space-y-4 sm:space-y-5">
+            <OTPInput
+              length={useBackupCode ? 8 : 6}
+              value={twoFAToken}
+              onChange={setTwoFAToken}
+              backupCode={useBackupCode}
+              autoFocus
+              disabled={isVerifying2FA}
+            />
+            <div className="flex items-center justify-center sm:justify-between">
+              <button
+                type="button"
+                className="text-sm sm:text-base text-red-600 hover:underline"
+                onClick={() => { setUseBackupCode(!useBackupCode); setTwoFAToken(""); }}
+              >
+                {useBackupCode ? "Use TOTP code" : "Use backup code"}
+              </button>
+            </div>
+            <Button type="submit" className="w-full h-11 sm:h-12 text-base" disabled={isVerifying2FA || !twoFAToken.trim()}>
+              {isVerifying2FA ? "Verifying..." : "Verify & Sign In"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

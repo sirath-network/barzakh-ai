@@ -38,8 +38,8 @@ export function OTPInput({
   // Filter and clean input based on mode
   const cleanValue = (input: string): string => {
     if (backupCode) {
-      // For backup codes: alphanumeric, max 8 chars
-      return input.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 8);
+      // For backup codes: alphanumeric and underscore, max 8 chars
+      return input.replace(/[^A-Za-z0-9_]/g, "").toUpperCase().slice(0, 8);
     } else {
       // For TOTP: digits only, max 6 chars
       return input.replace(/[^0-9]/g, "").slice(0, 6);
@@ -51,7 +51,7 @@ export function OTPInput({
 
   const handleChange = (index: number, char: string) => {
     const cleanedChar = backupCode 
-      ? char.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+      ? char.replace(/[^A-Za-z0-9_]/g, "").toUpperCase()
       : char.replace(/[^0-9]/g, "");
     
     if (!cleanedChar && index < length) {
