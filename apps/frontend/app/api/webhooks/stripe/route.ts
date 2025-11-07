@@ -5,6 +5,75 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+type Tier = "free" | "pro" | "ultimate";
+
+const buildPriceIdSet = (...values: Array<string | undefined>) => {
+    const ids = new Set<string>();
+    values.forEach((value) => {
+        if (!value) return;
+        value
+            .split(",")
+            .map((entry) => entry.trim())
+            .filter(Boolean)
+            .forEach((entry) => ids.add(entry));
+    });
+    return ids;
+};
+
+const PRO_PRICE_IDS = buildPriceIdSet(
+    process.env.STRIPE_PRO_PRICE_IDS,
+    process.env.STRIPE_PRO_PRICE_ID,
+    process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+    process.env.STRIPE_PRO_QUARTERLY_PRICE_ID,
+    process.env.STRIPE_PRO_YEARLY_PRICE_ID,
+    process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
+);
+
+const ULTIMATE_PRICE_IDS = buildPriceIdSet(
+    process.env.STRIPE_ULTIMATE_PRICE_IDS,
+    process.env.STRIPE_ULTIMATE_PRICE_ID,
+    process.env.STRIPE_ULTIMATE_MONTHLY_PRICE_ID,
+    process.env.STRIPE_ULTIMATE_QUARTERLY_PRICE_ID,
+    process.env.STRIPE_ULTIMATE_YEARLY_PRICE_ID
+);
+
+function resolveTierFromSubscription(subscription: Stripe.Subscription): Tier {
+    if (!(subscription.status === "active" || subscription.status === "trialing")) {
+        return "free";
+    }
+
+    const metadataTier = (subscription.metadata?.tier ?? subscription.metadata?.planId)?.toLowerCase();
+    if (metadataTier === "ultimate" || metadataTier === "pro") {
+        return metadataTier;
+    }
+
+    const priceId = subscription.items.data[0]?.price.id;
+    if (priceId && ULTIMATE_PRICE_IDS.has(priceId)) {
+        return "ultimate";
+    }
+    if (priceId && PRO_PRICE_IDS.has(priceId)) {
+        return "pro";
+    }
+
+    return "pro";
+}
+
+function getDailyMessageLimitForTier(tier: Tier): number | undefined {
+    const envValue =
+        tier === "free"
+            ? process.env.FREE_USER_MESSAGE_LIMIT
+            : tier === "pro"
+            ? process.env.PRO_USER_MESSAGE_LIMIT
+            : process.env.ULTIMATE_USER_MESSAGE_LIMIT;
+
+    if (!envValue) {
+        return undefined;
+    }
+
+    const parsed = Number.parseInt(envValue, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 /**
  * ✅ MODIFIED FUNCTION
  * A helper function to handle the business logic of updating subscription data in our database.
@@ -25,12 +94,16 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     // 2. Retrieve the latest subscription details from Stripe to get the real status.
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-    // 3. ✅ NEW LOGIC: Determine user's tier based on the subscription status.
-    // Only 'active' and 'trialing' statuses grant "pro" access.
-    const tier = (subscription.status === 'active' || subscription.status === 'trialing') ? 'pro' : 'free';
+    const tier = resolveTierFromSubscription(subscription);
+    const dailyLimit = getDailyMessageLimitForTier(tier);
+
+    const updatePayload: { tier: Tier; dailyMessageRemaining?: number } = { tier };
+    if (typeof dailyLimit === "number") {
+        updatePayload.dailyMessageRemaining = dailyLimit;
+    }
 
     await db.update(userTable)
-        .set({ tier: tier })
+        .set(updatePayload)
         .where(eq(userTable.id, userId));
     console.log(`✅ User tier set to "${tier}" for userId: ${userId}`);
 
@@ -53,10 +126,21 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     const periodEndDate = new Date(periodEndTimestamp * 1000);
 
     // 5. Create or update the subscription record in our database.
+    const primaryItem = subscription.items.data[0];
+    if (!primaryItem) {
+        console.error(`Webhook Error: Subscription ${subscription.id} does not have any line items.`);
+        return;
+    }
+
+    if (!primaryItem.price?.id) {
+        console.error(`Webhook Error: Line item for subscription ${subscription.id} is missing a price ID.`);
+        return;
+    }
+
     const subscriptionData = {
         customerId: customer[0].id,
         stripeSubscriptionId: subscription.id,
-        stripePriceId: subscription.items.data[0].price.id,
+        stripePriceId: primaryItem.price.id,
         stripeCurrentPeriodEnd: periodEndDate,
     };
 
@@ -153,7 +237,13 @@ export async function POST(req: Request) {
                 if (localSub.length > 0) {
                     const customer = await db.select().from(customerTable).where(eq(customerTable.id, localSub[0].customerId));
                     if (customer.length > 0) {
-                        await db.update(userTable).set({ tier: "free" }).where(eq(userTable.id, customer[0].userId));
+                        const freeLimit = getDailyMessageLimitForTier("free");
+                        const resetPayload: { tier: Tier; dailyMessageRemaining?: number } = { tier: "free" };
+                        if (typeof freeLimit === "number") {
+                            resetPayload.dailyMessageRemaining = freeLimit;
+                        }
+
+                        await db.update(userTable).set(resetPayload).where(eq(userTable.id, customer[0].userId));
                         console.log(`✅ User tier set to "free" for userId: ${customer[0].userId}`);
                     }
                     await db.delete(subscriptionTable).where(eq(subscriptionTable.id, localSub[0].id));

@@ -148,11 +148,28 @@ export async function POST(request: Request) {
   const users = await getUserById(session.user.id!);
   const user_info = users[0];
 
-  // Only apply rate limiting to free tier users
-  if (user_info.tier === "free" && user_info.dailyMessageRemaining <= 0) {
-    console.warn(`User ${user_info.email} blocked: message limit exceeded`);
+  const tierLimitMap: Record<string, string | undefined> = {
+    free: process.env.FREE_USER_MESSAGE_LIMIT,
+    pro: process.env.PRO_USER_MESSAGE_LIMIT,
+    ultimate: process.env.ULTIMATE_USER_MESSAGE_LIMIT,
+  };
+
+  const rateLimitedTiers: Array<typeof user_info.tier> = ["free", "pro", "ultimate"];
+  const isRateLimitedTier = rateLimitedTiers.includes(user_info.tier as typeof rateLimitedTiers[number]);
+
+  if (isRateLimitedTier && user_info.dailyMessageRemaining <= 0) {
+    console.warn(`User ${user_info.email} blocked: ${user_info.tier} tier message limit exceeded`);
+    const tierLabel = user_info.tier.toUpperCase();
+    const limit = tierLimitMap[user_info.tier] ?? "configured";
+    const upgradePrompt =
+      user_info.tier === "free"
+        ? "Upgrade to PRO or ULTIMATE for more usage and other perks!"
+        : user_info.tier === "pro"
+        ? "Upgrade to ULTIMATE for higher limits and priority access!"
+        : "Contact support to extend your Ultimate tier limits.";
+
     return new Response(
-      `Free Tier limit of ${process.env.FREE_USER_MESSAGE_LIMIT} messages/day reached! Upgrade to PRO for more usage and other perks!`,
+      `${tierLabel} tier limit of messages per day reached! ${upgradePrompt}`,
       {
         status: 403,
       }

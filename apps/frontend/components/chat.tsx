@@ -25,7 +25,9 @@ import PasswordSettingsPage from "@/components/settings/password/password-page";
 import BillingSettingsPage from "@/components/settings/billing/billing-page";
 import { ArchivedPage } from "@/components/settings/archived/archived-page";
 import TwoFactorSettingsPage from "@/components/settings/2fa/two-factor-page";
+import PlanDetailPage from "@/components/settings/plans/plan-detail-page";
 import { ArtifactProvider } from "@/context/artifact-context";
+import { useSidebar } from "@/components/ui/sidebar";
 import { ArtifactViewer } from "./artifact-viewer";
 
 const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
@@ -35,6 +37,7 @@ const settingsViews = (user: User | undefined): Record<string, React.ReactNode> 
   billing: <BillingSettingsPage />,
   archived: <ArchivedPage user={user} />,
   "2fa": <TwoFactorSettingsPage />,
+  plans: <PlanDetailPage />,
 });
 
 export function Chat({
@@ -151,6 +154,8 @@ export function Chat({
     };
   }, []); // Dependensi kosong agar hanya berjalan sekali saat mount
 
+  const { setOpen, setOpenMobile, setSidebarView, isMobile } = useSidebar();
+
   return (
     <ArtifactProvider>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
@@ -164,7 +169,16 @@ export function Chat({
               ? `${view.charAt(0).toUpperCase() + view.slice(1)} Settings`
               : undefined
           }
-          onBackClick={view !== "chat" ? () => setView("chat") : undefined}
+          onBackClick={view !== "chat" ? (() => {
+            // Show settings list in the sidebar and ensure it's visible across devices
+            if (setSidebarView) setSidebarView('settings');
+            if (isMobile) {
+              setOpenMobile && setOpenMobile(true);
+            } else {
+              setOpen && setOpen(true);
+            }
+            setView("chat");
+          }) : undefined}
           selectedModelId={view === "chat" ? selectedChatModel : undefined}
           selectedVisibilityType={
             view === "chat" ? selectedVisibilityType : undefined

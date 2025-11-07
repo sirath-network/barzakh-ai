@@ -603,7 +603,12 @@ export async function decrementRemainingMessageCount(userId: string) {
 }
 export async function resetRemainingMessageCountForEveryone() {
   await db.update(user).set({
-    dailyMessageRemaining: sql`CASE WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT} WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT} ELSE ${user.dailyMessageRemaining} END`,
+    dailyMessageRemaining: sql`CASE
+      WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
+      WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
+      WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
+      ELSE ${user.dailyMessageRemaining}
+    END`,
   });
 }
 
@@ -611,7 +616,12 @@ export async function resetRemainingMessageCountForUser(userId: string) {
   await db
     .update(user)
     .set({
-      dailyMessageRemaining: sql`CASE WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT} WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT} ELSE ${user.dailyMessageRemaining} END`,
+      dailyMessageRemaining: sql`CASE
+        WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
+        WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
+        WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
+        ELSE ${user.dailyMessageRemaining}
+      END`,
     })
     .where(eq(user.id, userId));
 }

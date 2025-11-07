@@ -12,6 +12,7 @@ import {
   CreditCard,
   ArchiveIcon,
   Shield,
+  BadgeDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -45,12 +46,13 @@ export function SettingsMenu({
   const { theme, setTheme } = useTheme();
   const { setView } = useView();
   // ✅ 1. Ambil setSidebarView dari useSidebar
-  const { setOpenMobile, setSidebarView } = useSidebar();
+  const { setOpenMobile, setSidebarView, setOpen } = useSidebar();
 
   const handleMenuClick = (page: SettingsPageType) => {
-    setView(page); // Tetap ubah tampilan konten utama
-    setOpenMobile(false); // Tutup sidebar di mobile
-    // ✅ 2. Kembalikan tampilan sidebar ke 'history'
+    setView(page);
+    // Close the sidebar on both mobile and desktop for a cleaner settings view
+    setOpen(false);
+    setOpenMobile(false);
     if (setSidebarView) {
       setSidebarView('history');
     }
@@ -119,13 +121,19 @@ export function SettingsMenu({
           icon={<Mail size={18} />}
           onClick={() => handleMenuClick('email')}
         >
-          Email Address
+          Email Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
           icon={<CreditCard size={18} />}
           onClick={() => handleMenuClick('billing')}
         >
-          Billing Address
+          Billing Settings
+        </SettingsMenuItem>
+        <SettingsMenuItem 
+          icon={<BadgeDollarSign size={18} />}
+          onClick={() => handleMenuClick('plans')}
+        >
+          Plans & Pricing
         </SettingsMenuItem>
       </div>
 
