@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, Check, Info } from "lucide-react";
 import { useView } from "@/context/view-context";
+import useSWR from "swr";
+import { fetcher } from "@barzakh/shared/lib/utils/utils";
+import type { SubscriptionResponse, SubscriptionSummary } from "@/types/billing";
+import { format } from "date-fns";
 
 type BillingCycle = "monthly" | "quarterly" | "yearly";
 
@@ -76,11 +80,97 @@ const plans: Plan[] = [
   },
 ];
 
+function inferPlanIdFromSubscription(
+  subscription: SubscriptionSummary | null | undefined,
+): Plan["id"] | null {
+  if (!subscription) {
+    return null;
+  }
+
+  const fromMetadata =
+    subscription.metadata?.tier?.toLowerCase() ??
+    subscription.metadata?.planId?.toLowerCase() ??
+    null;
+
+  if (
+    fromMetadata === "free" ||
+    fromMetadata === "pro" ||
+    fromMetadata === "ultimate"
+  ) {
+    return fromMetadata;
+  }
+
+  const planName = subscription.planName?.toLowerCase() ?? "";
+  if (planName.includes("ultimate")) {
+    return "ultimate";
+  }
+  if (planName.includes("pro")) {
+    return "pro";
+  }
+
+  return null;
+}
+
 export default function PlanDetailPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [processingPlanId, setProcessingPlanId] = useState<Plan["id"] | null>(null);
   const { data: session } = useSession();
   const { setView } = useView();
+
+  const {
+    data: subscriptionResponse,
+    isLoading: isLoadingSubscription,
+  } = useSWR<SubscriptionResponse>(
+    session ? "/api/billing/subscription" : null,
+    fetcher,
+  );
+  const subscription = subscriptionResponse?.subscription ?? null;
+
+  const normalizedSessionTier = useMemo(() => {
+    const rawTier = session?.user?.tier?.toLowerCase();
+    if (rawTier === "free" || rawTier === "pro" || rawTier === "ultimate") {
+      return rawTier as Plan["id"];
+    }
+    return null;
+  }, [session?.user?.tier]);
+
+  const inferredSubscriptionTier = inferPlanIdFromSubscription(subscription);
+  const derivedSubscriptionTier =
+    inferredSubscriptionTier ?? normalizedSessionTier;
+
+  const isSubscriptionActive =
+    subscription &&
+    ["active", "trialing", "past_due", "incomplete"].includes(
+      subscription.status,
+    );
+
+  let currentPlanId: Plan["id"] | null = null;
+  if (
+    subscription &&
+    derivedSubscriptionTier &&
+    (isSubscriptionActive || subscription.cancelAtPeriodEnd)
+  ) {
+    currentPlanId = derivedSubscriptionTier;
+  } else if (!subscription && isLoadingSubscription) {
+    currentPlanId = normalizedSessionTier;
+  }
+
+  if (!currentPlanId && !isLoadingSubscription) {
+    currentPlanId = "free";
+  }
+
+  const cancellationDateLabel = useMemo(() => {
+    if (!subscription?.cancelAtPeriodEnd) {
+      return null;
+    }
+    const isoDate = subscription.cancelAt ?? subscription.currentPeriodEnd;
+    if (!isoDate) return null;
+    try {
+      return format(new Date(isoDate), "MMM dd, yyyy");
+    } catch {
+      return null;
+    }
+  }, [subscription?.cancelAt, subscription?.cancelAtPeriodEnd, subscription?.currentPeriodEnd]);
 
   const handleBack = () => {
     setView("chat");
@@ -187,9 +277,11 @@ export default function PlanDetailPage() {
           {plans.map((plan) => {
             const price = getPrice(plan);
             const totalPrice = getTotalPrice(plan);
-            const isCurrentPlan = session?.user.tier === plan.id;
+            const isCurrentPlan = currentPlanId === plan.id;
             const isProcessingPlan = processingPlanId === plan.id;
             const isFree = plan.id === "free";
+            const isCancellationScheduled =
+              isCurrentPlan && subscription?.cancelAtPeriodEnd;
 
             return (
               <div
@@ -235,6 +327,11 @@ export default function PlanDetailPage() {
                     {!isFree && totalPrice && (
                       <p className="text-gray-500 dark:text-gray-500 text-xs sm:text-sm">
                         ${totalPrice} PAID {billingCycle === "quarterly" ? "QUARTERLY" : "YEARLY"}
+                      </p>
+                    )}
+                    {isCancellationScheduled && cancellationDateLabel && (
+                      <p className="text-xs text-amber-600 dark:text-amber-300">
+                        Scheduled to cancel on {cancellationDateLabel}.
                       </p>
                     )}
                   </div>

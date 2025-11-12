@@ -1,216 +1,491 @@
 "use client";
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { Lock } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import type { SubscriptionSummary } from "@/types/billing";
+import { format } from "date-fns";
 
-type PaidPlanId = "pro" | "ultimate";
-
-const PAID_PLAN_OPTIONS: { id: PaidPlanId; label: string; tagline: string }[] = [
-  {
-    id: "pro",
-    label: "Pro",
-    tagline: "Advanced access",
-  },
-  {
-    id: "ultimate",
-    label: "Ultimate",
-    tagline: "Highest limits",
-  },
-];
-
-function formatTierLabel(tier?: string | null) {
-  if (!tier) return "Free";
-  return tier.charAt(0).toUpperCase() + tier.slice(1);
+interface SubscriptionCardProps {
+  subscription: SubscriptionSummary | null | undefined;
+  isLoading: boolean;
+  onRefresh: () => Promise<void>;
+  fallbackTier?: string | null | undefined;
 }
 
-export function SubscriptionCard() {
-  const { data: session } = useSession();
-  const [isManaging, setIsManaging] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PaidPlanId>("pro");
-  const [processingPlan, setProcessingPlan] = useState<PaidPlanId | null>(null);
+function formatAmount(amount: number | null, currency: string | null) {
+  if (amount == null || currency == null) {
+    return "--";
+  }
 
-  const isSubscribed = session?.user.tier !== "free";
-  const formattedTier = formatTierLabel(session?.user.tier);
-  const packageLabel = isSubscribed ? `${formattedTier} Plan` : "---";
+  const formatter = new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 2,
+  });
+
+  return formatter.format(amount / 100);
+}
+
+function formatStatus(status: string | undefined) {
+  if (!status) return "Unknown";
+  return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function computeMonthlyAmountCents(
+  amountCents: number | null | undefined,
+  interval: SubscriptionSummary["interval"],
+  intervalCount: number | null | undefined,
+) {
+  if (amountCents == null) {
+    return null;
+  }
+
+  const count = intervalCount && intervalCount > 0 ? intervalCount : 1;
+
+  switch (interval) {
+    case "month":
+      return Math.round(amountCents / count);
+    case "year":
+      return Math.round(amountCents / (12 * count));
+    case "week":
+      return Math.round((amountCents / (count * 7)) * 30);
+    case "day":
+      return Math.round((amountCents / count) * 30);
+    default:
+      return amountCents;
+  }
+}
+
+function formatCycleLabel(
+  interval: SubscriptionSummary["interval"],
+  intervalCount: number | null | undefined,
+) {
+  if (!interval) {
+    return null;
+  }
+
+  const count = intervalCount && intervalCount > 0 ? intervalCount : 1;
+  const plural = count > 1 ? `${interval}s` : interval;
+
+  return count === 1 ? `every ${interval}` : `every ${count} ${plural}`;
+}
+
+export function SubscriptionCard({
+  subscription,
+  isLoading,
+  onRefresh,
+  fallbackTier,
+}: SubscriptionCardProps) {
+  const [isManagingPortal, setIsManagingPortal] = useState(false);
+  const [isUpdatingSubscription, setIsUpdatingSubscription] = useState(false);
+  const [showCancelOptions, setShowCancelOptions] = useState(false);
+  const [showImmediateCancelConfirm, setShowImmediateCancelConfirm] =
+    useState(false);
+
+  useEffect(() => {
+    if (!showCancelOptions) {
+      setShowImmediateCancelConfirm(false);
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowCancelOptions(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showCancelOptions]);
+
+  const normalizedFallbackTier =
+    fallbackTier && fallbackTier !== "free"
+      ? fallbackTier.toLowerCase()
+      : null;
+
+  const isSubscribed = Boolean(subscription) || Boolean(normalizedFallbackTier);
+  const isCancellationScheduled = Boolean(subscription?.cancelAtPeriodEnd);
+
+  const amountCents = subscription?.amount ?? null;
+  const currency = subscription?.currency ?? null;
+  const interval = subscription?.interval ?? null;
+  const intervalCount = subscription?.intervalCount ?? null;
+
+  const monthlyAmountText = useMemo(() => {
+    if (amountCents == null || !currency) {
+      return null;
+    }
+    const monthlyCents = computeMonthlyAmountCents(
+      amountCents,
+      interval,
+      intervalCount,
+    );
+    if (monthlyCents == null) {
+      return null;
+    }
+    return `${formatAmount(monthlyCents, currency)} / month`;
+  }, [amountCents, currency, interval, intervalCount]);
+
+  const cycleBillingText = useMemo(() => {
+    if (amountCents == null || !currency) {
+      return null;
+    }
+    const cycleLabel = formatCycleLabel(interval, intervalCount);
+    const formattedTotal = formatAmount(amountCents, currency);
+    if (!cycleLabel) {
+      return formattedTotal;
+    }
+    return `${formattedTotal} billed ${cycleLabel}`;
+  }, [amountCents, currency, interval, intervalCount]);
+
+  const cancellationDate = useMemo(() => {
+    const dateIso = subscription?.cancelAt ?? subscription?.currentPeriodEnd;
+    if (!dateIso) return null;
+    try {
+      return format(new Date(dateIso), "dd MMMM yyyy");
+    } catch {
+      return null;
+    }
+  }, [subscription?.cancelAt, subscription?.currentPeriodEnd]);
+
+  const metadataPlanName = subscription?.metadata?.tier
+    ? subscription.metadata.tier.charAt(0).toUpperCase() +
+      subscription.metadata.tier.slice(1)
+    : subscription?.metadata?.planId
+    ? subscription.metadata.planId.charAt(0).toUpperCase() +
+      subscription.metadata.planId.slice(1)
+    : null;
+  const formattedPlanName =
+    subscription?.planName ??
+    metadataPlanName ??
+    (normalizedFallbackTier
+      ? normalizedFallbackTier.charAt(0).toUpperCase() +
+        normalizedFallbackTier.slice(1)
+      : null) ??
+    "Paid";
+  const planChargeCopy = monthlyAmountText ?? cycleBillingText ?? null;
 
   const handleManageSubscription = async () => {
     try {
-      setIsManaging(true);
+      setIsManagingPortal(true);
       const res = await fetch("/api/billing/manage-subscription", {
         method: "POST",
       });
-
       const data = await res.json();
-      if (res.ok && data?.url) {
+
+      if (!res.ok) {
+        throw new Error(data?.error ?? "Failed to open billing portal");
+      }
+
+      if (data?.url) {
         window.location.href = data.url;
       } else {
-        console.error("Failed to load manage subscription portal", data?.error);
+        throw new Error("No billing portal URL returned");
       }
     } catch (error) {
-      console.error("Error while managing subscription", error);
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Unable to open billing portal",
+      );
     } finally {
-      setIsManaging(false);
+      setIsManagingPortal(false);
     }
   };
 
-  const handleSubscribe = async (plan: PaidPlanId) => {
+  const sendCancellationRequest = async (
+    body: Record<string, unknown>,
+    successMessage: string,
+  ) => {
     try {
-      setProcessingPlan(plan);
-      const res = await fetch("/api/billing/create-checkout-session", {
+      setIsUpdatingSubscription(true);
+      const res = await fetch("/api/billing/cancel-subscription", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ planId: plan }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      const payload = await res.json();
       if (!res.ok) {
-        console.error("Failed to create Stripe checkout session", payload?.error);
-        throw new Error(payload?.error ?? "Failed to create checkout session");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? "Failed to cancel subscription");
       }
 
-      const stripeModule = await import("@stripe/stripe-js");
-      const stripe = await stripeModule.loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-      );
-
-      if (!stripe) {
-        throw new Error("Stripe.js failed to initialise");
-      }
-
-      const result = await stripe.redirectToCheckout({ sessionId: payload.sessionId });
-      if (result.error) {
-        throw result.error;
-      }
+      toast.success(successMessage);
+      await onRefresh();
     } catch (error) {
-      console.error("Error initiating subscription checkout", error);
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to cancel subscription",
+      );
     } finally {
-      setProcessingPlan(null);
+      setIsUpdatingSubscription(false);
     }
   };
 
-  const isProcessingSelectedPlan = processingPlan !== null;
-  const upgradeLabel = selectedPlan === "ultimate" ? "Ultimate" : "Pro";
+  const handleCancelSubscriptionAtPeriodEnd = async () => {
+    await sendCancellationRequest(
+      { cancelAtPeriodEnd: true },
+      "Subscription will cancel at the end of the billing cycle.",
+    );
+  };
+
+  const handleCancelSubscriptionImmediately = async () => {
+    await sendCancellationRequest(
+      { cancelImmediately: true },
+      "Subscription has been canceled immediately.",
+    );
+  };
+
+  const handleResumeSubscription = async () => {
+    await sendCancellationRequest(
+      { cancelAtPeriodEnd: false },
+      "Subscription cancellation has been removed.",
+    );
+  };
+
+  const isLoadingState = isLoading || subscription === undefined;
+  const rawStatus =
+    subscription?.status ?? (normalizedFallbackTier ? "active" : undefined);
+  const statusLabel = isCancellationScheduled
+    ? "Inactive"
+    : formatStatus(rawStatus);
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm relative">
-      <div className="p-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Subscription</h2>
+    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-visible backdrop-blur-sm relative">
+      <div className="p-8 space-y-3">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          Your Subscription
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
-          You are currently on the <strong>{formattedTier.toUpperCase()}</strong> plan.
+          {isSubscribed
+            ? `Currently on the ${formattedPlanName} plan${
+                planChargeCopy ? ` billed at ${planChargeCopy}` : ""
+              }.`
+            : "Manage your plan, billing cycle, and subscription status."}
         </p>
       </div>
 
-      <div className="relative">
+      <div className="relative min-h-[180px]">
         {isSubscribed ? (
-          <>
-            <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-4">
+          <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-5">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 dark:text-gray-300">Plan</span>
+              <span className="font-medium text-red-600 dark:text-red-400">
+                {isLoadingState
+                  ? "Loading..."
+                  : formattedPlanName ?? "Custom Plan"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 dark:text-gray-300">Price</span>
+              <span className="font-medium text-gray-900 dark:text-white">
+                {isLoadingState
+                  ? "Loading..."
+                  : monthlyAmountText ?? cycleBillingText ?? "--"}
+              </span>
+            </div>
+            {cycleBillingText && (
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Package</span>
-                <span className="font-medium text-red-600 dark:text-red-400">{packageLabel}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Status</span>
-                <span className="font-medium text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700/50">
-                  Active
+                <span className="text-gray-600 dark:text-gray-300" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {cycleBillingText}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Next billing date</span>
-                <span className="font-medium text-gray-900 dark:text-white">17 August 2100</span>
-              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 dark:text-gray-300">Status</span>
+              <span
+                className={`px-3 py-1 rounded-full border text-sm font-medium ${
+                  isCancellationScheduled
+                    ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/50"
+                    : rawStatus === "active" || rawStatus === "trialing"
+                    ? "text-emerald-600 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-700/50"
+                    : "text-rose-600 bg-rose-100 border-rose-200 dark:text-rose-300 dark:bg-rose-900/30 dark:border-rose-700/50"
+                }`}
+              >
+                {statusLabel}
+              </span>
             </div>
-            <div className="p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
+            {isCancellationScheduled && (
+              <div className="rounded-lg border border-red-400/40 bg-red-50/60 dark:border-red-800/60 dark:bg-red-950/40 p-4">
+                {cancellationDate ? (
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    Your subscription is scheduled to cancel on{" "}
+                    <span className="font-semibold">{cancellationDate}</span>.
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    Your subscription is scheduled to cancel at the end of the current billing period.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-red-900/30">
+              {isCancellationScheduled ? (
+                <button
+                  onClick={handleResumeSubscription}
+                  disabled={isUpdatingSubscription}
+                  className="px-4 py-2 rounded-lg border border-emerald-500 text-emerald-600 dark:text-emerald-300 dark:border-emerald-600 font-semibold text-sm transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isUpdatingSubscription ? "Updating..." : "Resume Subscription"}
+                </button>
+              ) : (
+                <div className="relative flex flex-col items-end gap-3 w-full">
+                  <button
+                    onClick={() => setShowCancelOptions(true)}
+                    disabled={isUpdatingSubscription}
+                    className="px-4 py-2 rounded-lg border border-red-500 text-red-600 dark:text-red-300 dark:border-red-600 font-semibold text-sm transition-all hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isUpdatingSubscription ? "Updating..." : "Cancel Subscription"}
+                  </button>
+
+                  {showCancelOptions && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm"
+                        onClick={() => {
+                          if (showImmediateCancelConfirm) {
+                            setShowImmediateCancelConfirm(false);
+                            return;
+                          }
+                          setShowCancelOptions(false);
+                        }}
+                      >
+                        <div
+                          className="w-full max-w-md rounded-2xl border border-red-200/70 dark:border-red-900/60 bg-white/97 dark:bg-black/90 p-6 shadow-2xl shadow-red-900/20"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                How would you like to cancel?
+                              </p>
+                              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                                Finish the current cycle or stop immediately.
+                              </p>
+                            </div>
+
+                            <div className="space-y-3">
+                              {showImmediateCancelConfirm ? (
+                                <>
+                                  <div className="rounded-xl border border-red-300/70 dark:border-red-800 bg-red-50/80 dark:bg-red-950/30 px-4 py-4 text-sm text-red-700 dark:text-red-200">
+                                    <p className="font-semibold">
+                                      Cancel immediately?
+                                    </p>
+                                    <p className="mt-2 text-xs text-red-600 dark:text-red-300 leading-relaxed">
+                                      This will end your Ultimate access right away and any remaining time in the current billing cycle will be forfeited. This action cannot be undone.
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowImmediateCancelConfirm(false)}
+                                      className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-red-900/40 text-sm font-semibold text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-red-900/30 transition-colors"
+                                    >
+                                      Go back
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        setShowImmediateCancelConfirm(false);
+                                        setShowCancelOptions(false);
+                                        await handleCancelSubscriptionImmediately();
+                                      }}
+                                      disabled={isUpdatingSubscription}
+                                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-red-600 text-white font-semibold text-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                      Yes, cancel now
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={async () => {
+                                      setShowCancelOptions(false);
+                                      await handleCancelSubscriptionAtPeriodEnd();
+                                    }}
+                                    disabled={isUpdatingSubscription}
+                                    className="w-full rounded-xl border border-gray-200 dark:border-red-900/40 bg-gray-50/80 dark:bg-red-950/20 px-4 py-4 text-left transition-all hover:border-red-300 hover:bg-white dark:hover:border-red-700/60 dark:hover:bg-red-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  >
+                                    <span className="block text-sm font-semibold text-gray-900 dark:text-white">
+                                      Cancel at end of period
+                                    </span>
+                                    <span className="mt-2 block text-xs text-gray-600 dark:text-gray-300">
+                                      Keep access until {cancellationDate ?? "the current cycle ends"}.
+                                    </span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => setShowImmediateCancelConfirm(true)}
+                                    disabled={isUpdatingSubscription}
+                                    className="w-full rounded-xl border border-red-300/70 dark:border-red-800 bg-red-50/90 dark:bg-red-950/40 px-4 py-4 text-left text-red-700 dark:text-red-200 transition-all hover:border-red-400 hover:bg-red-100 dark:hover:border-red-700 dark:hover:bg-red-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  >
+                                    <span className="block text-sm font-semibold">
+                                      Cancel immediately
+                                    </span>
+                                    <span className="mt-2 block text-xs text-red-600 dark:text-red-300">
+                                      End access right away and stop billing.
+                                    </span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowImmediateCancelConfirm(false);
+                                setShowCancelOptions(false);
+                              }}
+                              className="w-full rounded-lg border border-transparent bg-transparent px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                            >
+                              Keep subscription for now
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                    </>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={handleManageSubscription}
-                disabled={isManaging}
-                className="bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 text-white px-6 py-3 rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isManagingPortal}
+                className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isManaging ? "Loading..." : "Manage Subscription"}
+                {isManagingPortal ? "Loading..." : "Manage Billing Portal"}
               </button>
             </div>
-          </>
+          </div>
         ) : (
-          <>
-            <div className="blur-sm select-none pointer-events-none">
-              <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Package</span>
-                  <span className="font-medium text-red-600 dark:text-red-400">---</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Status</span>
-                  <span className="font-medium text-gray-500 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/30 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700/50">
-                    Inactive
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">Next billing date</span>
-                  <span className="font-medium text-gray-900 dark:text-white">---</span>
-                </div>
-              </div>
-              <div className="p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
-                <div className="bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 text-white px-6 py-3 rounded-lg text-sm font-semibold opacity-50">
-                  Upgrade your plan
-                </div>
-              </div>
+          <div className="p-8 border-t border-gray-200 dark:border-red-900/30 space-y-6">
+            <div className="text-center space-y-2">
             </div>
-
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-200/50 dark:bg-black/60 backdrop-blur-[1px]">
-              <div className="text-center space-y-5 p-6">
-                <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-700 rounded-full animate-pulse opacity-20"></div>
-                  <div className="absolute inset-2 bg-gradient-to-r from-red-500 to-red-600 rounded-full animate-ping opacity-30"></div>
-                  <Lock className="w-8 h-8 text-red-600 dark:text-red-400 relative z-10" />
+            <div className="relative overflow-hidden rounded-3xl border border-dashed border-red-900/40 bg-white/40 dark:bg-black/40">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-red-900/20 blur-xl" />
+              <div className="relative px-8 py-12 text-center space-y-5 backdrop-blur-md">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-200 dark:bg-red-800/30 shadow-inner shadow-red-900/50">
+                  <Lock className="h-7 w-7 animate-[pulse_2s_ease-in-out_infinite]" />
                 </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-center gap-3">
-                    {PAID_PLAN_OPTIONS.map((plan) => {
-                      const isSelected = selectedPlan === plan.id;
-                      const isDisabled = processingPlan !== null && processingPlan !== plan.id;
-
-                      return (
-                        <button
-                          key={plan.id}
-                          onClick={() => setSelectedPlan(plan.id)}
-                          disabled={isDisabled}
-                          className={`px-4 py-2 rounded-lg border text-xs sm:text-sm font-semibold uppercase transition-all flex flex-col items-center gap-1 min-w-[110px]
-                            ${
-                              isSelected
-                                ? "bg-gray-900 text-white border-gray-900 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 dark:border-red-600"
-                                : "bg-white/70 text-gray-700 border-gray-300 hover:border-gray-400 dark:bg-black/40 dark:text-gray-300 dark:border-red-900/40 dark:hover:border-red-700/60"
-                            }
-                            ${isDisabled ? "opacity-60 cursor-not-allowed" : ""}
-                          `}
-                        >
-                          <span>{plan.label}</span>
-                          <span className="text-[0.65rem] font-normal normal-case text-gray-500 dark:text-gray-400">
-                            {plan.tagline}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <button
-                    onClick={() => handleSubscribe(selectedPlan)}
-                    disabled={isProcessingSelectedPlan}
-                    className={`bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-all
-                      ${isProcessingSelectedPlan ? "opacity-70 cursor-progress" : "hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800"}
-                    `}
-                  >
-                    {isProcessingSelectedPlan ? "Redirecting..." : `Upgrade to ${upgradeLabel}`}
-                  </button>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 max-w-sm mx-auto">
-                    Upgrade your plan to unlock premium analytics, alerts, and higher usage limits.
+                <div className="space-y-1.5">
+                  <p className="text-base font-semibold text-gray-900 dark:text-white">
+                    Upgrade through Plans &amp; Pricing Settings
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">
+                    Pick a subscription tier from the dedicated Plans &amp; Pricing section to unlock billing management and premium features.
                   </p>
                 </div>
+                <p className="text-xs uppercase tracking-wider text-red-500/70 dark:text-red-300/80">
+                  Data available after subscribing
+                </p>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
