@@ -533,38 +533,104 @@ function PureMultimodalInput({
     };
 
     if (imageAttachments.length > 0) {
-      const imageParts = imageAttachments.map((att) => ({
-        type: "image",
-        image: att.url, // Send the URL directly instead of base64
-      }));
+      const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000;
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, chunk as any);
+        }
+        if (typeof window !== "undefined" && typeof window.btoa === "function") {
+          return window.btoa(binary);
+        }
+        throw new Error("Base64 conversion is not supported in this environment.");
+      };
+
+      const convertToDataUri = async (attachment: Attachment) => {
+        try {
+          const response = await fetch("/api/proxy-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageUrl: attachment.url,
+              forceDownload: true,
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(
+              `HTTP ${response.status} ${response.statusText}`
+            );
+          }
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+          const base64String = arrayBufferToBase64(arrayBuffer);
+          const mimeType =
+            response.headers.get("content-type") ||
+            attachment.contentType ||
+            blob.type ||
+            "image/jpeg";
+          return `data:${mimeType};base64,${base64String}`;
+        } catch (error) {
+          console.error(
+            `Failed to inline image attachment ${attachment.name}:`,
+            error
+          );
+          toast.error(
+            `Failed to process ${attachment.name}. Please try re-uploading the image.`,
+            { position: "bottom-center" }
+          );
+          return null;
+        }
+      };
+
+      const inlinedImages = await Promise.all(
+        imageAttachments.map(convertToDataUri)
+      );
+
+      const successfulImages = inlinedImages
+        .map((dataUri, index) => {
+          if (!dataUri) {
+            return null;
+          }
+          return {
+            dataUri,
+            originalUrl: imageAttachments[index].url,
+          };
+        })
+        .filter(Boolean) as Array<{
+        dataUri: string;
+        originalUrl: string;
+      }>;
+
+      if (successfulImages.length === 0) {
+        toast.error(
+          "Unable to inline any of the attached images. Please try again.",
+          { position: "bottom-center" }
+        );
+        return;
+      }
 
       const content = [{ type: "text", text: input }];
+      const imageParts = successfulImages.map(({ dataUri }) => ({
+        type: "image",
+        image: dataUri,
+      }));
+
       content.push(...(imageParts as any[]));
       messageContent = content;
-      
-      // Log the image URLs for debugging
-      console.log("Sending images to AI:", imageParts.map(part => part.image));
-      console.log("Image attachment details:", imageAttachments.map(att => ({ url: att.url, contentType: att.contentType, name: att.name })));
-      
-      // Check if we're sending Vercel Blob URLs
-      const vercelBlobUrls = imageParts.filter(part => part.image.includes('blob.vercel-storage.com'));
-      if (vercelBlobUrls.length > 0) {
-        console.log("✅ Sending Vercel Blob URLs to AI:", vercelBlobUrls.map(part => part.image));
-        console.log("ℹ️ Note: Some AI models may convert these URLs to their own format, but the original URLs are preserved for editing");
-        
-        // Store original Vercel Blob URLs for editing
-        const originalUrls = vercelBlobUrls.map(part => part.image);
-        console.log("🔗 Original Vercel Blob URLs stored for editing:", originalUrls);
-        
-        // Add original URLs to the message content for the AI to use
-        content.push({
-          type: "text",
-          text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(', ')}]`
-        });
-      } else {
-        console.warn("⚠️ No Vercel Blob URLs found in attachments - this may cause editing issues");
-        console.warn("⚠️ This suggests the AI SDK has already converted the URLs to Google AI format");
-      }
+
+      const originalUrls = successfulImages.map((item) => item.originalUrl);
+      console.log("✅ Inlined images for AI request:", originalUrls);
+
+      content.push({
+        type: "text",
+        text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(
+          ", "
+        )}]`,
+      });
     }
 
     if (otherAttachments.length > 0) {

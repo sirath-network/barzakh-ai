@@ -5,6 +5,7 @@ import { myProvider } from "@barzakh/shared/src/lib/ai/models";
 import { smoothStream, streamText, generateText } from "ai";
 import { PromptRequestSchema, ChatCompletionStreaming } from "./type";
 import { z } from "zod";
+import { fetchImageAsBase64 } from "@barzakh/shared/src/lib/ai/utils/fetch-image-as-base64";
 
 export async function POST(request: Request) {
   try {
@@ -160,6 +161,60 @@ export async function POST(request: Request) {
       }
     }
 
+    async function convertImageUrlsToBase64(
+      msgs: typeof messages
+    ): Promise<typeof messages> {
+      const convertedMessages = [];
+
+      for (const msg of msgs) {
+        if (!Array.isArray(msg.content)) {
+          convertedMessages.push(msg);
+          continue;
+        }
+
+        const newContent = [];
+        let didModify = false;
+
+        for (const part of msg.content) {
+          if (part?.type === "image" && typeof part.image === "string") {
+            const imageUrl = part.image;
+
+            if (imageUrl.startsWith("data:")) {
+              newContent.push(part);
+              continue;
+            }
+
+            try {
+              const base64Image = await fetchImageAsBase64(imageUrl);
+              if (base64Image) {
+                newContent.push({
+                  ...part,
+                  image: `data:${base64Image.mimeType};base64,${base64Image.base64}`,
+                });
+                didModify = true;
+                continue;
+              }
+            } catch (error) {
+              console.error(
+                `Failed to convert image URL to base64: ${imageUrl}`,
+                error
+              );
+            }
+          }
+
+          newContent.push(part);
+        }
+
+        if (didModify) {
+          convertedMessages.push({ ...msg, content: newContent });
+        } else {
+          convertedMessages.push(msg);
+        }
+      }
+
+      return convertedMessages;
+    }
+
     const StreamingTrue = streaming ?? true; // Default to streaming if not provided
 
     // The Vercel AI SDK (`ai` package) automatically handles the conversion of the
@@ -170,9 +225,11 @@ export async function POST(request: Request) {
     const system_fingerprint = process.env.VERCEL_GIT_COMMIT_SHA || "";
 
     // Build the options object for the AI SDK calls.
+    const normalizedMessages = await convertImageUrlsToBase64(messages);
+
     const options: any = {
       model: languageModel,
-      messages: messages,
+      messages: normalizedMessages,
       maxSteps: 10,
       experimental_activeTools: [...activeTools],
       tools: allTools,

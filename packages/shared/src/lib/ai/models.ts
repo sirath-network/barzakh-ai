@@ -1,6 +1,5 @@
 import { openai } from "@ai-sdk/openai";
 import { fireworks } from "@ai-sdk/fireworks";
-import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
@@ -32,12 +31,7 @@ export const myProvider: any = customProvider({
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
-  imageModels: {
-    "small-model": openai.image("dall-e-2"),
-    "large-model": openai.image("dall-e-3"),
-    "sdxl-model": fireworks.image("stable-diffusion-xl-base-1.0"),
-    "flux-model": "accounts/fireworks/models/flux-kontext-max",
-  },
+  imageModels: {},
 });
 
 interface ChatModel {
@@ -92,23 +86,9 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "flux-model",
-    name: "Flux Kontext Max",
-    description: "Flux Kontext Max is a powerful image generation model from Fireworks.",
-  },
-  {
-    id: "sdxl-model",
-    name: "Stable Diffusion XL",
-    description: "Stable Diffusion XL is a powerful image generation model.",
-  },
-  {
-    id: "large-model",
-    name: "DALL-E 3",
-    description: "DALL-E 3 is a powerful image generation model from OpenAI.",
-  },
-  {
-    id: "small-model",
-    name: "DALL-E 2",
-    description: "DALL-E 2 is a fast image generation model from OpenAI.",
+    id: "gemini-2-5-flash-image",
+    name: "Gemini 2.5 Flash Image (Nano Banana)",
+    description:
+      "Gemini 2.5 Flash Image via CometAPI for fast, high-fidelity generations.",
   },
 ];
