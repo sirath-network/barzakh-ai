@@ -507,17 +507,17 @@ export function AIGeneratedImage({
   return (
     <div className={cn("w-full group flex flex-col justify-start", className)}>
       <div 
-        className="relative rounded-3xl overflow-hidden border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-muted/40 to-muted/20 inline-block w-fit max-w-full group/image"
+        className="relative rounded-3xl overflow-hidden border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-muted/40 to-muted/20 inline-block w-full max-w-full group/image"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Enhanced Image Container */}
-        <div className="relative overflow-hidden rounded-3xl">
+        <div className="relative overflow-hidden rounded-3xl w-full">
           <img
             src={imageUrl}
             alt={alt}
-            className="block object-contain max-w-full transition-transform duration-300 group-hover/image:scale-[1.02]"
-            style={{ maxHeight: '400px', width: 'auto' }}
+            className="block w-full h-auto object-contain transition-transform duration-300 group-hover/image:scale-[1.02]"
+            style={{ maxHeight: 'min(600px, 80vh)', maxWidth: '100%' }}
             onError={handleImageError}
             loading="lazy"
           />
@@ -618,18 +618,18 @@ export function AIGeneratedImage({
 
         {/* Shared Preview Dialog */}
         <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-          <DialogContent className="max-w-4xl w-full p-2">
+          <DialogContent className="max-w-[95vw] w-full max-h-[95vh] p-2 flex flex-col">
             <DialogHeader>
               <DialogTitle className="sr-only">
                 AI Generated Image Preview
               </DialogTitle>
             </DialogHeader>
-            <div className="relative">
+            <div className="relative flex-1 flex items-center justify-center min-h-0 overflow-hidden">
               <img
                 src={currentImage}
                 alt={alt}
-                className="w-full h-auto rounded-lg"
-                style={{ maxHeight: '70vh', objectFit: 'contain' }}
+                className="w-auto h-auto max-w-full max-h-[90vh] rounded-lg object-contain"
+                style={{ aspectRatio: 'auto' }}
               />
               
               {/* Navigation for multiple images */}
@@ -986,13 +986,13 @@ export function AIGeneratedImageCompact({
         <span>AI Generated Image</span>
       </div>
       
-      <div className="relative group border border-border/20 rounded-3xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/20 shadow-lg hover:shadow-xl transition-all duration-300"
+      <div className="relative group border border-border/20 rounded-3xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/20 shadow-lg hover:shadow-xl transition-all duration-300 w-full"
       >
         <img
           src={imageUrl}
           alt={alt}
-          className="block object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-          style={{ maxHeight: '300px', width: 'auto' }}
+          className="block w-full h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+          style={{ maxHeight: 'min(400px, 60vh)', maxWidth: '100%' }}
           loading="lazy"
         />
         
@@ -1056,7 +1056,7 @@ export function AIGeneratedImageGrid({
   return (
     <div className={cn("w-full my-4", className)}>
       
-      <div className={cn("grid", gridCols, gap)}>
+      <div className={cn("grid", gridCols, gap, "auto-rows-max")}>
         {imageUrls.map((imageUrl, index) => (
           <AIGeneratedImage
             key={index}
