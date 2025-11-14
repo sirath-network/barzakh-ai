@@ -1,12 +1,7 @@
 import { openai } from "@ai-sdk/openai";
-import { fireworks } from "@ai-sdk/fireworks";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import {
-  customProvider,
-  extractReasoningMiddleware,
-  wrapLanguageModel,
-} from "ai";
+import { customProvider } from "ai";
 
 // CometAPI provider (OpenAI-compatible)
 const cometai = createOpenAI({
@@ -20,14 +15,9 @@ export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-llama": fireworks("accounts/fireworks/models/llama-v3p1-8b-instruct"),
-    "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
+    "chat-model-claude": anthropic("claude-sonnet-4-5"),
     "chat-model-grok": cometai("grok-4-fast-reasoning"),
-    "chat-model-doubao": cometai("Doubao-1.5-lite-32k"),
-    "chat-model-reasoning": wrapLanguageModel({
-      model: fireworks("accounts/fireworks/models/deepseek-r1-0528"),
-      middleware: extractReasoningMiddleware({ tagName: "think" }),
-    }),
+    "chat-model-gigantic": cometai("gpt-5"),
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
@@ -52,19 +42,9 @@ export const chatModels: Array<ChatModel> = [
     description: "Large model for complex, multi-step tasks",
   },
   {
-    id: "chat-model-reasoning",
-    name: "deepseek-r1",
-    description: "Deepseek model for experimental tasks",
-  },
-  {
-    id: "chat-model-llama",
-    name: "llama-instruct",
-    description: "Llama model for experimental tasks",
-  },
-  {
-    id: "chat-model-claude",
-    name: "claude-3-5-haiku",
-    description: "Claude model for experimental tasks",
+    id: "chat-model-gigantic",
+    name: "gpt-5",
+    description: "Gigantic model for experimental tasks",
   },
   {
     id: "chat-model-grok",
@@ -72,9 +52,9 @@ export const chatModels: Array<ChatModel> = [
     description: "Grok model for experimental tasks",
   },
   {
-    id: "chat-model-doubao",
-    name: "Doubao-1.5-lite-32k",
-    description: "Doubao model for experimental tasks",
+    id: "chat-model-claude",
+    name: "claude-sonnet-4-5",
+    description: "Claude model for experimental tasks",
   },
 ];
 

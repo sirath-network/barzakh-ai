@@ -72,11 +72,6 @@ function filterIncompleteToolCalls(messages: Array<Message>): Array<Message> {
 
 // Helper function to safely get active tools
 function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] {
-  // For reasoning models, always return empty array
-  if (selectedChatModel === "chat-model-reasoning") {
-    return [];
-  }
-  
   // If activeTools is null, undefined, or not iterable, return empty array
   if (!activeTools || !Array.isArray(activeTools)) {
     console.warn('activeTools is not iterable, using empty array:', activeTools);

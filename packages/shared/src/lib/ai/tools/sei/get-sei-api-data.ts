@@ -36,6 +36,9 @@ function sanitizeApiEndpoint(endpoint: string): string | null {
       path = url.pathname + url.search;
     }
     
+    // Decode common HTML entities that might appear in the path
+    path = path.replace(/&amp;/g, '&');
+    
     // Ensure path starts with /
     if (!path.startsWith('/')) {
       path = '/' + path;

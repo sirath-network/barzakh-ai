@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.2",
-    "@ai-sdk/fireworks": "^0.1.8",
     "@ai-sdk/groq": "^1.1.11",
     "@ai-sdk/openai": "1.1.9",
     "@ai-sdk/xai": "^1.1.12",

@@ -17,9 +17,6 @@ importers:
 
   apps/backend:
     dependencies:
-      '@ai-sdk/fireworks':
-        specifier: ^0.1.8
-        version: 0.1.8(zod@3.23.8)
       '@ai-sdk/groq':
         specifier: ^1.1.11
         version: 1.1.11(zod@3.23.8)
@@ -276,9 +273,6 @@ importers:
       '@ai-sdk/anthropic':
         specifier: 1.0.2
         version: 1.0.2(zod@3.23.8)
-      '@ai-sdk/fireworks':
-        specifier: ^0.1.8
-        version: 0.1.8(zod@3.23.8)
       '@ai-sdk/google':
         specifier: ^1.2.22
         version: 1.2.22(zod@3.23.8)
@@ -673,9 +667,6 @@ importers:
       '@ai-sdk/anthropic':
         specifier: ^1.0.2
         version: 1.0.2(zod@3.23.8)
-      '@ai-sdk/fireworks':
-        specifier: ^0.1.8
-        version: 0.1.8(zod@3.23.8)
       '@ai-sdk/groq':
         specifier: ^1.1.11
         version: 1.1.11(zod@3.23.8)
@@ -992,12 +983,6 @@ packages:
     peerDependencies:
       zod: ^3.0.0
 
-  '@ai-sdk/fireworks@0.1.8':
-    resolution: {integrity: sha512-3/xrROoWl3K6YA9VMej4p1M2eMS54xz7Z0x7QC7+q9ULLNhiZOpkbHVxDjsBayOlwiXH1MyZlKyDd4jJsgDzgg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
   '@ai-sdk/google@1.2.22':
     resolution: {integrity: sha512-Ppxu3DIieF1G9pyQ5O1Z646GYR0gkC57YdBqXJ82qvCdhEhZHu0TWhmnOoeIWe2olSbuDeoOY+MfJrW8dzS3Hw==}
     engines: {node: '>=18'}
@@ -1012,12 +997,6 @@ packages:
 
   '@ai-sdk/openai-compatible@0.1.12':
     resolution: {integrity: sha512-2bMhAEeiRz4lbW5ixjGjbPhwyqjtujkjLVpqqtqWvvUDvtUM3cw1go9pqWFgaNKSBDaXRUfi8mkAVrn1yRuY2A==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/openai-compatible@0.1.8':
-    resolution: {integrity: sha512-o2WeZmkOgaaEHAIZfAdlAASotNemhWBzupUp7ql/vBKIrPDctbQS4K7XOvG7EZ1dshn0TxB+Ur7Q8HoWSeWPmA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -8009,13 +7988,6 @@ snapshots:
       '@ai-sdk/provider-utils': 2.0.2(zod@3.23.8)
       zod: 3.23.8
 
-  '@ai-sdk/fireworks@0.1.8(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/openai-compatible': 0.1.8(zod@3.23.8)
-      '@ai-sdk/provider': 1.0.7
-      '@ai-sdk/provider-utils': 2.1.6(zod@3.23.8)
-      zod: 3.23.8
-
   '@ai-sdk/google@1.2.22(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 1.1.3
@@ -8032,12 +8004,6 @@ snapshots:
     dependencies:
       '@ai-sdk/provider': 1.0.9
       '@ai-sdk/provider-utils': 2.1.10(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/openai-compatible@0.1.8(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.7
-      '@ai-sdk/provider-utils': 2.1.6(zod@3.23.8)
       zod: 3.23.8
 
   '@ai-sdk/openai@1.1.9(zod@3.23.8)':
@@ -13017,8 +12983,8 @@ snapshots:
       '@typescript-eslint/parser': 8.40.0(eslint@9.0.0)(typescript@5.6.3)
       eslint: 9.0.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.0.0)
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.0.0)
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0))(eslint@9.0.0)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.0.0)
       eslint-plugin-react: 7.37.5(eslint@9.0.0)
       eslint-plugin-react-hooks: 5.2.0(eslint@9.0.0)
@@ -13041,6 +13007,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0):
+    dependencies:
+      '@nolyfill/is-core-module': 1.0.39
+      debug: 4.4.1
+      eslint: 9.0.0
+      get-tsconfig: 4.10.1
+      is-bun-module: 2.0.0
+      stable-hash: 0.0.5
+      tinyglobby: 0.2.14
+      unrs-resolver: 1.11.1
+    optionalDependencies:
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0))(eslint@9.0.0)
+    transitivePeerDependencies:
+      - supports-color
+
   eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.0):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
@@ -13053,21 +13034,6 @@ snapshots:
       unrs-resolver: 1.11.1
     optionalDependencies:
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@7.2.0(eslint@8.57.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.0)
-    transitivePeerDependencies:
-      - supports-color
-
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.0.0):
-    dependencies:
-      '@nolyfill/is-core-module': 1.0.39
-      debug: 4.4.1
-      eslint: 9.0.0
-      get-tsconfig: 4.10.1
-      is-bun-module: 2.0.0
-      stable-hash: 0.0.5
-      tinyglobby: 0.2.14
-      unrs-resolver: 1.11.1
-    optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.0.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -13090,14 +13056,14 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.0.0))(eslint@9.0.0):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0))(eslint@9.0.0):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.40.0(eslint@9.0.0)(typescript@5.6.3)
       eslint: 9.0.0
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.0.0)
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -13140,7 +13106,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1)(eslint@9.0.0):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0))(eslint@9.0.0):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -13151,7 +13117,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.0.0
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.0.0))(eslint@9.0.0)
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.40.0(eslint@9.0.0)(typescript@5.6.3))(eslint@9.0.0))(eslint@9.0.0))(eslint@9.0.0)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3

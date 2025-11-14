@@ -4,7 +4,7 @@ export interface ImageUrlInfo {
   url: string;
   isExpired: boolean;
   expiresAt?: Date;
-  provider?: 'fireworks' | 'openai' | 'other';
+  provider?: 'openai' | 'other';
 }
 
 /**
@@ -14,7 +14,7 @@ export function checkUrlExpiration(url: string): ImageUrlInfo {
   try {
     const urlObj = new URL(url);
     
-    // Check for Google Cloud Storage signed URL (Fireworks uses this)
+    // Check for Google Cloud Storage signed URL (commonly used by image providers)
     const expiresParam = urlObj.searchParams.get('X-Goog-Expires');
     const dateParam = urlObj.searchParams.get('X-Goog-Date');
     
@@ -51,7 +51,7 @@ export function checkUrlExpiration(url: string): ImageUrlInfo {
         url,
         isExpired,
         expiresAt: expirationDate,
-        provider: 'fireworks'
+        provider: 'other'
       };
     }
     

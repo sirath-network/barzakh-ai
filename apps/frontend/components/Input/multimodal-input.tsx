@@ -256,6 +256,40 @@ const QuestionSuggestions = ({
   );
 };
 
+const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
+  "on_chain",
+  "wormhole",
+  "sei",
+  "creditcoin",
+  "vana",
+  "flow",
+  "zeta",
+  "aptos",
+  "monad",
+  "solana",
+] as const;
+
+const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
+  coding: "chat-model-claude",
+  imagine: "chat-model-large",
+  on_chain: "chat-model-gigantic",
+  wormhole: "chat-model-gigantic",
+  sei: "chat-model-gigantic",
+  creditcoin: "chat-model-gigantic",
+  vana: "chat-model-gigantic",
+  flow: "chat-model-gigantic",
+  zeta: "chat-model-gigantic",
+  aptos: "chat-model-gigantic",
+  monad: "chat-model-gigantic",
+  solana: "chat-model-gigantic",
+};
+
+const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([
+  "coding",
+  "imagine",
+  ...CHAIN_FORCED_GROUPS,
+]);
+
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
@@ -878,90 +912,62 @@ function PureMultimodalInput({
 
   const handleGroupSelect = useCallback(
     async (group: SearchGroup) => {
-      const wasCoding = selectedGroup === "coding";
-      const isNowCoding = group.id === "coding";
-      const wasImagine = selectedGroup === "imagine";
-      const isNowImagine = group.id === "imagine";
-      
-      // Auto-switch to Claude when entering Coding mode
-      if (!wasCoding && isNowCoding && selectedModelId !== "chat-model-claude") {
-        // IMPORTANT: Save the group selection FIRST before reload
+      const currentForcedModel = FORCED_MODEL_BY_GROUP[selectedGroup];
+      const nextForcedModel = FORCED_MODEL_BY_GROUP[group.id];
+
+      const updateGroupState = () => {
         setSelectedGroup(group.id);
         setLocalStorageChatMode(group.id);
-        
-        // Save current model to restore later
-        setPreviousModel(selectedModelId);
-        
-        // Switch to Claude
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie("chat-model-claude");
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
+      };
+
+      // Entering or switching to a forced-model group
+      if (nextForcedModel) {
+        if (!previousModel) {
+          setPreviousModel(selectedModelId);
+        }
+
+        updateGroupState();
+
+        if (selectedModelId !== nextForcedModel) {
+          const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+          await saveChatModelAsCookie(nextForcedModel);
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
+
         return;
       }
-      
-      // Auto-switch to gpt-4.1 when entering Imagine mode
-      if (!wasImagine && isNowImagine && selectedModelId !== "chat-model-large") {
-        // IMPORTANT: Save the group selection FIRST before reload
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
-        
-        // Save current model to restore later
-        setPreviousModel(selectedModelId);
-        
-        // Switch to gpt-4.1
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie("chat-model-large");
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
-        return;
-      }
-      
-      // Restore previous model when leaving Coding mode
-      if (wasCoding && !isNowCoding && previousModel && selectedModelId === "chat-model-claude") {
-        // IMPORTANT: Save the group selection FIRST before reload
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
-        
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie(previousModel);
+
+      // Leaving a forced-model group
+      if (currentForcedModel) {
+        updateGroupState();
+
+        if (previousModel && previousModel !== selectedModelId) {
+          const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+          await saveChatModelAsCookie(previousModel);
+          setPreviousModel(null);
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+          return;
+        }
+
         setPreviousModel(null);
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
         return;
       }
-      
-      // Restore previous model when leaving Imagine mode
-      if (wasImagine && !isNowImagine && previousModel && selectedModelId === "chat-model-large") {
-        // IMPORTANT: Save the group selection FIRST before reload
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
-        
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie(previousModel);
-        setPreviousModel(null);
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
-        return;
-      }
-      
-      // Normal group selection (no reload needed)
-      setSelectedGroup(group.id);
-      setLocalStorageChatMode(group.id);
+
+      // Normal group selection
+      updateGroupState();
     },
-    [setSelectedGroup, setLocalStorageChatMode, selectedGroup, selectedModelId, previousModel, setPreviousModel]
+    [
+      previousModel,
+      selectedGroup,
+      selectedModelId,
+      setLocalStorageChatMode,
+      setPreviousModel,
+      setSelectedGroup,
+    ]
   );
 
   const scrollMessagesToBottom = (e: React.MouseEvent) => {
@@ -1205,7 +1211,12 @@ function PureMultimodalInput({
             />
           </div>
           <div className="flex flex-row gap-2 items-center">
-            {!isReadonly && <ModelSelector selectedModelId={selectedModelId} disabled={selectedGroup === "coding" || selectedGroup === "imagine"} />}
+            {!isReadonly && (
+              <ModelSelector
+                selectedModelId={selectedModelId}
+                disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
+              />
+            )}
           </div>
         </div>
       </div>

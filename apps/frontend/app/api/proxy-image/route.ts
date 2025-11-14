@@ -44,10 +44,6 @@ export async function POST(request: NextRequest) {
       // Firebase Storage
       'firebasestorage.googleapis.com',
       
-      // Fireworks AI
-      'api.fireworks.ai',
-      'fireworks.ai',
-      
       // OpenAI Services
       'oaidalleapiprodscus.blob.core.windows.net',
       'cdn.openai.com',
