@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Eye, X, Copy, Check, AlertCircle, Share, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader } from "./ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { checkUrlExpiration } from "@/lib/image-storage";
@@ -35,7 +35,6 @@ export function AIGeneratedImage({
   const [isCopied, setIsCopied] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const [showMobileActions, setShowMobileActions] = useState(false);
   const [isExpiredUrl, setIsExpiredUrl] = useState(false);
   const [mobileDownloadStatus, setMobileDownloadStatus] = useState<string | null>(null);
   
@@ -545,97 +544,17 @@ export function AIGeneratedImage({
               )}
             </Button>
             
-            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
-                  onClick={handlePreviewOpen}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl w-full p-2">
-                <DialogHeader>
-                  <DialogTitle className="sr-only">
-                    AI Generated Image Preview
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="relative">
-                  <img
-                    src={currentImage}
-                    alt={alt}
-                    className="w-full h-auto rounded-lg"
-                    style={{ maxHeight: '70vh', objectFit: 'contain' }}
-                  />
-                  
-                  {/* Navigation for multiple images */}
-                  {allImages && allImages.length > 1 && (
-                    <>
-                      {/* Image counter */}
-                      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
-                        {currentImageIndex + 1} / {allImages.length}
-                      </div>
-                      
-                      {/* Previous button */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={goToPreviousImage}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
-                      
-                      {/* Next button */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={goToNextImage}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </Button>
-                    </>
-                  )}
-                  
-                  {/* Mobile Preview Actions */}
-                  <div className="absolute bottom-4 right-4 flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleCopyUrl}
-                      className="bg-white/90 hover:bg-white text-black shadow-lg"
-                    >
-                      {isCopied ? (
-                        <Check className="w-4 h-4 mr-1 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4 mr-1" />
-                      )}
-                      {isCopied ? 'Copied!' : 'Copy'}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleDownload}
-                      disabled={isDownloading}
-                      className="bg-white/90 hover:bg-white text-black shadow-lg"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      {isDownloading ? 'Downloading...' : 'Download'}
-                    </Button>
-                  </div>
-                  
-                  {/* Mobile Download Status */}
-                  {mobileDownloadStatus && (
-                    <div className="absolute top-4 left-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm text-center">
-                      {mobileDownloadStatus}
-                    </div>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePreviewOpen();
+              }}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
           </div>
         )}
 
@@ -651,97 +570,24 @@ export function AIGeneratedImage({
             >
               <div className="flex gap-3">
                 {/* Preview Button */}
-                <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                  <DialogTrigger asChild>
-                    <motion.div
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200 px-4 py-2"
-                        onClick={handlePreviewOpen}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Preview
-                      </Button>
-                    </motion.div>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl w-full p-2">
-                    <DialogHeader>
-                      <DialogTitle className="sr-only">
-                        AI Generated Image Preview
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="relative">
-                      <img
-                        src={currentImage}
-                        alt={alt}
-                        className="w-full h-auto rounded-lg"
-                        style={{ maxHeight: '70vh', objectFit: 'contain' }}
-                      />
-                      
-                      {/* Navigation for multiple images */}
-                      {allImages && allImages.length > 1 && (
-                        <>
-                          {/* Image counter */}
-                          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
-                            {currentImageIndex + 1} / {allImages.length}
-                          </div>
-                          
-                          {/* Previous button */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={goToPreviousImage}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
-                          >
-                            <ChevronLeft className="h-5 w-5" />
-                          </Button>
-                          
-                          {/* Next button */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={goToNextImage}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
-                          >
-                            <ChevronRight className="h-5 w-5" />
-                          </Button>
-                        </>
-                      )}
-                      
-                      {/* Preview Actions */}
-                      <div className="absolute bottom-4 right-4 flex gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCopyUrl}
-                          className="bg-white/90 hover:bg-white text-black shadow-lg"
-                        >
-                          {isCopied ? (
-                            <Check className="w-4 h-4 mr-1 text-green-600" />
-                          ) : (
-                            <Copy className="w-4 h-4 mr-1" />
-                          )}
-                          {isCopied ? 'Copied!' : 'Copy URL'}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleDownload}
-                          disabled={isDownloading}
-                          className="bg-white/90 hover:bg-white text-black shadow-lg"
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          {isDownloading ? 'Downloading...' : 'Download'}
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200 px-4 py-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreviewOpen();
+                    }}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview
+                  </Button>
+                </motion.div>
 
                 {/* Download Button */}
                 <motion.div
@@ -769,6 +615,89 @@ export function AIGeneratedImage({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Shared Preview Dialog */}
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="max-w-4xl w-full p-2">
+            <DialogHeader>
+              <DialogTitle className="sr-only">
+                AI Generated Image Preview
+              </DialogTitle>
+            </DialogHeader>
+            <div className="relative">
+              <img
+                src={currentImage}
+                alt={alt}
+                className="w-full h-auto rounded-lg"
+                style={{ maxHeight: '70vh', objectFit: 'contain' }}
+              />
+              
+              {/* Navigation for multiple images */}
+              {allImages && allImages.length > 1 && (
+                <>
+                  {/* Image counter */}
+                  <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
+                    {currentImageIndex + 1} / {allImages.length}
+                  </div>
+                  
+                  {/* Previous button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToPreviousImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  {/* Next button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToNextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+              
+              {/* Preview Actions */}
+              <div className="absolute bottom-4 right-4 flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCopyUrl}
+                  className="bg-white/90 hover:bg-white text-black shadow-lg"
+                >
+                  {isCopied ? (
+                    <Check className="w-4 h-4 mr-1 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-1" />
+                  )}
+                  {isCopied ? 'Copied!' : 'Copy URL'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="bg-white/90 hover:bg-white text-black shadow-lg"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  {isDownloading ? 'Downloading...' : 'Download'}
+                </Button>
+              </div>
+
+              {/* Download status messaging for mobile flows */}
+              {mobileDownloadStatus && (
+                <div className="absolute top-4 left-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm text-center">
+                  {mobileDownloadStatus}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Simple Info Badge */}
         <div className="absolute bottom-3 left-3 right-3">

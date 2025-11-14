@@ -1,10 +1,5 @@
 "use client";
-import type {
-  Attachment,
-  ChatRequestOptions,
-  CreateMessage,
-  Message,
-} from "ai";
+import type { Attachment, ChatRequestOptions, CreateMessage, Message } from "ai";
 import type React from "react";
 import {
   useRef,
@@ -29,7 +24,13 @@ import { cn, SearchGroup, SearchGroupId } from "@barzakh/shared/lib/utils/utils"
 import { motion, AnimatePresence } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
-import { ArrowDown, TrendingUp, Clock, Sparkles, MessageCircleMore } from "lucide-react";
+import {
+  ArrowDown,
+  TrendingUp,
+  Clock,
+  Sparkles,
+  MessageCircleMore,
+} from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
 interface EnhancedSuggestion {
@@ -254,6 +255,23 @@ const QuestionSuggestions = ({
     </motion.div>
   );
 };
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk as any);
+  }
+
+  if (typeof window !== "undefined" && typeof window.btoa === "function") {
+    return window.btoa(binary);
+  }
+
+  throw new Error("Base64 conversion is not supported in this environment.");
+};
 // =====================================================================
 // AKHIR DARI KODE YANG DIMODIFIKASI
 // =====================================================================
@@ -455,6 +473,104 @@ function PureMultimodalInput({
 
   const showSuggestions = messages.length === 0 && !input;
 
+  const imageInlineCacheRef = useRef<Record<string, string>>({});
+  const imageInlinePromisesRef = useRef<
+    Record<string, Promise<string | null> | undefined>
+  >({});
+
+  const convertToDataUri = useCallback(
+    async (attachment: Attachment) => {
+      try {
+        const response = await fetch("/api/proxy-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageUrl: attachment.url,
+            forceDownload: true,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64String = arrayBufferToBase64(arrayBuffer);
+        const mimeType =
+          response.headers.get("content-type") ||
+          attachment.contentType ||
+          blob.type ||
+          "image/jpeg";
+
+        return `data:${mimeType};base64,${base64String}`;
+      } catch (error) {
+        console.error(
+          `Failed to inline image attachment ${attachment.name}:`,
+          error
+        );
+        return null;
+      }
+    },
+    []
+  );
+
+  const ensureInlineImage = useCallback(
+    (attachment: Attachment) => {
+      if (!attachment?.contentType?.startsWith("image/")) {
+        return Promise.resolve<string | null>(null);
+      }
+
+      const key = attachment.url;
+      if (!key) {
+        return Promise.resolve<string | null>(null);
+      }
+
+      const cached = imageInlineCacheRef.current[key];
+      if (cached) {
+        return Promise.resolve(cached);
+      }
+
+      if (imageInlinePromisesRef.current[key]) {
+        return imageInlinePromisesRef.current[key];
+      }
+
+      const promise = convertToDataUri(attachment)
+        .then((dataUri) => {
+          if (dataUri) {
+            imageInlineCacheRef.current = {
+              ...imageInlineCacheRef.current,
+              [key]: dataUri,
+            };
+          }
+          return dataUri;
+        })
+        .catch((error) => {
+          console.error("Inline image preparation failed:", error);
+          return null;
+        });
+
+      const trackedPromise = promise.finally(() => {
+        delete imageInlinePromisesRef.current[key];
+      });
+
+      imageInlinePromisesRef.current[key] = trackedPromise;
+      return trackedPromise;
+    },
+    [convertToDataUri]
+  );
+
+  useEffect(() => {
+    if (attachments.length === 0) return;
+
+    attachments.forEach((attachment) => {
+      if (!attachment?.contentType?.startsWith("image/")) return;
+      ensureInlineImage(attachment);
+    });
+  }, [attachments, ensureInlineImage]);
+
   const adjustHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -533,77 +649,58 @@ function PureMultimodalInput({
     };
 
     if (imageAttachments.length > 0) {
-      const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-        const bytes = new Uint8Array(buffer);
-        const chunkSize = 0x8000;
-        let binary = "";
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          const chunk = bytes.subarray(i, i + chunkSize);
-          binary += String.fromCharCode.apply(null, chunk as any);
-        }
-        if (typeof window !== "undefined" && typeof window.btoa === "function") {
-          return window.btoa(binary);
-        }
-        throw new Error("Base64 conversion is not supported in this environment.");
-      };
+      const cachedImages: Array<{ dataUri: string; originalUrl: string }> = [];
+      const pendingAttachments: Attachment[] = [];
 
-      const convertToDataUri = async (attachment: Attachment) => {
-        try {
-          const response = await fetch("/api/proxy-image", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              imageUrl: attachment.url,
-              forceDownload: true,
-            }),
+      imageAttachments.forEach((attachment) => {
+        const dataUri = imageInlineCacheRef.current[attachment.url];
+        if (dataUri) {
+          cachedImages.push({
+            dataUri,
+            originalUrl: attachment.url,
           });
-          if (!response.ok) {
-            throw new Error(
-              `HTTP ${response.status} ${response.statusText}`
-            );
-          }
-          const blob = await response.blob();
-          const arrayBuffer = await blob.arrayBuffer();
-          const base64String = arrayBufferToBase64(arrayBuffer);
-          const mimeType =
-            response.headers.get("content-type") ||
-            attachment.contentType ||
-            blob.type ||
-            "image/jpeg";
-          return `data:${mimeType};base64,${base64String}`;
-        } catch (error) {
-          console.error(
-            `Failed to inline image attachment ${attachment.name}:`,
-            error
-          );
+        } else {
+          pendingAttachments.push(attachment);
+        }
+      });
+
+      let newlyPrepared: Array<{ dataUri: string; originalUrl: string }> = [];
+
+      if (pendingAttachments.length > 0) {
+        const prepared = await Promise.all(
+          pendingAttachments.map((attachment) => ensureInlineImage(attachment))
+        );
+
+        const failedAttachments: Attachment[] = [];
+
+        newlyPrepared = prepared
+          .map((dataUri, index) => {
+            if (!dataUri) {
+              failedAttachments.push(pendingAttachments[index]);
+              return null;
+            }
+
+            return {
+              dataUri,
+              originalUrl: pendingAttachments[index].url,
+            };
+          })
+          .filter(Boolean) as Array<{ dataUri: string; originalUrl: string }>;
+
+        if (failedAttachments.length > 0) {
+          const failedNames = failedAttachments
+            .map((attachment) => attachment.name || attachment.url)
+            .filter(Boolean)
+            .join(", ");
+
           toast.error(
-            `Failed to process ${attachment.name}. Please try re-uploading the image.`,
+            `Failed to process ${failedNames}. Please try re-uploading the image.`,
             { position: "bottom-center" }
           );
-          return null;
         }
-      };
+      }
 
-      const inlinedImages = await Promise.all(
-        imageAttachments.map(convertToDataUri)
-      );
-
-      const successfulImages = inlinedImages
-        .map((dataUri, index) => {
-          if (!dataUri) {
-            return null;
-          }
-          return {
-            dataUri,
-            originalUrl: imageAttachments[index].url,
-          };
-        })
-        .filter(Boolean) as Array<{
-        dataUri: string;
-        originalUrl: string;
-      }>;
+      const successfulImages = [...cachedImages, ...newlyPrepared];
 
       if (successfulImages.length === 0) {
         toast.error(
@@ -710,6 +807,7 @@ function PureMultimodalInput({
     append,
     input,
     uploadQueue,
+    ensureInlineImage,
   ]);
 
   const uploadFile = async (file: File) => {
