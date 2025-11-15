@@ -89,33 +89,52 @@ export const authOptions: NextAuthOptions = {
       }
       // Handle initial sign-in for OAuth providers.
       if (user?.email) {
-        const [existingUser] = await getUser(user.email);
-        if (existingUser) {
-          // User already exists, populate token from DB.
-          token.id = existingUser.id;
-          token.email = existingUser.email;
-          token.name = existingUser.name;
-          token.image = existingUser.image;
-          token.username = existingUser.username;
-          token.tier = existingUser.tier;
-          token.hasPassword = !!existingUser.password;
-        } else {
-          // New OAuth user, create them.
-          const newUserId = generateUUID();
-          const [newUser] = await createUser(
-            newUserId,
-            user.email,
-            null,
-            user.name,
-            user.image
-          );
-          token.id = newUser.id;
-          token.name = newUser.name;
-          token.email = newUser.email;
-          token.image = newUser.image;
-          token.username = newUser.username;
-          token.tier = newUser.tier;
-          token.hasPassword = false; // Google OAuth users don't have password initially
+        const startTime = Date.now();
+        try {
+          const [existingUser] = await getUser(user.email);
+          const queryTime = Date.now() - startTime;
+          
+          if (queryTime > 1000) {
+            console.warn(`⚠️ Slow getUser query: ${queryTime}ms for ${user.email}`);
+          }
+          
+          if (existingUser) {
+            // User already exists, populate token from DB.
+            token.id = existingUser.id;
+            token.email = existingUser.email;
+            token.name = existingUser.name;
+            token.image = existingUser.image;
+            token.username = existingUser.username;
+            token.tier = existingUser.tier;
+            token.hasPassword = !!existingUser.password;
+          } else {
+            // New OAuth user, create them.
+            const createStartTime = Date.now();
+            const newUserId = generateUUID();
+            const [newUser] = await createUser(
+              newUserId,
+              user.email,
+              null,
+              user.name,
+              user.image
+            );
+            const createTime = Date.now() - createStartTime;
+            
+            if (createTime > 1000) {
+              console.warn(`⚠️ Slow createUser operation: ${createTime}ms for ${user.email}`);
+            }
+            
+            token.id = newUser.id;
+            token.name = newUser.name;
+            token.email = newUser.email;
+            token.image = newUser.image;
+            token.username = newUser.username;
+            token.tier = newUser.tier;
+            token.hasPassword = false; // Google OAuth users don't have password initially
+          }
+        } catch (error) {
+          console.error("❌ Error in OAuth callback:", error);
+          throw error;
         }
       } 
       // ✅ Optimized: Use caching to prevent excessive DB queries while still keeping data fresh

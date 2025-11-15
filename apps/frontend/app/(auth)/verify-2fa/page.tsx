@@ -53,7 +53,6 @@ export default function Verify2FAPage() {
         const data = await response.json();
 
         if (response.ok) {
-          toast.success("2FA verified! Password reset link sent to your email.");
           setTimeout(() => {
             router.push("/login");
           }, 2000);

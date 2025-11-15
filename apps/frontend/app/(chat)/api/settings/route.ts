@@ -35,7 +35,6 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    console.log("API: Request body:", body);
     
     const { fullName, username, avatar, currentPassword, password: newPassword } = body;
 
@@ -120,8 +119,6 @@ export async function POST(req: Request) {
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json({ error: "No update data provided" }, { status: 400 });
     }
-
-    console.log("API: Update data:", updateData);
 
     // Perform update
     const updateResult = await db

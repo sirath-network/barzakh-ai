@@ -30,17 +30,16 @@ import {
 // Import the shared database instance instead of creating a new client
 import { db } from './db';
 
+// Singleton pattern to ensure initialization only happens once
+let isInitialized = false;
+
 // Test connection on startup (only in development)
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'development' && !isInitialized) {
+  isInitialized = true;
   (async () => {
     try {
       await db.execute(sql`SELECT 1`);
-      console.log('✅ Database connection successful');
-      
-      // Import and start connection monitoring
-      const { logConnectionStats, startConnectionMonitoring } = await import('./connection-monitor');
-      await logConnectionStats();
-      startConnectionMonitoring(10); // Monitor every 10 minutes in development
+      // Connection successful - monitoring removed for performance
     } catch (error) {
       console.error('❌ Database connection failed:', error);
       // Don't exit in production, just log the error
@@ -67,7 +66,6 @@ export async function saveOTP(email: string, otp: string): Promise<void> {
         target: otp_tokens.email,
         set: { otp, expiry },
       });
-    console.log(`✅ OTP saved successfully for ${email}`);
   } catch (error) {
     console.error(`❌ Error saving OTP for ${email}:`, error);
     throw new Error("Failed to save verification code");
@@ -103,9 +101,10 @@ export async function deleteOTP(email: string) {
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
-    return await db.select().from(user).where(eq(user.email, email));
+    // Optimize query with limit(1) since we only need one result
+    return await db.select().from(user).where(eq(user.email, email)).limit(1);
   } catch (error) {
-    console.error("Failed to get user from database");
+    console.error("Failed to get user from database:", error);
     throw error;
   }
 }
@@ -136,7 +135,6 @@ export async function createUser(
   image?: string | null
 ) {
   try {
-    console.log("Creating user:", { id, email, name, image });
 
     const userData: any = {
       id,
@@ -154,7 +152,6 @@ export async function createUser(
 
     const result = await db.insert(user).values(userData).returning();
 
-    console.log("User created successfully:", result);
     return result;
   } catch (error) {
     console.error("Failed to create user:", {
@@ -203,17 +200,32 @@ export async function updateUserPassword(email: string, newPassword: string) {
   }
 }
 
-export async function saveEmailChangeRequest({ userId, newEmail, code, expiresAt }) {
-  // Delete old user request if exists
-  await db.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
+export async function saveEmailChangeRequest({
+  userId,
+  newEmail,
+  code,
+  expiresAt,
+}: {
+  userId: string;
+  newEmail: string;
+  code: string;
+  expiresAt: Date;
+}) {
+  try {
+    // Delete old user request if exists
+    await db.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
 
-  // Save new request
-  await db.insert(email_change_requests).values({
-    userId,
-    newEmail,
-    code,
-    expiresAt
-  });
+    // Save new request
+    await db.insert(email_change_requests).values({
+      userId,
+      newEmail,
+      code,
+      expiresAt
+    });
+  } catch (error) {
+    console.error("Failed to save email change request in database:", error);
+    throw error;
+  }
 }
 
 // --- NEW FUNCTION TO UPDATE EMAIL ---
@@ -231,13 +243,18 @@ export async function updateUserEmail(userId: string, newEmail: string) {
 
 
 export async function savePasswordResetToken(email: string, token: string) {
-  await db
-    .insert(password_reset_tokens)
-    .values({ email, token, expiry: new Date(Date.now() + 3600000) })
-    .onConflictDoUpdate({
-      target: password_reset_tokens.email,
-      set: { token, expiry: new Date(Date.now() + 3600000) },
-    });
+  try {
+    await db
+      .insert(password_reset_tokens)
+      .values({ email, token, expiry: new Date(Date.now() + 3600000) })
+      .onConflictDoUpdate({
+        target: password_reset_tokens.email,
+        set: { token, expiry: new Date(Date.now() + 3600000) },
+      });
+  } catch (error) {
+    console.error("Failed to save password reset token in database:", error);
+    throw error;
+  }
 }
 
 export async function getPasswordResetToken(token: string) {
@@ -422,7 +439,7 @@ export async function saveDocument({
 }: {
   id: string;
   title: string;
-  kind: BlockKind;
+  kind: "text" | "code" | "image" | "sheet";
   content: string;
   userId: string;
 }) {
@@ -608,60 +625,85 @@ export async function updateChatTitleById({
 }
 
 export async function decrementRemainingMessageCount(userId: string) {
-  await db
-    .update(user)
-    .set({
-      dailyMessageRemaining: sql`${user.dailyMessageRemaining} - 1`,
-      messageCount: sql`${user.messageCount} + 1`,
-    })
-    .where(eq(user.id, userId));
+  try {
+    await db
+      .update(user)
+      .set({
+        dailyMessageRemaining: sql`${user.dailyMessageRemaining} - 1`,
+        messageCount: sql`${user.messageCount} + 1`,
+      })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error("Failed to decrement remaining message count in database:", error);
+    throw error;
+  }
 }
 export async function resetRemainingMessageCountForEveryone() {
-  await db.update(user).set({
-    dailyMessageRemaining: sql`CASE
-      WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
-      WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
-      WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
-      ELSE ${user.dailyMessageRemaining}
-    END`,
-  });
-}
-
-export async function resetRemainingMessageCountForUser(userId: string) {
-  await db
-    .update(user)
-    .set({
+  try {
+    await db.update(user).set({
       dailyMessageRemaining: sql`CASE
         WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
         WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
         WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
         ELSE ${user.dailyMessageRemaining}
       END`,
-    })
-    .where(eq(user.id, userId));
+    });
+  } catch (error) {
+    console.error("Failed to reset remaining message count for everyone in database:", error);
+    throw error;
+  }
+}
+
+export async function resetRemainingMessageCountForUser(userId: string) {
+  try {
+    await db
+      .update(user)
+      .set({
+        dailyMessageRemaining: sql`CASE
+          WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
+          WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
+          WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
+          ELSE ${user.dailyMessageRemaining}
+        END`,
+      })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error("Failed to reset remaining message count for user in database:", error);
+    throw error;
+  }
 }
 
 export async function getMessageCount(userId: string): Promise<number> {
-  const result = await db
-    .select({ messageCount: user.messageCount })
-    .from(user)
-    .where(eq(user.id, userId))
-    .limit(1);
-  if (result.length === 0) {
-    throw new Error("User not found");
+  try {
+    const result = await db
+      .select({ messageCount: user.messageCount })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    if (result.length === 0) {
+      throw new Error("User not found");
+    }
+    return result[0].messageCount;
+  } catch (error) {
+    console.error("Failed to get message count from database:", error);
+    throw error;
   }
-  return result[0].messageCount;
 }
 export async function getUserTier(userId: string) {
-  const result = await db
-    .select({ tier: user.tier })
-    .from(user)
-    .where(eq(user.id, userId))
-    .limit(1);
-  if (result.length === 0) {
-    throw new Error("User not found");
+  try {
+    const result = await db
+      .select({ tier: user.tier })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    if (result.length === 0) {
+      throw new Error("User not found");
+    }
+    return result[0].tier;
+  } catch (error) {
+    console.error("Failed to get user tier from database:", error);
+    throw error;
   }
-  return result[0].tier;
 }
 
 export async function deleteUserAndData(userId: string, email: string) {
@@ -705,7 +747,6 @@ export async function deleteUserAndData(userId: string, email: string) {
       // 7. Finally, delete the user
       await tx.delete(user).where(eq(user.id, userId));
     });
-    console.log(`Successfully deleted user ${userId} and all associated data.`);
   } catch (error) {
     console.error(`Failed to delete user ${userId}:`, error);
     throw new Error("Failed to delete user account.");

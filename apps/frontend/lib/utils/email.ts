@@ -1,15 +1,5 @@
-import nodemailer from "nodemailer";
-import { google } from "googleapis";
-
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.EMAIL_REDIRECT_URI
-);
-
-oAuth2Client.setCredentials({
-  refresh_token: process.env.EMAIL_REFRESH_TOKEN,
-});
+// Email service using Resend API
+// Configure with RESEND_API_KEY, RESEND_FROM_EMAIL, and RESEND_FROM_NAME environment variables
 
 // --- Refactored Universal Email Template Generator ---
 
@@ -183,58 +173,70 @@ const getResetContent = (resetUrl: string) => `
     </div>
 `;
 
-// --- Main Email Sending Functions (Unchanged Logic, Now Cleaner) ---
+// --- Resend Email Implementation ---
+
+/**
+ * Send email using Resend API
+ */
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<void> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    throw new Error("RESEND_API_KEY environment variable is not set");
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+  const fromName = process.env.RESEND_FROM_NAME || "Barzakh Support";
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `${fromName} <${fromEmail}>`,
+      to: [to],
+      subject,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Unknown error" }));
+    console.error("Resend API error:", error);
+    throw new Error(`Resend API error: ${error.message || "Failed to send email"}`);
+  }
+}
+
+// --- Main Email Sending Functions ---
 
 export async function sendOTPEmail(email: string, otp: string) {
   try {
-    console.log(`📧 Attempting to send OTP email to ${email}`);
+    console.log(`📧 Attempting to send OTP email to ${email} via Resend`);
     
-    const accessToken = await oAuth2Client.getAccessToken();
-    
-    if (!accessToken.token) {
-      console.error("❌ Failed to get OAuth2 access token");
-      throw new Error("Failed to authenticate with email service");
-    }
+    const html = generateEmailTemplate(
+      "Your Verification Code",
+      "Use this code to secure your account.",
+      getOTPContent(otp)
+    );
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        type: "OAuth2",
-        user: process.env.EMAIL_USER,
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        refreshToken: process.env.EMAIL_REFRESH_TOKEN,
-        accessToken: accessToken.token || "",
-      },
-    });
-
-    const mailOptions = {
-      from: `"Barzakh Support" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "🔐 Your OTP - Barzakh AI",
-      // Use the new template generator
-      html: generateEmailTemplate(
-          "Your Verification Code",
-          "Use this code to secure your account.",
-          getOTPContent(otp)
-      ),
-    };
-
-    await transporter.sendMail(mailOptions);
+    await sendEmail(email, "🔐 Your OTP - Barzakh AI", html);
     console.log(`✅ OTP email sent successfully to ${email}`);
   } catch (error) {
     console.error("❌ Error sending OTP email:", error);
     
-    // Provide more specific error messages based on the error type
+    // Provide more specific error messages
     if (error instanceof Error) {
-      if (error.message.includes("EAUTH")) {
-        throw new Error("Email authentication failed. Please contact support.");
-      } else if (error.message.includes("ECONNECTION")) {
-        throw new Error("Unable to connect to email service. Please try again.");
-      } else if (error.message.includes("ETIMEDOUT")) {
-        throw new Error("Email service timeout. Please try again.");
+      if (error.message.includes("authentication") || error.message.includes("unauthorized")) {
+        throw new Error("Email authentication failed. Please check your API key.");
+      } else if (error.message.includes("rate limit") || error.message.includes("quota")) {
+        throw new Error("Email sending rate limit exceeded. Please try again later.");
+      } else if (error.message.includes("domain") || error.message.includes("verification")) {
+        throw new Error("Email domain not verified. Please verify your domain in Resend.");
       }
     }
     
@@ -244,54 +246,27 @@ export async function sendOTPEmail(email: string, otp: string) {
 
 export async function sendResetEmail(email: string, resetUrl: string) {
   try {
-    console.log(`📧 Attempting to send reset email to ${email}`);
+    console.log(`📧 Attempting to send reset email to ${email} via Resend`);
     
-    const accessToken = await oAuth2Client.getAccessToken();
-    
-    if (!accessToken.token) {
-      console.error("❌ Failed to get OAuth2 access token");
-      throw new Error("Failed to authenticate with email service");
-    }
+    const html = generateEmailTemplate(
+      "Reset Password Request",
+      "One more step to secure your account.",
+      getResetContent(resetUrl)
+    );
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        type: "OAuth2",
-        user: process.env.EMAIL_USER,
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        refreshToken: process.env.EMAIL_REFRESH_TOKEN,
-        accessToken: accessToken.token || "",
-      },
-    });
-
-    const mailOptions = {
-      from: `"Barzakh Support" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "🔑 Reset Your Password - Barzakh",
-      // Use the new template generator
-      html: generateEmailTemplate(
-          "Reset Password Request",
-          "One more step to secure your account.",
-          getResetContent(resetUrl)
-      ),
-    };
-
-    await transporter.sendMail(mailOptions);
+    await sendEmail(email, "🔑 Reset Your Password - Barzakh", html);
     console.log(`✅ Reset email sent successfully to ${email}`);
   } catch (error) {
     console.error("❌ Error sending reset email:", error);
     
-    // Provide more specific error messages based on the error type
+    // Provide more specific error messages
     if (error instanceof Error) {
-      if (error.message.includes("EAUTH")) {
-        throw new Error("Email authentication failed. Please contact support.");
-      } else if (error.message.includes("ECONNECTION")) {
-        throw new Error("Unable to connect to email service. Please try again.");
-      } else if (error.message.includes("ETIMEDOUT")) {
-        throw new Error("Email service timeout. Please try again.");
+      if (error.message.includes("authentication") || error.message.includes("unauthorized")) {
+        throw new Error("Email authentication failed. Please check your API key.");
+      } else if (error.message.includes("rate limit") || error.message.includes("quota")) {
+        throw new Error("Email sending rate limit exceeded. Please try again later.");
+      } else if (error.message.includes("domain") || error.message.includes("verification")) {
+        throw new Error("Email domain not verified. Please verify your domain in Resend.");
       }
     }
     

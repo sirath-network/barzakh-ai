@@ -21,7 +21,11 @@ import { signIn } from "./auth";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 import { nanoid } from "nanoid";
 import { sendResetEmail, sendOTPEmail } from "@/lib/utils/email";
-import * as Sentry from "@sentry/nextjs";
+// Dynamic import for Sentry to reduce initial bundle size
+const captureException = async (error: unknown) => {
+  const Sentry = await import("@sentry/nextjs");
+  Sentry.captureException(error);
+};
 
 async function verifyTurnstile(token: string) {
   // Validate token format before making request
@@ -199,7 +203,7 @@ export const login = async (
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
     }
-    Sentry.captureException(error);
+    captureException(error).catch(console.error);
     return { status: "failed" };
   }
 };
@@ -337,7 +341,7 @@ export interface RegisterActionState {
         };
         }
         
-        Sentry.captureException(error);
+        captureException(error).catch(console.error);
         return { status: "failed" };
     }
 };
