@@ -1,7 +1,7 @@
 "use client";
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-// BARU: Impor useRef dan useEffect
+// NEW: Import useRef and useEffect
 import { useState, useRef, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
@@ -109,10 +109,10 @@ export function Chat({
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
   const [isAtBottom, setIsAtBottom] = useState(true);
 
-  // BARU: Semua logika scroll sekarang ada di sini
+  // NEW: All scroll logic is now here
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Efek untuk auto-scroll saat pesan baru ditambahkan
+  // Effect for auto-scroll when new messages are added
   useEffect(() => {
     const el = chatContainerRef.current;
     if (el && isAtBottom) {
@@ -131,7 +131,7 @@ export function Chat({
     }
   }, [attachments, id]);
 
-  // Efek untuk mendeteksi posisi scroll
+  // Effect to detect scroll position
   useEffect(() => {
     const el = chatContainerRef.current;
     
@@ -144,7 +144,7 @@ export function Chat({
 
     if (el) {
       el.addEventListener("scroll", handleScroll);
-      handleScroll(); // Panggil sekali untuk set state awal
+      handleScroll(); // Call once to set initial state
     }
 
     return () => {
@@ -152,7 +152,7 @@ export function Chat({
         el.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []); // Dependensi kosong agar hanya berjalan sekali saat mount
+  }, []); // Empty dependencies so it only runs once on mount
 
   const { setOpen, setOpenMobile, setSidebarView, isMobile } = useSidebar();
 
@@ -197,7 +197,7 @@ export function Chat({
           <InstallPrompt />
           {messages.length === 0 && <div className="h-[18vh]"></div>}
           
-          {/* DIUBAH: Tambahkan ref dan id yang benar di sini */}
+          {/* CHANGED: Add correct ref and id here */}
           <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             <Messages
               chatId={id}
@@ -205,7 +205,7 @@ export function Chat({
               votes={votes}
               messages={messages}
               setMessages={setMessages}
-              // DIUBAH: Hapus prop setIsAtBottom dari sini
+              // CHANGED: Remove setIsAtBottom prop from here
               selectedGroup={selectedGroup}
               reload={reload}
               isReadonly={isReadonly}

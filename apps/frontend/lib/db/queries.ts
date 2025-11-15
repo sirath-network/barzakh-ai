@@ -204,10 +204,10 @@ export async function updateUserPassword(email: string, newPassword: string) {
 }
 
 export async function saveEmailChangeRequest({ userId, newEmail, code, expiresAt }) {
-  // Hapus request lama user kalau ada
+  // Delete old user request if exists
   await db.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
 
-  // Simpan request baru
+  // Save new request
   await db.insert(email_change_requests).values({
     userId,
     newEmail,
@@ -588,6 +588,21 @@ export async function updateChatVisiblityById({
     return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
   } catch (error) {
     console.error("Failed to update chat visibility in database");
+    throw error;
+  }
+}
+
+export async function updateChatTitleById({
+  chatId,
+  title,
+}: {
+  chatId: string;
+  title: string;
+}) {
+  try {
+    return await db.update(chat).set({ title }).where(eq(chat.id, chatId));
+  } catch (error) {
+    console.error("Failed to update chat title in database");
     throw error;
   }
 }

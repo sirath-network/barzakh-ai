@@ -4,7 +4,7 @@ import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import type { User } from "next-auth";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import useSWR, { useSWRConfig } from "swr";
 
@@ -12,6 +12,7 @@ import {
   archiveChat,
   restoreChat,
   updateChatVisibility,
+  updateChatTitle,
 } from "@/app/(chat)/actions";
 import {
   ArchiveIcon,
@@ -23,6 +24,7 @@ import {
   TrashIcon,
   ArchiveRestoreIcon,
   LinkIcon,
+  PencilEditIcon,
 } from "@/components/icons";
 import {
   Accordion,
@@ -41,6 +43,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,6 +91,7 @@ const PureChatItem = ({
   onArchive,
   setOpenMobile,
   onChatClick,
+  onTitleUpdate,
 }: {
   chat: Chat;
   isActive: boolean;
@@ -88,11 +99,78 @@ const PureChatItem = ({
   onArchive: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
   onChatClick: () => void;
+  onTitleUpdate: (chatId: string, newTitle: string) => void;
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
     initialVisibility: chat.visibility,
   });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState(chat.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setEditTitle(chat.title);
+  }, [chat.title]);
+
+  useEffect(() => {
+    if (isEditModalOpen && inputRef.current) {
+      // Auto-select text when modal opens
+      const timeoutId = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isEditModalOpen]);
+
+  const handleOpenEditModal = () => {
+    setEditTitle(chat.title);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const trimmedTitle = editTitle.trim();
+    if (!trimmedTitle) {
+      toast.error("Chat title cannot be empty");
+      return;
+    }
+    if (trimmedTitle.length > 200) {
+      toast.error("Chat title cannot exceed 200 characters");
+      return;
+    }
+    if (trimmedTitle === chat.title) {
+      setIsEditModalOpen(false);
+      return;
+    }
+
+    try {
+      await updateChatTitle({ chatId: chat.id, title: trimmedTitle });
+      onTitleUpdate(chat.id, trimmedTitle);
+      setIsEditModalOpen(false);
+      toast.success("Title name updated");
+    } catch (error) {
+      console.error("Failed to update chat title:", error);
+      toast.error("Failed to update chat name");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditTitle(chat.title);
+    setIsEditModalOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelEdit();
+    }
+  };
 
   return (
     <SidebarMenuItem className="group">
@@ -110,7 +188,7 @@ const PureChatItem = ({
           `}
         >
           <Link
-            href={`/chat/${chat.id}`}
+            href={`/c/${chat.id}`}
             onClick={() => {
               setOpenMobile(false);
               onChatClick();
@@ -155,6 +233,19 @@ const PureChatItem = ({
           >
             <DropdownMenuItem
               className="cursor-pointer"
+              onSelect={(e) => {
+                e.preventDefault();
+                handleOpenEditModal();
+              }}
+            >
+              <span className="mr-2">
+                <PencilEditIcon size={16} />
+              </span>
+              <span className="font-medium">Edit title</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer"
               onSelect={() => onArchive(chat.id)}
             >
               <ArchiveIcon className="mr-2 h-4 w-4" />
@@ -164,7 +255,7 @@ const PureChatItem = ({
               <DropdownMenuItem
                 className="cursor-pointer"
                 onSelect={() => {
-                  const url = `${window.location.origin}/chat/${chat.id}`;
+                  const url = `${window.location.origin}/c/${chat.id}`;
                   navigator.clipboard.writeText(url);
                   toast.success("Link copied to clipboard");
                 }}
@@ -216,6 +307,43 @@ const PureChatItem = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Edit Chat Name Modal */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change title name</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                ref={inputRef}
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-full"
+                maxLength={200}
+                placeholder="Enter chat name"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={!editTitle.trim()}
+                className="w-full sm:w-auto"
+              >
+                Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SidebarMenuItem>
   );
@@ -224,6 +352,7 @@ const PureChatItem = ({
 export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   if (prevProps.isActive !== nextProps.isActive) return false;
   if (prevProps.chat.visibility !== nextProps.chat.visibility) return false;
+  if (prevProps.chat.title !== nextProps.chat.title) return false;
   return true;
 });
 
@@ -250,6 +379,17 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
   const handleChatClick = () => {
     setView('chat');
+  };
+
+  const handleTitleUpdate = (chatId: string, newTitle: string) => {
+    mutate((history) => {
+      if (history) {
+        return history.map((chat) =>
+          chat.id === chatId ? { ...chat, title: newTitle } : chat
+        );
+      }
+      return history;
+    }, false);
   };
 
   const handleArchive = async (chatId: string) => {
@@ -439,6 +579,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
                               onChatClick={handleChatClick}
+                              onTitleUpdate={handleTitleUpdate}
                             />
                           ))}
                         </div>
@@ -459,6 +600,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
                               onChatClick={handleChatClick}
+                              onTitleUpdate={handleTitleUpdate}
                             />
                           ))}
                         </div>
@@ -479,6 +621,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
                               onChatClick={handleChatClick}
+                              onTitleUpdate={handleTitleUpdate}
                             />
                           ))}
                         </div>
@@ -499,6 +642,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
                               onChatClick={handleChatClick}
+                              onTitleUpdate={handleTitleUpdate}
                             />
                           ))}
                         </div>
@@ -519,6 +663,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               onArchive={handleArchive}
                               setOpenMobile={setOpenMobile}
                               onChatClick={handleChatClick}
+                              onTitleUpdate={handleTitleUpdate}
                             />
                           ))}
                         </div>

@@ -5,7 +5,7 @@ import { atomDark as grayscale } from 'react-syntax-highlighter/dist/cjs/styles/
 import { useArtifact } from '@/context/artifact-context';
 import { generateUUID } from '@barzakh/shared/lib/utils/utils';
 
-// --- KONFIGURASI & TIPE ---
+// --- CONFIGURATION & TYPES ---
 
 const languageConfig = {
   python: { name: 'Python' },
@@ -31,7 +31,7 @@ interface CodeBlockProps {
   showLineNumbers?: boolean;
 }
 
-// --- SUB-KOMPONEN ---
+// --- SUB-COMPONENTS ---
 
 const CodeHeader = ({ fileName, langName, lineCount }) => (
   <div className="flex items-center space-x-2">
@@ -54,7 +54,7 @@ const CodeActions = ({ onCopy, isCopied, isCompact = false }) => (
 );
 
 
-// --- KOMPONEN UTAMA ---
+// --- MAIN COMPONENT ---
 
 export function CodeBlock({
   inline = false,
@@ -69,7 +69,7 @@ export function CodeBlock({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // State untuk side-by-side view
+  // State for side-by-side view
   const [panelWidth, setPanelWidth] = useState(50); // 50% width default
   const [isResizingWidth, setIsResizingWidth] = useState(false);
   const resizeWidthRef = useRef<{ startX: number, startWidth: number } | null>(null);
@@ -86,7 +86,7 @@ export function CodeBlock({
     return () => { document.body.style.overflow = 'unset'; };
   }, [isFullscreen]);
   
-  // Efek untuk menangani event resize horizontal
+  // Effect to handle horizontal resize event
   useEffect(() => {
     const handleResizeWidthMove = (e: MouseEvent | TouchEvent) => {
       if (!isResizingWidth || !resizeWidthRef.current) return;
@@ -95,7 +95,7 @@ export function CodeBlock({
       const containerWidth = document.body.clientWidth;
       let newWidth = resizeWidthRef.current.startWidth + (deltaX / containerWidth) * 100;
 
-      // Batasi ukuran
+      // Limit size
       if (newWidth < 20) newWidth = 20;
       if (newWidth > 80) newWidth = 80;
       
@@ -214,7 +214,7 @@ export function CodeBlock({
     } else {
       setIsExpanded(!isExpanded);
       if (!isExpanded) {
-        setPanelWidth(50); // Reset ke 50% saat pertama kali dibuka
+        setPanelWidth(50); // Reset to 50% when first opened
       }
     }
   };

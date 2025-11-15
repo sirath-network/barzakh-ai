@@ -6,6 +6,7 @@ import {
   deleteMessagesByChatIdAfterTimestamp,
   getMessageById,
   updateChatVisiblityById,
+  updateChatTitleById,
   archiveChat as archiveChatById,
   restoreChat as restoreChatById,
 } from "@/lib/db/queries";
@@ -73,6 +74,24 @@ export async function updateChatVisibility({
   visibility: VisibilityType;
 }) {
   await updateChatVisiblityById({ chatId, visibility });
+}
+
+export async function updateChatTitle({
+  chatId,
+  title,
+}: {
+  chatId: string;
+  title: string;
+}) {
+  // Validate title
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) {
+    throw new Error("Chat title cannot be empty");
+  }
+  if (trimmedTitle.length > 200) {
+    throw new Error("Chat title cannot exceed 200 characters");
+  }
+  await updateChatTitleById({ chatId, title: trimmedTitle });
 }
 
 export async function archiveChat({ chatId }: { chatId: string }) {

@@ -84,7 +84,7 @@ const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
 ];
 
 // =====================================================================
-// AWAL DARI KODE YANG DIMODIFIKASI
+// START OF MODIFIED CODE
 // =====================================================================
 const QuestionSuggestions = ({
   append,
@@ -102,19 +102,19 @@ const QuestionSuggestions = ({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const { width } = useWindowSize();
 
-  // SOLUSI: Gunakan state untuk totalSuggestions untuk menghindari hydration mismatch.
-  // Nilai default (6) digunakan untuk render di server dan render awal di klien.
+  // SOLUTION: Use state for totalSuggestions to avoid hydration mismatch.
+  // Default value (6) is used for server-side rendering and initial client rendering.
   const [totalSuggestions, setTotalSuggestions] = useState(6);
 
-  // SOLUSI: Gunakan useEffect untuk menyesuaikan nilai di sisi klien setelah komponen di-mount.
-  // Ini aman karena hanya berjalan di browser, bukan di server.
+  // SOLUTION: Use useEffect to adjust the value on the client side after the component is mounted.
+  // This is safe because it only runs in the browser, not on the server.
   useEffect(() => {
     if (width < 640) {
-      setTotalSuggestions(2); // Set ke nilai mobile jika layar kecil
+      setTotalSuggestions(2); // Set to mobile value if screen is small
     } else {
-      setTotalSuggestions(6); // Set ke nilai desktop jika layar besar
+      setTotalSuggestions(6); // Set to desktop value if screen is large
     }
-  }, [width]); // Jalankan efek ini saat komponen mount dan saat lebar layar berubah
+  }, [width]); // Run this effect when component mounts and when screen width changes
 
   // Fetch AI/global suggestions
   useEffect(() => {
@@ -193,7 +193,7 @@ const QuestionSuggestions = ({
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-          {/* Skeleton loader sekarang akan selalu merender 6 item di server (sesuai state awal) */}
+          {/* Skeleton loader will now always render 6 items on the server (according to initial state) */}
           {Array.from({ length: totalSuggestions }).map((_, i) => (
             <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]">
               <div className="h-4 bg-muted rounded mb-2 w-3/4" />
@@ -307,7 +307,7 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   throw new Error("Base64 conversion is not supported in this environment.");
 };
 // =====================================================================
-// AKHIR DARI KODE YANG DIMODIFIKASI
+// END OF MODIFIED CODE
 // =====================================================================
 
 const SendIcon = ({
@@ -668,7 +668,7 @@ function PureMultimodalInput({
       return;
     }
 
-    window.history.replaceState({}, "", `/chat/${chatId}`);
+    window.history.replaceState({}, "", `/c/${chatId}`);
 
     const imageAttachments = attachments.filter((att) =>
       att.contentType?.startsWith("image/")

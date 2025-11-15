@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
     // 2. Get headers directly from the request object
     const acceptLanguage = request.headers.get("accept-language");
 
-    // Ambil bahasa utama dari header (misal: "id-ID,id;q=0.9,en-US;q=0.8" -> "id")
+    // Get main language from header (e.g., "id-ID,id;q=0.9,en-US;q=0.8" -> "id")
     const mainLang = acceptLanguage ? acceptLanguage.split(",")[0].split("-")[0] : "en";
 
-    // Jika bahasa default adalah Inggris, langsung kembalikan
+    // If default language is English, return immediately
     if (mainLang === "en") {
       return NextResponse.json(BASE_SUGGESTIONS);
     }
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     });
     const responseText = result.text;
     
-    // Membersihkan response AI dari format markdown jika ada
+    // Clean AI response from markdown format if exists
     const cleanedJsonText = responseText.replace(/```json\n|```/g, "").trim();
     const translatedSuggestions = JSON.parse(cleanedJsonText);
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error("Error translating suggestions:", error);
-    // Jika gagal, kembalikan saran original agar aplikasi tidak crash
+    // If it fails, return original suggestions to prevent app crash
     return NextResponse.json(BASE_SUGGESTIONS);
   }
 }

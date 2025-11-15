@@ -26,7 +26,7 @@ interface SidebarUserNavProps {
 
 export function SidebarUserNav({ user }: SidebarUserNavProps) {
   const { setTheme, theme } = useTheme();
-  // 1. Ambil semua state yang relevan dari context useSidebar
+  // 1. Get all relevant state from useSidebar context
   const { 
     setSidebarView, 
     state, 
@@ -35,18 +35,18 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
     openMobile 
   } = useSidebar();
 
-  // 2. Perbarui fungsi handleSettingsClick dengan logika untuk mobile
+  // 2. Update handleSettingsClick function with mobile logic
   const handleSettingsClick = () => {
-    // Selalu ganti tampilan ke 'settings'
+    // Always switch view to 'settings'
     if (setSidebarView) {
       setSidebarView('settings');
     }
 
-    // Cek apakah sidebar perlu dibuka
+    // Check if sidebar needs to be opened
     const isDesktopCollapsed = !isMobile && state === 'collapsed';
     const isMobileClosed = isMobile && !openMobile;
 
-    // Panggil toggleSidebar jika salah satu kondisi terpenuhi
+    // Call toggleSidebar if one of the conditions is met
     if ((isDesktopCollapsed || isMobileClosed) && toggleSidebar) {
         toggleSidebar();
     }
@@ -118,7 +118,7 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
 
             <DropdownMenuItem
               className="cursor-pointer focus:bg-muted/60 rounded-lg mx-1 transition-colors duration-200"
-              onSelect={handleSettingsClick} // Panggil fungsi yang sudah diperbarui
+              onSelect={handleSettingsClick} // Call the updated function
             >
               <span className="font-medium">Settings</span>
             </DropdownMenuItem>

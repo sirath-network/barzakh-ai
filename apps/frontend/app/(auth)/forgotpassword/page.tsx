@@ -286,13 +286,13 @@ export default function Page() {
             />
           )}
 
-          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-          {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
+          {/* 2. GRADIENT BLUR LAYER (NEW) */}
+          {/* Top Gradient - pointer events none so cursor can interact with Spline below */}
           <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-          {/* Gradien Bawah */}
+          {/* Bottom Gradient */}
           <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
 
-          {/* 3. Konten Teks (lapisan paling depan) */}
+          {/* 3. Text Content (frontmost layer) */}
           <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}

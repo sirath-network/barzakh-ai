@@ -81,7 +81,7 @@ export function SettingsMenu({
       </div>
       <hr className="border-border/20 mx-2 mb-2" />
 
-      {/* Bagian Akun */}
+      {/* Account Section */}
       <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
         Account
       </div>
@@ -100,7 +100,7 @@ export function SettingsMenu({
         </SettingsMenuItem>
       </div>
 
-      {/* Bagian Keamanan */}
+      {/* Security Section */}
       <div className="px-3 pt-4 pb-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
         Security
       </div>
@@ -137,7 +137,7 @@ export function SettingsMenu({
         </SettingsMenuItem>
       </div>
 
-      {/* Bagian Tampilan (Appearance) */}
+      {/* Appearance Section */}
       <div className="px-3 pt-4 pb-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
         Appearance
       </div>

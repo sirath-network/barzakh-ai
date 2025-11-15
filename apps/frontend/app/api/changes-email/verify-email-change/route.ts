@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       .set({ email: requestData.newEmail })
       .where(eq(user.id, session.user.id));
 
-    // ✅ Hapus request setelah berhasil
+    // ✅ Delete request after success
     await db
       .delete(email_change_requests)
       .where(eq(email_change_requests.userId, session.user.id));

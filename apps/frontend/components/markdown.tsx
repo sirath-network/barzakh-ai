@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
 import { CodeBlockCompact } from "./code-block-compact";
 import "./markdown.css";
-import { AddressBlock } from "./AddressBlock"; // Impor komponen baru
+import { AddressBlock } from "./AddressBlock"; // Import new component
 
 // Check if we should use compact view - for cleaner chat experience
 const USE_COMPACT_CODE_BLOCKS = true;
@@ -125,11 +125,11 @@ const components: Partial<Components> = {
     );
   },
   strong: ({ node, children, ...props }) => {
-    // ---- PERUBAHAN UTAMA DIMULAI DI SINI ----
+    // ---- MAIN CHANGES START HERE ----
     const textContent =
       children && typeof children[0] === "string" ? children[0] : "";
 
-    // Regex untuk mendeteksi pola umum alamat blockchain
+    // Regex to detect common blockchain address patterns
     const isAddress =
       /^(0x[a-fA-F0-9]{40}|(sei|cosmos|osmo|apt)[a-z0-9]{38,})$/.test(
         textContent.trim()
@@ -139,13 +139,13 @@ const components: Partial<Components> = {
       return <AddressBlock address={textContent} />;
     }
 
-    // Jika bukan alamat, render sebagai teks tebal biasa
+    // If not an address, render as regular bold text
     return (
       <span className="break-long-words font-semibold" {...props}>
         {children}
       </span>
     );
-    // ---- PERUBAHAN UTAMA BERAKHIR DI SINI ----
+    // ---- MAIN CHANGES END HERE ----
   },
   a: ({ node, children, ...props }) => {
     // Check if this is an image URL

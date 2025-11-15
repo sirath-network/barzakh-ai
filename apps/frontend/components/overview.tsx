@@ -30,12 +30,12 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Asumsikan tipe session.user memiliki properti 'username'
+// Assume session.user type has 'username' property
 interface ExtendedUser {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  username?: string | null; // Tambahkan properti username
+  username?: string | null; // Add username property
 }
 
 export const Overview = () => {
@@ -61,19 +61,19 @@ export const Overview = () => {
 
   const greeting = getGreeting();
   
-  // MODIFIKASI: Logika untuk menentukan nama yang akan ditampilkan
+  // MODIFIED: Logic to determine the name to display
   const displayName = user?.username 
-    ? user.username // 1. Prioritaskan username jika ada
+    ? user.username // 1. Prioritize username if exists
     : user?.name 
-    ? user.name     // 2. Jika ada name, gunakan name
+    ? user.name     // 2. If name exists, use name
     : session 
-    ? "User"         // 3. Jika login tapi tidak ada username/name, tampilkan "User"
-    : "Guest";       // 4. Jika tidak login, tampilkan "Guest"
+    ? "User"         // 3. If logged in but no username/name, show "User"
+    : "Guest";       // 4. If not logged in, show "Guest"
 
   const userImage = user?.image;
   
-  // MODIFIKASI: Kondisi untuk menampilkan avatar
-  // Tampilkan avatar jika pengguna login DAN sudah setup username atau name
+  // MODIFIED: Condition to show avatar
+  // Show avatar if user is logged in AND has set up username or name
   const showAvatar = !!(user?.username || user?.name);
 
   if (!isMounted) {
@@ -90,7 +90,7 @@ export const Overview = () => {
     >
       <div className="p-4 sm:p-6">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-5 sm:text-left">
-          {/* Avatar hanya muncul jika pengguna sudah login dan punya username */}
+          {/* Avatar only appears if user is logged in and has username */}
           {showAvatar && (
             <motion.div variants={itemVariants}>
               {userImage ? (
@@ -109,10 +109,10 @@ export const Overview = () => {
             </motion.div>
           )}
 
-          {/* Konten Teks */}
+          {/* Text Content */}
           <div className="flex flex-col">
             <TypeAnimation
-              key={displayName} // Gunakan displayName sebagai key
+              key={displayName} // Use displayName as key
               sequence={[`${greeting}, ${displayName}!`, 3000]}
               wrapper="h1"
               cursor={true}

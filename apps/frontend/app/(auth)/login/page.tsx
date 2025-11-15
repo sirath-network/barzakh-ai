@@ -237,7 +237,7 @@ export default function Page() {
       </ActionResultOverlay>
       
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        {/* --- PERUBAHAN DIMULAI DI SINI --- */}
+        {/* --- CHANGES START HERE --- */}
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
           {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
           <div 
@@ -269,18 +269,18 @@ export default function Page() {
             />
           )}
 
-          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-          {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
+          {/* 2. GRADIENT BLUR LAYER (NEW) */}
+          {/* Top Gradient - pointer events none so cursor can interact with Spline below */}
           <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-          {/* Gradien Bawah */}
+          {/* Bottom Gradient */}
           <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
 
-          {/* 3. Konten Teks (lapisan paling depan) */}
+          {/* 3. Text Content (frontmost layer) */}
           <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative z-[10] pointer-events-none" // Pastikan konten berada di atas video dan gradien, don't block Spline interactions
+              className="relative z-[10] pointer-events-none" // Ensure content is above video and gradient, don't block Spline interactions
           >
               <img
                 alt="Brand Banner"
@@ -293,7 +293,7 @@ export default function Page() {
               </p>
           </motion.div>
         </div>
-        {/* --- PERUBAHAN SELESAI DI SINI --- */}
+        {/* --- CHANGES END HERE --- */}
 
         <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
           <motion.div

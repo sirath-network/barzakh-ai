@@ -37,7 +37,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     router.refresh();
   };
 
-  // 2. Definisikan varian animasi
+  // 2. Define animation variants
   const viewAnimation = {
     initial: { opacity: 0, x: -20 },
     animate: { opacity: 1, x: 0 },
@@ -56,10 +56,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     <Sidebar className="group-data-[side=left]:border-r-0 custom-scrollbar bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-sm border-r border-border/50">
       <SidebarHeader className="p-4 border-b border-border/30 overflow-hidden">
         <SidebarMenu className="custom-scrollbar">
-          {/* 3. Gunakan AnimatePresence untuk header */}
+          {/* 3. Use AnimatePresence for header */}
           <AnimatePresence initial={false} mode="wait">
             <motion.div
-              key={sidebarView} // Kunci animasi berdasarkan tampilan
+              key={sidebarView} // Animation key based on view
               initial="initial"
               animate="animate"
               exit="exit"
@@ -108,7 +108,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         <ArrowLeft className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    {/* ✅ Tambahkan 'hidden sm:block' untuk menyembunyikan di mobile */}
+                    {/* ✅ Add 'hidden sm:block' to hide on mobile */}
                     <TooltipContent 
                       align="start" 
                       className="font-medium hidden sm:block"
@@ -127,7 +127,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-4 overflow-hidden">
-        {/* 4. Gunakan AnimatePresence untuk konten */}
+        {/* 4. Use AnimatePresence for content */}
         <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={sidebarView}

@@ -50,7 +50,7 @@ export function MessageEditor({
   useEffect(() => {
     if (textareaRef.current) {
       adjustHeight();
-      // Secara otomatis fokus dan pilih teks
+      // Automatically focus and select text
       textareaRef.current.focus();
       textareaRef.current.select();
     }

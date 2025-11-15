@@ -64,7 +64,7 @@ const ArchivedChatItem = ({
     <div className="group bg-white dark:bg-black/40 rounded-xl border border-gray-200 dark:border-red-900/30 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-sm">
       <div className="relative flex items-center p-4">
         <Link
-          href={`/chat/${chat.id}`}
+          href={`/c/${chat.id}`}
           onClick={() => {
             setOpenMobile(false);
             setView('chat');
