@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Eye, X, Copy, Check, AlertCircle, Share, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, Eye, X, AlertCircle, Share, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { cn } from "@barzakh/shared/lib/utils/utils";
@@ -30,9 +30,7 @@ export function AIGeneratedImage({
   allImages,
   currentIndex = 0
 }: AIGeneratedImageProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isExpiredUrl, setIsExpiredUrl] = useState(false);
@@ -41,6 +39,7 @@ export function AIGeneratedImage({
   // Navigation state for multiple images
   const [currentImageIndex, setCurrentImageIndex] = useState(currentIndex);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   
   // Get current image for display
   const currentImage = allImages && allImages.length > 1 
@@ -401,18 +400,6 @@ export function AIGeneratedImage({
   };
 
 
-  const handleCopyUrl = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    try {
-      await navigator.clipboard.writeText(currentImage);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy URL:', error);
-    }
-  };
-
   // Navigation functions for multiple images
   const goToPreviousImage = () => {
     if (allImages && allImages.length > 1) {
@@ -429,7 +416,24 @@ export function AIGeneratedImage({
   const handlePreviewOpen = () => {
     setCurrentImageIndex(currentIndex);
     setIsPreviewOpen(true);
+    // Load image to get dimensions
+    const img = new Image();
+    img.onload = () => {
+      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = currentImage;
   };
+
+  // Update image dimensions when current image changes
+  useEffect(() => {
+    if (isPreviewOpen && currentImage) {
+      const img = new Image();
+      img.onload = () => {
+        setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.src = currentImage;
+    }
+  }, [isPreviewOpen, currentImage, currentImageIndex]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -507,214 +511,116 @@ export function AIGeneratedImage({
   return (
     <div className={cn("w-full group flex flex-col justify-start", className)}>
       <div 
-        className="relative rounded-3xl overflow-hidden border border-border/20 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-muted/40 to-muted/20 inline-block w-full max-w-full group/image"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className={cn(
+          "relative rounded-3xl overflow-hidden border border-border/20 shadow-lg w-full max-w-full group/image",
+          shouldShowMobileUI ? "bg-transparent" : "bg-gradient-to-br from-muted/40 to-muted/20"
+        )}
       >
         {/* Enhanced Image Container */}
-        <div className="relative overflow-hidden rounded-3xl w-full">
+        <div className="relative overflow-hidden rounded-3xl w-full bg-transparent">
           <img
             src={imageUrl}
             alt={alt}
-            className="block w-full h-auto object-contain transition-transform duration-300 group-hover/image:scale-[1.02]"
-            style={{ maxHeight: 'min(600px, 80vh)', maxWidth: '100%' }}
+            className="block w-full h-auto object-contain"
+            style={{ 
+              maxWidth: '100%',
+              width: '100%',
+              height: 'auto',
+              display: 'block'
+            }}
             onError={handleImageError}
             loading="lazy"
           />
-          
-          {/* Subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
-          
         </div>
 
-        {/* Mobile Action Buttons - Always visible on mobile */}
-        {shouldShowMobileUI && (
-          <div className="absolute top-3 right-3 flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
-            >
-              {isDownloading ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-            </Button>
-            
-            <Button
-              variant="secondary"
-              size="sm"
-              className="bg-white/95 hover:bg-white border-white/20 shadow-lg backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePreviewOpen();
+        {/* Click to open preview */}
+        <div 
+          className="absolute inset-0 cursor-pointer"
+          onClick={handlePreviewOpen}
+        />
+      </div>
+
+      {/* Shared Preview Dialog */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] p-2 flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="sr-only">
+              AI Generated Image Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative flex-1 flex items-center justify-center min-h-0 overflow-hidden">
+            <img
+              src={currentImage}
+              alt={alt}
+              className="rounded-lg object-contain"
+              style={{
+                maxWidth: 'min(95vw, 1200px)',
+                maxHeight: '85vh',
+                width: 'auto',
+                height: 'auto',
+                aspectRatio: imageDimensions ? `${imageDimensions.width} / ${imageDimensions.height}` : 'auto'
               }}
-            >
-              <Eye className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-
-        {/* Desktop Hover Overlay with Actions */}
-        <AnimatePresence>
-          {!shouldShowMobileUI && isHovered && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-black/20 backdrop-blur-md flex items-center justify-center"
-            >
-              <div className="flex gap-3">
-                {/* Preview Button */}
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200 px-4 py-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewOpen();
-                    }}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Preview
-                  </Button>
-                </motion.div>
-
-                {/* Download Button */}
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    className="bg-white/95 hover:bg-white border-white/20 shadow-xl backdrop-blur-sm text-gray-700 hover:text-gray-900 transition-all duration-200 px-4 py-2"
-                  >
-                    {isDownloading ? (
-                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent mr-2" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    {isDownloading ? 'Downloading...' : 'Download'}
-                  </Button>
-                </motion.div>
-
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Shared Preview Dialog */}
-        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-          <DialogContent className="max-w-[95vw] w-full max-h-[95vh] p-2 flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="sr-only">
-                AI Generated Image Preview
-              </DialogTitle>
-            </DialogHeader>
-            <div className="relative flex-1 flex items-center justify-center min-h-0 overflow-hidden">
-              <img
-                src={currentImage}
-                alt={alt}
-                className="w-auto h-auto max-w-full max-h-[90vh] rounded-lg object-contain"
-                style={{ aspectRatio: 'auto' }}
-              />
-              
-              {/* Navigation for multiple images */}
-              {allImages && allImages.length > 1 && (
-                <>
-                  {/* Image counter */}
-                  <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
-                    {currentImageIndex + 1} / {allImages.length}
-                  </div>
-                  
-                  {/* Previous button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={goToPreviousImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  
-                  {/* Next button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={goToNextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </>
-              )}
-              
-              {/* Preview Actions */}
-              <div className="absolute bottom-4 right-4 flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCopyUrl}
-                  className="bg-white/90 hover:bg-white text-black shadow-lg"
-                >
-                  {isCopied ? (
-                    <Check className="w-4 h-4 mr-1 text-green-600" />
-                  ) : (
-                    <Copy className="w-4 h-4 mr-1" />
-                  )}
-                  {isCopied ? 'Copied!' : 'Copy URL'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                  className="bg-white/90 hover:bg-white text-black shadow-lg"
-                >
-                  <Download className="w-4 h-4 mr-1" />
-                  {isDownloading ? 'Downloading...' : 'Download'}
-                </Button>
-              </div>
-
-              {/* Download status messaging for mobile flows */}
-              {mobileDownloadStatus && (
-                <div className="absolute top-4 left-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm text-center">
-                  {mobileDownloadStatus}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (!imageDimensions) {
+                  setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                }
+              }}
+            />
+            
+            {/* Navigation for multiple images */}
+            {allImages && allImages.length > 1 && (
+              <>
+                {/* Image counter */}
+                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
+                  {currentImageIndex + 1} / {allImages.length}
                 </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Simple Info Badge */}
-        <div className="absolute bottom-3 left-3 right-3">
-          <div className="flex justify-end">
-            {!isHovered && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
-                className="px-3 py-1.5 bg-black/20 backdrop-blur-sm rounded-full text-white text-xs font-semibold border border-white/10 shadow-lg"
+                
+                {/* Previous button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goToPreviousImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                
+                {/* Next button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goToNextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+            
+            {/* Preview Actions */}
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="bg-white/90 hover:bg-white text-black shadow-lg"
               >
-                Powered by Barzakh
-              </motion.div>
+                <Download className="w-4 h-4 mr-1" />
+                {isDownloading ? 'Downloading...' : 'Download'}
+              </Button>
+            </div>
+
+            {/* Download status messaging for mobile flows */}
+            {mobileDownloadStatus && (
+              <div className="absolute top-4 left-4 right-4 bg-black/80 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-sm text-center">
+                {mobileDownloadStatus}
+              </div>
             )}
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Error Display */}
       <AnimatePresence>
