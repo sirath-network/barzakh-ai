@@ -174,7 +174,7 @@ const PureChatItem = ({
 
   return (
     <SidebarMenuItem className="group">
-      <div className="relative flex items-center rounded-lg">
+      <div className="relative flex items-center rounded-lg w-full min-w-0">
         <SidebarMenuButton
           asChild
           isActive={isActive}
@@ -214,10 +214,12 @@ const PureChatItem = ({
               size="sm"
               className={`
                 flex-shrink-0 h-8 w-8 p-0 ml-1 mr-1 rounded-md
-                opacity-0 group-hover:opacity-100 transition-all duration-200
+                transition-all duration-200
                 hover:bg-muted hover:text-muted-foreground
                 data-[state=open]:opacity-100 data-[state=open]:bg-muted
-                ${isActive ? "opacity-70 hover:opacity-100" : ""}
+                /* Always visible on mobile, show on hover for md+ */
+                opacity-100 md:opacity-0 md:group-hover:opacity-100
+                ${isActive ? "md:opacity-70 md:hover:opacity-100" : ""}
               `}
             >
               <MoreHorizontalIcon className="h-4 w-4" />
@@ -310,11 +312,11 @@ const PureChatItem = ({
 
         {/* Edit Chat Name Modal */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-w-sm sm:max-w-md rounded-xl px-6 py-5 sm:px-7 sm:py-6">
             <DialogHeader>
               <DialogTitle>Change title name</DialogTitle>
             </DialogHeader>
-            <div className="py-4">
+            <div className="py-4 sm:py-5">
               <Input
                 ref={inputRef}
                 type="text"
@@ -326,7 +328,7 @@ const PureChatItem = ({
                 placeholder="Enter chat name"
               />
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4">
               <Button
                 variant="outline"
                 onClick={handleCancelEdit}

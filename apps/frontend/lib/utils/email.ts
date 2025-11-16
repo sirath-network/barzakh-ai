@@ -189,7 +189,7 @@ async function sendEmail(
   }
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-  const fromName = process.env.RESEND_FROM_NAME || "Barzakh Support";
+  const fromName = process.env.RESEND_FROM_NAME || "Barzakh";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",

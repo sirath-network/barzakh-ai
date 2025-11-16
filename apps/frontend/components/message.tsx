@@ -401,19 +401,19 @@ const PurePreviewMessage = ({
                             
                             if (textContent.trim()) {
                                return (
-                                 <div
-                                   className="dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
-                                   style={{
-                                     borderRadius: '15px 15px 0px 15px'
-                                   }}
-                                   onClick={() => {
-                                     if (!isReadonly) {
-                                       setActionsVisible(!actionsVisible);
-                                     }
-                                   }}
-                                 >
-                                   <Markdown>{textContent}</Markdown>
-                                 </div>
+                                <div
+                                  className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
+                                  style={{
+                                    borderRadius: '15px 15px 0px 15px'
+                                  }}
+                                  onClick={() => {
+                                    if (!isReadonly) {
+                                      setActionsVisible(!actionsVisible);
+                                    }
+                                  }}
+                                >
+                                  <Markdown>{textContent}</Markdown>
+                                </div>
                                );
                              }
                             return null;

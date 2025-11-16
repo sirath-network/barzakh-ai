@@ -164,7 +164,16 @@ export const login = async (
     if (users.length > 0 && users[0].twoFactorEnabled) {
       // User has 2FA enabled, get temp token for 2FA verification
       try {
-        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/2fa/temp-login`, {
+        const baseUrl =
+          process.env.AUTH_URL ??
+          process.env.PUBLIC_BASE_URL ??
+          "http://localhost:3000";
+
+        // Use a short timeout so a dead/remote AUTH_URL doesn't hang login
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${baseUrl}/api/2fa/temp-login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -173,21 +182,78 @@ export const login = async (
             email: resolvedEmail,
             password: validatedData.password,
           }),
+          signal: controller.signal,
         });
 
-        const data = await response.json();
-        
-        if (response.ok) {
-          return { 
-            status: "requires_2fa", 
-            email: resolvedEmail,
-            tempToken: data.tempToken
-          };
+        clearTimeout(timeout);
+
+        const contentType = response.headers.get("content-type") || "";
+
+        let data: any = null;
+        if (contentType.includes("application/json")) {
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            console.error("Temp login JSON parse error:", parseError);
+          }
         } else {
+          // Non‑JSON response (likely an HTML error page)
+          const text = await response.text();
+          console.error("Temp login non-JSON response (check AUTH_URL/PUBLIC_BASE_URL and that the target app is running):", {
+            baseUrl,
+            status: response.status,
+            contentType,
+            bodyPreview: text.slice(0, 200),
+          });
+        }
+
+        // Wrong credentials / validation errors → just treat as failed login
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 400) {
+            console.warn("Temp login invalid credentials or 2FA state:", {
+              status: response.status,
+              error: data?.error,
+            });
+          } else {
+            console.error("Temp login API error (remote 2FA endpoint issue):", {
+              baseUrl,
+              status: response.status,
+              error: data?.error,
+            });
+          }
           return { status: "failed" };
         }
+
+        if (!data?.tempToken) {
+          console.error("Temp login succeeded but tempToken missing:", {
+            baseUrl,
+            data,
+          });
+          return { status: "failed" };
+        }
+
+        return {
+          status: "requires_2fa",
+          email: resolvedEmail,
+          tempToken: data.tempToken,
+        };
       } catch (error) {
-        console.error("Temp login error:", error);
+        if (error instanceof Error && error.name === "AbortError") {
+          console.error("Temp login request timed out (is AUTH_URL/PUBLIC_BASE_URL pointing to a running server?)", {
+            baseUrl:
+              process.env.AUTH_URL ??
+              process.env.PUBLIC_BASE_URL ??
+              "http://localhost:3000",
+          });
+        } else {
+          console.error("Temp login network or unexpected error:", {
+            error,
+            baseUrl:
+              process.env.AUTH_URL ??
+              process.env.PUBLIC_BASE_URL ??
+              "http://localhost:3000",
+          });
+        }
         return { status: "failed" };
       }
     }
