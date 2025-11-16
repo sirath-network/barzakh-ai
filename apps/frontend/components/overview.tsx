@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -99,11 +101,11 @@ export const Overview = () => {
                   alt={displayName}
                   width={64}
                   height={64}
-                  className="rounded-full object-cover ring-2 ring-red-500/50"
+                  className="rounded-full object-cover ring-2 ring-neutral-300 dark:ring-red-500/60"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 ring-2 ring-red-500/50">
-                  <UserCircle className="h-10 w-10 text-red-400" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 ring-2 ring-neutral-300 dark:bg-red-500/20 dark:ring-red-500/60">
+                  <UserCircle className="h-10 w-10 text-neutral-400 dark:text-red-400" />
                 </div>
               )}
             </motion.div>
@@ -118,12 +120,7 @@ export const Overview = () => {
               cursor={true}
               speed={50}
               repeat={0}
-              className="text-2xl font-semibold font-gramatika sm:text-3xl"
-              style={{
-                background: "linear-gradient(90deg, rgb(255, 80, 120), rgba(235, 50, 50, 1))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent"
-              }}
+              className="text-2xl font-semibold font-gramatika sm:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-rose-400 dark:via-red-500 dark:to-rose-500"
             />
             <motion.p
               variants={itemVariants}
