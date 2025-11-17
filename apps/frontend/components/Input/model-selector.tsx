@@ -77,6 +77,7 @@ const ModelOptionList = ({
 }: ModelOptionListProps) => {
   const filteredModels = useModelSearch(chatModels, searchQuery);
   const { resolvedTheme } = useTheme();
+  const isDarkTheme = resolvedTheme === "dark";
 
   if (filteredModels.length === 0) {
     return (
@@ -99,11 +100,15 @@ const ModelOptionList = ({
           : null;
 
         const commonClasses = cn(
-          "flex items-center gap-4 cursor-pointer",
-          "transition-colors duration-150",
-          "hover:bg-neutral-800/80 focus:bg-neutral-800/80",
-          "hover:text-foreground focus:text-foreground",
-          isSelected && "bg-neutral-800 text-foreground"
+          "flex items-center gap-4 cursor-pointer rounded-xl border border-transparent",
+          "transition-all duration-150",
+          isDarkTheme
+            ? "text-neutral-100/90 hover:bg-neutral-800/80 focus:bg-neutral-800/80"
+            : "text-neutral-900 hover:bg-neutral-50 focus:bg-neutral-50",
+          isSelected &&
+            (isDarkTheme
+              ? "bg-neutral-800 text-foreground"
+              : "bg-white text-neutral-900 ring-1 ring-neutral-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)]")
         );
 
         const content = (
@@ -209,6 +214,7 @@ export function ModelSelector({
   const { width } = useWindowSize();
   const timeoutRef = useRef<NodeJS.Timeout>();
   const { resolvedTheme } = useTheme();
+  const isDarkTheme = resolvedTheme === "dark";
 
   // Client-side hydration fix
   const [isClient, setIsClient] = useState(false);
@@ -369,14 +375,20 @@ export function ModelSelector({
         <DropdownMenuContent
           align="end"
           className={cn(
-            "w-[360px] p-0 bg-neutral-950/95 dark:bg-neutral-950/95",
-            "border border-neutral-800 shadow-2xl shadow-black/40",
-            "rounded-2xl animate-in fade-in-0 zoom-in-95",
-            "mt-2 mr-1 sm:mr-2"
+            "w-[360px] p-0 rounded-2xl animate-in fade-in-0 zoom-in-95",
+            "mt-2 mr-1 sm:mr-2 backdrop-blur-md",
+            isDarkTheme
+              ? "bg-neutral-950/95 border border-neutral-800 shadow-2xl shadow-black/40"
+              : "bg-white/95 border border-neutral-200 shadow-[0_25px_65px_rgba(15,23,42,0.18)]"
           )}
           sideOffset={10}
         >
-          <div className="p-4 pb-2 border-b border-neutral-800">
+          <div
+            className={cn(
+              "p-4 pb-2 border-b",
+              isDarkTheme ? "border-neutral-800" : "border-neutral-200/80"
+            )}
+          >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
@@ -384,12 +396,24 @@ export function ModelSelector({
                 placeholder="Search Models"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-neutral-800 bg-neutral-900/80 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className={cn(
+                  "w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors duration-150",
+                  isDarkTheme
+                    ? "border-neutral-800 bg-neutral-900/80 text-neutral-100 placeholder:text-neutral-400"
+                    : "border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-500 shadow-[0_1px_2px_rgba(15,23,42,0.08)] focus:border-primary/50"
+                )}
                 disabled={isUpdating}
               />
             </div>
           </div>
-          <div className="max-h-80 overflow-y-auto custom-scrollbar px-3 pb-4 pt-2">
+          <div
+            className={cn(
+              "max-h-80 overflow-y-auto custom-scrollbar px-3 pb-4 pt-2",
+              !isDarkTheme &&
+                "bg-gradient-to-b from-white/75 via-white/30 to-transparent"
+            )}
+          >
             <ModelOptionList
               selectedModelId={selectedModelId}
               onSelect={handleSelect}
