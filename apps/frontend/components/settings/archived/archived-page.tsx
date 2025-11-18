@@ -6,7 +6,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Archive, MessageCircle, RotateCcw, Trash2, MoreHorizontal, ChevronDown } from "lucide-react";
+import { Archive, ArchiveRestore, RotateCcw, Trash2, MoreHorizontal, ChevronDown, CircleArrowLeft } from "lucide-react";
 import { useView } from "@/context/view-context";
 
 import {
@@ -86,7 +86,7 @@ const ArchivedChatItem = ({
                 : "bg-gray-100 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50"
             }
           `}>
-            <MessageCircle className={`w-5 h-5 ${isActive ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
+            <ArchiveRestore className={`w-5 h-5 ${isActive ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-sm truncate ${
@@ -371,8 +371,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
             {/* Quick Actions */}
             <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Quick Actions</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">Manage your archives</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Quick Actions</h3>
               </div>
               <div className="p-6 md:p-8 space-y-3">
                 <Button 
@@ -380,8 +379,8 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                   className="w-full justify-start gap-2 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
                   onClick={() => window.location.href = '/'}
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  Back to Chats
+                  <CircleArrowLeft className="w-4 h-4" />
+                  Back to Conversations
                 </Button>
               </div>
             </div>

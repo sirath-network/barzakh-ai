@@ -159,6 +159,7 @@ export default function AccountSettingsPage() {
     setShowCropModal(false);
 
     try {
+      // Upload the image
       const response = await fetch(croppedImage);
       const blob = await response.blob();
       const formData = new FormData();
@@ -172,8 +173,43 @@ export default function AccountSettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
-      setAvatar(data.url);
-      toast.success("Avatar updated! Save changes to apply.");
+      const newAvatarUrl = data.url;
+      setAvatar(newAvatarUrl);
+      
+      // Automatically save the avatar to the profile
+      toast.success("Avatar uploaded! Saving...");
+      
+      const saveRes = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          fullName, 
+          username: username.toLowerCase(), 
+          avatar: newAvatarUrl 
+        }),
+      });
+
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || "Failed to save avatar");
+
+      // Update the session with the new avatar
+      await updateSession({
+        ...session,
+        user: {
+          ...session?.user,
+          image: newAvatarUrl,
+        },
+      });
+
+      // Update initial data to reflect the saved state
+      setInitialData({
+        fullName,
+        username,
+        avatar: newAvatarUrl
+      });
+
+      toast.success("Avatar updated successfully!");
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
