@@ -28,6 +28,19 @@ export function ArtifactViewer() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
 
+  // Create a simple hash of the content to force iframe refresh when content changes
+  const contentHash = useCallback(() => {
+    if (!currentArtifact?.content) return '';
+    // Simple hash function for content change detection
+    let hash = 0;
+    for (let i = 0; i < currentArtifact.content.length; i++) {
+      const char = currentArtifact.content.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString();
+  }, [currentArtifact?.content]);
+
   const handleCopy = useCallback(async () => {
     if (!currentArtifact) return;
     
@@ -239,6 +252,7 @@ export function ArtifactViewer() {
                 {viewMode === 'preview' ? (
                   <div className="h-full bg-white overflow-auto">
                     <iframe
+                      key={`${currentArtifact.id}-${contentHash()}`}
                       srcDoc={(() => {
                         // Fix relative paths in HTML content to prevent 404 requests
                         let htmlContent = currentArtifact.content;

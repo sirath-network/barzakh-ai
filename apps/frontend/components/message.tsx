@@ -412,7 +412,7 @@ const PurePreviewMessage = ({
                                     }
                                   }}
                                 >
-                                  <Markdown>{textContent}</Markdown>
+                                  <Markdown allMessages={allMessages}>{textContent}</Markdown>
                                 </div>
                                );
                              }
@@ -467,17 +467,17 @@ const PurePreviewMessage = ({
                               <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                 <div className="flex-1 min-w-0 max-w-full">
                                   {typeof message.content === "string" ? (
-                                    <Markdown>{message.content}</Markdown>
+                                    <Markdown allMessages={allMessages}>{message.content}</Markdown>
                                   ) : (
                                     <div className="flex flex-col gap-2">
                                       {(message.content as any[]).map((part, index) => {
                                         if (part.type === "text") {
-                                          return <Markdown key={index}>{part.text}</Markdown>;
+                                          return <Markdown key={index} allMessages={allMessages}>{part.text}</Markdown>;
                                         }
                                         if (part.type === "image" && typeof part.image === 'string') {
                                           // Include image URLs in text content so they can be rendered inline by Markdown
                                           // This allows the Markdown component to detect and render AI-generated images properly
-                                          return <Markdown key={index}>{part.image}</Markdown>;
+                                          return <Markdown key={index} allMessages={allMessages}>{part.image}</Markdown>;
                                         }
                                         return null;
                                       })}

@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { User, Image as ImageIcon, AtSign, Save, Upload, X, RotateCcw, Trash2 } from "lucide-react";
+import { User, Image as ImageIcon, AtSign, Save, Upload, X, RotateCcw, Trash2, CheckCircle, AlertCircle, Shield, Key } from "lucide-react";
 import DeleteAccountModal from "./delete-account-modal";
 
-// Image Crop Modal Component (No changes needed here as it's a modal overlay)
+// Image Crop Modal Component
 function ImageCropModal({
   imageSrc,
   onSave,
@@ -335,6 +335,7 @@ export default function AccountSettingsPage() {
   const [tempImageSrc, setTempImageSrc] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [usernameValidation, setUsernameValidation] = useState({ isValid: true, message: "" });
 
   useEffect(() => {
     if (session?.user) {
@@ -356,8 +357,40 @@ export default function AccountSettingsPage() {
     username !== initialData.username ||
     avatar !== initialData.avatar;
 
-  const normalizedUsernameLive = (username || "").toLowerCase();
-  const isUsernameValid = normalizedUsernameLive.length > 0 && /^[a-z0-9]+$/.test(normalizedUsernameLive);
+  const validateUsername = (value: string) => {
+    const normalized = value.toLowerCase();
+    
+    if (normalized.length === 0) {
+      return { isValid: false, message: "Username is required" };
+    }
+    
+    if (normalized.length < 3) {
+      return { isValid: false, message: "Username must be at least 3 characters" };
+    }
+    
+    if (normalized.length > 20) {
+      return { isValid: false, message: "Username must be less than 20 characters" };
+    }
+    
+    if (!/^[a-z0-9]+$/.test(normalized)) {
+      return { isValid: false, message: "Only lowercase letters and numbers allowed" };
+    }
+    
+    if (!/^[a-z]/.test(normalized)) {
+      return { isValid: false, message: "Must start with a letter" };
+    }
+    
+    return { isValid: true, message: "Username is available" };
+  };
+
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    if (value) {
+      setUsernameValidation(validateUsername(value));
+    } else {
+      setUsernameValidation({ isValid: false, message: "" });
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -421,21 +454,18 @@ export default function AccountSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const validation = validateUsername(username);
+    if (!validation.isValid) {
+      toast.error(validation.message);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Normalize and validate username before sending
-      const normalizedUsername = (username || "").toLowerCase();
-      if (!normalizedUsername) {
-        toast.error("Username is required.");
-        setIsLoading(false);
-        return;
-      }
-      if (!/^[a-z0-9]+$/.test(normalizedUsername)) {
-        toast.error("Username must be lowercase letters and numbers only (no spaces or symbols).");
-        setIsLoading(false);
-        return;
-      }
+      const normalizedUsername = username.toLowerCase();
+      
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -482,136 +512,312 @@ export default function AccountSettingsPage() {
     <>
       <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit}>
-            <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-8 border-b border-gray-200 dark:border-red-900/30">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gray-100 dark:bg-red-800/50 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
-                    <User className="w-6 h-6 text-gray-600 dark:text-red-300" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                      Account Profile
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
-                      Update your public profile information.
-                    </p>
-                  </div>
-                </div>
+          <div className="mb-6 md:mb-8">
+            <div className="flex items-center gap-3 mb-3 md:mb-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
+                <User className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
               </div>
-              <div className="p-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-1 space-y-2 flex flex-col items-center">
-                    <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">Manage your account profile and preferences</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Form Card */}
+            <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Information</h2>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                  Update your personal information and profile picture
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                <div className="p-6 md:p-8 space-y-6">
+                  {/* Profile Picture Section */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">
                       Profile Picture
                     </label>
-                    <div className="relative">
-                      <div className="w-32 h-32 rounded-full border-2 border-gray-200 dark:border-red-900/50 shadow-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                        <img
-                          src={avatar || "https://avatar.vercel.sh/fallback.png"}
-                          alt="Avatar Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
-                          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="flex items-center gap-6">
+                      <div className="relative">
+                        <div className="w-20 h-20 rounded-full border-2 border-gray-200 dark:border-red-900/50 shadow-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                          <img
+                            src={avatar || "https://avatar.vercel.sh/fallback.png"}
+                            alt="Avatar Preview"
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                      )}
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                            <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          className="hidden"
+                          accept="image/*"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                          className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600/50 dark:to-red-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700/50 dark:hover:to-red-800/50 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          {isUploading ? "Uploading..." : "Upload Image"}
+                        </button>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          JPG, PNG. Max 5MB. Recommended: 200x200px
+                        </p>
+                      </div>
                     </div>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept="image/*"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="w-full mt-4 bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600/50 dark:to-red-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700/50 dark:hover:to-red-800/50 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Upload Image
-                    </button>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                      JPG, PNG. Max 5MB.
+                  </div>
+
+                  {/* Full Name Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      This is how your name will appear to other users
                     </p>
                   </div>
 
-                  <div className="md:col-span-2 space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-400 w-5 h-5" />
-                        <input
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20"
-                          placeholder="Satoshi Nakamoto"
-                        />
-                      </div>
+                  {/* Username Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                      Username
+                    </label>
+                    <div className="relative">
+                      <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => handleUsernameChange(e.target.value)}
+                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+                          username && !usernameValidation.isValid 
+                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
+                            : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
+                        }`}
+                        placeholder="Choose a username"
+                      />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                        Username
-                      </label>
-                      <div className="relative">
-                        <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-400 w-5 h-5" />
-                        <input
-                          type="text"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20"
-                          placeholder="username"
-                        />
+                    
+                    {username && (
+                      <div className={`mt-2 flex items-center gap-2 ${
+                        usernameValidation.isValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {usernameValidation.isValid ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4" />
+                        )}
+                        <span className="text-sm">{usernameValidation.message}</span>
+                      </div>
+                    )}
+                    
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700/50">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Username Requirements:</p>
+                      <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <li className="flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            username.length >= 3 ? 'bg-emerald-500' : 'bg-gray-400'
+                          }`}></div>
+                          3-20 characters
+                        </li>
+                        <li className="flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            /^[a-z]/.test(username) ? 'bg-emerald-500' : 'bg-gray-400'
+                          }`}></div>
+                          Must start with a letter
+                        </li>
+                        <li className="flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            /^[a-z0-9]+$/.test(username) ? 'bg-emerald-500' : 'bg-gray-400'
+                          }`}></div>
+                          Lowercase letters and numbers only
+                        </li>
+                        <li className="flex items-center gap-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            !username.includes(' ') ? 'bg-emerald-500' : 'bg-gray-400'
+                          }`}></div>
+                          No spaces or special characters
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Security Notice */}
+                  <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-4 border border-red-200 dark:border-red-700/50">
+                    <div className="flex gap-3">
+                      <Shield className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h3 className="font-semibold text-red-800 dark:text-red-300 mb-1">Profile Visibility</h3>
+                        <p className="text-sm text-red-700 dark:text-red-200">
+                          Your username and profile picture are public. Choose information you're comfortable sharing.
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isLoading || isUploading || !hasChanges || !usernameValidation.isValid}
+                    className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        {hasChanges ? 'Save Changes' : 'No Changes'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Profile Tips */}
+              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+                <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Profile Tips</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">Create a great profile</p>
+                </div>
+                <div className="p-6 md:p-8 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Use a clear photo</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">A good profile picture helps build trust</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Choose a unique username</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Make it memorable and easy to find</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Keep it professional</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Your profile represents you online</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Be consistent</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Use the same name across platforms</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
+
+              {/* Account Security */}
+              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+                <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Account Security</h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">Keep your account safe</p>
+                </div>
+                <div className="p-6 md:p-8 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Profile Privacy</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Your username is publicly visible</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Key className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Secure Account</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Use strong passwords and 2FA</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Regular Updates</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Keep your profile information current</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Delete Account Section */}
+          <div className="mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+            <div className="p-6 md:p-8">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Account</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+                    Permanently delete your account and all associated data. This action is irreversible.
+                  </p>
+                </div>
                 <button
-                  type="submit"
-                  disabled={isLoading || isUploading || !hasChanges || !isUsernameValid}
-                  className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-semibold transition-all duration-200 shadow-lg flex items-center gap-2"
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      {hasChanges ? 'Save Changes' : 'No Changes'}
-                    </>
-                  )}
+                  <Trash2 className="w-4 h-4" />
+                  Delete Account
                 </button>
               </div>
             </div>
-          </form>
+          </div>
 
-          <div className="mt-8 bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden">
-            <div className="p-8">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Delete Account
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
-                    Permanently delete your account and all associated data. This action is irreversible.
+          {/* Help Section */}
+          <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-lg border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">Need Help?</h3>
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                  Having trouble with your account settings? Our support team is here to help.
                 </p>
-                <button
-                    type="button"
-                    onClick={() => setIsDeleteModalOpen(true)}
-                    className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-semibold transition-all duration-200 shadow-lg flex items-center gap-2"
-                >
-                    <Trash2 className="w-4 h-4" />
-                    Delete My Account
-                </button>
+              </div>
+              <button 
+                onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
+                className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm"
+              >
+                Contact Support
+              </button>
             </div>
           </div>
         </div>

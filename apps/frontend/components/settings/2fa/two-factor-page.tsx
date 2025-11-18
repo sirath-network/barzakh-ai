@@ -14,12 +14,9 @@ import {
   Download,
   RefreshCw,
   AlertTriangle,
-  X
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { OTPInput } from "@/components/ui/otp-input";
 
 interface TwoFactorStatus {
   twoFactorEnabled: boolean;
@@ -213,6 +210,27 @@ export default function TwoFactorSettingsPage() {
     toast.success("Backup codes downloaded");
   };
 
+  // Custom OTP Input Component to match the design
+  const OTPInput = ({ length, value, onChange }: { length: number; value: string; onChange: (value: string) => void }) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value.replace(/\D/g, '').slice(0, length);
+      onChange(newValue);
+    };
+
+    return (
+      <div className="flex gap-2 justify-center">
+        <input
+          type="text"
+          value={value}
+          onChange={handleChange}
+          className="w-full max-w-[200px] px-4 py-3 border border-gray-300 dark:border-red-900/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-gray-50 dark:bg-black/20 text-center font-mono text-lg"
+          placeholder="000000"
+          maxLength={length}
+        />
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8 flex items-center justify-center">
@@ -225,258 +243,352 @@ export default function TwoFactorSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-3 sm:p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white dark:bg-black/80 rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-          <div className="p-4 sm:p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 dark:bg-red-800/50 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50 flex-shrink-0">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-red-300" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                  Two-Factor Authentication
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-300 mt-1">
-                  Add an extra layer of security to your account
-                </p>
-              </div>
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-center gap-3 mb-3 md:mb-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
+              <Shield className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Two-Factor Authentication</h1>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">Add an extra layer of security to your account</p>
             </div>
           </div>
+        </div>
 
-          <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 md:space-y-8">
-            {/* Current Status */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-3 sm:gap-4">
-                {status.twoFactorEnabled ? (
-                  <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400 flex-shrink-0" />
-                ) : (
-                  <ShieldX className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 flex-shrink-0" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-                    {status.twoFactorEnabled ? "2FA Enabled" : "2FA Disabled"}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                    {status.twoFactorEnabled 
-                      ? "Your account is protected with two-factor authentication"
-                      : "Enable 2FA to secure your account with an additional verification step"
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                {!status.twoFactorEnabled && (
-                  <Button
-                    onClick={handleSetup}
-                    disabled={isSettingUp}
-                    className="bg-red-600 hover:bg-red-700 text-white flex-1 sm:flex-none text-sm sm:text-base"
-                  >
-                    {isSettingUp ? (
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span className="hidden sm:inline">Setting up...</span>
-                        <span className="sm:hidden">Setting up...</span>
-                      </div>
-                    ) : (
-                      "Enable 2FA"
-                    )}
-                  </Button>
-                )}
-                {status.twoFactorEnabled && (
-                  <Button
-                    onClick={handleRegenerateBackupCodes}
-                    disabled={isRegenerating}
-                    variant="outline"
-                    className="border-gray-300 dark:border-gray-600 flex-1 sm:flex-none text-sm sm:text-base"
-                  >
-                    {isRegenerating ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline">Regenerate Backup Codes</span>
-                        <span className="sm:hidden">Regenerate</span>
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content Card */}
+          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Security Status</h2>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                {status.twoFactorEnabled 
+                  ? "Your account is protected with two-factor authentication" 
+                  : "Enable 2FA to secure your account with an additional verification step"
+                }
+              </p>
             </div>
-
-            {/* Setup Flow */}
-            {setupData && !status.twoFactorEnabled && (
-              <div className="space-y-4 sm:space-y-6">
-                <div className="bg-gray-50 dark:bg-gray-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <QrCode className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" />
-                    <h3 className="font-semibold text-black-900 dark:text-black-100 text-sm sm:text-base">
-                      Scan QR Code
+            
+            <div className="p-6 md:p-8 space-y-6">
+              {/* Status Section */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  {status.twoFactorEnabled ? (
+                    <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <ShieldX className="w-8 h-8 text-gray-400" />
+                  )}
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      {status.twoFactorEnabled ? "2FA Enabled" : "2FA Disabled"}
                     </h3>
-                  </div>
-                  <p className="text-xs sm:text-sm text-white-800 dark:text-white-200 mb-4">
-                    Use your authenticator app (Google Authenticator, Authy, etc.) to scan this QR code:
-                  </p>
-                  <div className="flex justify-center mb-4">
-                    <img 
-                      src={setupData.qrCode} 
-                      alt="2FA QR Code" 
-                      className="w-40 h-40 sm:w-48 sm:h-48 border border-gray-300 dark:border-gray-600 rounded-lg"
-                    />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {status.twoFactorEnabled 
+                        ? "Your account is protected with two-factor authentication"
+                        : "Enable 2FA to secure your account"
+                      }
+                    </p>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  {!status.twoFactorEnabled && (
+                    <button
+                      onClick={handleSetup}
+                      disabled={isSettingUp}
+                      className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isSettingUp ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Setting up...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-4 h-4" />
+                          Enable 2FA
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {status.twoFactorEnabled && (
+                    <button
+                      onClick={handleRegenerateBackupCodes}
+                      disabled={isRegenerating}
+                      className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRegenerating ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          Regenerate Codes
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
 
-                <div className="bg-gray-50 dark:bg-gray-800/50 border border-red-200 dark:border-red-700 rounded-xl p-4 sm:p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Copy className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" />
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-                      Manual Entry Key
-                    </h3>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    If you can't scan the QR code, enter this key manually in your authenticator app:
-                  </p>
-                  <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
-                    <code className="flex-1 font-mono text-xs sm:text-sm text-gray-900 dark:text-white break-all">
-                      {showSecret ? setupData.manualEntryKey : "•".repeat(setupData.manualEntryKey.length)}
-                    </code>
-                    <div className="flex gap-1">
-                      <Button
-                        onClick={() => setShowSecret(!showSecret)}
-                        variant="ghost"
-                        size="sm"
-                        className="p-2"
-                      >
-                        {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </Button>
-                      <Button
-                        onClick={() => copyToClipboard(setupData.manualEntryKey)}
-                        variant="ghost"
-                        size="sm"
-                        className="p-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
+              {/* Setup Flow */}
+              {setupData && !status.twoFactorEnabled && (
+                <div className="space-y-6">
+                  {/* QR Code Section */}
+                  <div className="bg-gray-50 dark:bg-gray-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <QrCode className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Scan QR Code</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      Use your authenticator app (Google Authenticator, Authy, etc.) to scan this QR code:
+                    </p>
+                    <div className="flex justify-center">
+                      <img 
+                        src={setupData.qrCode} 
+                        alt="2FA QR Code" 
+                        className="w-48 h-48 border border-gray-300 dark:border-gray-600 rounded-lg"
+                      />
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 sm:p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600 dark:text-yellow-400" />
-                    <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 text-sm sm:text-base">
-                      Verify Setup
-                    </h3>
+                  {/* Manual Entry Section */}
+                  <div className="bg-gray-50 dark:bg-gray-800/50 border border-red-200 dark:border-red-700 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Copy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Manual Entry Key</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      If you can't scan the QR code, enter this key manually in your authenticator app:
+                    </p>
+                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+                      <code className="flex-1 font-mono text-sm text-gray-900 dark:text-white break-all">
+                        {showSecret ? setupData.manualEntryKey : "•".repeat(setupData.manualEntryKey.length)}
+                      </code>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setShowSecret(!showSecret)}
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                        >
+                          {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(setupData.manualEntryKey)}
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 mb-4">
-                    Enter the 6-digit code from your authenticator app to complete the setup:
-                  </p>
-                  <div className="space-y-4">
-                    <div className="flex justify-center">
+
+                  {/* Verification Section */}
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Verify Setup</h3>
+                    </div>
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-4">
+                      Enter the 6-digit code from your authenticator app to complete the setup:
+                    </p>
+                    <div className="space-y-4">
                       <OTPInput
                         length={6}
                         value={verificationToken}
                         onChange={(value) => setVerificationToken(value)}
                       />
+                      <button
+                        onClick={handleVerifyAndEnable}
+                        disabled={isVerifying || verificationToken.length !== 6}
+                        className="w-full bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isVerifying ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-4 h-4" />
+                            Verify & Enable 2FA
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <Button
-                      onClick={handleVerifyAndEnable}
-                      disabled={isVerifying || verificationToken.length !== 6}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base"
-                    >
-                      {isVerifying ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Verifying...
-                        </div>
-                      ) : (
-                        "Verify & Enable"
-                      )}
-                    </Button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Disable Flow */}
-            {status.twoFactorEnabled && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <ShieldX className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
-                  <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm sm:text-base">
-                    Disable 2FA
-                  </h3>
-                </div>
-                <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 mb-4">
-                  To disable 2FA, enter a current 2FA code from your authenticator app:
-                </p>
-                <div className="space-y-4">
-                  <div className="flex justify-center">
+              {/* Disable Section */}
+              {status.twoFactorEnabled && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <ShieldX className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <h3 className="font-semibold text-red-900 dark:text-red-100">Disable 2FA</h3>
+                  </div>
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-4">
+                    To disable 2FA, enter a current 2FA code from your authenticator app:
+                  </p>
+                  <div className="space-y-4">
                     <OTPInput
                       length={6}
                       value={verificationToken}
                       onChange={(value) => setVerificationToken(value)}
                     />
-                  </div>
-                  <Button
-                    onClick={() => setShowDisableConfirm(true)}
-                    disabled={isDisabling || verificationToken.length !== 6}
-                    variant="destructive"
-                    className="w-full text-sm sm:text-base"
-                  >
-                    {isDisabling ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Disabling...
-                      </div>
-                    ) : (
-                      "Disable 2FA"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Backup Codes */}
-            {showBackupCodes && backupCodes.length > 0 && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 sm:p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
-                  <h3 className="font-semibold text-green-900 dark:text-green-100 text-sm sm:text-base">
-                    Backup Codes
-                  </h3>
-                </div>
-                <p className="text-xs sm:text-sm text-green-800 dark:text-green-200 mb-4">
-                  Save these backup codes in a safe place. Each code can only be used once:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                  {backupCodes.map((code, index) => (
-                    <div
-                      key={index}
-                      className="p-2 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs sm:text-sm text-center"
+                    <button
+                      onClick={() => setShowDisableConfirm(true)}
+                      disabled={isDisabling || verificationToken.length !== 6}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {code}
-                    </div>
-                  ))}
+                      {isDisabling ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Disabling...
+                        </>
+                      ) : (
+                        <>
+                          <ShieldX className="w-4 h-4" />
+                          Disable 2FA
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    onClick={downloadBackupCodes}
-                    variant="outline"
-                    className="border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 flex-1 sm:flex-none text-sm sm:text-base"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Codes
-                  </Button>
-                  <Button
-                    onClick={() => setShowBackupCodes(false)}
-                    variant="ghost"
-                    className="flex-1 sm:flex-none text-sm sm:text-base"
-                  >
-                    Close
-                  </Button>
+              )}
+
+              {/* Backup Codes */}
+              {showBackupCodes && backupCodes.length > 0 && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Backup Codes</h3>
+                  </div>
+                  <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-4">
+                    Save these backup codes in a safe place. Each code can only be used once:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {backupCodes.map((code, index) => (
+                      <div
+                        key={index}
+                        className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-sm text-center"
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={downloadBackupCodes}
+                      className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Codes
+                    </button>
+                    <button
+                      onClick={() => setShowBackupCodes(false)}
+                      className="flex-1 bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-2"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Security Tips */}
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">2FA Security Tips</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">Best practices for two-factor authentication</p>
+              </div>
+              <div className="p-6 md:p-8 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Use a trusted app</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Google Authenticator, Authy, or Microsoft Authenticator</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Save backup codes</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Store them in a secure location</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Secure your device</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Keep your authenticator app protected</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Update regularly</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Regenerate backup codes periodically</p>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Security Features */}
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Security Benefits</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">How 2FA protects your account</p>
+              </div>
+              <div className="p-6 md:p-8 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Extra Protection</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Even if password is compromised</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Login Alerts</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Unauthorized access prevention</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Peace of Mind</h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Enhanced account security</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Help Section */}
+        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-lg border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">Need Help with 2FA?</h3>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                Having trouble setting up two-factor authentication? Our support team is here to help.
+              </p>
+            </div>
+            <button onClick={() => window.open("https://barzakh.tech/contact", "_blank")}
+              className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm">
+              Contact Support
+            </button>
           </div>
         </div>
       </div>
@@ -535,27 +647,26 @@ export default function TwoFactorSettingsPage() {
             {/* Footer */}
             <div className="p-6 border-t border-gray-200 dark:border-red-900/30 bg-gray-50 dark:bg-black/80">
               <div className="flex gap-3">
-                <Button
+                <button
                   onClick={() => setShowDisableConfirm(false)}
-                  variant="outline"
-                  className="flex-1 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900"
+                  className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleDisable}
                   disabled={isDisabling}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isDisabling ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       Disabling...
-                    </div>
+                    </>
                   ) : (
                     "Yes, Disable 2FA"
                   )}
-                </Button>
+                </button>
               </div>
             </div>
           </div>

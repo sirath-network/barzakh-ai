@@ -9,6 +9,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import type { Stripe, StripeCardElementOptions } from "@stripe/stripe-js";
+import { CreditCard } from "lucide-react";
 import type {
   PaymentMethodSummary,
   SubscriptionSummary,
@@ -210,69 +211,106 @@ export function PaymentMethodsCard({
     }
   };
 
+  const defaultMethod = paymentMethods?.find((pm) => pm.isDefault);
+  const otherMethods = paymentMethods?.filter((pm) => !pm.isDefault) ?? [];
+  const hasMethods = paymentMethods && paymentMethods.length > 0;
+
   return (
     <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm relative">
       <div className="p-8 space-y-1">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          Payment Methods
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-300">
-          Securely manage the cards used for your subscription.
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 flex items-center justify-center">
+            <CreditCard className="w-6 h-6 text-gray-700 dark:text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              Payment Methods
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-300">
+              Securely manage the cards used for your subscription.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="p-8 pt-0 space-y-6">
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="rounded-lg border border-dashed border-gray-300 dark:border-red-900/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
-              Loading payment methods...
-            </div>
-          ) : paymentMethods && paymentMethods.length > 0 ? (
-            paymentMethods.map((pm) => (
-              <div
-                key={pm.id}
-                className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-red-900/30 bg-gray-50/60 dark:bg-black/40 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {pm.brand ? pm.brand.toUpperCase() : "Card"} ····{" "}
-                    {pm.last4 ?? "----"}
+        {isLoading ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-red-900/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
+            Loading payment methods...
+          </div>
+        ) : hasMethods ? (
+          <div className="space-y-5">
+            {defaultMethod && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                    Primary card
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Expires{" "}
-                    {pm.expMonth && pm.expYear
-                      ? `${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}`
-                      : "--/--"}
-                  </p>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700/50">
+                    Default
+                  </span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  {pm.isDefault ? (
-                    <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/30 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700/50">
-                      Default
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleSetDefault(pm.id)}
-                      disabled={
-                        settingDefault === pm.id ||
-                        !isSubscribed ||
-                        Boolean(settingDefault)
-                      }
-                      className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full border border-gray-300 dark:border-red-900/40 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {settingDefault === pm.id ? "Updating..." : "Set Default"}
-                    </button>
-                  )}
+                <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-black/60 shadow-sm px-4 py-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {defaultMethod.brand ? defaultMethod.brand.toUpperCase() : "Card"} ····{" "}
+                      {defaultMethod.last4 ?? "----"}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Expires{" "}
+                      {defaultMethod.expMonth && defaultMethod.expYear
+                        ? `${String(defaultMethod.expMonth).padStart(2, "0")}/${defaultMethod.expYear}`
+                        : "--/--"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="rounded-lg border border-dashed border-gray-300 dark:border-red-900/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
-              No payment methods on file. Add a card below.
-            </div>
-          )}
-        </div>
+            )}
+
+            {otherMethods.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                  Additional cards
+                </p>
+                <div className="space-y-3">
+                  {otherMethods.map((pm) => (
+                    <div
+                      key={pm.id}
+                      className="flex items-center justify-between rounded-2xl border border-gray-200 dark:border-red-900/40 bg-gray-50/60 dark:bg-black/40 px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {pm.brand ? pm.brand.toUpperCase() : "Card"} ···· {pm.last4 ?? "----"}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Expires{" "}
+                          {pm.expMonth && pm.expYear
+                            ? `${String(pm.expMonth).padStart(2, "0")}/${pm.expYear}`
+                            : "--/--"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleSetDefault(pm.id)}
+                        disabled={
+                          settingDefault === pm.id ||
+                          !isSubscribed ||
+                          Boolean(settingDefault)
+                        }
+                        className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full border border-gray-300 dark:border-red-900/40 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {settingDefault === pm.id ? "Updating..." : "Set Default"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-red-900/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
+            No payment methods on file. Add a card below.
+          </div>
+        )}
 
         {canRenderStripeForm ? (
           <Elements stripe={stripePromise!} options={{ appearance: { theme: "night" } }}>

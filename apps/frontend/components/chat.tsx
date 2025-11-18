@@ -77,7 +77,7 @@ export function Chat({
     id,
     body: { id, selectedChatModel: selectedChatModel },
     initialMessages,
-    experimental_throttle: 100,
+    experimental_throttle: 250,
     sendExtraMessageFields: true,
     generateId: generateUUID,
     onFinish: () => {
@@ -116,7 +116,10 @@ export function Chat({
   useEffect(() => {
     const el = chatContainerRef.current;
     if (el && isAtBottom) {
-      el.scrollTop = el.scrollHeight;
+      // Use requestAnimationFrame to batch scroll updates
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
     }
   }, [messages.length, isAtBottom]);
 
@@ -135,11 +138,20 @@ export function Chat({
   useEffect(() => {
     const el = chatContainerRef.current;
     
+    // Throttle scroll handler to prevent excessive state updates
+    let scrollTimeout: NodeJS.Timeout | null = null;
     const handleScroll = () => {
       if (!el) return;
-      const threshold = 10;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
-      setIsAtBottom(atBottom);
+      
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      
+      scrollTimeout = setTimeout(() => {
+        const threshold = 10;
+        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+        setIsAtBottom(atBottom);
+      }, 100);
     };
 
     if (el) {
@@ -148,6 +160,9 @@ export function Chat({
     }
 
     return () => {
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
       if (el) {
         el.removeEventListener("scroll", handleScroll);
       }

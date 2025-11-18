@@ -20,6 +20,8 @@ export interface Artifact {
   metadata?: {
     fileName?: string;
     lineCount?: number;
+    isCombined?: boolean;
+    sourceFiles?: string;
   };
 }
 

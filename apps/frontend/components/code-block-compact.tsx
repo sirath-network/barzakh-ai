@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback } from "react";
-import { ExternalLink, FileCode, Sparkles, Code2 } from "lucide-react";
+import React, { useCallback, useMemo } from "react";
+import { ExternalLink, FileCode, Sparkles, Code2, Eye } from "lucide-react";
 import { useArtifact } from "@/context/artifact-context";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 import { cn } from "@barzakh/shared/lib/utils/utils";
+import { combineWebFiles, type WebFile } from "@/lib/combine-web-files";
 
 const languageConfig = {
   python: { name: 'Python', icon: '🐍', color: 'from-blue-500/20 to-cyan-500/20', border: 'border-blue-500/30' },
@@ -26,12 +27,14 @@ interface CodeBlockCompactProps {
   className?: string;
   children: React.ReactNode;
   fileName?: string;
+  allCodeBlocks?: WebFile[]; // All code blocks from the same message for combining
 }
 
 export function CodeBlockCompact({
   className = '',
   children,
   fileName: initialFileName,
+  allCodeBlocks = [],
 }: CodeBlockCompactProps) {
   const { openArtifact } = useArtifact();
   
@@ -39,6 +42,16 @@ export function CodeBlockCompact({
   const codeContent = String(children).trim();
   const lineCount = codeContent.split('\n').length;
   const langConfig = languageConfig[language] || languageConfig.text;
+  
+  // Check if this message has multiple web files that can be combined
+  const webFiles = useMemo(() => {
+    return allCodeBlocks.filter(f => 
+      ['html', 'css', 'javascript', 'js'].includes(f.language.toLowerCase())
+    );
+  }, [allCodeBlocks]);
+  
+  const canShowPreview = webFiles.length > 0 && 
+    ['html', 'css', 'javascript', 'js'].includes(language);
   
   // Smart filename detection from code content
   const detectFileNameFromContent = (code: string, lang: string): string => {
@@ -92,18 +105,37 @@ export function CodeBlockCompact({
   const hasMore = lineCount > 3;
 
   const handleOpenInArtifact = useCallback(() => {
-    openArtifact({
-      id: generateUUID(),
-      type: language === 'html' ? 'html' : 'code',
-      title: fileName,
-      language: language,
-      content: codeContent,
-      metadata: {
-        fileName: fileName,
-        lineCount: lineCount,
-      },
-    });
-  }, [openArtifact, language, fileName, codeContent, lineCount]);
+    // If we have multiple web files, combine them for preview
+    if (canShowPreview && webFiles.length > 1) {
+      const combinedHTML = combineWebFiles(webFiles);
+      openArtifact({
+        id: generateUUID(),
+        type: 'html',
+        title: 'Combined Preview',
+        language: 'html',
+        content: combinedHTML,
+        metadata: {
+          fileName: 'preview.html',
+          lineCount: combinedHTML.split('\n').length,
+          isCombined: true,
+          sourceFiles: webFiles.map(f => f.fileName).join(', '),
+        },
+      });
+    } else {
+      // Single file view
+      openArtifact({
+        id: generateUUID(),
+        type: language === 'html' ? 'html' : 'code',
+        title: fileName,
+        language: language,
+        content: codeContent,
+        metadata: {
+          fileName: fileName,
+          lineCount: lineCount,
+        },
+      });
+    }
+  }, [openArtifact, language, fileName, codeContent, lineCount, canShowPreview, webFiles]);
 
   return (
     <div className="my-4 max-w-full min-w-0 overflow-hidden group">
@@ -146,7 +178,7 @@ export function CodeBlockCompact({
             </div>
           </div>
           
-          {/* Open Button with shine effect */}
+          {/* Open/Preview Button with shine effect */}
           <button
             onClick={handleOpenInArtifact}
             className={cn(
@@ -160,11 +192,21 @@ export function CodeBlockCompact({
               "border border-white/20",
               "group-hover:animate-pulse"
             )}
-            title="Open in artifact viewer"
+            title={canShowPreview && webFiles.length > 1 ? "Preview combined files" : "Open in artifact viewer"}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Open</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            {canShowPreview && webFiles.length > 1 ? (
+              <>
+                <Eye className="w-3.5 h-3.5" />
+                <span>Preview</span>
+                <Sparkles className="w-3.5 h-3.5" />
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Open</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
         </div>
 
