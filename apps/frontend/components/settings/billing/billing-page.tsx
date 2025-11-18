@@ -125,13 +125,13 @@ export default function BillingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50 flex-shrink-0">
               <IdCard  className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Manage Subscription &amp; Payments</h1>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">Keep your plan, invoices, and payment methods up to date. Changes take effect immediately.</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">Manage Subscription &amp; Payments</h1>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1">Keep your plan, invoices, and payment methods up to date. Changes take effect immediately.</p>
             </div>
           </div>
         </div>

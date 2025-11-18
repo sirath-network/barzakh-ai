@@ -223,7 +223,7 @@ export default function TwoFactorSettingsPage() {
           type="text"
           value={value}
           onChange={handleChange}
-          className="w-full max-w-[200px] px-4 py-3 border border-gray-300 dark:border-red-900/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-gray-50 dark:bg-black/20 text-center font-mono text-lg"
+          className="w-full max-w-[200px] sm:max-w-[240px] px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-red-900/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-gray-50 dark:bg-black/20 text-center font-mono text-base sm:text-lg"
           placeholder="000000"
           maxLength={length}
         />
@@ -272,14 +272,14 @@ export default function TwoFactorSettingsPage() {
             
             <div className="p-6 md:p-8 space-y-6">
               {/* Status Section */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 gap-4">
                 <div className="flex items-center gap-4">
                   {status.twoFactorEnabled ? (
-                    <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                   ) : (
-                    <ShieldX className="w-8 h-8 text-gray-400" />
+                    <ShieldX className="w-8 h-8 text-gray-400 flex-shrink-0" />
                   )}
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       {status.twoFactorEnabled ? "2FA Enabled" : "2FA Disabled"}
                     </h3>
@@ -291,12 +291,12 @@ export default function TwoFactorSettingsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   {!status.twoFactorEnabled && (
                     <button
                       onClick={handleSetup}
                       disabled={isSettingUp}
-                      className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
                     >
                       {isSettingUp ? (
                         <>
@@ -315,7 +315,7 @@ export default function TwoFactorSettingsPage() {
                     <button
                       onClick={handleRegenerateBackupCodes}
                       disabled={isRegenerating}
-                      className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                     >
                       {isRegenerating ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -346,7 +346,7 @@ export default function TwoFactorSettingsPage() {
                       <img 
                         src={setupData.qrCode} 
                         alt="2FA QR Code" 
-                        className="w-48 h-48 border border-gray-300 dark:border-gray-600 rounded-lg"
+                        className="w-40 h-40 sm:w-48 sm:h-48 border border-gray-300 dark:border-gray-600 rounded-lg"
                       />
                     </div>
                   </div>
@@ -465,17 +465,17 @@ export default function TwoFactorSettingsPage() {
                   <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-4">
                     Save these backup codes in a safe place. Each code can only be used once:
                   </p>
-                  <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                     {backupCodes.map((code, index) => (
                       <div
                         key={index}
-                        className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-sm text-center"
+                        className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs sm:text-sm text-center break-all"
                       >
                         {code}
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={downloadBackupCodes}
                       className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center justify-center gap-2"
@@ -646,7 +646,7 @@ export default function TwoFactorSettingsPage() {
 
             {/* Footer */}
             <div className="p-6 border-t border-gray-200 dark:border-red-900/30 bg-gray-50 dark:bg-black/80">
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setShowDisableConfirm(false)}
                   className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20"

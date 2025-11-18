@@ -60,9 +60,9 @@ export function SettingsMenu({
 
   return (
     <div className="flex flex-col h-full p-1 space-y-1">
-      <div className="flex items-center p-3 mb-2 space-x-4">
+      <div className="flex items-center p-3 mb-2 space-x-3 sm:space-x-4">
         {user?.image && (
-          <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
             <img
               src={user.image}
               alt={user.name ?? "User Avatar"}
@@ -71,10 +71,10 @@ export function SettingsMenu({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-lg uppercase tracking-wider text-foreground truncate">
+          <p className="font-bold text-base sm:text-lg uppercase tracking-wider text-foreground truncate">
             {user?.name ?? 'Guest'}
           </p>
-          <p className="text-sm text-muted-foreground truncate">
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">
             {user?.username ? `@${user.username}` : ''}
           </p>
         </div>

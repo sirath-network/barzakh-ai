@@ -36,13 +36,38 @@ export function BillingHistoryCard({
 
   return (
     <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm relative">
-      <div className="p-8 space-y-1">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          Billing History
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-300">
-          Review your past invoices and download receipts.
-        </p>
+      <div className="p-6 md:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              Billing History
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-300">
+              Review your past invoices and download receipts.
+            </p>
+          </div>
+          {hasInvoices && (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={onPreviousPage}
+                disabled={!canGoPrevious || isPaginating}
+                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-red-900/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide px-2">
+                {isPaginating ? "Fetching..." : "Invoices"}
+              </span>
+              <button
+                onClick={onNextPage}
+                disabled={!canGoNext || isPaginating}
+                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-red-900/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-6 pt-0 overflow-x-auto">
@@ -168,26 +193,6 @@ export function BillingHistoryCard({
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                onClick={onPreviousPage}
-                disabled={!canGoPrevious || isPaginating}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-red-900/40 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                {isPaginating ? "Fetching..." : "Invoices"}
-              </span>
-              <button
-                onClick={onNextPage}
-                disabled={!canGoNext || isPaginating}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-red-900/40 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
             </div>
           </div>
         ) : (
