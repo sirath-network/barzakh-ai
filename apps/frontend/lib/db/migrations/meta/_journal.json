@@ -43,6 +43,13 @@
       "when": 1733945232356,
       "tag": "0005_add_two_factor_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1763606078270,
+      "tag": "0006_demonic_gressill",
+      "breakpoints": true
     }
   ]
 }

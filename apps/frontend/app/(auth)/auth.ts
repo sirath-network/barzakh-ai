@@ -1,5 +1,6 @@
 import { compare } from "bcrypt-ts";
-import NextAuth, { type Session, type User, type NextAuthOptions } from "next-auth";
+import NextAuth, { type Session, type User } from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
@@ -9,10 +10,18 @@ import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 
 // Cache for user data to prevent excessive DB queries
 const userCache = new Map<string, { user: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 10 * 1000; // 10 seconds
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   ...authConfig,
+  logger: {
+    error(code, ...message) {
+      if (code.name === "CredentialsSignin") {
+        return;
+      }
+      console.error(code, ...message);
+    },
+  },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -60,7 +69,7 @@ export const authOptions: NextAuthOptions = {
         
         const passwordsMatch = await compare(password, users[0].password!);
         if (!passwordsMatch) {
-          console.log("Password mismatch for user:", email);
+          // console.log("Password mismatch for user:", email);
           return null;
         }
         
@@ -107,6 +116,7 @@ export const authOptions: NextAuthOptions = {
             token.username = existingUser.username;
             token.tier = existingUser.tier;
             token.hasPassword = !!existingUser.password;
+            token.tokenVersion = existingUser.tokenVersion;
           } else {
             // New OAuth user, create them.
             const createStartTime = Date.now();
@@ -131,6 +141,7 @@ export const authOptions: NextAuthOptions = {
             token.username = newUser.username;
             token.tier = newUser.tier;
             token.hasPassword = false; // Google OAuth users don't have password initially
+            token.tokenVersion = newUser.tokenVersion;
           }
         } catch (error) {
           console.error("❌ Error in OAuth callback:", error);
@@ -145,6 +156,16 @@ export const authOptions: NextAuthOptions = {
         // Use cached data if it's still fresh (less than 5 minutes old)
         if (cached && (now - cached.timestamp) < CACHE_DURATION) {
           const dbUser = cached.user;
+          
+          // Check token version
+          const tokenVer = token.tokenVersion ?? 0;
+          const dbVer = dbUser.tokenVersion ?? 0;
+          
+          if (tokenVer !== dbVer) {
+             console.log(`Token version mismatch (cached) for ${token.email}: token=${tokenVer}, db=${dbVer}`);
+             return null;
+          }
+
           token.id = dbUser.id;
           token.name = dbUser.name;
           token.email = dbUser.email;
@@ -156,6 +177,15 @@ export const authOptions: NextAuthOptions = {
           // Cache miss or expired, fetch from DB
           const [dbUser] = await getUser(token.email);
           if (dbUser) {
+            // Check token version
+            const tokenVer = token.tokenVersion ?? 0;
+            const dbVer = dbUser.tokenVersion ?? 0;
+            
+            if (tokenVer !== dbVer) {
+               console.log(`Token version mismatch (db) for ${token.email}: token=${tokenVer}, db=${dbVer}`);
+               return null;
+            }
+
             // Update the token with the latest data from the database.
             token.id = dbUser.id;
             token.name = dbUser.name;
@@ -164,6 +194,7 @@ export const authOptions: NextAuthOptions = {
             token.username = dbUser.username;
             token.tier = dbUser.tier;
             token.hasPassword = !!dbUser.password;
+            token.tokenVersion = dbUser.tokenVersion;
             
             // Cache the result
             userCache.set(token.email, { user: dbUser, timestamp: now });
@@ -193,10 +224,6 @@ export const authOptions: NextAuthOptions = {
       }
       return url.startsWith(baseUrl) ? url : baseUrl;
     },
-    async signOut({ token }: any) {
-      // Clear the token to ensure proper logout
-      return {};
-    }
   },
 };
 

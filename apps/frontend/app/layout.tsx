@@ -102,7 +102,7 @@ export default async function RootLayout({
       </head>
       <body className="antialiased">
         {/* dont remove below div. it is for modal */}
-        <SessionProvider>
+        <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

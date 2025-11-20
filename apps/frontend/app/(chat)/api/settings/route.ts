@@ -3,7 +3,7 @@ import { auth } from "@/app/(auth)/auth";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { hash, compare } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const passwordValidation = z
@@ -154,6 +154,7 @@ export async function POST(req: Request) {
     
     if (newPassword) {
       updateData.password = await hash(newPassword, 10);
+      updateData.tokenVersion = sql`${user.tokenVersion} + 1`;
     }
 
     // Check if there is anything to update

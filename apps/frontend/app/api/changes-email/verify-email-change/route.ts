@@ -3,6 +3,7 @@ import { auth } from "@/app/(auth)/auth"; // ✅ Sama seperti di request-email-c
 import { db } from "@/lib/db/db"; // Pastikan path ini sesuai lokasi db kamu
 import { user, email_change_requests } from "@/lib/db/schema"; // Pastikan schema sudah punya table ini
 import { eq } from "drizzle-orm";
+import { updateUserEmail } from "@/lib/db/queries";
 
 export async function POST(req: Request) {
   try {
@@ -34,10 +35,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ Update email user ke newEmail
-    await db
-      .update(user)
-      .set({ email: requestData.newEmail })
-      .where(eq(user.id, session.user.id));
+    await updateUserEmail(session.user.id, requestData.newEmail);
 
     // ✅ Delete request after success
     await db

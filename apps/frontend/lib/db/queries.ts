@@ -192,10 +192,25 @@ export async function updateUserPassword(email: string, newPassword: string) {
   try {
     return await db
       .update(user)
-      .set({ password: hash })
+      .set({ 
+        password: hash,
+        tokenVersion: sql`${user.tokenVersion} + 1`
+      })
       .where(eq(user.email, email));
   } catch (error) {
     console.error("Failed to update user password in database");
+    throw error;
+  }
+}
+
+export async function incrementUserTokenVersion(userId: string) {
+  try {
+    await db
+      .update(user)
+      .set({ tokenVersion: sql`${user.tokenVersion} + 1` })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error("Failed to increment user token version:", error);
     throw error;
   }
 }
@@ -233,7 +248,10 @@ export async function updateUserEmail(userId: string, newEmail: string) {
   try {
     return await db
       .update(user)
-      .set({ email: newEmail })
+      .set({ 
+        email: newEmail,
+        tokenVersion: sql`${user.tokenVersion} + 1`
+      })
       .where(eq(user.id, userId));
   } catch (error) {
     console.error("Failed to update user email in database");
