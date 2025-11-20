@@ -1,7 +1,7 @@
 "use client";
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
-// BARU: Impor useRef dan useEffect
+// NEW: Import useRef and useEffect
 import { useState, useRef, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
@@ -25,7 +25,9 @@ import PasswordSettingsPage from "@/components/settings/password/password-page";
 import BillingSettingsPage from "@/components/settings/billing/billing-page";
 import { ArchivedPage } from "@/components/settings/archived/archived-page";
 import TwoFactorSettingsPage from "@/components/settings/2fa/two-factor-page";
+import PlanDetailPage from "@/components/settings/plans/plan-detail-page";
 import { ArtifactProvider } from "@/context/artifact-context";
+import { useSidebar } from "@/components/ui/sidebar";
 import { ArtifactViewer } from "./artifact-viewer";
 
 const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
@@ -35,6 +37,7 @@ const settingsViews = (user: User | undefined): Record<string, React.ReactNode> 
   billing: <BillingSettingsPage />,
   archived: <ArchivedPage user={user} />,
   "2fa": <TwoFactorSettingsPage />,
+  plans: <PlanDetailPage />,
 });
 
 export function Chat({
@@ -74,7 +77,7 @@ export function Chat({
     id,
     body: { id, selectedChatModel: selectedChatModel },
     initialMessages,
-    experimental_throttle: 100,
+    experimental_throttle: 250,
     sendExtraMessageFields: true,
     generateId: generateUUID,
     onFinish: () => {
@@ -106,14 +109,17 @@ export function Chat({
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
   const [isAtBottom, setIsAtBottom] = useState(true);
 
-  // BARU: Semua logika scroll sekarang ada di sini
+  // NEW: All scroll logic is now here
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Efek untuk auto-scroll saat pesan baru ditambahkan
+  // Effect for auto-scroll when new messages are added
   useEffect(() => {
     const el = chatContainerRef.current;
     if (el && isAtBottom) {
-      el.scrollTop = el.scrollHeight;
+      // Use requestAnimationFrame to batch scroll updates
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
     }
   }, [messages.length, isAtBottom]);
 
@@ -128,28 +134,42 @@ export function Chat({
     }
   }, [attachments, id]);
 
-  // Efek untuk mendeteksi posisi scroll
+  // Effect to detect scroll position
   useEffect(() => {
     const el = chatContainerRef.current;
     
+    // Throttle scroll handler to prevent excessive state updates
+    let scrollTimeout: NodeJS.Timeout | null = null;
     const handleScroll = () => {
       if (!el) return;
-      const threshold = 10;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
-      setIsAtBottom(atBottom);
+      
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      
+      scrollTimeout = setTimeout(() => {
+        const threshold = 10;
+        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+        setIsAtBottom(atBottom);
+      }, 100);
     };
 
     if (el) {
       el.addEventListener("scroll", handleScroll);
-      handleScroll(); // Panggil sekali untuk set state awal
+      handleScroll(); // Call once to set initial state
     }
 
     return () => {
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
       if (el) {
         el.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []); // Dependensi kosong agar hanya berjalan sekali saat mount
+  }, []); // Empty dependencies so it only runs once on mount
+
+  const { setOpen, setOpenMobile, setSidebarView, isMobile } = useSidebar();
 
   return (
     <ArtifactProvider>
@@ -164,7 +184,16 @@ export function Chat({
               ? `${view.charAt(0).toUpperCase() + view.slice(1)} Settings`
               : undefined
           }
-          onBackClick={view !== "chat" ? () => setView("chat") : undefined}
+          onBackClick={view !== "chat" ? (() => {
+            // Show settings list in the sidebar and ensure it's visible across devices
+            if (setSidebarView) setSidebarView('settings');
+            if (isMobile) {
+              setOpenMobile && setOpenMobile(true);
+            } else {
+              setOpen && setOpen(true);
+            }
+            setView("chat");
+          }) : undefined}
           selectedModelId={view === "chat" ? selectedChatModel : undefined}
           selectedVisibilityType={
             view === "chat" ? selectedVisibilityType : undefined
@@ -183,7 +212,7 @@ export function Chat({
           <InstallPrompt />
           {messages.length === 0 && <div className="h-[18vh]"></div>}
           
-          {/* DIUBAH: Tambahkan ref dan id yang benar di sini */}
+          {/* CHANGED: Add correct ref and id here */}
           <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             <Messages
               chatId={id}
@@ -191,7 +220,7 @@ export function Chat({
               votes={votes}
               messages={messages}
               setMessages={setMessages}
-              // DIUBAH: Hapus prop setIsAtBottom dari sini
+              // CHANGED: Remove setIsAtBottom prop from here
               selectedGroup={selectedGroup}
               reload={reload}
               isReadonly={isReadonly}

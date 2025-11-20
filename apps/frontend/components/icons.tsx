@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import { number } from "zod";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export const BotIcon = () => {
   return (
@@ -948,14 +952,19 @@ export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
 );
 
 export const BarzakhAI = ({ size = 20 }: { size?: number }) => {
-  return (
-    <Image
-      src={"/images/barzakh/SirathLogo-512px.png"}
-      alt="ai icon"
-      width={size}
-      height={size}
-    />
-  );
+  const { resolvedTheme } = useTheme();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const src =
+    isMounted && resolvedTheme === "dark"
+      ? "/images/barzakh/DarkMode.png"
+      : "/images/barzakh/LightMode.png";
+
+  return <Image src={src} alt="ai icon" width={size} height={size} />;
 };
 
 export const CheckCircleFillIcon = ({ size = 16 }: { size?: number }) => {

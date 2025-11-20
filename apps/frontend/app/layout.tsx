@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/images/barzakh/SirathLogo.svg", type: "image/svg+xml" },
+      { url: "/images/barzakh/logo-white.svg", type: "image/svg+xml" },
       { url: "/images/barzakh/SirathLogo-192px.png", sizes: "192x192", type: "image/png" },
     ],
     apple: "/images/barzakh/SirathLogo-192px.png",
@@ -40,6 +40,8 @@ export const viewport = {
 
 const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
 const DARK_THEME_COLOR = "hsl(240deg 10% 3.92%)";
+const LIGHT_FAVICON = "/images/barzakh/logo-white.svg";
+const DARK_FAVICON = "/images/barzakh/logo-dark.svg";
 const THEME_COLOR_SCRIPT = `\
 (function() {
   var html = document.documentElement;
@@ -49,13 +51,32 @@ const THEME_COLOR_SCRIPT = `\
     meta.setAttribute('name', 'theme-color');
     document.head.appendChild(meta);
   }
-  function updateThemeColor() {
+
+  function updateThemeAssets() {
     var isDark = html.classList.contains('dark');
     meta.setAttribute('content', isDark ? '${DARK_THEME_COLOR}' : '${LIGHT_THEME_COLOR}');
+
+    var links = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+    if (links.length === 0) {
+      var link = document.createElement('link');
+      link.setAttribute('rel', 'icon');
+      link.setAttribute('type', 'image/svg+xml');
+      document.head.appendChild(link);
+      links = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+    }
+
+    // Invert favicon for contrast: use light icon on dark theme and dark icon on light theme
+    links.forEach(function(link) {
+      if (link.getAttribute('type') === 'image/svg+xml' || !link.getAttribute('type')) {
+        link.setAttribute('href', isDark ? '${LIGHT_FAVICON}' : '${DARK_FAVICON}');
+        link.setAttribute('type', 'image/svg+xml');
+      }
+    });
   }
-  var observer = new MutationObserver(updateThemeColor);
+
+  var observer = new MutationObserver(updateThemeAssets);
   observer.observe(html, { attributes: true, attributeFilter: ['class'] });
-  updateThemeColor();
+  updateThemeAssets();
 })();`;
 
 export default async function RootLayout({
@@ -81,7 +102,7 @@ export default async function RootLayout({
       </head>
       <body className="antialiased">
         {/* dont remove below div. it is for modal */}
-        <SessionProvider>
+        <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

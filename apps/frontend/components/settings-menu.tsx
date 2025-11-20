@@ -12,6 +12,7 @@ import {
   CreditCard,
   ArchiveIcon,
   Shield,
+  BadgeDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -45,12 +46,13 @@ export function SettingsMenu({
   const { theme, setTheme } = useTheme();
   const { setView } = useView();
   // ✅ 1. Ambil setSidebarView dari useSidebar
-  const { setOpenMobile, setSidebarView } = useSidebar();
+  const { setOpenMobile, setSidebarView, setOpen } = useSidebar();
 
   const handleMenuClick = (page: SettingsPageType) => {
-    setView(page); // Tetap ubah tampilan konten utama
-    setOpenMobile(false); // Tutup sidebar di mobile
-    // ✅ 2. Kembalikan tampilan sidebar ke 'history'
+    setView(page);
+    // Close the sidebar on both mobile and desktop for a cleaner settings view
+    setOpen(false);
+    setOpenMobile(false);
     if (setSidebarView) {
       setSidebarView('history');
     }
@@ -58,9 +60,9 @@ export function SettingsMenu({
 
   return (
     <div className="flex flex-col h-full p-1 space-y-1">
-      <div className="flex items-center p-3 mb-2 space-x-4">
+      <div className="flex items-center p-3 mb-2 space-x-3 sm:space-x-4">
         {user?.image && (
-          <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
             <img
               src={user.image}
               alt={user.name ?? "User Avatar"}
@@ -69,17 +71,17 @@ export function SettingsMenu({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-lg uppercase tracking-wider text-foreground truncate">
+          <p className="font-bold text-base sm:text-lg uppercase tracking-wider text-foreground truncate">
             {user?.name ?? 'Guest'}
           </p>
-          <p className="text-sm text-muted-foreground truncate">
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">
             {user?.username ? `@${user.username}` : ''}
           </p>
         </div>
       </div>
       <hr className="border-border/20 mx-2 mb-2" />
 
-      {/* Bagian Akun */}
+      {/* Account Section */}
       <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
         Account
       </div>
@@ -98,7 +100,7 @@ export function SettingsMenu({
         </SettingsMenuItem>
       </div>
 
-      {/* Bagian Keamanan */}
+      {/* Security Section */}
       <div className="px-3 pt-4 pb-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
         Security
       </div>
@@ -119,17 +121,23 @@ export function SettingsMenu({
           icon={<Mail size={18} />}
           onClick={() => handleMenuClick('email')}
         >
-          Email Address
+          Email Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
           icon={<CreditCard size={18} />}
           onClick={() => handleMenuClick('billing')}
         >
-          Billing Address
+          Billing Settings
+        </SettingsMenuItem>
+        <SettingsMenuItem 
+          icon={<BadgeDollarSign size={18} />}
+          onClick={() => handleMenuClick('plans')}
+        >
+          Plans & Pricing
         </SettingsMenuItem>
       </div>
 
-      {/* Bagian Tampilan (Appearance) */}
+      {/* Appearance Section */}
       <div className="px-3 pt-4 pb-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
         Appearance
       </div>

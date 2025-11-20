@@ -1,0 +1,104 @@
+import { auth } from "@/app/(auth)/auth";
+import { stripe } from "@/lib/stripe";
+import {
+  ensureStripeCustomer,
+  toHttpError,
+} from "@/lib/billing/stripe-server";
+import { NextResponse } from "next/server";
+import type Stripe from "stripe";
+
+function sanitizeSubscription(subscription: Stripe.Subscription) {
+  const subscriptionWithPeriods = subscription as Stripe.Subscription & {
+    current_period_end?: number | null;
+  };
+
+  return {
+    id: subscription.id,
+    status: subscription.status,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    cancelAt:
+      typeof subscription.cancel_at === "number"
+        ? new Date(subscription.cancel_at * 1000).toISOString()
+        : null,
+    canceledAt:
+      typeof subscription.canceled_at === "number"
+        ? new Date(subscription.canceled_at * 1000).toISOString()
+        : null,
+    currentPeriodEnd:
+      typeof subscriptionWithPeriods.current_period_end === "number"
+        ? new Date(subscriptionWithPeriods.current_period_end * 1000).toISOString()
+        : null,
+  };
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const customerRecord = await ensureStripeCustomer(session.user.id);
+    const payload = await request.json().catch(() => ({}));
+
+    const cancelImmediately =
+      typeof payload.cancelImmediately === "boolean"
+        ? payload.cancelImmediately
+        : false;
+    const cancelAtPeriodEnd =
+      typeof payload.cancelAtPeriodEnd === "boolean"
+        ? payload.cancelAtPeriodEnd
+        : true;
+    const incomingSubscriptionId =
+      typeof payload.subscriptionId === "string"
+        ? payload.subscriptionId
+        : undefined;
+
+    let targetSubscriptionId = incomingSubscriptionId;
+
+    if (!targetSubscriptionId) {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerRecord.stripeCustomerId,
+        status: "all",
+        limit: 1,
+      });
+
+      if (subscriptions.data.length === 0) {
+        return NextResponse.json(
+          { error: "No active subscription found" },
+          { status: 404 },
+        );
+      }
+
+      targetSubscriptionId = subscriptions.data[0].id;
+    }
+
+    if (cancelImmediately) {
+      const canceledSubscription = await stripe.subscriptions.cancel(
+        targetSubscriptionId,
+      );
+
+      return NextResponse.json({
+        subscription: sanitizeSubscription(canceledSubscription),
+      });
+    }
+
+    const updatedSubscription = await stripe.subscriptions.update(
+      targetSubscriptionId,
+      {
+        cancel_at_period_end: cancelAtPeriodEnd,
+      },
+    );
+
+    return NextResponse.json({
+      subscription: sanitizeSubscription(updatedSubscription),
+    });
+  } catch (error) {
+    const httpError = toHttpError(error);
+    return NextResponse.json(
+      { error: httpError.message },
+      { status: httpError.status },
+    );
+  }
+}
+

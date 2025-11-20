@@ -3,7 +3,7 @@ import { auth } from "@/app/(auth)/auth";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { hash, compare } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const passwordValidation = z
@@ -24,6 +24,47 @@ const passwordValidation = z
     }
   );
 
+export async function GET(req: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const usernameParam = searchParams.get("username")?.trim() ?? "";
+
+    if (!usernameParam) {
+      return NextResponse.json({ error: "USERNAME_REQUIRED" }, { status: 400 });
+    }
+
+    const normalized = usernameParam.toLowerCase();
+
+    if (normalized.length < 3 || normalized.length > 20) {
+      return NextResponse.json({ error: "USERNAME_INVALID_LENGTH" }, { status: 400 });
+    }
+
+    const valid = /^[a-z0-9]+$/.test(normalized);
+    if (!valid) {
+      return NextResponse.json({ error: "USERNAME_INVALID" }, { status: 400 });
+    }
+
+    const existing = await db
+      .select()
+      .from(user)
+      .where(eq(user.username, normalized));
+
+    if (existing.length === 0 || existing[0].email === session.user.email) {
+      return NextResponse.json({ available: true });
+    }
+
+    return NextResponse.json({ available: false });
+  } catch (error) {
+    console.error("API: Username availability check failed", error);
+    return NextResponse.json({ error: "USERNAME_CHECK_FAILED" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -35,7 +76,6 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    console.log("API: Request body:", body);
     
     const { fullName, username, avatar, currentPassword, password: newPassword } = body;
 
@@ -86,7 +126,27 @@ export async function POST(req: Request) {
       updateData.name = fullName?.trim() || null;
     }
     if (username !== undefined) {
-      updateData.username = username?.trim() || null;
+      const trimmed = username?.trim() || null;
+      if (trimmed) {
+        const normalized = trimmed.toLowerCase();
+        // Validate allowed characters: lowercase letters and digits only
+        const valid = /^[a-z0-9]+$/.test(normalized);
+        if (!valid) {
+          return NextResponse.json({ error: "USERNAME_INVALID" }, { status: 400 });
+        }
+        // Check uniqueness against other users
+        const existingSameUsername = await db
+          .select()
+          .from(user)
+          .where(eq(user.username, normalized));
+        if (existingSameUsername.length > 0 && existingSameUsername[0].email !== session.user.email) {
+          return NextResponse.json({ error: "USERNAME_TAKEN" }, { status: 409 });
+        }
+        updateData.username = normalized;
+      } else {
+        // Reject attempts to clear username
+        return NextResponse.json({ error: "USERNAME_REQUIRED" }, { status: 400 });
+      }
     }
     if (avatar !== undefined) {
       updateData.image = avatar?.trim() || null;
@@ -94,14 +154,13 @@ export async function POST(req: Request) {
     
     if (newPassword) {
       updateData.password = await hash(newPassword, 10);
+      updateData.tokenVersion = sql`${user.tokenVersion} + 1`;
     }
 
     // Check if there is anything to update
     if (Object.keys(updateData).length === 0) {
         return NextResponse.json({ error: "No update data provided" }, { status: 400 });
     }
-
-    console.log("API: Update data:", updateData);
 
     // Perform update
     const updateResult = await db

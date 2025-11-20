@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -30,12 +32,12 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Asumsikan tipe session.user memiliki properti 'username'
+// Assume session.user type has 'username' property
 interface ExtendedUser {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  username?: string | null; // Tambahkan properti username
+  username?: string | null; // Add username property
 }
 
 export const Overview = () => {
@@ -61,19 +63,19 @@ export const Overview = () => {
 
   const greeting = getGreeting();
   
-  // MODIFIKASI: Logika untuk menentukan nama yang akan ditampilkan
+  // MODIFIED: Logic to determine the name to display
   const displayName = user?.username 
-    ? user.username // 1. Prioritaskan username jika ada
+    ? user.username // 1. Prioritize username if exists
     : user?.name 
-    ? user.name     // 2. Jika ada name, gunakan name
+    ? user.name     // 2. If name exists, use name
     : session 
-    ? "User"         // 3. Jika login tapi tidak ada username/name, tampilkan "User"
-    : "Guest";       // 4. Jika tidak login, tampilkan "Guest"
+    ? "User"         // 3. If logged in but no username/name, show "User"
+    : "Guest";       // 4. If not logged in, show "Guest"
 
   const userImage = user?.image;
   
-  // MODIFIKASI: Kondisi untuk menampilkan avatar
-  // Tampilkan avatar jika pengguna login DAN sudah setup username atau name
+  // MODIFIED: Condition to show avatar
+  // Show avatar if user is logged in AND has set up username or name
   const showAvatar = !!(user?.username || user?.name);
 
   if (!isMounted) {
@@ -90,7 +92,7 @@ export const Overview = () => {
     >
       <div className="p-4 sm:p-6">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-5 sm:text-left">
-          {/* Avatar hanya muncul jika pengguna sudah login dan punya username */}
+          {/* Avatar only appears if user is logged in and has username */}
           {showAvatar && (
             <motion.div variants={itemVariants}>
               {userImage ? (
@@ -99,31 +101,26 @@ export const Overview = () => {
                   alt={displayName}
                   width={64}
                   height={64}
-                  className="rounded-full object-cover ring-2 ring-red-500/50"
+                  className="rounded-full object-cover ring-2 ring-neutral-300 dark:ring-red-500/60"
                 />
               ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 ring-2 ring-red-500/50">
-                  <UserCircle className="h-10 w-10 text-red-400" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 ring-2 ring-neutral-300 dark:bg-red-500/20 dark:ring-red-500/60">
+                  <UserCircle className="h-10 w-10 text-neutral-400 dark:text-red-400" />
                 </div>
               )}
             </motion.div>
           )}
 
-          {/* Konten Teks */}
+          {/* Text Content */}
           <div className="flex flex-col">
             <TypeAnimation
-              key={displayName} // Gunakan displayName sebagai key
+              key={displayName} // Use displayName as key
               sequence={[`${greeting}, ${displayName}!`, 3000]}
               wrapper="h1"
               cursor={true}
               speed={50}
               repeat={0}
-              className="text-2xl font-semibold font-gramatika sm:text-3xl"
-              style={{
-                background: "linear-gradient(90deg, rgb(255, 80, 120), rgba(235, 50, 50, 1))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent"
-              }}
+              className="text-2xl font-semibold font-gramatika sm:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-rose-400 dark:via-red-500 dark:to-rose-500"
             />
             <motion.p
               variants={itemVariants}

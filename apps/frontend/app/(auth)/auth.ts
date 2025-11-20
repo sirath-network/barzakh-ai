@@ -1,5 +1,6 @@
 import { compare } from "bcrypt-ts";
-import NextAuth, { type Session, type User, type NextAuthOptions } from "next-auth";
+import NextAuth, { type Session, type User } from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
@@ -9,10 +10,18 @@ import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 
 // Cache for user data to prevent excessive DB queries
 const userCache = new Map<string, { user: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 10 * 1000; // 10 seconds
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   ...authConfig,
+  logger: {
+    error(code, ...message) {
+      if (code.name === "CredentialsSignin") {
+        return;
+      }
+      console.error(code, ...message);
+    },
+  },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -60,7 +69,7 @@ export const authOptions: NextAuthOptions = {
         
         const passwordsMatch = await compare(password, users[0].password!);
         if (!passwordsMatch) {
-          console.log("Password mismatch for user:", email);
+          // console.log("Password mismatch for user:", email);
           return null;
         }
         
@@ -73,36 +82,70 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }: any) {
+      // If the client explicitly triggers a session update, merge the incoming
+      // session data into the JWT and invalidate the local cache so UI updates
+      // are reflected immediately without requiring a re-login.
+      if (trigger === "update") {
+        if (session?.user) {
+          if (typeof session.user.name !== "undefined") token.name = session.user.name as any;
+          if (typeof (session.user as any).username !== "undefined") token.username = (session.user as any).username as any;
+          if (typeof session.user.image !== "undefined") token.image = session.user.image as any;
+        }
+        if (token.email) {
+          userCache.delete(token.email as string);
+        }
+      }
       // Handle initial sign-in for OAuth providers.
       if (user?.email) {
-        const [existingUser] = await getUser(user.email);
-        if (existingUser) {
-          // User already exists, populate token from DB.
-          token.id = existingUser.id;
-          token.email = existingUser.email;
-          token.name = existingUser.name;
-          token.image = existingUser.image;
-          token.username = existingUser.username;
-          token.tier = existingUser.tier;
-          token.hasPassword = !!existingUser.password;
-        } else {
-          // New OAuth user, create them.
-          const newUserId = generateUUID();
-          const [newUser] = await createUser(
-            newUserId,
-            user.email,
-            null,
-            user.name,
-            user.image
-          );
-          token.id = newUser.id;
-          token.name = newUser.name;
-          token.email = newUser.email;
-          token.image = newUser.image;
-          token.username = newUser.username;
-          token.tier = newUser.tier;
-          token.hasPassword = false; // Google OAuth users don't have password initially
+        const startTime = Date.now();
+        try {
+          const [existingUser] = await getUser(user.email);
+          const queryTime = Date.now() - startTime;
+          
+          if (queryTime > 1000) {
+            console.warn(`⚠️ Slow getUser query: ${queryTime}ms for ${user.email}`);
+          }
+          
+          if (existingUser) {
+            // User already exists, populate token from DB.
+            token.id = existingUser.id;
+            token.email = existingUser.email;
+            token.name = existingUser.name;
+            token.image = existingUser.image;
+            token.username = existingUser.username;
+            token.tier = existingUser.tier;
+            token.hasPassword = !!existingUser.password;
+            token.tokenVersion = existingUser.tokenVersion;
+          } else {
+            // New OAuth user, create them.
+            const createStartTime = Date.now();
+            const newUserId = generateUUID();
+            const [newUser] = await createUser(
+              newUserId,
+              user.email,
+              null,
+              user.name,
+              user.image
+            );
+            const createTime = Date.now() - createStartTime;
+            
+            if (createTime > 1000) {
+              console.warn(`⚠️ Slow createUser operation: ${createTime}ms for ${user.email}`);
+            }
+            
+            token.id = newUser.id;
+            token.name = newUser.name;
+            token.email = newUser.email;
+            token.image = newUser.image;
+            token.username = newUser.username;
+            token.tier = newUser.tier;
+            token.hasPassword = false; // Google OAuth users don't have password initially
+            token.tokenVersion = newUser.tokenVersion;
+          }
+        } catch (error) {
+          console.error("❌ Error in OAuth callback:", error);
+          throw error;
         }
       } 
       // ✅ Optimized: Use caching to prevent excessive DB queries while still keeping data fresh
@@ -113,6 +156,16 @@ export const authOptions: NextAuthOptions = {
         // Use cached data if it's still fresh (less than 5 minutes old)
         if (cached && (now - cached.timestamp) < CACHE_DURATION) {
           const dbUser = cached.user;
+          
+          // Check token version
+          const tokenVer = token.tokenVersion ?? 0;
+          const dbVer = dbUser.tokenVersion ?? 0;
+          
+          if (tokenVer !== dbVer) {
+             console.log(`Token version mismatch (cached) for ${token.email}: token=${tokenVer}, db=${dbVer}`);
+             return null;
+          }
+
           token.id = dbUser.id;
           token.name = dbUser.name;
           token.email = dbUser.email;
@@ -124,6 +177,15 @@ export const authOptions: NextAuthOptions = {
           // Cache miss or expired, fetch from DB
           const [dbUser] = await getUser(token.email);
           if (dbUser) {
+            // Check token version
+            const tokenVer = token.tokenVersion ?? 0;
+            const dbVer = dbUser.tokenVersion ?? 0;
+            
+            if (tokenVer !== dbVer) {
+               console.log(`Token version mismatch (db) for ${token.email}: token=${tokenVer}, db=${dbVer}`);
+               return null;
+            }
+
             // Update the token with the latest data from the database.
             token.id = dbUser.id;
             token.name = dbUser.name;
@@ -132,6 +194,7 @@ export const authOptions: NextAuthOptions = {
             token.username = dbUser.username;
             token.tier = dbUser.tier;
             token.hasPassword = !!dbUser.password;
+            token.tokenVersion = dbUser.tokenVersion;
             
             // Cache the result
             userCache.set(token.email, { user: dbUser, timestamp: now });
@@ -143,7 +206,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
@@ -155,16 +218,12 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: any) {
       if (url.includes('/api/auth/callback/google')) {
         return `${baseUrl}/?newuser=true`;
       }
       return url.startsWith(baseUrl) ? url : baseUrl;
     },
-    async signOut({ token }) {
-      // Clear the token to ensure proper logout
-      return {};
-    }
   },
 };
 

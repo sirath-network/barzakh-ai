@@ -13,6 +13,7 @@ export default function Verify2FAPage() {
   const [token, setToken] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isBackupCode, setIsBackupCode] = useState(false);
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
   const email = searchParams.get("email");
   const tempToken = searchParams.get("tempToken");
@@ -53,7 +54,6 @@ export default function Verify2FAPage() {
         const data = await response.json();
 
         if (response.ok) {
-          toast.success("2FA verified! Password reset link sent to your email.");
           setTimeout(() => {
             router.push("/login");
           }, 2000);
@@ -112,6 +112,27 @@ export default function Verify2FAPage() {
 
   const handleTokenChange = (value: string) => {
     setToken(value);
+    // Reset auto-submit flag when token is modified
+    const expectedLength = isBackupCode ? 8 : 6;
+    if (value.length < expectedLength) {
+      setHasAutoSubmitted(false);
+    }
+  };
+
+  const handleOTPComplete = () => {
+    // Auto-submit when OTP is complete (only once per complete entry)
+    if (!isLoading && token.trim() && !hasAutoSubmitted) {
+      setHasAutoSubmitted(true);
+      // Small delay to ensure the last character is properly set
+      setTimeout(() => {
+        if (!isLoading) { // Double-check it hasn't started
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }
+      }, 150);
+    }
   };
 
   // For forgot password context, only email is required
@@ -163,6 +184,7 @@ export default function Verify2FAPage() {
                   length={isBackupCode ? 8 : 6}
                   value={token}
                   onChange={handleTokenChange}
+                  onComplete={handleOTPComplete}
                   backupCode={isBackupCode}
                   autoFocus
                   disabled={isLoading}
@@ -200,6 +222,7 @@ export default function Verify2FAPage() {
                     // Toggle between backup code and TOTP mode
                     setIsBackupCode(!isBackupCode);
                     setToken(""); // Clear the input when switching modes
+                    setHasAutoSubmitted(false); // Reset auto-submit flag
                   }}
                   className="text-red-600 dark:text-red-400 hover:underline"
                 >

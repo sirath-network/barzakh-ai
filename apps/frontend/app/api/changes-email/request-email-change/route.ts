@@ -45,15 +45,15 @@ export async function POST(req: NextRequest) {
     // --- Generate OTP ---
     const otp = generateOTP();
 
-    // ✅ Simpan OTP + email baru di tabel request (userId, newEmail, otp, expiresAt)
+    // ✅ Save OTP + new email in request table (userId, newEmail, otp, expiresAt)
     await saveEmailChangeRequest({
       userId: session.user.id,
       newEmail,
       code: otp,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 menit
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
     });
 
-    // ✅ Kirim OTP ke EMAIL LAMA (session.user.email)
+    // ✅ Send OTP to OLD EMAIL (session.user.email)
     await sendOTPEmail(session.user.email, otp);
 
     return NextResponse.json({ 

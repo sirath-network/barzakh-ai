@@ -1,11 +1,13 @@
 import Link from "next/link";
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
 import { CodeBlockCompact } from "./code-block-compact";
 import "./markdown.css";
-import { AddressBlock } from "./AddressBlock"; // Impor komponen baru
+import { AddressBlock } from "./AddressBlock"; // Import new component
+import { extractWebFilesFromMarkdown, type WebFile } from "@/lib/combine-web-files";
+import type { Message } from "ai";
 
 // Check if we should use compact view - for cleaner chat experience
 const USE_COMPACT_CODE_BLOCKS = true;
@@ -23,17 +25,24 @@ const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
   );
 };
 
-const components: Partial<Components> = {
-  // @ts-expect-error - Dynamic component selection based on preference
-  code: USE_COMPACT_CODE_BLOCKS ? CodeBlockCompact : CodeBlock,
+// Create components inside the component to access allWebFiles
+const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
+  code: (props: any) => {
+    const Component = USE_COMPACT_CODE_BLOCKS ? CodeBlockCompact : CodeBlock;
+    return <Component {...props} allCodeBlocks={allWebFiles} />;
+  },
   small: ({ children }) => (
     <small className="break-long-words">{children}</small>
   ),
-  pre: ({ children }) => (
-    <div className="not-prose my-0 max-w-full overflow-x-auto">
-      {children}
-    </div>
-  ),
+  pre: ({ children }) => {
+    // Pre elements are block-level and should not be wrapped in p tags
+    // Return a div wrapper to prevent hydration errors
+    return (
+      <div className="not-prose my-0 max-w-full overflow-x-auto">
+        {children}
+      </div>
+    );
+  },
 
   span: ({ children }) => {
     const text = typeof children === 'string' ? children : '';
@@ -69,13 +78,43 @@ const components: Partial<Components> = {
   p: ({ children }) => {
     // Check if children contains code blocks, images, or other block elements
     const hasBlockElements = React.Children.toArray(children).some((child: any) => {
-      return child?.props?.className?.includes('language-') || 
-             child?.type?.name === 'CodeBlock' ||
-             child?.type?.name === 'CodeBlockCompact' ||
-             child?.props?.className?.includes('my-4 max-w-full') || // Image containers
-             child?.props?.className?.includes('block my-4 max-w-full') || // Updated image containers
-             child?.type === 'div' || // Any div elements
-             child?.type === 'span' && child?.props?.className?.includes('block'); // Block spans
+      // Check for code elements with language classes (code blocks)
+      if (child?.props?.className?.includes('language-')) {
+        return true;
+      }
+      
+      // Check for CodeBlock or CodeBlockCompact components
+      if (child?.type?.name === 'CodeBlock' || child?.type?.name === 'CodeBlockCompact') {
+        return true;
+      }
+      
+      // Check for code elements that are NOT inline (multi-line code blocks)
+      if (child?.type === 'code' && child?.props?.className) {
+        return true;
+      }
+      
+      // Check for pre elements (preformatted text blocks)
+      if (child?.type === 'pre') {
+        return true;
+      }
+      
+      // Check for image containers
+      if (child?.props?.className?.includes('my-4 max-w-full') || 
+          child?.props?.className?.includes('block my-4 max-w-full')) {
+        return true;
+      }
+      
+      // Check for any div elements
+      if (child?.type === 'div') {
+        return true;
+      }
+      
+      // Check for block spans
+      if (child?.type === 'span' && child?.props?.className?.includes('block')) {
+        return true;
+      }
+      
+      return false;
     });
     
     // Use div for block elements to avoid <p> nesting issues
@@ -124,30 +163,30 @@ const components: Partial<Components> = {
       </ul>
     );
   },
-  strong: ({ node, children, ...props }) => {
-    // ---- PERUBAHAN UTAMA DIMULAI DI SINI ----
+  strong: ({ node, children, ...props }: any) => {
+    // ---- MAIN CHANGES START HERE ----
     const textContent =
-      children && typeof children[0] === "string" ? children[0] : "";
+      children && Array.isArray(children) && typeof children[0] === "string" ? children[0] : "";
 
-    // Regex untuk mendeteksi pola umum alamat blockchain
+    // Regex to detect common blockchain address patterns
     const isAddress =
       /^(0x[a-fA-F0-9]{40}|(sei|cosmos|osmo|apt)[a-z0-9]{38,})$/.test(
-        textContent.trim()
+        String(textContent).trim()
       );
 
     if (isAddress) {
-      return <AddressBlock address={textContent} />;
+      return <AddressBlock address={String(textContent)} />;
     }
 
-    // Jika bukan alamat, render sebagai teks tebal biasa
+    // If not an address, render as regular bold text
     return (
       <span className="break-long-words font-semibold" {...props}>
         {children}
       </span>
     );
-    // ---- PERUBAHAN UTAMA BERAKHIR DI SINI ----
+    // ---- MAIN CHANGES END HERE ----
   },
-  a: ({ node, children, ...props }) => {
+  a: ({ node, children, ...props }: any) => {
     // Check if this is an image URL
     const href = props.href as string;
     const isImageUrl = href && (
@@ -181,16 +220,16 @@ const components: Partial<Components> = {
       );
     }
 
+    const LinkComponent = Link as any;
     return (
-      // @ts-expect-error
-      <Link
+      <LinkComponent
         className="break-long-words text-blue-500 hover:underline inline-block"
         target="_blank"
         rel="noreferrer"
-        {...props}
+        href={href}
       >
         {children}
-      </Link>
+      </LinkComponent>
     );
   },
   h1: ({ node, children, ...props }) => {
@@ -253,11 +292,38 @@ const components: Partial<Components> = {
       </h6>
     );
   },
-};
+});
 
 const remarkPlugins = [remarkGfm];
 
-const NonMemoizedMarkdown = ({ children }: { children: string }) => {
+const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string; allMessages?: Message[] }) => {
+  // Extract all web files from ALL assistant messages in the conversation
+  // This ensures we get the latest version of each file across multiple messages
+  const allWebFiles = useMemo(() => {
+    const filesMap = new Map<string, WebFile>();
+    
+    // Process all assistant messages in chronological order
+    // Later messages will overwrite earlier versions of the same file
+    allMessages
+      .filter(msg => msg.role === 'assistant')
+      .forEach(msg => {
+        let content = '';
+        if (typeof msg.content === 'string') {
+          content = msg.content;
+        } else if (Array.isArray(msg.content)) {
+          content = (msg.content as any[]).map((p: any) => p.type === 'text' ? p.text : '').join('\n');
+        }
+        
+        const files = extractWebFilesFromMarkdown(content);
+        files.forEach(file => {
+          // Use filename as key to keep only the latest version
+          filesMap.set(file.fileName, file);
+        });
+      });
+    
+    return Array.from(filesMap.values());
+  }, [allMessages]);
+  
   let filteredChildren = children.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
   
   // Filter out standalone image URLs from text (but preserve them in markdown links and images)
@@ -280,6 +346,25 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
     '$1$3' // Remove broken image reference patterns
   );
   
+  // Filter out stray punctuation and conjunctions between code blocks
+  // This removes fragments like ", and", ",", "and", etc. that appear between code blocks
+  filteredChildren = filteredChildren.replace(
+    /```([a-z]*)\n([\s\S]*?)```\s*[,;]\s*(and|or)?\s*```/gi,
+    '```$1\n$2```\n\n```'
+  );
+  
+  // Remove standalone commas, semicolons, and conjunctions that appear on their own lines
+  filteredChildren = filteredChildren.replace(
+    /^\s*[,;]\s*(and|or)?\s*$/gm,
+    ''
+  );
+  
+  // Clean up multiple consecutive blank lines (leave max 2)
+  filteredChildren = filteredChildren.replace(/\n{3,}/g, '\n\n');
+  
+  // Create components with access to all web files
+  const components = useMemo(() => createComponents(allWebFiles), [allWebFiles]);
+  
   return (
     <div className="markdown-body max-w-full min-w-0">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
@@ -291,5 +376,7 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
 
 export const Markdown = memo(
   NonMemoizedMarkdown,
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  (prevProps, nextProps) => 
+    prevProps.children === nextProps.children && 
+    prevProps.allMessages === nextProps.allMessages
 );

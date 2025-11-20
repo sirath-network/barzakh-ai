@@ -1,10 +1,5 @@
 "use client";
-import type {
-  Attachment,
-  ChatRequestOptions,
-  CreateMessage,
-  Message,
-} from "ai";
+import type { Attachment, ChatRequestOptions, CreateMessage, Message } from "ai";
 import type React from "react";
 import {
   useRef,
@@ -29,7 +24,13 @@ import { cn, SearchGroup, SearchGroupId } from "@barzakh/shared/lib/utils/utils"
 import { motion, AnimatePresence } from "framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
-import { ArrowDown, TrendingUp, Clock, Sparkles, MessageCircleMore } from "lucide-react";
+import {
+  ArrowDown,
+  TrendingUp,
+  Clock,
+  Sparkles,
+  MessageCircleMore,
+} from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
 interface EnhancedSuggestion {
@@ -83,7 +84,7 @@ const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
 ];
 
 // =====================================================================
-// AWAL DARI KODE YANG DIMODIFIKASI
+// START OF MODIFIED CODE
 // =====================================================================
 const QuestionSuggestions = ({
   append,
@@ -101,19 +102,19 @@ const QuestionSuggestions = ({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const { width } = useWindowSize();
 
-  // SOLUSI: Gunakan state untuk totalSuggestions untuk menghindari hydration mismatch.
-  // Nilai default (6) digunakan untuk render di server dan render awal di klien.
+  // SOLUTION: Use state for totalSuggestions to avoid hydration mismatch.
+  // Default value (6) is used for server-side rendering and initial client rendering.
   const [totalSuggestions, setTotalSuggestions] = useState(6);
 
-  // SOLUSI: Gunakan useEffect untuk menyesuaikan nilai di sisi klien setelah komponen di-mount.
-  // Ini aman karena hanya berjalan di browser, bukan di server.
+  // SOLUTION: Use useEffect to adjust the value on the client side after the component is mounted.
+  // This is safe because it only runs in the browser, not on the server.
   useEffect(() => {
     if (width < 640) {
-      setTotalSuggestions(2); // Set ke nilai mobile jika layar kecil
+      setTotalSuggestions(2); // Set to mobile value if screen is small
     } else {
-      setTotalSuggestions(6); // Set ke nilai desktop jika layar besar
+      setTotalSuggestions(6); // Set to desktop value if screen is large
     }
-  }, [width]); // Jalankan efek ini saat komponen mount dan saat lebar layar berubah
+  }, [width]); // Run this effect when component mounts and when screen width changes
 
   // Fetch AI/global suggestions
   useEffect(() => {
@@ -192,7 +193,7 @@ const QuestionSuggestions = ({
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-          {/* Skeleton loader sekarang akan selalu merender 6 item di server (sesuai state awal) */}
+          {/* Skeleton loader will now always render 6 items on the server (according to initial state) */}
           {Array.from({ length: totalSuggestions }).map((_, i) => (
             <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]">
               <div className="h-4 bg-muted rounded mb-2 w-3/4" />
@@ -254,8 +255,59 @@ const QuestionSuggestions = ({
     </motion.div>
   );
 };
+
+const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
+  "on_chain",
+  "wormhole",
+  "sei",
+  "creditcoin",
+  "vana",
+  "flow",
+  "zeta",
+  "aptos",
+  "monad",
+  "solana",
+] as const;
+
+const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
+  coding: "chat-model-claude",
+  imagine: "chat-model-large",
+  on_chain: "chat-model-gigantic",
+  wormhole: "chat-model-gigantic",
+  sei: "chat-model-gigantic",
+  creditcoin: "chat-model-gigantic",
+  vana: "chat-model-gigantic",
+  flow: "chat-model-gigantic",
+  zeta: "chat-model-gigantic",
+  aptos: "chat-model-gigantic",
+  monad: "chat-model-gigantic",
+  solana: "chat-model-gigantic",
+};
+
+const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([
+  "coding",
+  "imagine",
+  ...CHAIN_FORCED_GROUPS,
+]);
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk as any);
+  }
+
+  if (typeof window !== "undefined" && typeof window.btoa === "function") {
+    return window.btoa(binary);
+  }
+
+  throw new Error("Base64 conversion is not supported in this environment.");
+};
 // =====================================================================
-// AKHIR DARI KODE YANG DIMODIFIKASI
+// END OF MODIFIED CODE
 // =====================================================================
 
 const SendIcon = ({
@@ -364,10 +416,13 @@ function PureSendButton({
       <Button
         className={cn(
           "group rounded-xl p-2.5 h-fit w-fit relative overflow-hidden",
-          "bg-gradient-to-br from-red-500 to-rose-600 text-white",
-          "shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40",
+          "bg-gradient-to-br from-gray-800 to-gray-900 text-white",
+          "dark:from-red-500 dark:to-rose-600",
+          "shadow-lg shadow-gray-800/30 hover:shadow-xl hover:shadow-gray-800/40",
+          "dark:shadow-red-500/30 dark:hover:shadow-xl dark:hover:shadow-red-500/40",
           "hover:-translate-y-0.5 active:translate-y-0",
-          "disabled:from-red-400/50 disabled:to-rose-500/50",
+          "disabled:from-gray-400/50 disabled:to-gray-500/50",
+          "dark:disabled:from-red-400/50 dark:disabled:to-rose-500/50",
           "disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-y-0",
           "transition-all duration-300 ease-out",
           "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent",
@@ -455,6 +510,104 @@ function PureMultimodalInput({
 
   const showSuggestions = messages.length === 0 && !input;
 
+  const imageInlineCacheRef = useRef<Record<string, string>>({});
+  const imageInlinePromisesRef = useRef<
+    Record<string, Promise<string | null> | undefined>
+  >({});
+
+  const convertToDataUri = useCallback(
+    async (attachment: Attachment) => {
+      try {
+        const response = await fetch("/api/proxy-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageUrl: attachment.url,
+            forceDownload: true,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64String = arrayBufferToBase64(arrayBuffer);
+        const mimeType =
+          response.headers.get("content-type") ||
+          attachment.contentType ||
+          blob.type ||
+          "image/jpeg";
+
+        return `data:${mimeType};base64,${base64String}`;
+      } catch (error) {
+        console.error(
+          `Failed to inline image attachment ${attachment.name}:`,
+          error
+        );
+        return null;
+      }
+    },
+    []
+  );
+
+  const ensureInlineImage = useCallback(
+    (attachment: Attachment) => {
+      if (!attachment?.contentType?.startsWith("image/")) {
+        return Promise.resolve<string | null>(null);
+      }
+
+      const key = attachment.url;
+      if (!key) {
+        return Promise.resolve<string | null>(null);
+      }
+
+      const cached = imageInlineCacheRef.current[key];
+      if (cached) {
+        return Promise.resolve(cached);
+      }
+
+      if (imageInlinePromisesRef.current[key]) {
+        return imageInlinePromisesRef.current[key];
+      }
+
+      const promise = convertToDataUri(attachment)
+        .then((dataUri) => {
+          if (dataUri) {
+            imageInlineCacheRef.current = {
+              ...imageInlineCacheRef.current,
+              [key]: dataUri,
+            };
+          }
+          return dataUri;
+        })
+        .catch((error) => {
+          console.error("Inline image preparation failed:", error);
+          return null;
+        });
+
+      const trackedPromise = promise.finally(() => {
+        delete imageInlinePromisesRef.current[key];
+      });
+
+      imageInlinePromisesRef.current[key] = trackedPromise;
+      return trackedPromise;
+    },
+    [convertToDataUri]
+  );
+
+  useEffect(() => {
+    if (attachments.length === 0) return;
+
+    attachments.forEach((attachment) => {
+      if (!attachment?.contentType?.startsWith("image/")) return;
+      ensureInlineImage(attachment);
+    });
+  }, [attachments, ensureInlineImage]);
+
   const adjustHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -518,7 +671,7 @@ function PureMultimodalInput({
       return;
     }
 
-    window.history.replaceState({}, "", `/chat/${chatId}`);
+    window.history.replaceState({}, "", `/c/${chatId}`);
 
     const imageAttachments = attachments.filter((att) =>
       att.contentType?.startsWith("image/")
@@ -533,38 +686,85 @@ function PureMultimodalInput({
     };
 
     if (imageAttachments.length > 0) {
-      const imageParts = imageAttachments.map((att) => ({
-        type: "image",
-        image: att.url, // Send the URL directly instead of base64
-      }));
+      const cachedImages: Array<{ dataUri: string; originalUrl: string }> = [];
+      const pendingAttachments: Attachment[] = [];
+
+      imageAttachments.forEach((attachment) => {
+        const dataUri = imageInlineCacheRef.current[attachment.url];
+        if (dataUri) {
+          cachedImages.push({
+            dataUri,
+            originalUrl: attachment.url,
+          });
+        } else {
+          pendingAttachments.push(attachment);
+        }
+      });
+
+      let newlyPrepared: Array<{ dataUri: string; originalUrl: string }> = [];
+
+      if (pendingAttachments.length > 0) {
+        const prepared = await Promise.all(
+          pendingAttachments.map((attachment) => ensureInlineImage(attachment))
+        );
+
+        const failedAttachments: Attachment[] = [];
+
+        newlyPrepared = prepared
+          .map((dataUri, index) => {
+            if (!dataUri) {
+              failedAttachments.push(pendingAttachments[index]);
+              return null;
+            }
+
+            return {
+              dataUri,
+              originalUrl: pendingAttachments[index].url,
+            };
+          })
+          .filter(Boolean) as Array<{ dataUri: string; originalUrl: string }>;
+
+        if (failedAttachments.length > 0) {
+          const failedNames = failedAttachments
+            .map((attachment) => attachment.name || attachment.url)
+            .filter(Boolean)
+            .join(", ");
+
+          toast.error(
+            `Failed to process ${failedNames}. Please try re-uploading the image.`,
+            { position: "bottom-center" }
+          );
+        }
+      }
+
+      const successfulImages = [...cachedImages, ...newlyPrepared];
+
+      if (successfulImages.length === 0) {
+        toast.error(
+          "Unable to inline any of the attached images. Please try again.",
+          { position: "bottom-center" }
+        );
+        return;
+      }
 
       const content = [{ type: "text", text: input }];
+      const imageParts = successfulImages.map(({ dataUri }) => ({
+        type: "image",
+        image: dataUri,
+      }));
+
       content.push(...(imageParts as any[]));
       messageContent = content;
-      
-      // Log the image URLs for debugging
-      console.log("Sending images to AI:", imageParts.map(part => part.image));
-      console.log("Image attachment details:", imageAttachments.map(att => ({ url: att.url, contentType: att.contentType, name: att.name })));
-      
-      // Check if we're sending Vercel Blob URLs
-      const vercelBlobUrls = imageParts.filter(part => part.image.includes('blob.vercel-storage.com'));
-      if (vercelBlobUrls.length > 0) {
-        console.log("✅ Sending Vercel Blob URLs to AI:", vercelBlobUrls.map(part => part.image));
-        console.log("ℹ️ Note: Some AI models may convert these URLs to their own format, but the original URLs are preserved for editing");
-        
-        // Store original Vercel Blob URLs for editing
-        const originalUrls = vercelBlobUrls.map(part => part.image);
-        console.log("🔗 Original Vercel Blob URLs stored for editing:", originalUrls);
-        
-        // Add original URLs to the message content for the AI to use
-        content.push({
-          type: "text",
-          text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(', ')}]`
-        });
-      } else {
-        console.warn("⚠️ No Vercel Blob URLs found in attachments - this may cause editing issues");
-        console.warn("⚠️ This suggests the AI SDK has already converted the URLs to Google AI format");
-      }
+
+      const originalUrls = successfulImages.map((item) => item.originalUrl);
+      console.log("✅ Inlined images for AI request:", originalUrls);
+
+      content.push({
+        type: "text",
+        text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(
+          ", "
+        )}]`,
+      });
     }
 
     if (otherAttachments.length > 0) {
@@ -644,6 +844,7 @@ function PureMultimodalInput({
     append,
     input,
     uploadQueue,
+    ensureInlineImage,
   ]);
 
   const uploadFile = async (file: File) => {
@@ -714,90 +915,62 @@ function PureMultimodalInput({
 
   const handleGroupSelect = useCallback(
     async (group: SearchGroup) => {
-      const wasCoding = selectedGroup === "coding";
-      const isNowCoding = group.id === "coding";
-      const wasImagine = selectedGroup === "imagine";
-      const isNowImagine = group.id === "imagine";
-      
-      // Auto-switch to Claude when entering Coding mode
-      if (!wasCoding && isNowCoding && selectedModelId !== "chat-model-claude") {
-        // IMPORTANT: Save the group selection FIRST before reload
+      const currentForcedModel = FORCED_MODEL_BY_GROUP[selectedGroup];
+      const nextForcedModel = FORCED_MODEL_BY_GROUP[group.id];
+
+      const updateGroupState = () => {
         setSelectedGroup(group.id);
         setLocalStorageChatMode(group.id);
-        
-        // Save current model to restore later
-        setPreviousModel(selectedModelId);
-        
-        // Switch to Claude
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie("chat-model-claude");
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
+      };
+
+      // Entering or switching to a forced-model group
+      if (nextForcedModel) {
+        if (!previousModel) {
+          setPreviousModel(selectedModelId);
+        }
+
+        updateGroupState();
+
+        if (selectedModelId !== nextForcedModel) {
+          const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+          await saveChatModelAsCookie(nextForcedModel);
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+        }
+
         return;
       }
-      
-      // Auto-switch to gpt-4.1 when entering Imagine mode
-      if (!wasImagine && isNowImagine && selectedModelId !== "chat-model-large") {
-        // IMPORTANT: Save the group selection FIRST before reload
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
-        
-        // Save current model to restore later
-        setPreviousModel(selectedModelId);
-        
-        // Switch to gpt-4.1
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie("chat-model-large");
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
-        return;
-      }
-      
-      // Restore previous model when leaving Coding mode
-      if (wasCoding && !isNowCoding && previousModel && selectedModelId === "chat-model-claude") {
-        // IMPORTANT: Save the group selection FIRST before reload
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
-        
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie(previousModel);
+
+      // Leaving a forced-model group
+      if (currentForcedModel) {
+        updateGroupState();
+
+        if (previousModel && previousModel !== selectedModelId) {
+          const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+          await saveChatModelAsCookie(previousModel);
+          setPreviousModel(null);
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+          return;
+        }
+
         setPreviousModel(null);
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
         return;
       }
-      
-      // Restore previous model when leaving Imagine mode
-      if (wasImagine && !isNowImagine && previousModel && selectedModelId === "chat-model-large") {
-        // IMPORTANT: Save the group selection FIRST before reload
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
-        
-        const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-        await saveChatModelAsCookie(previousModel);
-        setPreviousModel(null);
-        
-        // Small delay to ensure localStorage is written
-        setTimeout(() => {
-          window.location.reload(); // Reload to apply model change
-        }, 100);
-        return;
-      }
-      
-      // Normal group selection (no reload needed)
-      setSelectedGroup(group.id);
-      setLocalStorageChatMode(group.id);
+
+      // Normal group selection
+      updateGroupState();
     },
-    [setSelectedGroup, setLocalStorageChatMode, selectedGroup, selectedModelId, previousModel, setPreviousModel]
+    [
+      previousModel,
+      selectedGroup,
+      selectedModelId,
+      setLocalStorageChatMode,
+      setPreviousModel,
+      setSelectedGroup,
+    ]
   );
 
   const scrollMessagesToBottom = (e: React.MouseEvent) => {
@@ -1000,7 +1173,7 @@ function PureMultimodalInput({
             }}
             onPaste={handlePaste}
           />
-          <div className="absolute right-4 bottom-3.5 flex items-center gap-2">
+          <div className="absolute right-3 sm:right-4 bottom-3.5 flex items-center gap-2">
             {isLoading ? (
               <StopButton stop={stop} setMessages={setMessages} />
             ) : (
@@ -1041,7 +1214,12 @@ function PureMultimodalInput({
             />
           </div>
           <div className="flex flex-row gap-2 items-center">
-            {!isReadonly && <ModelSelector selectedModelId={selectedModelId} disabled={selectedGroup === "coding" || selectedGroup === "imagine"} />}
+            {!isReadonly && (
+              <ModelSelector
+                selectedModelId={selectedModelId}
+                disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
+              />
+            )}
           </div>
         </div>
       </div>

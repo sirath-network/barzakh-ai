@@ -1,11 +1,191 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import { IdCard  } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { fetcher } from "@barzakh/shared/lib/utils/utils";
+
 import { SubscriptionCard } from "@/components/settings/subscription-card";
-import { BillingAddressCard } from "@/components/settings/billing-address-card";
+import { PaymentMethodsCard } from "@/components/settings/billing/payment-methods-card";
+import { BillingHistoryCard } from "@/components/settings/billing/billing-history-card";
+
+import type {
+  InvoicesResponse,
+  PaymentMethodsResponse,
+  SubscriptionResponse,
+} from "@/types/billing";
+
+interface CursorState {
+  starting_after?: string | null;
+}
 
 export default function BillingPage() {
-    return (
-        <div className="space-y-4 p-4 md:p-8">
-            <SubscriptionCard />
-            <BillingAddressCard />
-        </div>
+  const { data: session } = useSession();
+  const [invoicePagination, setInvoicePagination] = useState<{
+    history: CursorState[];
+    index: number;
+  }>({
+    history: [{}],
+    index: 0,
+  });
+
+  useEffect(() => {
+    setInvoicePagination({
+      history: [{}],
+      index: 0,
+    });
+  }, [session?.user?.id]);
+
+  const currentCursor = invoicePagination.history[invoicePagination.index] ?? {};
+
+  const {
+    data: subscriptionData,
+    isLoading: loadingSubscription,
+    mutate: mutateSubscription,
+  } = useSWR<SubscriptionResponse>(
+    session ? "/api/billing/subscription" : null,
+    fetcher,
+  );
+
+  const {
+    data: paymentMethodsData,
+    isLoading: loadingPaymentMethods,
+    mutate: mutatePaymentMethods,
+  } = useSWR<PaymentMethodsResponse>(
+    session ? "/api/billing/payment-methods" : null,
+    fetcher,
+  );
+
+  const invoicesKey = useMemo(() => {
+    if (!session) return null;
+    const params = new URLSearchParams();
+    params.set("limit", "10");
+
+    if (currentCursor.starting_after) {
+      params.set("starting_after", currentCursor.starting_after);
+    }
+
+    return `/api/billing/invoices?${params.toString()}`;
+  }, [session, currentCursor.starting_after]);
+
+  const {
+    data: invoicesData,
+    isLoading: loadingInvoices,
+    isValidating: validatingInvoices,
+  } = useSWR<InvoicesResponse>(invoicesKey, fetcher);
+
+  const subscription = subscriptionData?.subscription ?? null;
+  const paymentMethods = paymentMethodsData?.paymentMethods;
+  const defaultPaymentMethodId = paymentMethodsData?.defaultPaymentMethodId ?? null;
+  const tierFromSession = session?.user?.tier ?? null;
+  const subscriptionFallbackTier =
+    subscriptionData?.subscription ? tierFromSession : null;
+  const isSubscribed =
+    Boolean(subscription) ||
+    Boolean(
+      subscriptionFallbackTier && subscriptionFallbackTier !== "free",
     );
+
+  const refreshSubscriptionAndPayments = async () => {
+    await Promise.all([mutateSubscription(), mutatePaymentMethods()]);
+  };
+
+  const handleNextInvoicesPage = () => {
+    if (!invoicesData?.hasMore || !invoicesData?.nextCursor) return;
+    const nextCursor = invoicesData.nextCursor;
+    setInvoicePagination((prev) => {
+      const trimmedHistory = prev.history.slice(0, prev.index + 1);
+      trimmedHistory.push({ starting_after: nextCursor });
+      return {
+        history: trimmedHistory,
+        index: prev.index + 1,
+      };
+    });
+  };
+
+  const handlePreviousInvoicesPage = () => {
+    setInvoicePagination((prev) => {
+      if (prev.index === 0) {
+        return prev;
+      }
+      return {
+        history: prev.history,
+        index: prev.index - 1,
+      };
+    });
+  };
+
+  const isPaginatingInvoices = validatingInvoices && !loadingInvoices;
+  const canGoPrevious = invoicePagination.index > 0;
+  const canGoNext =
+    Boolean(invoicesData?.hasMore) && Boolean(invoicesData?.nextCursor);
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50 flex-shrink-0">
+              <IdCard  className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">Manage Subscription &amp; Payments</h1>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mt-1">Keep your plan, invoices, and payment methods up to date. Changes take effect immediately.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <SubscriptionCard
+              subscription={subscription}
+              isLoading={loadingSubscription}
+              onRefresh={refreshSubscriptionAndPayments}
+              fallbackTier={subscriptionFallbackTier}
+            />
+          </div>
+          <div>
+            <PaymentMethodsCard
+              paymentMethods={paymentMethods}
+              defaultPaymentMethodId={defaultPaymentMethodId}
+              isLoading={loadingPaymentMethods}
+              isSubscribed={isSubscribed}
+              onRefresh={refreshSubscriptionAndPayments}
+              subscription={subscription}
+            />
+          </div>
+        </div>
+
+        <BillingHistoryCard
+          data={invoicesData}
+          isLoading={loadingInvoices && !invoicesData}
+          onNextPage={handleNextInvoicesPage}
+          onPreviousPage={handlePreviousInvoicesPage}
+          isPaginating={isPaginatingInvoices}
+          canGoPrevious={canGoPrevious}
+          canGoNext={canGoNext}
+        />
+
+        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-lg border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">
+                Need help with billing?
+              </h3>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                Questions about invoices, payment methods, or subscription changes? Our support team is ready to assist.
+              </p>
+            </div>
+            <button
+              onClick={() => window.open("https://barzakh.tech/contact", "_blank")}
+              className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm"
+            >
+              Contact Support
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

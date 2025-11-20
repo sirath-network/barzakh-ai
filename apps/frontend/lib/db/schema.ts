@@ -29,6 +29,7 @@ import {
   twoFactorSecret: text("twoFactorSecret"),
   twoFactorEnabled: boolean("twoFactorEnabled").notNull().default(false),
   backupCodes: text("backupCodes"), // JSON array of backup codes
+  tokenVersion: integer("tokenVersion").notNull().default(0),
 });
 
 export const customer = pgTable("Customer", {

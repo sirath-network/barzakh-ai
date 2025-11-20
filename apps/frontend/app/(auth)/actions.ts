@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import {
   createUser,
   getUser,
+  getUserByUsername,
   getPasswordResetToken,
   savePasswordResetToken,
   updateUserPassword,
@@ -20,7 +21,11 @@ import { signIn } from "./auth";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 import { nanoid } from "nanoid";
 import { sendResetEmail, sendOTPEmail } from "@/lib/utils/email";
-import * as Sentry from "@sentry/nextjs";
+// Dynamic import for Sentry to reduce initial bundle size
+const captureException = async (error: unknown) => {
+  const Sentry = await import("@sentry/nextjs");
+  Sentry.captureException(error);
+};
 
 async function verifyTurnstile(token: string) {
   // Validate token format before making request
@@ -63,7 +68,8 @@ async function verifyTurnstile(token: string) {
 
 // For login: only check required + min length
 const loginSchema = z.object({
-  email: z.string().email(),
+  // Accept either email or username; we'll resolve to email server-side
+  email: z.string().min(1, "Required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   "cf-turnstile-response": z.string(),
 });
@@ -137,41 +143,123 @@ export const login = async (
       return { status: "failed" };
     }
 
+    // Resolve identifier to email (supports username)
+    let resolvedEmail = validatedData.email;
+    if (!resolvedEmail.includes("@")) {
+      // Enforce lowercase a-z0-9 only for username logins. Do not normalize; reject instead.
+      const isLowerAlnum = /^[a-z0-9]+$/.test(resolvedEmail);
+      if (!isLowerAlnum) {
+        return { status: "failed" };
+      }
+      const usernameLookup = resolvedEmail; // already validated as lowercase a-z0-9
+      const byUsername = await getUserByUsername(usernameLookup);
+      if (byUsername.length === 0) {
+        return { status: "failed" };
+      }
+      resolvedEmail = byUsername[0].email!;
+    }
+
     // Check if user has 2FA enabled
-    const users = await getUser(validatedData.email);
+    const users = await getUser(resolvedEmail);
     if (users.length > 0 && users[0].twoFactorEnabled) {
       // User has 2FA enabled, get temp token for 2FA verification
       try {
-        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/2fa/temp-login`, {
+        const baseUrl =
+          process.env.AUTH_URL ??
+          process.env.PUBLIC_BASE_URL ??
+          "http://localhost:3000";
+
+        // Use a short timeout so a dead/remote AUTH_URL doesn't hang login
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${baseUrl}/api/2fa/temp-login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: validatedData.email,
+            email: resolvedEmail,
             password: validatedData.password,
           }),
+          signal: controller.signal,
         });
 
-        const data = await response.json();
-        
-        if (response.ok) {
-          return { 
-            status: "requires_2fa", 
-            email: validatedData.email,
-            tempToken: data.tempToken
-          };
+        clearTimeout(timeout);
+
+        const contentType = response.headers.get("content-type") || "";
+
+        let data: any = null;
+        if (contentType.includes("application/json")) {
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            console.error("Temp login JSON parse error:", parseError);
+          }
         } else {
+          // Non‑JSON response (likely an HTML error page)
+          const text = await response.text();
+          console.error("Temp login non-JSON response (check AUTH_URL/PUBLIC_BASE_URL and that the target app is running):", {
+            baseUrl,
+            status: response.status,
+            contentType,
+            bodyPreview: text.slice(0, 200),
+          });
+        }
+
+        // Wrong credentials / validation errors → just treat as failed login
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 400) {
+            console.warn("Temp login invalid credentials or 2FA state:", {
+              status: response.status,
+              error: data?.error,
+            });
+          } else {
+            console.error("Temp login API error (remote 2FA endpoint issue):", {
+              baseUrl,
+              status: response.status,
+              error: data?.error,
+            });
+          }
           return { status: "failed" };
         }
+
+        if (!data?.tempToken) {
+          console.error("Temp login succeeded but tempToken missing:", {
+            baseUrl,
+            data,
+          });
+          return { status: "failed" };
+        }
+
+        return {
+          status: "requires_2fa",
+          email: resolvedEmail,
+          tempToken: data.tempToken,
+        };
       } catch (error) {
-        console.error("Temp login error:", error);
+        if (error instanceof Error && error.name === "AbortError") {
+          console.error("Temp login request timed out (is AUTH_URL/PUBLIC_BASE_URL pointing to a running server?)", {
+            baseUrl:
+              process.env.AUTH_URL ??
+              process.env.PUBLIC_BASE_URL ??
+              "http://localhost:3000",
+          });
+        } else {
+          console.error("Temp login network or unexpected error:", {
+            error,
+            baseUrl:
+              process.env.AUTH_URL ??
+              process.env.PUBLIC_BASE_URL ??
+              "http://localhost:3000",
+          });
+        }
         return { status: "failed" };
       }
     }
 
     await signIn("credentials", {
-      email: validatedData.email,
+      email: resolvedEmail,
       password: validatedData.password,
       redirect: false,
     });
@@ -181,7 +269,7 @@ export const login = async (
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
     }
-    Sentry.captureException(error);
+    captureException(error).catch(console.error);
     return { status: "failed" };
   }
 };
@@ -319,7 +407,7 @@ export interface RegisterActionState {
         };
         }
         
-        Sentry.captureException(error);
+        captureException(error).catch(console.error);
         return { status: "failed" };
     }
 };

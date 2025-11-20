@@ -7,6 +7,8 @@ import {
   useEffect,
   useRef,
 } from "react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
 import { useWindowSize } from "usehooks-ts";
 import { CheckCircleFillIcon, ChevronDownIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -18,12 +20,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import BottomSheet from "../bottom-sheet";
 import { saveChatModelAsCookie } from "@/app/(chat)/actions";
-import { chatModels, type ChatModel } from "@barzakh/shared/lib/ai/models";
+import { chatModels } from "@barzakh/shared/lib/ai/models";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { Search, SearchX } from "lucide-react";
 
 // --- Konstanta ---
 const TAILWIND_MD_BREAKPOINT = 768;
+
+// --- Types & Props ---
+type ChatModel = (typeof chatModels)[number];
 
 // --- Props ---
 interface ModelSelectorProps {
@@ -52,6 +57,19 @@ const useModelSearch = (models: ChatModel[], query: string) => {
   }, [models, query]);
 };
 
+const getModelIconBaseName = (model?: ChatModel | null): string | null => {
+  if (!model) return null;
+
+  const source = (model.name || model.id || "").toLowerCase();
+
+  if (source.includes("claude")) return "Claude";
+  if (source.includes("gpt") || source.includes("openai")) return "GPT";
+  if (source.includes("grok")) return "Grok";
+  if (source.includes("glm")) return "GLM";
+
+  return null;
+};
+
 const ModelOptionList = ({
   selectedModelId,
   onSelect,
@@ -59,6 +77,8 @@ const ModelOptionList = ({
   isDropdown = false,
 }: ModelOptionListProps) => {
   const filteredModels = useModelSearch(chatModels, searchQuery);
+  const { resolvedTheme } = useTheme();
+  const isDarkTheme = resolvedTheme === "dark";
 
   if (filteredModels.length === 0) {
     return (
@@ -74,16 +94,35 @@ const ModelOptionList = ({
     <>
       {filteredModels.map((model) => {
         const isSelected = selectedModelId === model.id;
+        const baseName = getModelIconBaseName(model);
+        const themeSuffix = resolvedTheme === "dark" ? "Dark" : "Light";
+        const iconSrc = baseName
+          ? `/images/models-icon/${baseName}-${themeSuffix}.png`
+          : null;
+
         const commonClasses = cn(
-          "flex items-center gap-4 cursor-pointer",
-          "transition-colors duration-150",
-          "hover:bg-accent hover:text-accent-foreground",
-          "focus:bg-accent focus:text-accent-foreground",
-          isSelected && "bg-accent/60"
+          "flex items-center gap-4 cursor-pointer rounded-xl border border-transparent",
+          "transition-all duration-150",
+          isDarkTheme
+            ? "text-neutral-100/90 hover:bg-neutral-800/80 focus:bg-neutral-800/80"
+            : "text-neutral-900 hover:bg-neutral-50 focus:bg-neutral-50",
+          isSelected &&
+            (isDarkTheme
+              ? "bg-neutral-800 text-foreground"
+              : "bg-white text-neutral-900 ring-1 ring-neutral-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)]")
         );
 
         const content = (
           <>
+            {iconSrc && (
+              <Image
+                src={iconSrc}
+                alt={model.name}
+                width={20}
+                height={20}
+                className="rounded-md flex-shrink-0"
+              />
+            )}
             <div className="flex-grow min-w-0 text-left">
               <p className="font-medium truncate">{model.name}</p>
               <p className="text-xs text-muted-foreground line-clamp-2">
@@ -104,7 +143,7 @@ const ModelOptionList = ({
                 e.preventDefault(); // Prevent default dropdown behavior
                 onSelect(model);
               }}
-              className={cn(commonClasses, "p-3 rounded-lg")}
+              className={cn(commonClasses, "px-3 py-3.5 rounded-xl")}
             >
               {content}
             </DropdownMenuItem>
@@ -119,7 +158,7 @@ const ModelOptionList = ({
               e.stopPropagation();
               onSelect(model);
             }}
-            className={cn(commonClasses, "p-4 rounded-lg")}
+            className={cn(commonClasses, "px-4 py-3.5 rounded-xl")}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
@@ -175,6 +214,8 @@ export function ModelSelector({
   const [isUpdating, setIsUpdating] = useState(false);
   const { width } = useWindowSize();
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const { resolvedTheme } = useTheme();
+  const isDarkTheme = resolvedTheme === "dark";
 
   // Client-side hydration fix
   const [isClient, setIsClient] = useState(false);
@@ -188,6 +229,16 @@ export function ModelSelector({
     () => chatModels.find((model) => model.id === selectedModelId),
     [selectedModelId]
   );
+
+  const selectedModelIconSrc = useMemo(() => {
+    const baseName = getModelIconBaseName(selectedChatModel);
+    if (!baseName) return null;
+
+    const themeSuffix =
+      resolvedTheme === "dark" ? "Dark" : "Light";
+
+    return `/images/models-icon/${baseName}-${themeSuffix}.png`;
+  }, [selectedChatModel, resolvedTheme]);
 
   // Optimized select handler dengan debouncing dan error handling
   const handleSelect = useCallback(async (model: ChatModel) => {
@@ -280,7 +331,7 @@ export function ModelSelector({
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative mr-0 sm:mr-1 mt-1", className)}>
       <DropdownMenu 
         open={isDesktop && isExpanded} 
         onOpenChange={handleDropdownOpenChange}
@@ -292,52 +343,53 @@ export function ModelSelector({
             onClick={handleMobileToggle}
             disabled={disabled || isUpdating}
             className={cn(
-              "h-10 border-2 rounded-xl transition-all duration-200",
+              "h-10 w-10 p-0 border-2 rounded-xl transition-all duration-200",
               "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700",
               "text-neutral-900 dark:text-neutral-200",
               "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              isDesktop
-                ? "px-4 justify-between min-w-[180px]"
-                : "w-10 p-0 justify-center",
               className
             )}
+            title={selectedChatModel?.name}
           >
-            {isDesktop ? (
-              <>
-                <span className="font-medium truncate">
-                  {isUpdating ? "Updating..." : selectedChatModel?.name}
-                </span>
-                <ChevronDownIcon
-                  className={cn(
-                    "size-4 transition-transform duration-200",
-                    isExpanded && "rotate-180",
-                    isUpdating && "animate-spin"
-                  )}
+            <div className="flex items-center justify-center">
+              {isUpdating ? (
+                <div className="animate-spin size-4 border-2 border-current border-t-transparent rounded-full" />
+              ) : selectedModelIconSrc ? (
+                <Image
+                  src={selectedModelIconSrc}
+                  alt={selectedChatModel?.name || "Model icon"}
+                  width={20}
+                  height={20}
+                  className="rounded-md"
                 />
-              </>
-            ) : (
-              <div className="flex items-center justify-center font-semibold text-sm">
-                {isUpdating ? (
-                  <div className="animate-spin size-4 border-2 border-current border-t-transparent rounded-full" />
-                ) : (
-                  selectedChatModel?.name.charAt(0).toUpperCase()
-                )}
-              </div>
-            )}
+              ) : (
+                <span className="font-semibold text-sm">
+                  {selectedChatModel?.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
           </Button>
         </DropdownMenuTrigger>
 
         {/* Desktop: Menu Dropdown */}
         <DropdownMenuContent
-          align="start"
+          align="end"
           className={cn(
-            "w-[340px] p-0 bg-background",
-            "border-2 shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95"
+            "w-[360px] p-0 rounded-2xl animate-in fade-in-0 zoom-in-95",
+            "mt-2 mr-1 sm:mr-2 backdrop-blur-md",
+            isDarkTheme
+              ? "bg-neutral-950/95 border border-neutral-800 shadow-2xl shadow-black/40"
+              : "bg-white/95 border border-neutral-200 shadow-[0_25px_65px_rgba(15,23,42,0.18)]"
           )}
-          sideOffset={8}
+          sideOffset={10}
         >
-          <div className="p-2 border-b">
+          <div
+            className={cn(
+              "p-4 pb-2 border-b",
+              isDarkTheme ? "border-neutral-800" : "border-neutral-200/80"
+            )}
+          >
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
@@ -345,12 +397,24 @@ export function ModelSelector({
                 placeholder="Search Models"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-md border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-primary/30"
+                className={cn(
+                  "w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors duration-150",
+                  isDarkTheme
+                    ? "border-neutral-800 bg-neutral-900/80 text-neutral-100 placeholder:text-neutral-400"
+                    : "border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-500 shadow-[0_1px_2px_rgba(15,23,42,0.08)] focus:border-primary/50"
+                )}
                 disabled={isUpdating}
               />
             </div>
           </div>
-          <div className="max-h-72 overflow-y-auto custom-scrollbar p-2">
+          <div
+            className={cn(
+              "max-h-80 overflow-y-auto custom-scrollbar px-3 pb-4 pt-2",
+              !isDarkTheme &&
+                "bg-gradient-to-b from-white/75 via-white/30 to-transparent"
+            )}
+          >
             <ModelOptionList
               selectedModelId={selectedModelId}
               onSelect={handleSelect}

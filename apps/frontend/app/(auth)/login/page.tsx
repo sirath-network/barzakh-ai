@@ -15,6 +15,9 @@ import { LogoGoogle } from "@/components/icons";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
 import { login, type LoginActionState } from "../actions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { OTPInput } from "@/components/ui/otp-input";
+import { toast } from "sonner";
 
 type OverlayState = {
   status: "success" | "error" | "idle";
@@ -38,6 +41,15 @@ export default function Page() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loginState, setLoginState] = useState<LoginActionState>({ status: "idle" });
+
+  // 2FA modal state
+  const [isTwoFAModalOpen, setIsTwoFAModalOpen] = useState(false);
+  const [twoFAEmail, setTwoFAEmail] = useState("");
+  const [twoFATempToken, setTwoFATempToken] = useState("");
+  const [twoFAToken, setTwoFAToken] = useState("");
+  const [isVerifying2FA, setIsVerifying2FA] = useState(false);
+  const [useBackupCode, setUseBackupCode] = useState(false);
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
   // Handle mouse movement to enable Spline scene
   useEffect(() => {
@@ -140,8 +152,12 @@ export default function Page() {
         router.push("/");
       }, 2000);
     } else if (result.status === "requires_2fa") {
-      // Redirect to 2FA verification page
-      router.push(`/verify-2fa?email=${encodeURIComponent(result.email!)}&tempToken=${encodeURIComponent(result.tempToken!)}`);
+      // Open 2FA modal instead of redirecting to a separate page
+      setTwoFAEmail(result.email!);
+      setTwoFATempToken(result.tempToken!);
+      setTwoFAToken("");
+      setUseBackupCode(false);
+      setIsTwoFAModalOpen(true);
     }
   };
   
@@ -164,6 +180,74 @@ export default function Page() {
     setIsFormValid(isValid);
   };
 
+  const handleTwoFAVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!twoFAToken.trim()) {
+      toast.error("Please enter your 2FA token");
+      return;
+    }
+    setIsVerifying2FA(true);
+    try {
+      const response = await fetch("/api/2fa/complete-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempToken: twoFATempToken, twoFactorToken: twoFAToken.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Store the session token temporarily
+        localStorage.setItem("sessionToken", data.sessionToken);
+        const result = await signIn("credentials", {
+          email: data.user.email,
+          password: "",
+          sessionToken: data.sessionToken,
+          redirect: false,
+        });
+        if (result?.ok) {
+          localStorage.removeItem("sessionToken");
+          await getSession();
+          toast.success("Login successful!");
+          setIsTwoFAModalOpen(false);
+          router.push("/");
+        } else {
+          toast.error("Session creation failed. Please try again.");
+        }
+      } else {
+        toast.error(data.error || "Invalid 2FA token");
+      }
+    } catch (err) {
+      console.error("2FA verification error:", err);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsVerifying2FA(false);
+    }
+  };
+
+  const handleTwoFATokenChange = (value: string) => {
+    setTwoFAToken(value);
+    // Reset auto-submit flag when token is modified
+    const expectedLength = useBackupCode ? 8 : 6;
+    if (value.length < expectedLength) {
+      setHasAutoSubmitted(false);
+    }
+  };
+
+  const handleOTPComplete = () => {
+    // Auto-submit when OTP is complete (only once per complete entry)
+    if (!isVerifying2FA && twoFAToken.trim() && !hasAutoSubmitted) {
+      setHasAutoSubmitted(true);
+      // Small delay to ensure the last character is properly set
+      setTimeout(() => {
+        if (!isVerifying2FA) { // Double-check it hasn't started
+          const form = document.querySelector('form[data-2fa-form]');
+          if (form) {
+            (form as HTMLFormElement).requestSubmit();
+          }
+        }
+      }, 150);
+    }
+  };
+
   return (
     <>
       <ActionResultOverlay 
@@ -179,7 +263,7 @@ export default function Page() {
       </ActionResultOverlay>
       
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        {/* --- PERUBAHAN DIMULAI DI SINI --- */}
+        {/* --- CHANGES START HERE --- */}
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
           {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
           <div 
@@ -211,18 +295,18 @@ export default function Page() {
             />
           )}
 
-          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-          {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
+          {/* 2. GRADIENT BLUR LAYER (NEW) */}
+          {/* Top Gradient - pointer events none so cursor can interact with Spline below */}
           <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-          {/* Gradien Bawah */}
+          {/* Bottom Gradient */}
           <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
 
-          {/* 3. Konten Teks (lapisan paling depan) */}
+          {/* 3. Text Content (frontmost layer) */}
           <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative z-[10] pointer-events-none" // Pastikan konten berada di atas video dan gradien, don't block Spline interactions
+              className="relative z-[10] pointer-events-none" // Ensure content is above video and gradient, don't block Spline interactions
           >
               <img
                 alt="Brand Banner"
@@ -235,7 +319,7 @@ export default function Page() {
               </p>
           </motion.div>
         </div>
-        {/* --- PERUBAHAN SELESAI DI SINI --- */}
+        {/* --- CHANGES END HERE --- */}
 
         <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
           <motion.div
@@ -313,6 +397,58 @@ export default function Page() {
           </motion.div>
         </div>
       </div>
+
+      {/* 2FA Verification Modal */}
+      <Dialog 
+        open={isTwoFAModalOpen} 
+        onOpenChange={(open) => {
+          setIsTwoFAModalOpen(open);
+          // Reset Turnstile widget when modal is closed so user can get a fresh token
+          if (!open) {
+            turnstileRef.current?.reset();
+            setTurnstileToken("");
+            setTwoFAToken("");
+            setUseBackupCode(false);
+          }
+        }}
+      >
+        <DialogContent className="w-[92vw] max-w-md sm:max-w-lg p-4 sm:p-6 rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl sm:text-2xl">Two-Factor Authentication</DialogTitle>
+            <DialogDescription className="text-center">
+              {useBackupCode ? "Enter your 8-character backup code" : "Enter the 6-digit code from your authenticator app"}
+              {twoFAEmail ? ` • ${twoFAEmail}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleTwoFAVerify} data-2fa-form className="space-y-4 sm:space-y-5">
+            <OTPInput
+              length={useBackupCode ? 8 : 6}
+              value={twoFAToken}
+              onChange={handleTwoFATokenChange}
+              onComplete={handleOTPComplete}
+              backupCode={useBackupCode}
+              autoFocus
+              disabled={isVerifying2FA}
+            />
+            <div className="flex items-center justify-center sm:justify-between">
+              <button
+                type="button"
+                className="text-sm sm:text-base text-red-600 hover:underline"
+                onClick={() => { 
+                  setUseBackupCode(!useBackupCode); 
+                  setTwoFAToken(""); 
+                  setHasAutoSubmitted(false); 
+                }}
+              >
+                {useBackupCode ? "Use TOTP code" : "Use backup code"}
+              </button>
+            </div>
+            <Button type="submit" className="w-full h-11 sm:h-12 text-base" disabled={isVerifying2FA || !twoFAToken.trim()}>
+              {isVerifying2FA ? "Verifying..." : "Verify & Sign In"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

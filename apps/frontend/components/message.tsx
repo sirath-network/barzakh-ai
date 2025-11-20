@@ -21,7 +21,7 @@ import TokenInfoTable from "./birdeye/TokenInfoTable";
 import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
 import Image from "next/image";
 
-// HELPER: Peta dari nama tool ke ikon yang sesuai
+// HELPER: Map from tool name to corresponding icon
 const toolIcons: Record<string, React.ElementType> = {
   webSearch: Globe,
   searchEvmTokenMarketData: BarChart3,
@@ -39,7 +39,7 @@ const toolIcons: Record<string, React.ElementType> = {
   createImage: FileImage,
 };
 
-// HELPER: Komponen kecil untuk merender setiap ikon tool
+// HELPER: Small component to render each tool icon
 const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "small" | "medium" }) => {
   const IconComponent = toolIcons?.[toolName] || FileText;
   const iconSize = size === "small" ? "size-3" : "size-4";
@@ -271,7 +271,7 @@ const PurePreviewMessage = ({
                     />
                   )}
 
-                  {/* === BAGIAN ATAS: HANYA HASIL WEBSEARCH === */}
+                  {/* === TOP SECTION: ONLY WEB SEARCH RESULTS === */}
                   {webSearchResults && webSearchResults.length > 0 && (
                     webSearchResults.map(tool => (
                       <motion.div 
@@ -285,7 +285,7 @@ const PurePreviewMessage = ({
                     ))
                   )}
 
-                  {/* === BAGIAN ATAS: HASIL TOOL LAINNYA (PORTFOLIO, TOKEN INFO, etc.) === */}
+                  {/* === TOP SECTION: OTHER TOOL RESULTS (PORTFOLIO, TOKEN INFO, etc.) === */}
                   {otherCompletedTools && otherCompletedTools.length > 0 && (
                     <motion.div 
                       className="flex flex-col items-start gap-2 mb-4"
@@ -329,7 +329,7 @@ const PurePreviewMessage = ({
                     </motion.div>
                   )}
 
-                  {/* === BAGIAN TENGAH: KONTEN PESAN UTAMA (MARKDOWN) === */}
+                  {/* === MIDDLE SECTION: MAIN MESSAGE CONTENT (MARKDOWN) === */}
                   {(message.content) && mode === "view" && (
                     <motion.div
                       className={cn("flex flex-col w-full", {
@@ -401,19 +401,19 @@ const PurePreviewMessage = ({
                             
                             if (textContent.trim()) {
                                return (
-                                 <div
-                                   className="dark:bg-muted dark:text-foreground bg-primary text-primary-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
-                                   style={{
-                                     borderRadius: '15px 15px 0px 15px'
-                                   }}
-                                   onClick={() => {
-                                     if (!isReadonly) {
-                                       setActionsVisible(!actionsVisible);
-                                     }
-                                   }}
-                                 >
-                                   <Markdown>{textContent}</Markdown>
-                                 </div>
+                                <div
+                                  className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
+                                  style={{
+                                    borderRadius: '15px 15px 0px 15px'
+                                  }}
+                                  onClick={() => {
+                                    if (!isReadonly) {
+                                      setActionsVisible(!actionsVisible);
+                                    }
+                                  }}
+                                >
+                                  <Markdown allMessages={allMessages}>{textContent}</Markdown>
+                                </div>
                                );
                              }
                             return null;
@@ -467,17 +467,17 @@ const PurePreviewMessage = ({
                               <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                 <div className="flex-1 min-w-0 max-w-full">
                                   {typeof message.content === "string" ? (
-                                    <Markdown>{message.content}</Markdown>
+                                    <Markdown allMessages={allMessages}>{message.content}</Markdown>
                                   ) : (
                                     <div className="flex flex-col gap-2">
                                       {(message.content as any[]).map((part, index) => {
                                         if (part.type === "text") {
-                                          return <Markdown key={index}>{part.text}</Markdown>;
+                                          return <Markdown key={index} allMessages={allMessages}>{part.text}</Markdown>;
                                         }
                                         if (part.type === "image" && typeof part.image === 'string') {
                                           // Include image URLs in text content so they can be rendered inline by Markdown
                                           // This allows the Markdown component to detect and render AI-generated images properly
-                                          return <Markdown key={index}>{part.image}</Markdown>;
+                                          return <Markdown key={index} allMessages={allMessages}>{part.image}</Markdown>;
                                         }
                                         return null;
                                       })}
@@ -490,7 +490,7 @@ const PurePreviewMessage = ({
                         })()
                       )}
 
-                      {/* Tombol aksi muncul di bawah saat pesan diklik dengan animasi */}
+                      {/* Action buttons appear below when message is clicked with animation */}
                       <AnimatePresence>
                         {message.role === "user" && !isReadonly && actionsVisible && (
                           <motion.div
@@ -511,7 +511,7 @@ const PurePreviewMessage = ({
                           >
                             <Button
                               type="button"
-                              title="Edit pesan"
+                              title="Edit message"
                               variant="ghost"
                               className="p-2 h-fit rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
                               onClick={handleEdit}
@@ -520,7 +520,7 @@ const PurePreviewMessage = ({
                             </Button>
                             <Button
                               type="button"
-                              title={isCopied ? "Disalin!" : "Salin pesan"}
+                              title={isCopied ? "Copied!" : "Copy message"}
                               variant="ghost"
                               className="p-2 h-fit rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
                               onClick={handleCopy}
@@ -551,7 +551,7 @@ const PurePreviewMessage = ({
                     </div>
                   )}
                   
-                  {/* === BAGIAN BAWAH: MESSAGE ACTIONS & SUMBER === */}
+                  {/* === BOTTOM SECTION: MESSAGE ACTIONS & SOURCE === */}
                   {!isReadonly && message.role === "assistant" && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -568,7 +568,7 @@ const PurePreviewMessage = ({
                     </motion.div>
                   )}
 
-                  {/* === BAGIAN BAWAH: SEMUA IKON & LABEL SUMBER === */}
+                  {/* === BOTTOM SECTION: ALL ICONS & SOURCE LABELS === */}
                   {completedTools && completedTools.length > 0 && message.role === "assistant" && (
                     <motion.div 
                       className="flex flex-col gap-2 sm:gap-3 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-border/50"

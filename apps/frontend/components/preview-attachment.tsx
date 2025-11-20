@@ -2,11 +2,11 @@
 
 import type { Attachment } from "ai";
 import { LoaderIcon } from "./icons";
-import { X, Eye, Code, Download, Copy, Check } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { X, Code, Download } from "lucide-react";
+import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader } from "./ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { Button } from "./ui/button";
 
 // --- ICONS & HELPERS (Moved outside the component) ---
@@ -143,7 +143,6 @@ export const PreviewAttachment = ({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
   const [fileContent, setFileContent] = useState<string | null>(null);
 
   // Load file content for code files
@@ -186,16 +185,6 @@ export const PreviewAttachment = ({
     }
   };
 
-  const handleCopyUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy URL:', error);
-    }
-  };
-
   const PreviewContainer = ({ children }: { children: React.ReactNode }) =>
     isImage || !url ? (
       <div className={config.container}>{children}</div>
@@ -217,14 +206,16 @@ export const PreviewAttachment = ({
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.98 }}
+      {...(!isImage && {
+        whileHover: { y: -2 },
+        whileTap: { scale: 0.98 }
+      })}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="flex flex-col gap-2 items-center relative group select-none"
     >
       <PreviewContainer>
         <div 
-          className="bg-gradient-to-br from-muted/40 to-muted/20 w-full h-full rounded-2xl relative flex items-center justify-center border border-border/20 shadow-lg hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden group/card cursor-pointer transform hover:scale-105 active:scale-95 touch-manipulation focus:ring-2 focus:ring-primary/50 focus:outline-none"
+          className="bg-gradient-to-br from-muted/40 to-muted/20 w-full h-full rounded-2xl relative flex items-center justify-center border border-border/20 shadow-lg overflow-hidden group/card cursor-pointer touch-manipulation focus:ring-2 focus:ring-primary/50 focus:outline-none"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={handlePreview}
@@ -238,10 +229,8 @@ export const PreviewAttachment = ({
                 src={url}
                 alt={name ?? "Image attachment"}
                 loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-110"
+                className="w-full h-full object-cover"
               />
-              {/* Subtle overlay for better text visibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 ease-out" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 p-3">
@@ -269,34 +258,6 @@ export const PreviewAttachment = ({
               </motion.div>
             </div>
           )}
-
-          {/* Enhanced preview overlay indicator */}
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center"
-              >
-                <motion.div 
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
-                  className="bg-white/90 text-gray-600 px-2 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 text-xs font-medium border border-white/30 backdrop-blur-sm"
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 2 }}
-                  >
-                    <Eye className="w-3 h-3" />
-                  </motion.div>
-                  {isImage ? 'View' : 'Preview'}
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {isUploading && (
             <motion.div 
@@ -410,19 +371,6 @@ export const PreviewAttachment = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleCopyUrl}
-                      className="text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
-                    >
-                      {isCopied ? (
-                        <Check className="w-4 h-4 mr-1 text-green-400" />
-                      ) : (
-                        <Copy className="w-4 h-4 mr-1" />
-                      )}
-                      {isCopied ? 'Copied!' : 'Copy URL'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
                       onClick={handleDownload}
                       disabled={isDownloading}
                       className="text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
@@ -452,19 +400,6 @@ export const PreviewAttachment = ({
             {/* Image Preview Actions */}
             {isImage && (
               <div className="absolute bottom-4 right-4 flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleCopyUrl}
-                  className="bg-white/95 hover:bg-white text-gray-700 hover:text-gray-900 shadow-xl border-white/20 backdrop-blur-sm"
-                >
-                  {isCopied ? (
-                    <Check className="w-4 h-4 mr-2 text-green-600" />
-                  ) : (
-                    <Copy className="w-4 h-4 mr-2" />
-                  )}
-                  {isCopied ? 'Copied!' : 'Copy URL'}
-                </Button>
                 <Button
                   variant="secondary"
                   size="sm"

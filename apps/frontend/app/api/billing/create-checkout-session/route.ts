@@ -7,7 +7,51 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { price, quantity = 1 } = await req.json();
+  const { planId, price, quantity = 1, billingCycle } = await req.json();
+  const normalizedPlanId = typeof planId === "string" ? planId.toLowerCase() : undefined;
+  const normalizedCycle = typeof billingCycle === "string" ? billingCycle.toLowerCase() : undefined;
+
+  const planPriceMap: Record<string, Record<string, string | undefined>> = {
+    pro: {
+      default: process.env.STRIPE_PRO_PRICE_ID,
+      monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
+      quarterly: process.env.STRIPE_PRO_QUARTERLY_PRICE_ID,
+      yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
+    },
+    ultimate: {
+      default: process.env.STRIPE_ULTIMATE_PRICE_ID,
+      monthly: process.env.STRIPE_ULTIMATE_MONTHLY_PRICE_ID,
+      quarterly: process.env.STRIPE_ULTIMATE_QUARTERLY_PRICE_ID,
+      yearly: process.env.STRIPE_ULTIMATE_YEARLY_PRICE_ID,
+    },
+  };
+
+  let priceId: string | undefined = typeof price === "string" ? price : undefined;
+
+  if (!priceId && normalizedPlanId) {
+    const planConfig = planPriceMap[normalizedPlanId];
+    priceId =
+      (normalizedCycle ? planConfig?.[normalizedCycle] : undefined) ?? planConfig?.default;
+  }
+
+  if (!priceId) {
+    return NextResponse.json(
+      { error: "Missing Stripe price ID for the selected plan" },
+      { status: 400 }
+    );
+  }
+
+  const ultimatePriceCandidates = Object.values(planPriceMap.ultimate).filter(
+    (value): value is string => Boolean(value)
+  );
+
+  let resolvedTier: "pro" | "ultimate" = "pro";
+  if (
+    normalizedPlanId === "ultimate" ||
+    (!normalizedPlanId && ultimatePriceCandidates.includes(priceId))
+  ) {
+    resolvedTier = "ultimate";
+  }
   const session = await auth();
 
   if (!session?.user) {
@@ -43,11 +87,19 @@ export async function POST(req: Request) {
     customer: customer.stripeCustomerId,
     line_items: [
       {
-        price: price,
+        price: priceId,
         quantity: quantity,
       },
     ],
     mode: "subscription",
+    subscription_data: {
+      metadata: {
+        tier: resolvedTier,
+      },
+    },
+    metadata: {
+      planId: resolvedTier,
+    },
     // ✅ UPDATED LINE: Add the session_id query parameter back
     success_url: `${process.env.PUBLIC_BASE_URL}/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.PUBLIC_BASE_URL}`,

@@ -1,13 +1,7 @@
 import { openai } from "@ai-sdk/openai";
-import { fireworks } from "@ai-sdk/fireworks";
-import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
-import {
-  customProvider,
-  extractReasoningMiddleware,
-  wrapLanguageModel,
-} from "ai";
+import { customProvider } from "ai";
 
 // CometAPI provider (OpenAI-compatible)
 const cometai = createOpenAI({
@@ -21,23 +15,14 @@ export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-llama": fireworks("accounts/fireworks/models/llama-v3p1-8b-instruct"),
-    "chat-model-claude": anthropic("claude-3-5-haiku-latest"),
+    "chat-model-claude": anthropic("claude-sonnet-4-5"),
     "chat-model-grok": cometai("grok-4-fast-reasoning"),
-    "chat-model-doubao": cometai("Doubao-1.5-lite-32k"),
-    "chat-model-reasoning": wrapLanguageModel({
-      model: fireworks("accounts/fireworks/models/deepseek-r1-0528"),
-      middleware: extractReasoningMiddleware({ tagName: "think" }),
-    }),
+    "chat-model-glm": cometai("glm-4.6"),
+    "chat-model-gigantic": cometai("gpt-5"),
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
-  imageModels: {
-    "small-model": openai.image("dall-e-2"),
-    "large-model": openai.image("dall-e-3"),
-    "sdxl-model": fireworks.image("stable-diffusion-xl-base-1.0"),
-    "flux-model": "accounts/fireworks/models/flux-kontext-max",
-  },
+  imageModels: {},
 });
 
 interface ChatModel {
@@ -58,29 +43,24 @@ export const chatModels: Array<ChatModel> = [
     description: "Large model for complex, multi-step tasks",
   },
   {
-    id: "chat-model-reasoning",
-    name: "deepseek-r1",
-    description: "Deepseek model for experimental tasks",
+    id: "chat-model-gigantic",
+    name: "gpt-5",
+    description: "Gigantic model for experimental tasks",
   },
   {
-    id: "chat-model-llama",
-    name: "llama-instruct",
-    description: "Llama model for experimental tasks",
+    id: "chat-model-glm",
+    name: "glm-4.6",
+    description: "GLM-4.6 model for experimental tasks",
   },
   {
     id: "chat-model-claude",
-    name: "claude-3-5-haiku",
+    name: "claude-sonnet-4-5",
     description: "Claude model for experimental tasks",
   },
   {
     id: "chat-model-grok",
     name: "grok-4-fast-reasoning",
     description: "Grok model for experimental tasks",
-  },
-  {
-    id: "chat-model-doubao",
-    name: "Doubao-1.5-lite-32k",
-    description: "Doubao model for experimental tasks",
   },
 ];
 
@@ -92,23 +72,9 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "flux-model",
-    name: "Flux Kontext Max",
-    description: "Flux Kontext Max is a powerful image generation model from Fireworks.",
-  },
-  {
-    id: "sdxl-model",
-    name: "Stable Diffusion XL",
-    description: "Stable Diffusion XL is a powerful image generation model.",
-  },
-  {
-    id: "large-model",
-    name: "DALL-E 3",
-    description: "DALL-E 3 is a powerful image generation model from OpenAI.",
-  },
-  {
-    id: "small-model",
-    name: "DALL-E 2",
-    description: "DALL-E 2 is a fast image generation model from OpenAI.",
+    id: "gemini-2-5-flash-image",
+    name: "Gemini 2.5 Flash Image (Nano Banana)",
+    description:
+      "Gemini 2.5 Flash Image via CometAPI for fast, high-fidelity generations.",
   },
 ];

@@ -13,12 +13,12 @@ import type { User } from "next-auth";
 import { SidebarUserNav } from "./sidebar-user-nav";
 import type { Message } from "ai";
 import TextStrip from "./text-strip";
-// Impor ikon yang diperlukan
+// Import required icons
 import { MessageCirclePlus, ArrowLeft } from 'lucide-react';
 import { ArtifactToggle } from "./artifact-toggle";
 
-// 1. Perbarui interface props untuk menyertakan props opsional baru
-// dan membuat props spesifik chat menjadi opsional.
+// 1. Update interface props to include new optional props
+// and make chat-specific props optional.
 function PureChatHeader({
   user,
   messages,
@@ -33,10 +33,10 @@ function PureChatHeader({
   isReadonly: boolean;
   messages: Message[];
   user?: User;
-  // Props spesifik chat, sekarang opsional
+  // Chat-specific props, now optional
   selectedModelId?: string;
   selectedVisibilityType?: VisibilityType;
-  // Props baru untuk mode pengaturan
+  // New props for settings mode
   title?: string;
   onBackClick?: () => void;
 }) {
@@ -71,14 +71,14 @@ function PureChatHeader({
         <div className="flex items-center gap-2 justify-start">
           <SidebarToggle />
 
-          {/* 2. Tampilkan tombol kembali jika onBackClick ada (mode pengaturan) */}
+          {/* 2. Show back button if onBackClick exists (settings mode) */}
           {onBackClick && (
             <Button variant="ghost" size="icon" onClick={onBackClick} className="md:ml-2">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
 
-          {/* Tampilkan tombol "New Chat" hanya jika BUKAN mode pengaturan */}
+          {/* Show "New Chat" button only if NOT in settings mode */}
           {isClient && !onBackClick && (!isSidebarOpen || !isDesktop) && (
             isDesktop ? (
               <Tooltip>
@@ -95,9 +95,9 @@ function PureChatHeader({
           )}
         </div>
 
-        {/* === Center Section (Judul Dinamis atau Logo) === */}
+        {/* === Center Section (Dynamic Title or Logo) === */}
         <div className="flex justify-center">
-          {/* 3. Tampilkan judul jika ada, jika tidak, tampilkan logo/link ke home */}
+          {/* 3. Show title if exists, otherwise show logo/link to home */}
           {title ? (
             <h1 className="text-lg font-semibold truncate px-2">{title}</h1>
           ) : (
@@ -131,21 +131,21 @@ function PureChatHeader({
         </div>
       </header>
 
-      {/* 4. Tampilkan TextStrip hanya jika BUKAN mode pengaturan */}
+      {/* 4. Show TextStrip only if NOT in settings mode */}
       {!title && <TextStrip />}
     </div>
   );
 }
 
-// 5. Perbarui perbandingan memo untuk menyertakan semua props yang relevan
+// 5. Update memo comparison to include all relevant props
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
-  // Jika judul ada, kita anggap ini adalah tampilan pengaturan dan tidak perlu
-  // membandingkan props spesifik chat yang mungkin tidak ada.
+  // If title exists, we assume this is settings view and don't need
+  // to compare chat-specific props that may not exist.
   if (nextProps.title) {
     return prevProps.title === nextProps.title && prevProps.user === nextProps.user;
   }
 
-  // Perbandingan untuk tampilan chat
+  // Comparison for chat view
   return (
     prevProps.chatId === nextProps.chatId &&
     prevProps.user === nextProps.user &&
