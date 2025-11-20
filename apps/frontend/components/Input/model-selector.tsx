@@ -331,7 +331,7 @@ export function ModelSelector({
   }
 
   return (
-    <div className={cn("relative mr-1 sm:mr-3 mt-1", className)}>
+    <div className={cn("relative mr-0 sm:mr-1 mt-1", className)}>
       <DropdownMenu 
         open={isDesktop && isExpanded} 
         onOpenChange={handleDropdownOpenChange}

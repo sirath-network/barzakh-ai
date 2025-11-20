@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useRef, useEffect, KeyboardEvent, ClipboardEvent } from "react";
+import React, { useRef, useEffect, KeyboardEvent, ClipboardEvent, useState } from "react";
+import { Clipboard, ClipboardCheck } from "lucide-react";
+import { toast } from "sonner";
 
 interface OTPInputProps {
   length?: number;
   value: string;
   onChange: (value: string) => void;
+  onComplete?: () => void; // Callback when all digits are filled
   disabled?: boolean;
   autoFocus?: boolean;
   backupCode?: boolean; // For backup codes (8 alphanumeric chars) vs TOTP (6 digits)
@@ -16,12 +19,16 @@ export function OTPInput({
   length = 6,
   value,
   onChange,
+  onComplete,
   disabled = false,
   autoFocus = false,
   backupCode = false,
   className = "",
 }: OTPInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [isPasted, setIsPasted] = useState(false);
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
+  const lastValueRef = useRef("");
 
   useEffect(() => {
     // Initialize refs array
@@ -34,6 +41,30 @@ export function OTPInput({
       inputRefs.current[0].focus();
     }
   }, [autoFocus]);
+
+  // Reset auto-submit flag when value changes significantly
+  useEffect(() => {
+    // If value is being modified (cleared, deleted, or changed)
+    if (value.length < length || value !== lastValueRef.current) {
+      // Reset the flag to allow auto-submit again
+      if (value.length < length) {
+        setHasAutoSubmitted(false);
+      }
+      lastValueRef.current = value;
+    }
+  }, [value, length]);
+
+  // Auto-submit when all digits are entered (only once per complete entry)
+  useEffect(() => {
+    if (value.length === length && onComplete && !disabled && !hasAutoSubmitted) {
+      // Small delay to ensure the last character is properly set
+      const timer = setTimeout(() => {
+        setHasAutoSubmitted(true);
+        onComplete();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [value, length, onComplete, disabled, hasAutoSubmitted]);
 
   // Filter and clean input based on mode
   const cleanValue = (input: string): string => {
@@ -102,11 +133,39 @@ export function OTPInput({
     
     if (cleaned) {
       onChange(cleaned);
+      setIsPasted(true);
+      setTimeout(() => setIsPasted(false), 2000);
       // Focus the last filled input or the last input
       const focusIndex = Math.min(cleaned.length - 1, length - 1);
       if (inputRefs.current[focusIndex]) {
         inputRefs.current[focusIndex]?.focus();
       }
+
+    }
+  };
+
+  // Paste button handler
+  const handlePasteClick = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const cleaned = cleanValue(text);
+      
+      if (cleaned) {
+        onChange(cleaned);
+        setIsPasted(true);
+        setTimeout(() => setIsPasted(false), 2000);
+        // Focus the last filled input or the last input
+        const focusIndex = Math.min(cleaned.length - 1, length - 1);
+        if (inputRefs.current[focusIndex]) {
+          inputRefs.current[focusIndex]?.focus();
+        }
+
+      } else {
+        toast.error("No valid code found in clipboard");
+      }
+    } catch (error) {
+      toast.error("Unable to read from clipboard");
+      console.error("Clipboard read error:", error);
     }
   };
 
@@ -139,26 +198,48 @@ export function OTPInput({
   };
 
   return (
-    <div className={`flex gap-1.5 sm:gap-2 justify-center px-2 ${className}`}>
-      {Array.from({ length }).map((_, index) => (
-        <input
-          key={index}
-          ref={(el) => {
-            inputRefs.current[index] = el;
-          }}
-          type="text"
-          inputMode={backupCode ? "text" : "numeric"}
-          maxLength={1}
-          value={value[index] || ""}
-          onChange={(e) => handleChange(index, e.target.value)}
-          onInput={(e) => handleInput(index, e)}
-          onKeyDown={(e) => handleKeyDown(index, e)}
-          onPaste={handlePaste}
-          disabled={disabled}
-          className={`${getBoxClasses()} text-center font-semibold border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200`}
-          autoComplete="off"
-        />
-      ))}
+    <div className="flex flex-col items-center gap-3">
+      <div className={`flex gap-1.5 sm:gap-2 justify-center px-2 ${className}`}>
+        {Array.from({ length }).map((_, index) => (
+          <input
+            key={index}
+            ref={(el) => {
+              inputRefs.current[index] = el;
+            }}
+            type="text"
+            inputMode={backupCode ? "text" : "numeric"}
+            maxLength={1}
+            value={value[index] || ""}
+            onChange={(e) => handleChange(index, e.target.value)}
+            onInput={(e) => handleInput(index, e)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            onPaste={handlePaste}
+            disabled={disabled}
+            className={`${getBoxClasses()} text-center font-semibold border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200`}
+            autoComplete="off"
+          />
+        ))}
+      </div>
+      
+      {/* Paste Button - Only visible on mobile */}
+      <button
+        type="button"
+        onClick={handlePasteClick}
+        disabled={disabled}
+        className="md:hidden flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+      >
+        {isPasted ? (
+          <>
+            <ClipboardCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <span className="text-green-600 dark:text-green-400">Pasted!</span>
+          </>
+        ) : (
+          <>
+            <Clipboard className="w-4 h-4" />
+            <span>Paste Code</span>
+          </>
+        )}
+      </button>
     </div>
   );
 }

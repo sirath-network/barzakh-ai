@@ -44,6 +44,7 @@ export default function Page() {
   const [twoFAToken, setTwoFAToken] = useState("");
   const [isVerifying2FA, setIsVerifying2FA] = useState(false);
   const [useBackupCode, setUseBackupCode] = useState(false);
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
@@ -161,6 +162,7 @@ export default function Page() {
       setTwoFAEmail(state.email || "");
       setTwoFAToken("");
       setUseBackupCode(false);
+      setHasAutoSubmitted(false);
       setIsTwoFAModalOpen(true);
     }
   }, [state.status, router, state.email, state.fieldErrors]);
@@ -291,6 +293,31 @@ export default function Page() {
     }
   };
 
+  const handleTwoFATokenChange = (value: string) => {
+    setTwoFAToken(value);
+    // Reset auto-submit flag when token is modified
+    const expectedLength = useBackupCode ? 8 : 6;
+    if (value.length < expectedLength) {
+      setHasAutoSubmitted(false);
+    }
+  };
+
+  const handleOTPComplete = () => {
+    // Auto-submit when OTP is complete (only once per complete entry)
+    if (!isVerifying2FA && twoFAToken.trim() && !hasAutoSubmitted) {
+      setHasAutoSubmitted(true);
+      // Small delay to ensure the last character is properly set
+      setTimeout(() => {
+        if (!isVerifying2FA) { // Double-check it hasn't started
+          const form = document.querySelector('form[data-2fa-form]');
+          if (form) {
+            (form as HTMLFormElement).requestSubmit();
+          }
+        }
+      }, 150);
+    }
+  };
+
   return (
     <>
       <ActionResultOverlay
@@ -405,6 +432,7 @@ export default function Page() {
                 passwordNeeded={false}
                 emailNeeded={!showOTPField}
                 showOTPField={showOTPField}
+                emailLabel="Email"
                 fieldErrors={state.fieldErrors}
                 onTurnstileSuccess={handleTurnstileSuccess}
                 turnstileToken={turnstileToken}
@@ -459,6 +487,7 @@ export default function Page() {
             setTurnstileToken("");
             setTwoFAToken("");
             setUseBackupCode(false);
+            setHasAutoSubmitted(false);
           }
         }}
       >
@@ -470,11 +499,12 @@ export default function Page() {
               {twoFAEmail ? ` • ${twoFAEmail}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleTwoFAVerify} className="space-y-4 sm:space-y-5">
+          <form onSubmit={handleTwoFAVerify} data-2fa-form className="space-y-4 sm:space-y-5">
             <OTPInput
               length={useBackupCode ? 8 : 6}
               value={twoFAToken}
-              onChange={setTwoFAToken}
+              onChange={handleTwoFATokenChange}
+              onComplete={handleOTPComplete}
               backupCode={useBackupCode}
               autoFocus
               disabled={isVerifying2FA}
@@ -483,7 +513,11 @@ export default function Page() {
               <button
                 type="button"
                 className="text-sm sm:text-base text-red-600 hover:underline"
-                onClick={() => { setUseBackupCode(!useBackupCode); setTwoFAToken(""); }}
+                onClick={() => { 
+                  setUseBackupCode(!useBackupCode); 
+                  setTwoFAToken(""); 
+                  setHasAutoSubmitted(false); 
+                }}
               >
                 {useBackupCode ? "Use TOTP code" : "Use backup code"}
               </button>

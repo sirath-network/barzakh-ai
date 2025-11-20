@@ -320,11 +320,12 @@ export default function Page() {
                             emailNeeded={!showOTPField}
                             passwordNeeded={!showOTPField}
                             showOTPField={showOTPField}
+                            emailLabel="Email"
+                            forgotPasswordNeeded={false}
                             onResendOTP={showOTPField ? handleResendOTP : undefined}
                             onTurnstileSuccess={handleTurnstileSuccess}
                             turnstileToken={turnstileToken}
                             turnstileRef={turnstileRef}
-                            formRef={formRef}
                             onValidationChange={handleValidationChange}
                         >
                             <SubmitButton 

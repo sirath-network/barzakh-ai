@@ -416,10 +416,13 @@ function PureSendButton({
       <Button
         className={cn(
           "group rounded-xl p-2.5 h-fit w-fit relative overflow-hidden",
-          "bg-gradient-to-br from-red-500 to-rose-600 text-white",
-          "shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40",
+          "bg-gradient-to-br from-gray-800 to-gray-900 text-white",
+          "dark:from-red-500 dark:to-rose-600",
+          "shadow-lg shadow-gray-800/30 hover:shadow-xl hover:shadow-gray-800/40",
+          "dark:shadow-red-500/30 dark:hover:shadow-xl dark:hover:shadow-red-500/40",
           "hover:-translate-y-0.5 active:translate-y-0",
-          "disabled:from-red-400/50 disabled:to-rose-500/50",
+          "disabled:from-gray-400/50 disabled:to-gray-500/50",
+          "dark:disabled:from-red-400/50 dark:disabled:to-rose-500/50",
           "disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-y-0",
           "transition-all duration-300 ease-out",
           "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/20 before:to-transparent",
@@ -1170,7 +1173,7 @@ function PureMultimodalInput({
             }}
             onPaste={handlePaste}
           />
-          <div className="absolute right-4 bottom-3.5 flex items-center gap-2">
+          <div className="absolute right-3 sm:right-4 bottom-3.5 flex items-center gap-2">
             {isLoading ? (
               <StopButton stop={stop} setMessages={setMessages} />
             ) : (

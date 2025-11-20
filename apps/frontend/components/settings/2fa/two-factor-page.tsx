@@ -15,8 +15,10 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Key
 } from "lucide-react";
+import { OTPInput } from "@/components/ui/otp-input";
 
 interface TwoFactorStatus {
   twoFactorEnabled: boolean;
@@ -49,6 +51,8 @@ export default function TwoFactorSettingsPage() {
   const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [hasAutoSubmittedSetup, setHasAutoSubmittedSetup] = useState(false);
+  const [hasAutoSubmittedDisable, setHasAutoSubmittedDisable] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -121,12 +125,15 @@ export default function TwoFactorSettingsPage() {
         setShowBackupCodes(true);
         setSetupData(null);
         setVerificationToken("");
+        setHasAutoSubmittedSetup(false);
         toast.success("2FA enabled successfully!");
       } else {
+        setHasAutoSubmittedSetup(false);
         toast.error(data.error || "Failed to verify 2FA code");
       }
     } catch (error) {
       console.error("Error verifying 2FA:", error);
+      setHasAutoSubmittedSetup(false);
       toast.error("Failed to verify 2FA code");
     } finally {
       setIsVerifying(false);
@@ -153,12 +160,15 @@ export default function TwoFactorSettingsPage() {
         setStatus({ twoFactorEnabled: false, hasSecret: false });
         setVerificationToken("");
         setShowDisableConfirm(false);
+        setHasAutoSubmittedDisable(false);
         toast.success("2FA disabled successfully");
       } else {
+        setHasAutoSubmittedDisable(false);
         toast.error(data.error || "Failed to disable 2FA");
       }
     } catch (error) {
       console.error("Error disabling 2FA:", error);
+      setHasAutoSubmittedDisable(false);
       toast.error("Failed to disable 2FA");
     } finally {
       setIsDisabling(false);
@@ -210,25 +220,22 @@ export default function TwoFactorSettingsPage() {
     toast.success("Backup codes downloaded");
   };
 
-  // Custom OTP Input Component to match the design
-  const OTPInput = ({ length, value, onChange }: { length: number; value: string; onChange: (value: string) => void }) => {
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value.replace(/\D/g, '').slice(0, length);
-      onChange(newValue);
-    };
+  const handleSetupOTPComplete = () => {
+    if (!hasAutoSubmittedSetup && !isVerifying) {
+      setHasAutoSubmittedSetup(true);
+      setTimeout(() => {
+        handleVerifyAndEnable();
+      }, 150);
+    }
+  };
 
-    return (
-      <div className="flex gap-2 justify-center">
-        <input
-          type="text"
-          value={value}
-          onChange={handleChange}
-          className="w-full max-w-[200px] sm:max-w-[240px] px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-red-900/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-gray-50 dark:bg-black/20 text-center font-mono text-base sm:text-lg"
-          placeholder="000000"
-          maxLength={length}
-        />
-      </div>
-    );
+  const handleDisableOTPComplete = () => {
+    if (!hasAutoSubmittedDisable && !isDisabling) {
+      setHasAutoSubmittedDisable(true);
+      setTimeout(() => {
+        setShowDisableConfirm(true);
+      }, 150);
+    }
   };
 
   if (isLoading) {
@@ -273,12 +280,14 @@ export default function TwoFactorSettingsPage() {
             <div className="p-6 md:p-8 space-y-6">
               {/* Status Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 gap-4">
-                <div className="flex items-center gap-4">
-                  {status.twoFactorEnabled ? (
-                    <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                  ) : (
-                    <ShieldX className="w-8 h-8 text-gray-400 flex-shrink-0" />
-                  )}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    {status.twoFactorEnabled ? (
+                      <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <ShieldX className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
                   <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
                       {status.twoFactorEnabled ? "2FA Enabled" : "2FA Disabled"}
@@ -291,44 +300,63 @@ export default function TwoFactorSettingsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  {!status.twoFactorEnabled && (
-                    <button
-                      onClick={handleSetup}
-                      disabled={isSettingUp}
-                      className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
-                    >
-                      {isSettingUp ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Setting up...
-                        </>
-                      ) : (
-                        <>
-                          <Shield className="w-4 h-4" />
-                          Enable 2FA
-                        </>
-                      )}
-                    </button>
-                  )}
-                  {status.twoFactorEnabled && (
+                {!status.twoFactorEnabled && (
+                  <button
+                    onClick={handleSetup}
+                    disabled={isSettingUp}
+                    className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    {isSettingUp ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Setting up...
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-4 h-4" />
+                        Enable 2FA
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Backup Codes Management Section - Only shown when 2FA is enabled */}
+              {status.twoFactorEnabled && (
+                <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Key className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Backup Codes</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Generate new backup codes to use when you don't have access to your authenticator app. Each code can only be used once.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-[52px]">
                     <button
                       onClick={handleRegenerateBackupCodes}
                       disabled={isRegenerating}
-                      className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                      className="w-full sm:w-auto bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isRegenerating ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Generating...</span>
+                        </>
                       ) : (
                         <>
                           <RefreshCw className="w-4 h-4" />
-                          Regenerate Codes
+                          <span className="hidden sm:inline">Generate New Backup Codes</span>
+                          <span className="sm:hidden">Generate Codes</span>
                         </>
                       )}
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Setup Flow */}
               {setupData && !status.twoFactorEnabled && (
@@ -394,7 +422,13 @@ export default function TwoFactorSettingsPage() {
                       <OTPInput
                         length={6}
                         value={verificationToken}
-                        onChange={(value) => setVerificationToken(value)}
+                        onChange={(value) => {
+                          setVerificationToken(value);
+                          if (value.length < 6) {
+                            setHasAutoSubmittedSetup(false);
+                          }
+                        }}
+                        onComplete={handleSetupOTPComplete}
                       />
                       <button
                         onClick={handleVerifyAndEnable}
@@ -432,7 +466,13 @@ export default function TwoFactorSettingsPage() {
                     <OTPInput
                       length={6}
                       value={verificationToken}
-                      onChange={(value) => setVerificationToken(value)}
+                      onChange={(value) => {
+                        setVerificationToken(value);
+                        if (value.length < 6) {
+                          setHasAutoSubmittedDisable(false);
+                        }
+                      }}
+                      onComplete={handleDisableOTPComplete}
                     />
                     <button
                       onClick={() => setShowDisableConfirm(true)}
@@ -459,7 +499,7 @@ export default function TwoFactorSettingsPage() {
               {showBackupCodes && backupCodes.length > 0 && (
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <Key className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Backup Codes</h3>
                   </div>
                   <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-4">

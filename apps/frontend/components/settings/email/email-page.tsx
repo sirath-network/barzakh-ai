@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { handleLogout } from "@/lib/auth-utils";
 import { Mail, Shield, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Key } from "lucide-react";
+import { OTPInput } from "@/components/ui/otp-input";
 
 export default function EmailSettingsPage() {
   const { data: session, status } = useSession();
@@ -18,6 +19,7 @@ export default function EmailSettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -141,6 +143,7 @@ export default function EmailSettingsPage() {
       const responseData = await response.json();
       if (response.ok) {
         setCurrentEmail(newEmail);
+        setHasAutoSubmitted(false);
         setMessage({ type: "success", text: "🎉 Email updated successfully! You'll be signed out in 3 seconds to complete the change." });
         setIsLoggingOut(true);
         setTimeout(async () => {
@@ -156,13 +159,24 @@ export default function EmailSettingsPage() {
           }
         }, 3000);
       } else {
+        setHasAutoSubmitted(false);
         setMessage({ type: "error", text: responseData.message || "Invalid or expired verification code" });
       }
     } catch (error) {
        console.error("Verify email change error:", error);
+       setHasAutoSubmitted(false);
        setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleOTPComplete = () => {
+    if (!hasAutoSubmitted && !isLoading) {
+      setHasAutoSubmitted(true);
+      setTimeout(() => {
+        handleVerifyChange();
+      }, 150);
     }
   };
 
@@ -311,16 +325,16 @@ export default function EmailSettingsPage() {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Verification Code</label>
-                    <input 
-                      type="text" 
-                      value={verificationCode} 
-                      onChange={(e) => { 
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 6); 
-                        setVerificationCode(value); 
+                    <OTPInput
+                      length={6}
+                      value={verificationCode}
+                      onChange={(value) => {
+                        setVerificationCode(value);
+                        if (value.length < 6) {
+                          setHasAutoSubmitted(false);
+                        }
                       }}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-red-900/50 bg-white dark:bg-gray-900/80 rounded-lg text-center text-xl font-mono tracking-widest text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      placeholder="000000" 
-                      maxLength={6} 
+                      onComplete={handleOTPComplete}
                     />
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
                       Enter the 6-digit code from your email

@@ -18,6 +18,7 @@ export function AuthForm({
   passwordConfirmNeeded = false,
   forgotPasswordNeeded = true,
   showOTPField = false,
+  emailLabel = "Email or Username",
   onResendOTP,
   onTurnstileSuccess,
   turnstileToken,
@@ -37,6 +38,7 @@ export function AuthForm({
   passwordConfirmNeeded?: boolean;
   forgotPasswordNeeded?: boolean;
   showOTPField?: boolean;
+  emailLabel?: string;
   onResendOTP?: () => void;
   onTurnstileSuccess?: (token: string) => void;
   turnstileToken?: string;
@@ -51,6 +53,7 @@ export function AuthForm({
   const [resendMessage, setResendMessage] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [otpValue, setOtpValue] = useState("");
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setStoredEmail(e.target.value);
@@ -66,6 +69,24 @@ export function AuthForm({
 
   const handleOtpChange = (value: string) => {
     setOtpValue(value);
+    // Reset auto-submit flag when OTP is modified
+    if (value.length < 6) {
+      setHasAutoSubmitted(false);
+    }
+  };
+
+  const handleOTPComplete = () => {
+    // Auto-submit when OTP is complete (only once per complete entry)
+    if (otpValue.length === 6 && isFormValid() && !hasAutoSubmitted) {
+      setHasAutoSubmitted(true);
+      // Small delay to ensure the last character is properly set
+      setTimeout(() => {
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }, 150);
+    }
   };
 
   // Validation function
@@ -144,7 +165,7 @@ export function AuthForm({
             htmlFor="email"
             className="text-zinc-600 font-normal dark:text-zinc-400"
           >
-            Email or Username
+            {emailLabel}
           </Label>
           <Input
             id="email"
@@ -260,6 +281,7 @@ export function AuthForm({
                 length={6}
                 value={otpValue}
                 onChange={handleOtpChange}
+                onComplete={handleOTPComplete}
               />
             </div>
             <p className="text-sm text-gray-500 dark:text-zinc-400 text-center">
