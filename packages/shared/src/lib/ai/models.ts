@@ -1,5 +1,4 @@
 import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
@@ -15,7 +14,7 @@ export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-claude": anthropic("claude-sonnet-4-5"),
+    "chat-model-claude": cometai("claude-sonnet-4-5"),
     "chat-model-grok": cometai("grok-4-fast-reasoning"),
     "chat-model-glm": cometai("glm-4.6"),
     "chat-model-gigantic": cometai("gpt-5"),

@@ -109,12 +109,43 @@ function decodeHTMLEntities(text: string): string {
   return text.replace(/&[a-z]+;|&#\d+;/gi, (match) => entities[match] || match);
 }
 
+// Helper to find matching path template
+function findMatchingPath(openapiData: any, concretePath: string): string | null {
+  const paths = Object.keys(openapiData.paths || {});
+  
+  // First try direct match
+  if (paths.includes(concretePath)) {
+    return concretePath;
+  }
+
+  // Try matching against templates
+  for (const templatePath of paths) {
+    // Escape special regex characters in the template path, except for {param}
+    // We want to replace {param} with ([^/]+) to match any segment
+    // Note: We first escape the string, so { becomes \{ and } becomes \}
+    const escapedTemplate = templatePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Now replace the escaped parameter placeholders \{param\} with regex capture group ([^/]+)
+    const regexPattern = "^" + escapedTemplate.replace(/\\\{[^}]+\\\}/g, '([^/]+)') + "$";
+      
+    const regex = new RegExp(regexPattern);
+    if (regex.test(concretePath)) {
+      return templatePath;
+    }
+  }
+  
+  return null;
+}
+
 export async function getPathDetails(openapiData: any, pathUrl: string) {
   //give all the parameters for a path
   // Decode HTML entities (e.g., &amp; -> &)
   const decodedPathUrl = decodeHTMLEntities(pathUrl);
   
-  const pathObj = openapiData.paths?.[decodedPathUrl];
+  // Try to find the matching path template
+  const matchingPath = findMatchingPath(openapiData, decodedPathUrl);
+  
+  const pathObj = openapiData.paths?.[matchingPath || decodedPathUrl];
 
   if (!pathObj) {
     throw new Error(`Path '${decodedPathUrl}' not found in the OpenAPI spec. (Original: ${pathUrl})`);

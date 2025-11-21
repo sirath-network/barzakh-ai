@@ -58,6 +58,9 @@ export function Chat({
   const { mutate } = useSWRConfig();
   const { view, setView } = useView();
 
+  // Manage model state locally for dynamic updates without page reload
+  const [currentModelId, setCurrentModelId] = useState(selectedChatModel);
+
   const { data: history } = useSWR<Array<ChatHistory>>(
     user ? "/api/history" : null,
     fetcher
@@ -75,7 +78,7 @@ export function Chat({
     reload,
   } = useChat({
     id,
-    body: { id, selectedChatModel: selectedChatModel },
+    body: { id, selectedChatModel: currentModelId },
     initialMessages,
     experimental_throttle: 250,
     sendExtraMessageFields: true,
@@ -194,7 +197,7 @@ export function Chat({
             }
             setView("chat");
           }) : undefined}
-          selectedModelId={view === "chat" ? selectedChatModel : undefined}
+          selectedModelId={view === "chat" ? currentModelId : undefined}
           selectedVisibilityType={
             view === "chat" ? selectedVisibilityType : undefined
           }
@@ -236,7 +239,8 @@ export function Chat({
                   handleSubmit={handleSubmit}
                   isLoading={isLoading}
                   isReadonly={isReadonly}
-                  selectedModelId={selectedChatModel}
+                  selectedModelId={currentModelId}
+                  onModelChange={setCurrentModelId}
                   stop={stop}
                   attachments={attachments}
                   setAttachments={setAttachments}

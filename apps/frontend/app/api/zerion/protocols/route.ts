@@ -28,9 +28,10 @@ export async function GET(request: NextRequest) {
     // This excludes simple token balances and returns LPs, staking, lending, rewards
     // filter[trash]=only_non_trash excludes spam/scam tokens
     // Reference: https://zerion.io/blog/how-to-fetch-multichain-defi-positions-for-wallet-with-zerion-api/
-    const url = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[positions]=only_complex&filter[trash]=only_non_trash&currency=${currency}&sort=value`;
-    
-    console.log("Fetching DeFi positions from:", url);
+    // Added page[size] to limit response size
+    const url = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[positions]=only_complex&filter[trash]=only_non_trash&currency=${currency}&sort=value&page[size]=100`;
+
+    console.log(`Fetching protocol positions for ${address} from ${url}`);
 
     const response = await fetch(url, options);
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       const errorText = await response.text();
       console.error("Zerion API error:", response.status, errorText);
       return NextResponse.json(
-        { error: "Failed to fetch protocol positions from Zerion" },
+        { error: `Failed to fetch protocol positions from Zerion: ${response.status}` },
         { status: response.status }
       );
     }
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
 
     const totalFetched = data.data?.length || 0;
-    console.log(`Total DeFi positions fetched: ${totalFetched}`);
+    console.log(`Fetched ${totalFetched} protocol positions`);
 
     // With filter[positions]=only_complex, the API already returns ONLY DeFi positions
     // Log them for debugging
@@ -65,18 +66,14 @@ export async function GET(request: NextRequest) {
         positionTypes.set(positionType, (positionTypes.get(positionType) || 0) + 1);
         protocolNames.add(protocolName);
         
-        console.log(`✓ ${protocolName} (${positionType}) on ${chain} - $${attrs.value?.toFixed(2) || 0}`);
       });
-      
-      console.log("Position types:", Object.fromEntries(positionTypes));
-      console.log("Protocols found:", Array.from(protocolNames).join(", "));
     }
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching Zerion protocol positions:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error.message || "Internal server error" },
       { status: 500 }
     );
   }

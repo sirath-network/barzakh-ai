@@ -24,7 +24,7 @@ export const getCreditcoinApiData = tool({
       const allPaths = await getAllPaths(openapidata);
       console.log("use prompt is -- ", userQuery);
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("chat-model-grok"),
+        model: myProvider.languageModel("chat-model-large"),
         output: "array",
         schema: z.string().describe("the api endpoint"),
 

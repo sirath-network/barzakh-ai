@@ -6,6 +6,7 @@ import {
   getPathDetails,
   loadOpenAPIFromJson,
 } from "../../../utils/openapi";
+import { multichainEnsLookup } from "../../../utils/multichain-ens-lookup";
 import zerionJson from "./zerion-openapi.json";
 import { zerionBaseURL } from "./constant";
 import { getZerionApiKey } from "../../../utils/utils";
@@ -17,6 +18,28 @@ export const getEvmOnchainDataUsingZerion = tool({
   execute: async ({ userQuery }: { userQuery?: string }) => {
     try {
       console.log("user query ", userQuery);
+
+      // Check for ENS name in userQuery and resolve it
+      const ensRegex = /\b[a-zA-Z0-9-]+\.eth\b/g;
+      const ensMatches = userQuery?.match(ensRegex);
+
+      if (ensMatches && ensMatches.length > 0) {
+        for (const ens of ensMatches) {
+          try {
+            console.log(`Resolving ENS: ${ens}`);
+            const address = await multichainEnsLookup(ens);
+            if (address && address !== "not found") {
+              console.log(`Resolved ${ens} to ${address}`);
+              // Replace ENS with address in the query to help the internal agent
+              userQuery = userQuery?.replace(ens, address);
+            }
+          } catch (err) {
+            console.error(`Failed to resolve ENS ${ens}:`, err);
+          }
+        }
+        console.log("Updated user query with resolved addresses:", userQuery);
+      }
+
       const apiKey = getZerionApiKey();
       if (!apiKey) {
         throw Error("zerion api key not found");
@@ -26,7 +49,7 @@ export const getEvmOnchainDataUsingZerion = tool({
       const zerionAllPathsAndDesc = await getAllPathsAndDesc(zerionOpenapidata);
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("chat-model-grok"),
+        model: myProvider.languageModel("chat-model-large"),
         system: `You are an intelligent API assistant for Zerion blockchain data. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
 
         ## 🚨 ABSOLUTE RULES (MUST FOLLOW):
@@ -34,6 +57,7 @@ export const getEvmOnchainDataUsingZerion = tool({
         2. **NEVER use strikethrough (~~text~~) or markdown to correct yourself** - Write clearly from start!
         3. **Be consistent with data** - Don't contradict yourself within response
         4. **Use plain ampersands (&)** - NOT HTML-encoded (&amp;)
+        5. **ALWAYS include NFT summary** in comprehensive portfolio reports (use /nft-portfolio or /nft-collections)
 
         ## 🎯 CRITICAL: ENDPOINT SELECTION GUIDE
 
@@ -124,7 +148,7 @@ export const getEvmOnchainDataUsingZerion = tool({
            ⚠️ Build URL DIRECTLY - DO NOT use getPathParametersAndBaseUrl!
            Example:
            \`\`\`
-           const address = "0x710e86fa6D521934864A10C2b1f5a03c3221Ac02";
+           const address = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045";
            const chain = "base"; // extracted from query
            const url = "${zerionBaseURL}/v1/wallets/" + address + "/positions/?filter[chain_ids]=" + chain + "&currency=usd";
            \`\`\`
@@ -152,9 +176,9 @@ export const getEvmOnchainDataUsingZerion = tool({
         - ✅ **Instead**: If you need to clarify, say "To clarify:" or "More specifically:"
         
         ## 📋 For Comprehensive Reports:
-        **IMPORTANT**: When user asks for "complete report" or "full analysis":
-        - Make 2-3 FOCUSED API calls maximum (portfolio + positions + NFT portfolio)
-        - DON'T try to call every single endpoint
+        **IMPORTANT**: When user asks for "complete report", "full analysis", or "portfolio summary":
+        - You MUST fetch and include NFT data (use /nft-portfolio for summary or /nft-collections for top collections)
+        - Make 2-3 FOCUSED API calls maximum (portfolio + positions + NFT portfolio/collections)
         - Prioritize most important data: portfolio summary, top token holdings, NFT summary
         - You can mention "For detailed transaction history, ask separately" to avoid overload
         - This prevents 413 Payload Too Large errors
@@ -170,8 +194,8 @@ export const getEvmOnchainDataUsingZerion = tool({
         
         ## ✅ CORRECT FLOW FOR TOKEN HOLDINGS:
         1. User asks: "Show ERC-20 tokens on Base"
-        2. Extract: address = 0x710e..., chain = "base"
-        3. Build URL directly: \`${zerionBaseURL}/v1/wallets/0x710e.../positions/?filter[chain_ids]=base\`
+        2. Extract: address = 0xd8da..., chain = "base"
+        3. Build URL directly: \`${zerionBaseURL}/v1/wallets/0xd8da.../positions/?filter[chain_ids]=base\`
         4. Call makeApiCall with this URL
         5. Parse and format the response
         `,

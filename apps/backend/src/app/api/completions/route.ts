@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       model: model
     } = validatedData;
 
-    myProvider.languageModel("chat-model-grok")
+    myProvider.languageModel("chat-model-large")
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"
     );

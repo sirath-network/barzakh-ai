@@ -325,8 +325,18 @@ export const getZerionApiKey = () => {
   const apiKey = process.env.ZERION_DEV_API_KEY;
   const password = "";
   if (!apiKey) throw new Error("Api key not found");
-  const encodedKey = btoa(`${apiKey}:${password}`);
-  return encodedKey;
+  
+  // Use Buffer in Node.js environment
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(`${apiKey}:${password}`).toString('base64');
+  }
+  
+  // Use btoa in Browser environment
+  if (typeof btoa !== 'undefined') {
+    return btoa(`${apiKey}:${password}`);
+  }
+  
+  throw new Error("Base64 encoding not supported in this environment");
 };
 
 // transform birdeye portfolio to zerion portfolio
