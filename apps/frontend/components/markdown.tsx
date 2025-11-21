@@ -292,6 +292,83 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
       </h6>
     );
   },
+  table: ({ node, children, ...props }) => {
+    return (
+      <div className="my-4 w-full overflow-x-auto rounded-lg border border-border/40 shadow-sm">
+        <table
+          className="w-full border-collapse bg-background/50"
+          {...props}
+        >
+          {children}
+        </table>
+      </div>
+    );
+  },
+  thead: ({ node, children, ...props }) => {
+    return (
+      <thead
+        className="bg-muted/80 border-b border-border/50"
+        {...props}
+      >
+        {children}
+      </thead>
+    );
+  },
+  tbody: ({ node, children, ...props }) => {
+    return (
+      <tbody className="divide-y divide-border/30" {...props}>
+        {children}
+      </tbody>
+    );
+  },
+  tr: ({ node, children, ...props }) => {
+    return (
+      <tr
+        className="transition-colors hover:bg-muted/30"
+        {...props}
+      >
+        {children}
+      </tr>
+    );
+  },
+  th: ({ node, children, ...props }) => {
+    return (
+      <th
+        className="px-4 py-3 text-left text-sm font-semibold text-foreground border-r border-border/30 last:border-r-0"
+        {...props}
+      >
+        {children}
+      </th>
+    );
+  },
+  td: ({ node, children, ...props }) => {
+    return (
+      <td
+        className="px-4 py-3 text-sm text-foreground/90 border-r border-border/20 last:border-r-0"
+        {...props}
+      >
+        {children}
+      </td>
+    );
+  },
+  blockquote: ({ node, children, ...props }) => {
+    return (
+      <blockquote
+        className="border-l-4 border-primary/50 pl-4 py-2 my-4 italic text-muted-foreground bg-muted/30 rounded-r-lg"
+        {...props}
+      >
+        {children}
+      </blockquote>
+    );
+  },
+  hr: ({ node, ...props }) => {
+    return (
+      <hr
+        className="my-6 border-t border-border/50"
+        {...props}
+      />
+    );
+  },
 });
 
 const remarkPlugins = [remarkGfm];

@@ -272,16 +272,16 @@ const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
   coding: "chat-model-claude",
   imagine: "chat-model-large",
-  on_chain: "chat-model-large",
-  wormhole: "chat-model-large",
-  sei: "chat-model-large",
-  creditcoin: "chat-model-large",
-  vana: "chat-model-large",
-  flow: "chat-model-large",
-  zeta: "chat-model-large",
-  aptos: "chat-model-large",
-  monad: "chat-model-large",
-  solana: "chat-model-large",
+  on_chain: "chat-model-claude",
+  wormhole: "chat-model-claude",
+  sei: "chat-model-claude",
+  creditcoin: "chat-model-claude",
+  vana: "chat-model-claude",
+  flow: "chat-model-claude",
+  zeta: "chat-model-claude",
+  aptos: "chat-model-claude",
+  monad: "chat-model-claude",
+  solana: "chat-model-claude",
 };
 
 const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([
@@ -451,6 +451,7 @@ function PureMultimodalInput({
   isLoading,
   isReadonly,
   selectedModelId,
+  onModelChange,
   stop,
   attachments,
   setAttachments,
@@ -471,6 +472,7 @@ function PureMultimodalInput({
   isLoading: boolean;
   isReadonly: boolean;
   selectedModelId: string;
+  onModelChange?: (modelId: string) => void;
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
@@ -934,9 +936,7 @@ function PureMultimodalInput({
         if (selectedModelId !== nextForcedModel) {
           const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
           await saveChatModelAsCookie(nextForcedModel);
-          setTimeout(() => {
-            window.location.reload();
-          }, 100);
+          onModelChange?.(nextForcedModel);
         }
 
         return;
@@ -946,17 +946,14 @@ function PureMultimodalInput({
       if (currentForcedModel) {
         updateGroupState();
 
-        if (previousModel && previousModel !== selectedModelId) {
-          const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-          await saveChatModelAsCookie(previousModel);
+        if (previousModel) {
+          if (previousModel !== selectedModelId) {
+            const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
+            await saveChatModelAsCookie(previousModel);
+            onModelChange?.(previousModel);
+          }
           setPreviousModel(null);
-          setTimeout(() => {
-            window.location.reload();
-          }, 100);
-          return;
         }
-
-        setPreviousModel(null);
         return;
       }
 
@@ -967,6 +964,7 @@ function PureMultimodalInput({
       previousModel,
       selectedGroup,
       selectedModelId,
+      onModelChange,
       setLocalStorageChatMode,
       setPreviousModel,
       setSelectedGroup,
@@ -1025,6 +1023,13 @@ function PureMultimodalInput({
       }
     },
     [uploadFile, setUploadQueue, setAttachments]
+  );
+
+  const handleModelSelect = useCallback(
+    (modelId: string) => {
+      onModelChange?.(modelId);
+    },
+    [onModelChange]
   );
 
   return (
@@ -1217,6 +1222,7 @@ function PureMultimodalInput({
             {!isReadonly && (
               <ModelSelector
                 selectedModelId={selectedModelId}
+                onModelSelect={handleModelSelect}
                 disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
               />
             )}

@@ -212,6 +212,7 @@ export async function POST(request: Request) {
           system: systemPrompt,
           messages: cleanedMessages, // Use cleaned messages
           maxSteps: 5,
+          maxRetries: 3, // Retry up to 3 times on failure
           experimental_activeTools: safeActiveTools,
           experimental_transform: smoothStream({ chunking: "word" }),
           experimental_generateMessageId: generateUUID,
@@ -270,6 +271,7 @@ export async function POST(request: Request) {
             system: systemPrompt,
             messages: freshMessages,
             maxSteps: 5,
+            maxRetries: 3, // Retry up to 3 times on failure
             experimental_activeTools: safeActiveTools,
             experimental_transform: smoothStream({ chunking: "word" }),
             experimental_generateMessageId: generateUUID,
@@ -325,6 +327,12 @@ export async function POST(request: Request) {
       if (error.name === 'AI_ToolExecutionError' && error.toolName) {
         return `Error: The ${error.toolName} tool failed to execute. This could be due to an issue with its API key or the external service. Please check your configuration and try again.`;
       }
+      
+      // Handle socket termination errors
+      if (error.message === 'terminated' || (error.cause && error.cause.code === 'UND_ERR_SOCKET')) {
+         return "Connection to the AI provider was interrupted. Please try again.";
+      }
+
       return "Oops, something went wrong! Please try again in a new chat.";
     },
   });

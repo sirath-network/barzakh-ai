@@ -39,3 +39,55 @@
     max-width: 50%;
   }
 }
+
+/* Enhanced table styling */
+.markdown-body table {
+  border-spacing: 0;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.markdown-body th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.markdown-body td {
+  vertical-align: top;
+}
+
+/* Improve number alignment in tables */
+.markdown-body td:has(> *:first-child:last-child),
+.markdown-body th:has(> *:first-child:last-child) {
+  text-align: left;
+}
+
+/* Better spacing for lists */
+.markdown-body ul,
+.markdown-body ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.markdown-body li {
+  margin: 0.5rem 0;
+}
+
+/* Improve emoji rendering */
+.markdown-body h1::before,
+.markdown-body h2::before,
+.markdown-body h3::before {
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+/* Better code inline styling */
+.markdown-body p code,
+.markdown-body li code,
+.markdown-body td code {
+  background: rgba(var(--muted-rgb, 150 150 150) / 0.2);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  font-weight: 500;
+}

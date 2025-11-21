@@ -20,6 +20,7 @@ import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
 import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
 import Image from "next/image";
+import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
 // HELPER: Map from tool name to corresponding icon
 const toolIcons: Record<string, React.ElementType> = {
@@ -97,6 +98,11 @@ const PurePreviewMessage = ({
   const [isCopied, setIsCopied] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
   const [hasContentStarted, setHasContentStarted] = useState(false);
+
+  // Smooth streaming logic
+  const contentString = typeof message.content === 'string' ? message.content : '';
+  const isStreaming = isLoading && message.role === 'assistant' && typeof message.content === 'string';
+  const smoothContent = useSmoothStreaming(contentString, isStreaming);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -467,7 +473,7 @@ const PurePreviewMessage = ({
                               <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                 <div className="flex-1 min-w-0 max-w-full">
                                   {typeof message.content === "string" ? (
-                                    <Markdown allMessages={allMessages}>{message.content}</Markdown>
+                                    <Markdown allMessages={allMessages}>{smoothContent}</Markdown>
                                   ) : (
                                     <div className="flex flex-col gap-2">
                                       {(message.content as any[]).map((part, index) => {
