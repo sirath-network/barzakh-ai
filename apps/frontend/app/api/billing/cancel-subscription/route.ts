@@ -6,6 +6,9 @@ import {
 } from "@/lib/billing/stripe-server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { db } from "@/lib/db/db";
+import { user } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 function sanitizeSubscription(subscription: Stripe.Subscription) {
   const subscriptionWithPeriods = subscription as Stripe.Subscription & {
@@ -60,17 +63,67 @@ export async function POST(request: Request) {
       const subscriptions = await stripe.subscriptions.list({
         customer: customerRecord.stripeCustomerId,
         status: "all",
-        limit: 1,
+        limit: 10,
       });
 
-      if (subscriptions.data.length === 0) {
+      const activeSubscription = subscriptions.data.find(
+        (sub) =>
+          sub.status === "active" ||
+          sub.status === "trialing" ||
+          sub.status === "past_due",
+      );
+
+      if (!activeSubscription) {
+        // Check for x402 subscription
+        const [dbUser] = await db
+          .select()
+          .from(user)
+          .where(eq(user.id, session.user.id))
+          .limit(1);
+
+        if (dbUser && (dbUser.tier === "pro" || dbUser.tier === "ultimate")) {
+          if (cancelImmediately) {
+            await db
+              .update(user)
+              .set({ tier: "free", x402CancelAtPeriodEnd: false })
+              .where(eq(user.id, session.user.id));
+            
+            return NextResponse.json({
+              subscription: {
+                id: "x402-sub",
+                status: "canceled",
+                cancelAtPeriodEnd: false,
+                cancelAt: new Date().toISOString(),
+                canceledAt: new Date().toISOString(),
+                currentPeriodEnd: new Date().toISOString(),
+              }
+            });
+          } else {
+            await db
+              .update(user)
+              .set({ x402CancelAtPeriodEnd: cancelAtPeriodEnd })
+              .where(eq(user.id, session.user.id));
+
+            return NextResponse.json({
+              subscription: {
+                id: "x402-sub",
+                status: "active",
+                cancelAtPeriodEnd: cancelAtPeriodEnd,
+                cancelAt: null, // We don't calculate exact date here, but UI will use currentPeriodEnd
+                canceledAt: null,
+                currentPeriodEnd: null, // UI will fetch fresh data
+              }
+            });
+          }
+        }
+
         return NextResponse.json(
           { error: "No active subscription found" },
           { status: 404 },
         );
       }
 
-      targetSubscriptionId = subscriptions.data[0].id;
+      targetSubscriptionId = activeSubscription.id;
     }
 
     if (cancelImmediately) {

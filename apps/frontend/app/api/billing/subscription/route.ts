@@ -7,6 +7,9 @@ import {
 } from "@/lib/billing/stripe-server";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { db } from "@/lib/db/db";
+import { user, x402_transactions } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 function normalizeAddress(address?: Stripe.Address | null) {
   if (!address) {
@@ -124,10 +127,100 @@ export async function GET(request: Request) {
         ? await stripe.subscriptions.retrieve(subscriptions.data[0].id)
         : null;
 
+    if (subscription) {
+      return NextResponse.json({
+        subscription: formatSubscription(subscription, stripeCustomer),
+        billingAddress: normalizeAddress(latestBillingAddress),
+        defaultPaymentMethod: defaultPaymentMethod
+          ? {
+              id: defaultPaymentMethod.id,
+              brand: defaultPaymentMethod.card?.brand ?? null,
+              last4: defaultPaymentMethod.card?.last4 ?? null,
+              billingAddress: normalizeAddress(
+                defaultPaymentMethod.billing_details?.address,
+              ),
+            }
+          : null,
+      });
+    }
+
+    // If no Stripe subscription, check for x402 subscription
+    const [dbUser] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, session.user.id))
+      .limit(1);
+
+    if (dbUser && (dbUser.tier === "pro" || dbUser.tier === "ultimate")) {
+      // Fetch latest x402 transaction to get billing details
+      const [latestTx] = await db
+        .select()
+        .from(x402_transactions)
+        .where(eq(x402_transactions.userId, session.user.id))
+        .orderBy(desc(x402_transactions.createdAt))
+        .limit(1);
+
+      const billingCycle = latestTx?.billingCycle || "monthly";
+      let intervalCount = 1;
+      let interval = "month";
+
+      if (billingCycle === "quarterly") {
+        intervalCount = 3;
+      } else if (billingCycle === "yearly") {
+        interval = "year";
+      }
+
+      // Construct mock subscription object
+      const createdAt = latestTx?.createdAt ? new Date(latestTx.createdAt) : new Date();
+      const currentPeriodEnd = new Date(createdAt);
+      
+      if (interval === "year") {
+        currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+      } else if (interval === "month") {
+        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + intervalCount);
+      }
+
+      // Check if expired
+      if (currentPeriodEnd < new Date()) {
+         // Downgrade user
+         await db.update(user).set({ tier: "free", x402CancelAtPeriodEnd: false }).where(eq(user.id, session.user.id));
+         
+         return NextResponse.json({
+            subscription: null,
+            billingAddress: normalizeAddress(latestBillingAddress),
+            defaultPaymentMethod: null,
+         });
+      }
+
+      const mockSubscription = {
+        id: "x402-sub",
+        status: "active",
+        cancelAtPeriodEnd: dbUser.x402CancelAtPeriodEnd ?? false,
+        cancelAt: dbUser.x402CancelAtPeriodEnd ? currentPeriodEnd.toISOString() : null,
+        canceledAt: null,
+        currentPeriodEnd: currentPeriodEnd.toISOString(),
+        nextBillingDate: currentPeriodEnd.toISOString(),
+        priceId: "x402-price",
+        planName: dbUser.tier.charAt(0).toUpperCase() + dbUser.tier.slice(1),
+        // Convert USDC (6 decimals) to cents (2 decimals) for display compatibility
+        // 25 USDC = 25,000,000 units -> 2500 cents
+        amount: latestTx ? Math.round(parseInt(latestTx.amount) / 10000) : 0,
+        currency: "USD", // Use USD for display formatting
+        interval: interval,
+        intervalCount: intervalCount,
+        defaultPaymentMethodId: null,
+        metadata: { tier: dbUser.tier },
+      };
+
+      return NextResponse.json({
+        subscription: mockSubscription,
+        billingAddress: null,
+        defaultPaymentMethod: null,
+      });
+    }
+
     return NextResponse.json({
-      subscription: subscription
-        ? formatSubscription(subscription, stripeCustomer)
-        : null,
+      subscription: null,
       billingAddress: normalizeAddress(latestBillingAddress),
       defaultPaymentMethod: defaultPaymentMethod
         ? {

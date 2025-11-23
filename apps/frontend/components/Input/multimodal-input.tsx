@@ -272,16 +272,16 @@ const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
   coding: "chat-model-claude",
   imagine: "chat-model-large",
-  on_chain: "chat-model-claude",
-  wormhole: "chat-model-claude",
-  sei: "chat-model-claude",
-  creditcoin: "chat-model-claude",
-  vana: "chat-model-claude",
-  flow: "chat-model-claude",
-  zeta: "chat-model-claude",
-  aptos: "chat-model-claude",
-  monad: "chat-model-claude",
-  solana: "chat-model-claude",
+  on_chain: "chat-model-grok",
+  wormhole: "chat-model-grok",
+  sei: "chat-model-grok",
+  creditcoin: "chat-model-grok",
+  vana: "chat-model-grok",
+  flow: "chat-model-grok",
+  zeta: "chat-model-grok",
+  aptos: "chat-model-grok",
+  monad: "chat-model-grok",
+  solana: "chat-model-grok",
 };
 
 const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([

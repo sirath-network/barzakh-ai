@@ -8,6 +8,7 @@ import useSWR from "swr";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
 import type { SubscriptionResponse, SubscriptionSummary } from "@/types/billing";
 import { format } from "date-fns";
+import { X402PaymentModal } from "./x402-payment-modal";
 
 type BillingCycle = "monthly" | "quarterly" | "yearly";
 
@@ -114,6 +115,8 @@ function inferPlanIdFromSubscription(
 export default function PlanDetailPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [processingPlanId, setProcessingPlanId] = useState<Plan["id"] | null>(null);
+  const [showX402Modal, setShowX402Modal] = useState(false);
+  const [selectedPlanForX402, setSelectedPlanForX402] = useState<Plan["id"] | null>(null);
   const { data: session } = useSession();
   const { setView } = useView();
 
@@ -361,7 +364,16 @@ export default function PlanDetailPage() {
                   </button>
 
                   {!isFree && (
-                    <p className="text-gray-500 dark:text-gray-500 text-xs text-center">PAY WITH CRYPTO</p>
+                    <button
+                      onClick={() => {
+                        setSelectedPlanForX402(plan.id);
+                        setShowX402Modal(true);
+                      }}
+                      disabled={isCurrentPlan}
+                      className="w-full mt-2 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                    >
+                      PAY WITH CRYPTO (x402)
+                    </button>
                   )}
 
                   {/* Features */}
@@ -384,6 +396,18 @@ export default function PlanDetailPage() {
           })}
         </div>
       </div>
+
+      {selectedPlanForX402 && (
+        <X402PaymentModal
+          isOpen={showX402Modal}
+          onClose={() => setShowX402Modal(false)}
+          planId={selectedPlanForX402}
+          billingCycle={billingCycle}
+          onSuccess={() => {
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 }

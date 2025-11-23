@@ -304,7 +304,7 @@ export const PreviewAttachment = ({
             onRemove();
           }}
           className={clsx(
-            "absolute bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 z-10 border-2 border-background hover:shadow-red-500/25",
+            "absolute bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 z-10 border border-neutral-200 dark:border-neutral-700",
             "opacity-0 group-hover:opacity-100",
             config.removeButton
           )}

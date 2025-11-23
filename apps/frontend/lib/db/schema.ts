@@ -30,6 +30,7 @@ import {
   twoFactorEnabled: boolean("twoFactorEnabled").notNull().default(false),
   backupCodes: text("backupCodes"), // JSON array of backup codes
   tokenVersion: integer("tokenVersion").notNull().default(0),
+  x402CancelAtPeriodEnd: boolean("x402CancelAtPeriodEnd").notNull().default(false),
 });
 
 export const customer = pgTable("Customer", {
@@ -179,3 +180,19 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+export const x402_transactions = pgTable("X402Transaction", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").notNull().references(() => user.id),
+  transactionHash: varchar("transactionHash", { length: 66 }).notNull().unique(),
+  chainId: integer("chainId").notNull(),
+  amount: varchar("amount", { length: 64 }).notNull(),
+  tokenAddress: varchar("tokenAddress", { length: 42 }),
+  senderAddress: varchar("senderAddress", { length: 42 }), // Track who paid
+  planId: varchar("planId", { length: 64 }).notNull(),
+  billingCycle: varchar("billingCycle", { length: 32 }).notNull().default("monthly"),
+  status: varchar("status", { length: 32 }).notNull().default("pending"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+export type X402Transaction = InferSelectModel<typeof x402_transactions>;

@@ -261,7 +261,6 @@ export const getEvmOnchainDataUsingEtherscan = tool({
                     `API call failed with status ${response.status}`
                   );
                 const json = await response.json();
-                console.log("Fetched API response:", json);
                 
                 // Check for API Pro requirement error
                 if (json.status === '0' && json.result && 
