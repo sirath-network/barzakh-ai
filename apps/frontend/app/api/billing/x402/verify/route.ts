@@ -95,13 +95,13 @@ export async function POST(request: Request) {
     const cycle = billingCycle || "monthly";
 
     if (planId === "pro") {
-      if (cycle === "monthly") expectedAmount = BigInt(0.01 * 1000000);
-      else if (cycle === "quarterly") expectedAmount = BigInt(0.02 * 1000000);
-      else if (cycle === "yearly") expectedAmount = BigInt(0.03 * 1000000);
+      if (cycle === "monthly") expectedAmount = BigInt(25 * 1000000);
+      else if (cycle === "quarterly") expectedAmount = BigInt(66 * 1000000);
+      else if (cycle === "yearly") expectedAmount = BigInt(240 * 1000000);
     } else if (planId === "ultimate") {
-      if (cycle === "monthly") expectedAmount = BigInt(0.15 * 1000000);
-      else if (cycle === "quarterly") expectedAmount = BigInt(0.25 * 1000000);
-      else if (cycle === "yearly") expectedAmount = BigInt(0.35 * 1000000);
+      if (cycle === "monthly") expectedAmount = BigInt(250 * 1000000);
+      else if (cycle === "quarterly") expectedAmount = BigInt(660 * 1000000);
+      else if (cycle === "yearly") expectedAmount = BigInt(2400 * 1000000);
     }
 
     // Allow a small margin of error? No, exact amount for stablecoins.

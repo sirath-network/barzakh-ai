@@ -13,13 +13,13 @@ export async function POST(request: Request) {
   let amount = "0";
   
   if (planId === "pro") {
-    if (billingCycle === "monthly") amount = "0.01";
-    else if (billingCycle === "quarterly") amount = "0.02";
-    else if (billingCycle === "yearly") amount = "0.03";
+    if (billingCycle === "monthly") amount = "25";
+    else if (billingCycle === "quarterly") amount = "66";
+    else if (billingCycle === "yearly") amount = "240";
   } else if (planId === "ultimate") {
-    if (billingCycle === "monthly") amount = "0.15";
-    else if (billingCycle === "quarterly") amount = "0.25";
-    else if (billingCycle === "yearly") amount = "0.35";
+    if (billingCycle === "monthly") amount = "250";
+    else if (billingCycle === "quarterly") amount = "660";
+    else if (billingCycle === "yearly") amount = "2400";
   }
 
   // Use a default test address if env var is not set

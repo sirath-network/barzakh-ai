@@ -454,7 +454,7 @@ export const createImage = tool({
       .string()
       .optional()
       .describe(
-        "Optional override for the image model. Only 'gemini-2-5-flash-image' is supported."
+        "Optional override for the image model. Only 'gemini-3-pro-image' is supported."
       ),
     input_images: z
       .array(z.string().url())
@@ -464,10 +464,10 @@ export const createImage = tool({
       ),
   }),
   execute: async ({ prompt, model, input_images }) => {
-    const selectedModelId = model ?? "gemini-2-5-flash-image";
-    if (selectedModelId !== "gemini-2-5-flash-image") {
+    const selectedModelId = model ?? "gemini-3-pro-image";
+    if (selectedModelId !== "gemini-3-pro-image") {
       console.warn(
-        `Unsupported imagine model "${selectedModelId}" requested. Falling back to gemini-2-5-flash-image.`
+        `Unsupported imagine model "${selectedModelId}" requested. Falling back to gemini-3-pro-image.`
       );
     }
 

@@ -71,9 +71,9 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "gemini-2-5-flash-image",
-    name: "Gemini 2.5 Flash Image (Nano Banana)",
+    id: "gemini-3-pro-image",
+    name: "Gemini 3 Pro Image",
     description:
-      "Gemini 2.5 Flash Image via CometAPI for fast, high-fidelity generations.",
+      "Gemini 3 Pro Image via CometAPI for fast, high-fidelity generations.",
   },
 ];
