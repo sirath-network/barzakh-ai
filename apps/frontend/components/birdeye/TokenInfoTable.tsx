@@ -8,6 +8,8 @@ const TokenInfoTable: React.FC<{
 }> = ({ result }) => {
   // console.log("token data", result);
 
+  const ImageAny = Image as any;
+
   if (!result || result.length === 0 || typeof result == "string")
     return (
       <div className="text-black dark:text-white">No token data available.</div>
@@ -31,13 +33,13 @@ const TokenInfoTable: React.FC<{
             {/* Token Icon */}
             <div className="flex justify-center ">
               {token.attributes.icon?.url && (
-                <Image
+                <ImageAny
                   src={token.attributes.icon.url}
                   alt={token.attributes.symbol || "Token"}
                   className="w-10 h-10"
                   height={50}
                   width={50}
-                  onError={(e) =>
+                  onError={(e: any) =>
                     (e.currentTarget.src = "/images/token-placeholder.png")
                   }
                 />

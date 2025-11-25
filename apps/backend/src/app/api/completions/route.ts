@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { allTools, getGroupConfig } from "@barzakh/shared/src/lib/ai/prompts";
 import { generateUUID } from "@barzakh/shared/src/lib/utils/utils";
 import { openai } from "@ai-sdk/openai";

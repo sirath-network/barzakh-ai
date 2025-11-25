@@ -453,13 +453,15 @@ export function SubscriptionCard({
                 </div>
               )}
 
-              <button
-                onClick={handleManageSubscription}
-                disabled={isManagingPortal}
-                className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isManagingPortal ? "Loading..." : "Manage Billing Portal"}
-              </button>
+              {subscription?.id !== "x402-sub" && (
+                <button
+                  onClick={handleManageSubscription}
+                  disabled={isManagingPortal}
+                  className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isManagingPortal ? "Loading..." : "Manage Billing Portal"}
+                </button>
+              )}
             </div>
           </div>
         ) : (

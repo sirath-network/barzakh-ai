@@ -21,6 +21,22 @@ export type PortfolioData = {
       percent_1d: number;
     };
   };
+  defi?: {
+    hasDefiPositions: boolean;
+    totalDefiValue: number;
+    positionCount: number;
+    positions: Array<{
+      protocol: string;
+      type: string;
+      chain: string;
+      value: number;
+      tokens: Array<{
+        symbol: string;
+        name: string;
+        amount: number;
+      }>;
+    }>;
+  };
 };
 export type PortfolioResponse = {
   links: {

@@ -19,7 +19,7 @@ import {
   Landmark,
   Activity
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 
 interface PortfolioProps {
   result: PortfolioData | null;
@@ -164,6 +164,16 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [hasFetchedNfts, setHasFetchedNfts] = useState(false);
   const [nftPortfolioValue, setNftPortfolioValue] = useState<number>(0);
+
+  const WalletAny = Wallet as any;
+  const ArrowUpRightAny = ArrowUpRight as any;
+  const ArrowDownRightAny = ArrowDownRight as any;
+  const LandmarkAny = Landmark as any;
+  const ChevronDownAny = ChevronDown as any;
+  const Loader2Any = Loader2 as any;
+  const ChevronRightAny = ChevronRight as any;
+  const LayersAny = Layers as any;
+  const ImageAny = Image as any;
 
   if (!result || !result.attributes)
     return (
@@ -421,7 +431,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           <div className="relative p-6 flex flex-col justify-between h-full">
             <div className="flex items-center gap-2 mb-2">
               <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-                <Wallet className="w-5 h-5" />
+                <WalletAny className="w-5 h-5" />
               </div>
               <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Balance</span>
             </div>
@@ -444,7 +454,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
                     : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                 }`}>
-                  {isPositiveChange ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                  {isPositiveChange ? <ArrowUpRightAny className="w-4 h-4" /> : <ArrowDownRightAny className="w-4 h-4" />}
                   <span className="tabular-nums">{Math.abs(percentChange).toFixed(2)}%</span>
                   <span className="text-xs opacity-70 ml-1">24h</span>
                 </div>
@@ -463,16 +473,14 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           onClick={toggleProtocols}
         >
           <div className="p-6 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
-                <Landmark className="w-5 h-5" />
+                <LandmarkAny className="w-5 h-5" />
               </div>
               <div className={`transition-transform duration-300 ${showProtocols ? 'rotate-180' : ''}`}>
-                <ChevronDown className="w-5 h-5 text-zinc-400" />
+                <ChevronDownAny className="w-5 h-5 text-zinc-400" />
               </div>
-            </div>
-            
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">DeFi Protocols</h3>
+            </div>            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">DeFi Protocols</h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Lending, Staking, Liquidity
             </p>
@@ -503,7 +511,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 p-4 space-y-3">
                 {loadingProtocols ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                    <Loader2Any className="w-6 h-6 animate-spin text-zinc-400" />
                   </div>
                 ) : protocolPositions.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -519,7 +527,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
                             {position.protocolIcon ? (
-                              <Image 
+                              <ImageAny 
                                 src={position.protocolIcon} 
                                 alt={position.protocol} 
                                 width={32} 
@@ -551,7 +559,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             <div key={tIdx} className="flex justify-between items-start">
                               <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-3">
                                 {token.icon ? (
-                                  <Image 
+                                  <ImageAny 
                                     src={token.icon} 
                                     alt={token.symbol} 
                                     width={20} 
@@ -621,7 +629,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 >
                   <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
                     <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1.5 sm:p-2 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
-                      <Image
+                      <ImageAny
                         src={getChainLogo(chain, chainIcons[chain])}
                         alt={chain}
                         width={24}
@@ -640,7 +648,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     <div className="text-right">
                       <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
                     </div>
-                    <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                    <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                   </div>
                 </button>
 
@@ -654,7 +662,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     >
                       {isLoading ? (
                         <div className="flex justify-center py-6">
-                          <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+                          <Loader2Any className="w-5 h-5 animate-spin text-zinc-400" />
                         </div>
                       ) : tokens && tokens.length > 0 ? (
                         <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
@@ -675,7 +683,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             >
                               <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
                                 {token.icon ? (
-                                  <Image 
+                                  <ImageAny 
                                     src={token.icon} 
                                     alt={token.symbol} 
                                     width={24} 
@@ -731,10 +739,10 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           <div className="p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
-                <Layers className="w-5 h-5" />
+                <LayersAny className="w-5 h-5" />
               </div>
               <div className={`transition-transform duration-300 ${showNfts ? 'rotate-180' : ''}`}>
-                <ChevronDown className="w-5 h-5 text-zinc-400" />
+                <ChevronDownAny className="w-5 h-5 text-zinc-400" />
               </div>
             </div>
             
@@ -769,7 +777,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 p-4 space-y-3">
                 {loadingNfts ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                    <Loader2Any className="w-6 h-6 animate-spin text-zinc-400" />
                   </div>
                 ) : nftCollections.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -784,7 +792,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                       >
                         <div className="aspect-square relative rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3">
                           {collection.imageUrl ? (
-                            <Image 
+                            <ImageAny 
                               src={collection.imageUrl} 
                               alt={collection.name} 
                               fill 
@@ -793,7 +801,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700">
-                              <Layers className="w-8 h-8" />
+                              <LayersAny className="w-8 h-8" />
                             </div>
                           )}
                           <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm text-[10px] font-medium text-white uppercase tracking-wide border border-white/10">

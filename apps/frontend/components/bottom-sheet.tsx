@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, PanInfo } from "framer-motion";
+import { AnimatePresence, motion, type PanInfo } from "@/lib/framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@barzakh/shared/lib/utils/utils";

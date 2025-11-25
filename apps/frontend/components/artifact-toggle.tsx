@@ -12,8 +12,12 @@ export function ArtifactToggle() {
   // Don't show if no artifact
   if (!currentArtifact) return null;
 
+  const ButtonAny = Button as any;
+  const XAny = X as any;
+  const FileCodeAny = FileCode as any;
+
   return (
-    <Button
+    <ButtonAny
       variant={isArtifactOpen ? "default" : "outline"}
       size="sm"
       onClick={toggleArtifact}
@@ -25,16 +29,16 @@ export function ArtifactToggle() {
     >
       {isArtifactOpen ? (
         <>
-          <X className="w-4 h-4" />
+          <XAny className="w-4 h-4" />
           <span className="hidden sm:inline">Close Artifact</span>
         </>
       ) : (
         <>
-          <FileCode className="w-4 h-4" />
+          <FileCodeAny className="w-4 h-4" />
           <span className="hidden sm:inline">View Artifact</span>
         </>
       )}
-    </Button>
+    </ButtonAny>
   );
 }
 

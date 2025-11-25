@@ -2,7 +2,7 @@
 import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
 // NEW: Import useRef and useEffect
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote, Chat as ChatHistory } from "@/lib/db/schema";
@@ -115,7 +115,18 @@ export function Chat({
   // NEW: All scroll logic is now here
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Effect for auto-scroll when new messages are added
+  // Function to scroll to bottom - used when user sends a message
+  const scrollToBottom = useCallback(() => {
+    const el = chatContainerRef.current;
+    if (el) {
+      // Small delay to ensure the DOM has updated with the new message
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      });
+    }
+  }, []);
+
+  // Effect for auto-scroll when new messages are added (only if already at bottom)
   useEffect(() => {
     const el = chatContainerRef.current;
     if (el && isAtBottom) {
@@ -174,10 +185,14 @@ export function Chat({
 
   const { setOpen, setOpenMobile, setSidebarView, isMobile } = useSidebar();
 
+  const ChatHeaderAny = ChatHeader as any;
+  const MessagesAny = Messages as any;
+  const MultimodalInputAny = MultimodalInput as any;
+
   return (
     <ArtifactProvider>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
-        <ChatHeader
+        <ChatHeaderAny
           messages={messages}
           chatId={id}
           isReadonly={isReadonly}
@@ -217,7 +232,7 @@ export function Chat({
           
           {/* CHANGED: Add correct ref and id here */}
           <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-            <Messages
+            <MessagesAny
               chatId={id}
               isLoading={isLoading}
               votes={votes}
@@ -232,7 +247,7 @@ export function Chat({
           <div className="flex-shrink-0">
             <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
               {!isReadonly && (
-                <MultimodalInput
+                <MultimodalInputAny
                   chatId={id}
                   input={input}
                   setInput={setInput}
@@ -252,6 +267,7 @@ export function Chat({
                   setSelectedGroup={setSelectedGroup}
                   isAtBottom={isAtBottom}
                   history={history}
+                  onSubmitMessage={scrollToBottom}
                 />
               )}
             </form>

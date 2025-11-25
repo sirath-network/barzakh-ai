@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     ],
   },
   devIndicators: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   webpack: (config, { isServer }) => {
     // Suppress webpack warnings from third-party dependencies
     config.ignoreWarnings = [

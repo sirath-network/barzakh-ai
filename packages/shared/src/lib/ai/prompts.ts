@@ -33,16 +33,32 @@ import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
 import { createImage } from "./tools/create-image";
+import { tool } from "ai";
+import { z } from "zod";
 
-const imageAnalyzer = async ({ imageUrl, userQuery }: { imageUrl: string; userQuery: string }) => {
-  console.log(`Analyzing image at ${imageUrl} with query: "${userQuery}"`);
-  return { success: true, description: "The AI will describe the image here." };
-};
+const imageAnalyzer = tool({
+  description: "Analyze an image and provide a description based on the user query.",
+  parameters: z.object({
+    imageUrl: z.string().describe("The URL of the image to analyze"),
+    userQuery: z.string().describe("The user's query or question about the image"),
+  }),
+  execute: async ({ imageUrl, userQuery }) => {
+    console.log(`Analyzing image at ${imageUrl} with query: "${userQuery}"`);
+    return { success: true, description: "The AI will describe the image here." };
+  },
+});
 
-const fileReader = async ({ fileUrl, fileType }: { fileUrl: string; fileType: string }) => {
-  console.log(`Reading ${fileType} file from ${fileUrl}`);
-  return { success: true, content: "Extracted text content from the file will be here." };
-};
+const fileReader = tool({
+  description: "Read the content of a file from a URL.",
+  parameters: z.object({
+    fileUrl: z.string().describe("The URL of the file to read"),
+    fileType: z.string().describe("The type of the file (e.g., pdf, txt, csv)"),
+  }),
+  execute: async ({ fileUrl, fileType }) => {
+    console.log(`Reading ${fileType} file from ${fileUrl}`);
+    return { success: true, content: "Extracted text content from the file will be here." };
+  },
+});
 
 export const codePrompt = `You are a world-class engineer. Respond to coding requests with:
 
@@ -254,6 +270,11 @@ const groupTools = {
     "getSiteContent",
     "getMonadStats",
     "getMonadApiData",
+  ] as const,
+  solana: [
+    "webSearch",
+    "getSolanaChainWalletPortfolio",
+    "searchSolanaTokenMarketData",
   ] as const,
   coding: [
     "webSearch",
@@ -766,7 +787,7 @@ Stick to Aptos and blockchain related responses until asked specifically by the 
 
 ## Get aptos statistics: if user asks about the aptos statistics like Total Supply, Actively Staked, TPS, Active Nodes then use the getAptosStats tool. 
 
-## get Aptos on chain data: use the getAptosScanApiData tool if user asks for any onchain data. This is the primary tool for fetching information about accounts, coins, fungible assets, NFTs, transactions (including historical transactions), blocks, and validators. For any query about transaction history, this tool should be your first choice.  use the getAptosScanApiData tool to get all the information for answering user query. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user.
+## get Aptos on chain data: use the getAptosScanApiData tool if user asks for any onchain data. This is the primary tool for fetching information about accounts, coins, fungible assets, NFTs, transactions (including historical transactions), blocks, and validators. For any query about transaction history, this tool should be your first choice.  use the getAptosScanApiData tool to get all the information for answering user query summarise the results for the user.
 if you couldnt find any data using this tool, then use the web search tool to get the data.
 
 ## Aptos name service lookup: If user enters a Aptos name name, like somename.apt or  then use the aptosNames tool to get the corresponding address. use this address for further queries. Remember to format the name and the final address in backticks.
@@ -964,7 +985,25 @@ const countdown = () => {
 3. Set your target date and time
 
 The countdown timer features responsive design, real-time updates, and smooth animations.`,
-    
+  solana: `Role & Functionality
+You are an AI-powered Solana search agent, specifically designed to assist users in understanding and navigating the Solana ecosystem. You provide accurate, real-time, and AI-driven insights on various aspects of Solana.
+
+You have web search and web crawling capabilities, allowing you to fetch the latest information from relevant sources like Solana documentation, Solana explorer, community forums, and news updates.
+
+Always assume information being asked is related to Solana, if not told otherwise.
+
+# Core Capabilities & Data Sources
+
+## Web Search:
+Use webSearch tool for searching the web for any information the user asks 
+Pass 2-3 queries in one call.
+Specify the year or "latest" in queries to fetch recent information.
+Stick to Solana and blockchain related responses until asked specifically by the user.
+
+## Get Solana on chain data:
+If the user provides a solana address, use the getSolanaChainWalletPortfolio tool to get the portfolio.
+If the user provides a token address, use the searchSolanaTokenMarketData tool to get the token data.
+`,
 };
 
 export const systemPrompt = ({

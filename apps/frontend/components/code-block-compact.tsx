@@ -37,6 +37,11 @@ export function CodeBlockCompact({
   allCodeBlocks = [],
 }: CodeBlockCompactProps) {
   const { openArtifact } = useArtifact();
+
+  const EyeAny = Eye as any;
+  const SparklesAny = Sparkles as any;
+  const ExternalLinkAny = ExternalLink as any;
+  const Code2Any = Code2 as any;
   
   const language = (/language-(\w+)/.exec(className || '')?.[1] || 'text').toLowerCase() as Language;
   const codeContent = String(children).trim();
@@ -196,15 +201,15 @@ export function CodeBlockCompact({
           >
             {canShowPreview && webFiles.length > 1 ? (
               <>
-                <Eye className="w-3.5 h-3.5" />
+                <EyeAny className="w-3.5 h-3.5" />
                 <span>Preview</span>
-                <Sparkles className="w-3.5 h-3.5" />
+                <SparklesAny className="w-3.5 h-3.5" />
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5" />
+                <SparklesAny className="w-3.5 h-3.5" />
                 <span>Open</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLinkAny className="w-3.5 h-3.5" />
               </>
             )}
           </button>
@@ -224,7 +229,7 @@ export function CodeBlockCompact({
               <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/60 via-black/30 to-transparent pointer-events-none" />
               <div className="absolute bottom-2 left-0 right-0 text-center">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-semibold rounded-full bg-black/60 text-gray-300 border border-white/10 backdrop-blur-sm">
-                  <Code2 className="w-3 h-3" />
+                  <Code2Any className="w-3 h-3" />
                   {lineCount - 3} more lines
                 </span>
               </div>

@@ -45,6 +45,28 @@ import {
 import type { Chat } from "@/lib/db/schema";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
 
+const DropdownMenuAny = DropdownMenu as any;
+const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+const DropdownMenuContentAny = DropdownMenuContent as any;
+const DropdownMenuItemAny = DropdownMenuItem as any;
+const DropdownMenuSeparatorAny = DropdownMenuSeparator as any;
+const ButtonAny = Button as any;
+const AlertDialogAny = AlertDialog as any;
+const AlertDialogContentAny = AlertDialogContent as any;
+const AlertDialogHeaderAny = AlertDialogHeader as any;
+const AlertDialogTitleAny = AlertDialogTitle as any;
+const AlertDialogDescriptionAny = AlertDialogDescription as any;
+const AlertDialogFooterAny = AlertDialogFooter as any;
+const AlertDialogCancelAny = AlertDialogCancel as any;
+const AlertDialogActionAny = AlertDialogAction as any;
+const ArchiveRestoreAny = ArchiveRestore as any;
+const MoreHorizontalAny = MoreHorizontal as any;
+const RotateCcwAny = RotateCcw as any;
+const Trash2Any = Trash2 as any;
+const ArchiveAny = Archive as any;
+const ChevronDownAny = ChevronDown as any;
+const CircleArrowLeftAny = CircleArrowLeft as any;
+
 const ArchivedChatItem = ({
   chat,
   isActive,
@@ -86,7 +108,7 @@ const ArchivedChatItem = ({
                 : "bg-gray-100 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50"
             }
           `}>
-            <ArchiveRestore className={`w-5 h-5 ${isActive ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
+            <ArchiveRestoreAny className={`w-5 h-5 ${isActive ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-sm truncate ${
@@ -100,9 +122,9 @@ const ArchivedChatItem = ({
           </div>
         </Link>
 
-        <DropdownMenu modal={true}>
-          <DropdownMenuTrigger asChild>
-            <Button
+        <DropdownMenuAny modal={true}>
+          <DropdownMenuTriggerAny asChild>
+            <ButtonAny
               variant="ghost"
               size="sm"
               className={`
@@ -114,34 +136,34 @@ const ArchivedChatItem = ({
                 ${isActive ? "opacity-70 hover:opacity-100" : ""}
               `}
             >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontalAny className="h-4 w-4" />
               <span className="sr-only">More options</span>
-            </Button>
-          </DropdownMenuTrigger>
+            </ButtonAny>
+          </DropdownMenuTriggerAny>
 
-          <DropdownMenuContent
+          <DropdownMenuContentAny
             side="right"
             align="start"
             className="w-48 shadow-2xl border border-gray-200 dark:border-red-900/50 bg-white/98 dark:bg-black/95 backdrop-blur-sm rounded-xl"
             sideOffset={8}
           >
-            <DropdownMenuItem
+            <DropdownMenuItemAny
               className="cursor-pointer rounded-lg m-1 hover:bg-gray-50 dark:hover:bg-red-900/20 focus:bg-gray-50 dark:focus:bg-red-900/20"
               onSelect={() => onRestore(chat.id)}
             >
-              <RotateCcw className="mr-3 h-4 w-4 text-green-600 dark:text-green-400" />
+              <RotateCcwAny className="mr-3 h-4 w-4 text-green-600 dark:text-green-400" />
               <span className="font-medium text-gray-700 dark:text-gray-200">Restore chat</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-gray-200 dark:bg-red-900/30" />
-            <DropdownMenuItem
+            </DropdownMenuItemAny>
+            <DropdownMenuSeparatorAny className="bg-gray-200 dark:bg-red-900/30" />
+            <DropdownMenuItemAny
               className="cursor-pointer rounded-lg m-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 focus:bg-red-50 dark:focus:bg-red-900/30"
               onSelect={() => onDelete(chat.id)}
             >
-              <Trash2 className="mr-3 h-4 w-4" />
+              <Trash2Any className="mr-3 h-4 w-4" />
               <span className="font-medium">Delete permanently</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuItemAny>
+          </DropdownMenuContentAny>
+        </DropdownMenuAny>
       </div>
     </div>
   );
@@ -215,7 +237,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
             <div className="p-8 border-b border-gray-200 dark:border-red-900/30">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-100 dark:bg-red-800/50 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50 animate-pulse">
-                  <Archive className="w-6 h-6 text-gray-600 dark:text-red-300" />
+                  <ArchiveAny className="w-6 h-6 text-gray-600 dark:text-red-300" />
                 </div>
                 <div className="space-y-2">
                   <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
@@ -254,7 +276,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-3 md:mb-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
-              <Archive className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
+              <ArchiveAny className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Archived Conversations</h1>
@@ -278,46 +300,46 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 {/* Items Per Page Dropdown */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600 dark:text-gray-300">Show:</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
+                  <DropdownMenuAny>
+                    <DropdownMenuTriggerAny asChild>
+                      <ButtonAny
                         variant="outline"
                         className="h-9 px-3 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
                       >
                         {itemsPerPage}
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent 
+                        <ChevronDownAny className="ml-2 h-4 w-4" />
+                      </ButtonAny>
+                    </DropdownMenuTriggerAny>
+                    <DropdownMenuContentAny 
                       align="end" 
                       className="w-20 border border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/95 backdrop-blur-sm"
                     >
-                      <DropdownMenuItem 
+                      <DropdownMenuItemAny 
                         onClick={() => setItemsPerPage(10)}
                         className="cursor-pointer text-sm"
                       >
                         10
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      </DropdownMenuItemAny>
+                      <DropdownMenuItemAny 
                         onClick={() => setItemsPerPage(25)}
                         className="cursor-pointer text-sm"
                       >
                         25
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      </DropdownMenuItemAny>
+                      <DropdownMenuItemAny 
                         onClick={() => setItemsPerPage(50)}
                         className="cursor-pointer text-sm"
                       >
                         50
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      </DropdownMenuItemAny>
+                      <DropdownMenuItemAny 
                         onClick={() => setItemsPerPage(100)}
                         className="cursor-pointer text-sm"
                       >
                         100
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuItemAny>
+                    </DropdownMenuContentAny>
+                  </DropdownMenuAny>
                 </div>
               </div>
             </div>
@@ -353,7 +375,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12">
                   <div className="w-16 h-16 bg-gray-100 dark:bg-red-900/20 rounded-xl flex items-center justify-center mb-4 border border-gray-200 dark:border-red-900/30">
-                    <Archive className="w-8 h-8 text-gray-400 dark:text-red-400/60" />
+                    <ArchiveAny className="w-8 h-8 text-gray-400 dark:text-red-400/60" />
                   </div>
                   <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
                     No archived conversations
@@ -374,14 +396,14 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Quick Actions</h3>
               </div>
               <div className="p-6 md:p-8 space-y-3">
-                <Button 
+                <ButtonAny 
                   variant="outline" 
                   className="w-full justify-start gap-2 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
                   onClick={() => window.location.href = '/'}
                 >
-                  <CircleArrowLeft className="w-4 h-4" />
+                  <CircleArrowLeftAny className="w-4 h-4" />
                   Back to Conversations
-                </Button>
+                </ButtonAny>
               </div>
             </div>
             {/* Archive Info */}
@@ -393,7 +415,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               <div className="p-6 md:p-8 space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Archive className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <ArchiveAny className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm">Safe Storage</h4>
@@ -402,7 +424,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <RotateCcw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <RotateCcwAny className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm">Easy Restoration</h4>
@@ -411,7 +433,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Trash2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <Trash2Any className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 dark:text-white text-sm">Permanent Deletion</h4>
@@ -440,32 +462,32 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
         </div>
 
         {/* Delete Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border border-gray-200 dark:border-red-900/50 bg-white/98 dark:bg-black/95 backdrop-blur-sm shadow-2xl">
-            <AlertDialogHeader className="space-y-3">
+        <AlertDialogAny open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border border-gray-200 dark:border-red-900/50 bg-white/98 dark:bg-black/95 backdrop-blur-sm shadow-2xl">
+            <AlertDialogHeaderAny className="space-y-3">
               <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mx-auto">
-                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <Trash2Any className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
-              <AlertDialogTitle className="text-lg font-bold text-gray-900 dark:text-white text-center">
+              <AlertDialogTitleAny className="text-lg font-bold text-gray-900 dark:text-white text-center">
                 Delete conversation permanently?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center">
+              </AlertDialogTitleAny>
+              <AlertDialogDescriptionAny className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center">
                 This action cannot be undone. This will permanently delete your conversation and remove it from our servers forever.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-center gap-3 mt-6">
-              <AlertDialogCancel className="w-full sm:w-auto rounded-lg border border-gray-300 dark:border-red-900/50 hover:bg-gray-50 dark:hover:bg-red-900/20 transition-colors duration-200 font-medium">
+              </AlertDialogDescriptionAny>
+            </AlertDialogHeaderAny>
+            <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-center gap-3 mt-6">
+              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border border-gray-300 dark:border-red-900/50 hover:bg-gray-50 dark:hover:bg-red-900/20 transition-colors duration-200 font-medium">
                 Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
+              </AlertDialogCancelAny>
+              <AlertDialogActionAny
                 onClick={handleDelete}
                 className="w-full sm:w-auto rounded-lg bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white transition-colors duration-200 font-semibold shadow-lg"
               >
                 Delete Forever
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </AlertDialogActionAny>
+            </AlertDialogFooterAny>
+          </AlertDialogContentAny>
+        </AlertDialogAny>
       </div>
     </div>
   );

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Shield, ArrowLeft } from "lucide-react";
 import { OTPInput } from "@/components/ui/otp-input";
 
-export default function Verify2FAPage() {
+function Verify2FAContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState("");
@@ -241,5 +241,14 @@ export default function Verify2FAPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Verify2FAPage() {
+  const SuspenseAny = Suspense as any;
+  return (
+    <SuspenseAny fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <Verify2FAContent />
+    </SuspenseAny>
   );
 }

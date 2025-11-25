@@ -12,7 +12,7 @@ export function extractOriginalImageUrls(content: any): string[] {
         // Look for embedded original URLs
         const match = part.text.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
         if (match) {
-          const urls = match[1].split(', ').map(url => url.trim()).filter(url => url);
+          const urls = match[1].split(', ').map((url: string) => url.trim()).filter((url: string) => url);
           originalUrls.push(...urls);
         }
       }
@@ -20,7 +20,7 @@ export function extractOriginalImageUrls(content: any): string[] {
   } else if (typeof content === 'string') {
     const match = content.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
     if (match) {
-      const urls = match[1].split(', ').map(url => url.trim()).filter(url => url);
+      const urls = match[1].split(', ').map((url: string) => url.trim()).filter((url: string) => url);
       originalUrls.push(...urls);
     }
   }

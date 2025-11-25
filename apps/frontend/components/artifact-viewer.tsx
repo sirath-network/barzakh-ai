@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
   import { 
     X, 
     Copy, 
@@ -27,6 +27,16 @@ export function ArtifactViewer() {
   const [isCopied, setIsCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+
+  const SparklesAny = Sparkles as any;
+  const Minimize2Any = Minimize2 as any;
+  const Maximize2Any = Maximize2 as any;
+  const XAny = X as any;
+  const Code2Any = Code2 as any;
+  const EyeAny = Eye as any;
+  const DownloadAny = Download as any;
+  const CheckAny = Check as any;
+  const CopyAny = Copy as any;
 
   // Create a simple hash of the content to force iframe refresh when content changes
   const contentHash = useCallback(() => {
@@ -93,7 +103,7 @@ export function ArtifactViewer() {
           
           <div className="relative flex items-center gap-3 flex-1 min-w-0">
             <div className="relative p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary border border-primary/20 shadow-lg shadow-primary/10">
-              <Sparkles className="w-5 h-5" />
+                            <SparklesAny className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-base truncate">
@@ -116,9 +126,9 @@ export function ArtifactViewer() {
               title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
               {isFullscreen ? (
-                <Minimize2 className="w-4 h-4" />
+                <Minimize2Any className="w-4 h-4" />
               ) : (
-                <Maximize2 className="w-4 h-4" />
+                <Maximize2Any className="w-4 h-4" />
               )}
             </Button>
             <Button
@@ -128,7 +138,7 @@ export function ArtifactViewer() {
               className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive transition-colors"
               title="Close"
             >
-              <X className="w-4 h-4" />
+              <XAny className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -143,7 +153,7 @@ export function ArtifactViewer() {
             )}
             {currentArtifact.metadata?.lineCount && (
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <Code2 className="w-3.5 h-3.5" />
+                <Code2Any className="w-3.5 h-3.5" />
                 {currentArtifact.metadata.lineCount} lines
               </span>
             )}
@@ -161,7 +171,7 @@ export function ArtifactViewer() {
                   )}
                   title="Preview only"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <EyeAny className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Preview</span>
                 </button>
                 <button
@@ -174,7 +184,7 @@ export function ArtifactViewer() {
                   )}
                   title="Code only"
                 >
-                  <Code2 className="w-3.5 h-3.5" />
+                  <Code2Any className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Code</span>
                 </button>
               </div>
@@ -188,7 +198,7 @@ export function ArtifactViewer() {
               onClick={handleDownload}
               className="h-9 gap-2 font-semibold hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
             >
-              <Download className="w-3.5 h-3.5" />
+              <DownloadAny className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Download</span>
             </Button>
             <Button
@@ -199,12 +209,12 @@ export function ArtifactViewer() {
             >
               {isCopied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-green-400" />
+                  <CheckAny className="w-3.5 h-3.5 text-green-400" />
                   <span className="hidden sm:inline text-green-400">Copied!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5" />
+                  <CopyAny className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Copy</span>
                 </>
               )}

@@ -134,7 +134,7 @@ export const PreviewAttachment = ({
   const isCodeFile = contentType?.includes('javascript') || contentType?.includes('typescript') || 
     contentType?.includes('json') || contentType?.includes('html') || contentType?.includes('css') ||
     ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'py', 'java', 'cpp', 'c', 'sh', 'json'].includes(
-      name.split('.').pop()?.toLowerCase() || ''
+      (name || '').split('.').pop()?.toLowerCase() || ''
     );
   const { Icon, fileExtension } = useAttachmentInfo(attachment);
   const config = sizeConfig[size];
@@ -173,7 +173,7 @@ export const PreviewAttachment = ({
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = name;
+      link.download = name || 'download';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -199,6 +199,12 @@ export const PreviewAttachment = ({
         {children}
       </a>
     );
+
+  const DialogAny = Dialog as any;
+  const DialogContentAny = DialogContent as any;
+  const DialogHeaderAny = DialogHeader as any;
+  const DialogTitleAny = DialogTitle as any;
+  const ButtonAny = Button as any;
 
   return (
     <motion.div
@@ -340,13 +346,13 @@ export const PreviewAttachment = ({
       </div>
 
       {/* Preview Dialog */}
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-6xl w-full p-2">
-          <DialogHeader>
-            <DialogTitle className="sr-only">
+      <DialogAny open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContentAny className="max-w-6xl w-full p-2">
+          <DialogHeaderAny>
+            <DialogTitleAny className="sr-only">
               {isImage ? 'Image Preview' : 'Code Preview'}
-            </DialogTitle>
-          </DialogHeader>
+            </DialogTitleAny>
+          </DialogHeaderAny>
           <div className="relative">
             {isImage ? (
               <img
@@ -368,7 +374,7 @@ export const PreviewAttachment = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
+                    <ButtonAny
                       variant="ghost"
                       size="sm"
                       onClick={handleDownload}
@@ -377,7 +383,7 @@ export const PreviewAttachment = ({
                     >
                       <Download className="w-4 h-4 mr-1" />
                       {isDownloading ? 'Downloading...' : 'Download'}
-                    </Button>
+                    </ButtonAny>
                   </div>
                 </div>
                 <div className="p-4 max-h-96 overflow-auto bg-gray-900/50">
@@ -400,7 +406,7 @@ export const PreviewAttachment = ({
             {/* Image Preview Actions */}
             {isImage && (
               <div className="absolute bottom-4 right-4 flex gap-2">
-                <Button
+                <ButtonAny
                   variant="secondary"
                   size="sm"
                   onClick={handleDownload}
@@ -409,12 +415,12 @@ export const PreviewAttachment = ({
                 >
                   <Download className="w-4 h-4 mr-2" />
                   {isDownloading ? 'Downloading...' : 'Download'}
-                </Button>
+                </ButtonAny>
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </DialogContentAny>
+      </DialogAny>
     </motion.div>
   );
 };

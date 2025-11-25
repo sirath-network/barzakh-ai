@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonProps } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +47,8 @@ export function VisibilitySelector({
 }: {
   chatId: string;
   selectedVisibilityType: VisibilityType;
-} & React.ComponentProps<typeof Button>) {
+  className?: string;
+} & ButtonProps) {
   const [open, setOpen] = useState(false);
 
   const { visibilityType, setVisibilityType } = useChatVisibility({
@@ -60,28 +61,34 @@ export function VisibilitySelector({
     [visibilityType],
   );
 
+  const ButtonAny = Button as any;
+  const DropdownMenuAny = DropdownMenu as any;
+  const DropdownMenuContentAny = DropdownMenuContent as any;
+  const DropdownMenuItemAny = DropdownMenuItem as any;
+  const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger
+    <DropdownMenuAny open={open} onOpenChange={setOpen}>
+      <DropdownMenuTriggerAny
         asChild
         className={cn(
           'w-fit data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
           className,
         )}
       >
-        <Button
+        <ButtonAny
           variant="outline"
           className="hidden md:flex md:px-2 md:h-[34px]"
         >
           {selectedVisibility?.icon}
           {selectedVisibility?.label}
           <ChevronDownIcon />
-        </Button>
-      </DropdownMenuTrigger>
+        </ButtonAny>
+      </DropdownMenuTriggerAny>
 
-      <DropdownMenuContent align="start" className="min-w-[300px]">
+      <DropdownMenuContentAny align="start" className="min-w-[300px]">
         {visibilities.map((visibility) => (
-          <DropdownMenuItem
+          <DropdownMenuItemAny
             key={visibility.id}
             onSelect={() => {
               setVisibilityType(visibility.id);
@@ -101,9 +108,9 @@ export function VisibilitySelector({
             <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
               <CheckCircleFillIcon />
             </div>
-          </DropdownMenuItem>
+          </DropdownMenuItemAny>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenuContentAny>
+    </DropdownMenuAny>
   );
 }

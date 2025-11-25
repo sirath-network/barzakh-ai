@@ -4,7 +4,7 @@ import {
   HoverCardTrigger,
 } from "@/components/hover-card";
 import { cn, SearchGroup } from "@barzakh/shared/lib/utils/utils";
-import {motion} from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 
 interface ToolbarButtonProps {
@@ -13,13 +13,26 @@ interface ToolbarButtonProps {
   onClick: () => void;
 }
 
+const MotionButton = motion.button as React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    whileHover?: object;
+    whileTap?: object;
+    transition?: object;
+  }
+>;
+
 export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
   const Icon = group.icon;
   const iconImg = group.img;
+
+  const HoverCardAny = HoverCard as any;
+  const HoverCardTriggerAny = HoverCardTrigger as any;
+  const HoverCardContentAny = HoverCardContent as any;
+
   return (
-    <HoverCard openDelay={100} closeDelay={50}>
-      <HoverCardTrigger asChild>
-        <motion.button
+    <HoverCardAny openDelay={100} closeDelay={50}>
+      <HoverCardTriggerAny asChild>
+        <MotionButton
           type="button"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -49,9 +62,9 @@ export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps
           ) : (
             <Icon className="size-4" />
           )}
-        </motion.button>
-      </HoverCardTrigger>
-      <HoverCardContent
+        </MotionButton>
+      </HoverCardTriggerAny>
+      <HoverCardContentAny
         side="bottom"
         align="center"
         sideOffset={6}
@@ -71,7 +84,7 @@ export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps
             {group.description}
           </p>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </HoverCardContentAny>
+    </HoverCardAny>
   );
 };

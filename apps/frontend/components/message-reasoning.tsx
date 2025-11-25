@@ -2,8 +2,12 @@
 
 import { useState } from 'react';
 import { ChevronDownIcon, LoaderIcon } from './icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { Markdown } from './markdown';
+
+const MarkdownAny = Markdown as any;
+const ChevronDownIconAny = ChevronDownIcon as any;
+const LoaderIconAny = LoaderIcon as any;
 
 interface MessageReasoningProps {
   isLoading: boolean;
@@ -37,7 +41,7 @@ export function MessageReasoning({
         <div className="flex flex-row gap-2 items-center">
           <div className="font-medium">Reasoning</div>
           <div className="animate-spin">
-            <LoaderIcon />
+            <LoaderIconAny />
           </div>
         </div>
       ) : (
@@ -49,7 +53,7 @@ export function MessageReasoning({
               setIsExpanded(!isExpanded);
             }}
           >
-            <ChevronDownIcon />
+            <ChevronDownIconAny />
           </div>
         </div>
       )}
@@ -66,7 +70,7 @@ export function MessageReasoning({
             style={{ overflow: 'hidden' }}
             className="pl-4 text-zinc-600 dark:text-zinc-400 border-l flex flex-col gap-4"
           >
-            <Markdown>{reasoning}</Markdown>
+            <MarkdownAny>{reasoning}</MarkdownAny>
           </motion.div>
         )}
       </AnimatePresence>

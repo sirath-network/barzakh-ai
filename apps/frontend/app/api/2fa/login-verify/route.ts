@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import * as speakeasy from "speakeasy";
+import { authenticator } from "otplib";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,19 +25,13 @@ export async function POST(request: NextRequest) {
 
     // First try to verify as TOTP token - only accept current or immediately previous time step
     // Reject tokens older than ~60 seconds (delta <= -2)
-    const verifyResult = speakeasy.totp.verifyDelta({
-      secret: dbUser.twoFactorSecret,
-      encoding: "base32",
-      token: token,
-      window: 3, // Check wider window for delta calculation
-    });
+    // otplib checkDelta returns the delta (number) or null if invalid
+    const delta = authenticator.checkDelta(token, dbUser.twoFactorSecret);
 
     // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
     // Reject tokens from 2+ steps ago (older than ~60 seconds)
-    // Check if verifyResult has a delta property and it's in the valid range
     let verified = false;
-    if (verifyResult && typeof verifyResult === 'object' && 'delta' in verifyResult) {
-      const delta = verifyResult.delta;
+    if (delta !== null) {
       verified = delta >= -1 && delta <= 1;
     }
 

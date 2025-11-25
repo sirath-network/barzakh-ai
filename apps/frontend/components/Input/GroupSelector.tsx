@@ -66,7 +66,7 @@ const GroupOptionList = ({
   isDropdown = false,
   searchQuery = "",
 }: GroupOptionListProps) => {
-  const filteredGroups = useGroupSearch(searchGroups, searchQuery);
+  const filteredGroups = useGroupSearch([...searchGroups] as any[], searchQuery);
 
   if (filteredGroups.length === 0) {
     return (
@@ -112,8 +112,9 @@ const GroupOptionList = ({
         );
 
         if (isDropdown) {
+          const DropdownMenuItemAny = DropdownMenuItem as any;
           return (
-            <DropdownMenuItem
+            <DropdownMenuItemAny
               key={group.id}
               onSelect={() => onSelect(group)}
               className={cn(
@@ -125,7 +126,7 @@ const GroupOptionList = ({
               )}
             >
               {content}
-            </DropdownMenuItem>
+            </DropdownMenuItemAny>
           );
         }
 
@@ -209,9 +210,7 @@ export const GroupSelector = ({
     [selectedGroupId]
   );
 
-  const SelectedIcon = selectedGroup?.icon as ForwardRefExoticComponent<
-    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
-  >;
+  const SelectedIcon = selectedGroup?.icon as any;
 
   const handleSelect = useCallback(
     (group: SearchGroup) => {
@@ -266,27 +265,34 @@ export const GroupSelector = ({
 
   // Don't render until client-side hydration is complete
   if (!isClient) {
+    const ButtonAny = Button as any;
     return (
       <div className={cn("relative", className)}>
-        <Button
+        <ButtonAny
           variant="outline"
           disabled
           className="h-10 px-2 rounded-xl border-1 bg-background opacity-50"
         >
           <div className="w-6 h-6 bg-muted rounded animate-pulse" />
-        </Button>
+        </ButtonAny>
       </div>
     );
   }
 
+  const ButtonAny = Button as any;
+  const DropdownMenuAny = DropdownMenu as any;
+  const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+  const DropdownMenuContentAny = DropdownMenuContent as any;
+  const BottomSheetAny = BottomSheet as any;
+
   return (
     <div className={cn("relative", className)}>
-      <DropdownMenu 
+      <DropdownMenuAny 
         open={isDesktop && isExpanded} 
         onOpenChange={handleDropdownOpenChange}
       >
-        <DropdownMenuTrigger asChild>
-          <Button
+        <DropdownMenuTriggerAny asChild>
+          <ButtonAny
             variant="outline"
             onClick={handleMobileToggle}
             disabled={disabled}
@@ -330,10 +336,10 @@ export const GroupSelector = ({
                 )}
               />
             )}
-          </Button>
-        </DropdownMenuTrigger>
+          </ButtonAny>
+        </DropdownMenuTriggerAny>
 
-        <DropdownMenuContent
+        <DropdownMenuContentAny
           align="start"
           className={cn(
             "w-[380px] p-0",
@@ -368,11 +374,11 @@ export const GroupSelector = ({
               isDropdown
             />
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenuContentAny>
+      </DropdownMenuAny>
 
       {!isDesktop && (
-        <BottomSheet
+        <BottomSheetAny
           isOpen={isExpanded}
           onClose={() => setIsExpanded(false)}
           title="Select Tools"
@@ -395,7 +401,7 @@ export const GroupSelector = ({
               </div>
             </div>
           </div>
-        </BottomSheet>
+        </BottomSheetAny>
       )}
     </div>
   );

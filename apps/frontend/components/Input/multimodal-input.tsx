@@ -21,7 +21,7 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { User } from "next-auth";
 import { cn, SearchGroup, SearchGroupId } from "@barzakh/shared/lib/utils/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
 import {
@@ -140,6 +140,7 @@ const QuestionSuggestions = ({
     const historyItems = sortedHistory.slice(0, totalSuggestions).map(chat => ({
       key: chat.id,
       title: chat.title,
+      subtitle: undefined,
       isHistory: true,
       icon: MessageCircleMore,
       iconColor: 'text-gray-500 dark:text-gray-400',
@@ -219,7 +220,7 @@ const QuestionSuggestions = ({
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
         {suggestions.map((suggestion, index) => {
-           const IconComponent = suggestion.icon;
+           const IconComponent = suggestion.icon as any;
            return (
             <motion.button
               key={suggestion.key}
@@ -272,16 +273,16 @@ const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
   coding: "chat-model-claude",
   imagine: "chat-model-large",
-  on_chain: "chat-model-grok",
-  wormhole: "chat-model-grok",
-  sei: "chat-model-grok",
-  creditcoin: "chat-model-grok",
-  vana: "chat-model-grok",
-  flow: "chat-model-grok",
-  zeta: "chat-model-grok",
-  aptos: "chat-model-grok",
-  monad: "chat-model-grok",
-  solana: "chat-model-grok",
+  on_chain: "chat-model-large",
+  wormhole: "chat-model-large",
+  sei: "chat-model-large",
+  creditcoin: "chat-model-large",
+  vana: "chat-model-large",
+  flow: "chat-model-large",
+  zeta: "chat-model-large",
+  aptos: "chat-model-large",
+  monad: "chat-model-large",
+  solana: "chat-model-large",
 };
 
 const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([
@@ -465,6 +466,7 @@ function PureMultimodalInput({
   setSelectedGroup,
   isAtBottom,
   history,
+  onSubmitMessage,
 }: {
   chatId: string;
   input: string;
@@ -494,6 +496,7 @@ function PureMultimodalInput({
   setSelectedGroup: React.Dispatch<React.SetStateAction<SearchGroupId>>;
   isAtBottom: boolean;
   history: ChatHistory[] | undefined;
+  onSubmitMessage?: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -773,13 +776,14 @@ function PureMultimodalInput({
       // For non-image attachments, we'll read the file content and include it in the text
       // instead of using experimental_attachments which only supports PDFs
       const fileContentPromises = otherAttachments.map(async (attachment) => {
+        const attachmentName = attachment.name || 'file';
         try {
           const response = await fetch(attachment.url);
           const content = await response.text();
-          return `\n\n${attachment.name}\n\`\`\`${attachment.name.split('.').pop() || 'text'}\n${content}\n\`\`\``;
+          return `\n\n${attachmentName}\n\`\`\`${attachmentName.split('.').pop() || 'text'}\n${content}\n\`\`\``;
         } catch (error) {
-          console.error(`Failed to read file ${attachment.name}:`, error);
-          return `\n\n${attachment.name} - Unable to read content`;
+          console.error(`Failed to read file ${attachmentName}:`, error);
+          return `\n\n${attachmentName} - Unable to read content`;
         }
       });
       
@@ -803,13 +807,16 @@ function PureMultimodalInput({
       append(
         {
           role: "user",
-          content: messageContent,
+          content: messageContent as any,
         },
         chatRequestOptions
       );
     } else {
       handleSubmit(undefined, chatRequestOptions);
     }
+
+    // Scroll to bottom when message is sent
+    onSubmitMessage?.();
 
     setInput("");
     setAttachments([]);
@@ -1080,7 +1087,10 @@ function PureMultimodalInput({
               aria-label="Scroll to bottom"
             >
               <span className="relative z-10 flex items-center justify-center">
-                  <ArrowDown className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />
+                  {(() => {
+                    const ArrowDownAny = ArrowDown as any;
+                    return <ArrowDownAny className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />;
+                  })()}
               </span>
             </button>
           </motion.div>

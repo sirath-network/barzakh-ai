@@ -3,7 +3,7 @@ import { auth } from "@/app/(auth)/auth";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import * as speakeasy from "speakeasy";
+import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
 
 export async function POST(request: NextRequest) {
@@ -22,25 +22,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a new secret
-    const secret = speakeasy.generateSecret({
-      name: `Barzakh (${session.user.email})`,
-      issuer: "Barzakh",
-      length: 32,
-    });
+    const secret = authenticator.generateSecret();
+
+    // Generate OTPAuth URL
+    const otpauth = authenticator.keyuri(session.user.email, 'Barzakh', secret);
 
     // Generate QR code
-    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+    const qrCodeUrl = await QRCode.toDataURL(otpauth);
 
     // Update user with the secret (but don't enable 2FA yet)
     await db
       .update(user)
-      .set({ twoFactorSecret: secret.base32 })
+      .set({ twoFactorSecret: secret })
       .where(eq(user.id, dbUser.id));
 
     return NextResponse.json({
-      secret: secret.base32,
+      secret: secret,
       qrCode: qrCodeUrl,
-      manualEntryKey: secret.base32,
+      manualEntryKey: secret,
     });
   } catch (error) {
     console.error("2FA setup error:", error);

@@ -16,8 +16,8 @@ function sanitizeSubscription(subscription: Stripe.Subscription) {
     priceId: primaryItem?.price.id ?? null,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
     currentPeriodEnd:
-      typeof subscription.current_period_end === "number"
-        ? new Date(subscription.current_period_end * 1000).toISOString()
+      typeof (subscription as any).current_period_end === "number"
+        ? new Date((subscription as any).current_period_end * 1000).toISOString()
         : null,
   };
 }

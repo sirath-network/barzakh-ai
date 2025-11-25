@@ -2,7 +2,7 @@
 
 import type { ChatRequestOptions, Message, ToolInvocation } from "ai";
 import cx from "classnames";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { memo, useState, useEffect, useRef } from "react";
 
 import type { Vote } from "@/lib/db/schema";
@@ -22,27 +22,49 @@ import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "luci
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
+const MultiSearchAny = MultiSearch as any;
+const PortfolioTableAny = PortfolioTable as any;
+const TokenInfoTableAny = TokenInfoTable as any;
+const AIGeneratedImageAny = AIGeneratedImage as any;
+const AIGeneratedImageGridAny = AIGeneratedImageGrid as any;
+const PreviewAttachmentAny = PreviewAttachment as any;
+const MessageActionsAny = MessageActions as any;
+const MessageEditorAny = MessageEditor as any;
+const MessageReasoningAny = MessageReasoning as any;
+const MarkdownAny = Markdown as any;
+const ThinkingAnimationAny = ThinkingAnimation as any;
+const AssistantAvatarAny = AssistantAvatar as any;
+const ButtonAny = Button as any;
+const PencilEditIconAny = PencilEditIcon as any;
+const CheckAny = Check as any;
+const CopyAny = Copy as any;
+const GlobeAny = Globe as any;
+const BarChart3Any = BarChart3 as any;
+const WalletAny = Wallet as any;
+const FileTextAny = FileText as any;
+const FileImageAny = FileImage as any;
+
 // HELPER: Map from tool name to corresponding icon
 const toolIcons: Record<string, React.ElementType> = {
-  webSearch: Globe,
-  searchEvmTokenMarketData: BarChart3,
-  searchSolanaTokenMarketData: BarChart3,
-  getSolanaChainWalletPortfolio: Wallet,
-  getEvmMultiChainWalletPortfolio: Wallet,
-  getTokenBalances: Wallet,
-  getCreditcoinApiData: FileText,
-  getVanaApiData: FileText,
-  getEvmOnchainDataUsingZerion: FileText,
-  getEvmOnchainDataUsingEtherscan: FileText,
-  ensToAddress: FileText,
-  aptosNames: FileText,
-  translateTransactions: FileText,
-  createImage: FileImage,
+  webSearch: GlobeAny,
+  searchEvmTokenMarketData: BarChart3Any,
+  searchSolanaTokenMarketData: BarChart3Any,
+  getSolanaChainWalletPortfolio: WalletAny,
+  getEvmMultiChainWalletPortfolio: WalletAny,
+  getTokenBalances: WalletAny,
+  getCreditcoinApiData: FileTextAny,
+  getVanaApiData: FileTextAny,
+  getEvmOnchainDataUsingZerion: FileTextAny,
+  getEvmOnchainDataUsingEtherscan: FileTextAny,
+  ensToAddress: FileTextAny,
+  aptosNames: FileTextAny,
+  translateTransactions: FileTextAny,
+  createImage: FileImageAny,
 };
 
 // HELPER: Small component to render each tool icon
 const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "small" | "medium" }) => {
-  const IconComponent = toolIcons?.[toolName] || FileText;
+  const IconComponent = toolIcons?.[toolName] || FileTextAny;
   const iconSize = size === "small" ? "size-3" : "size-4";
   
   return (
@@ -61,6 +83,7 @@ import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
 import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
 import { generateStatusFromMessage } from "@/lib/status-generator";
+
 
 const PurePreviewMessage = ({
   chatId,
@@ -247,7 +270,7 @@ const PurePreviewMessage = ({
           )}
         >
           {message.role === 'assistant' && (
-            <AssistantAvatar
+            <AssistantAvatarAny
               showIcon={showIcon}
               staticImageSrc={staticAvatarSrc}
               size={avatarSize}
@@ -261,7 +284,7 @@ const PurePreviewMessage = ({
             <AnimatePresence mode="wait">
               {showThinking ? (
                 <motion.div key="thinking">
-                  <ThinkingAnimation statusText={statusText} />
+                  <ThinkingAnimationAny statusText={statusText} />
                 </motion.div>
               ) : (
                 <motion.div 
@@ -271,7 +294,7 @@ const PurePreviewMessage = ({
                   transition={{ duration: 0.3 }}
                 >
                   {message.reasoning && (
-                    <MessageReasoning
+                    <MessageReasoningAny
                       isLoading={isLoading}
                       reasoning={message.reasoning}
                     />
@@ -286,7 +309,7 @@ const PurePreviewMessage = ({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <MultiSearch result={tool.result} args={tool.args} />
+                        <MultiSearchAny result={tool.result} args={tool.args} />
                       </motion.div>
                     ))
                   )}
@@ -304,18 +327,18 @@ const PurePreviewMessage = ({
                         if (toolInvocation.state !== "result") return null;
                         
                         const toolComponents: Record<string, React.ReactNode> = {
-                          searchEvmTokenMarketData: <TokenInfoTable result={result} />,
-                          searchSolanaTokenMarketData: <TokenInfoTable result={result} />,
-                          getSolanaChainWalletPortfolio: <PortfolioTable result={result} />,
-                          getEvmMultiChainWalletPortfolio: <PortfolioTable result={result} />,
-                          getTokenBalances: <PortfolioTable result={result} />,
+                          searchEvmTokenMarketData: <TokenInfoTableAny result={result} />,
+                          searchSolanaTokenMarketData: <TokenInfoTableAny result={result} />,
+                          getSolanaChainWalletPortfolio: <PortfolioTableAny result={result} />,
+                          getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
+                          getTokenBalances: <PortfolioTableAny result={result} />,
                           createImage: result?.imageUrls ? (
-                            <AIGeneratedImageGrid 
+                            <AIGeneratedImageGridAny 
                               imageUrls={result.imageUrls}
                               alt="AI generated images"
                             />
                           ) : result?.imageUrl ? (
-                            <AIGeneratedImage 
+                            <AIGeneratedImageAny 
                               imageUrl={result.imageUrl}
                               alt="AI generated image"
                             />
@@ -358,7 +381,7 @@ const PurePreviewMessage = ({
                                   className="bg-muted/30 p-2 border border-border/20 shadow-sm"
                                   style={{ borderRadius: '15px 15px 10px 15px' }}
                                 >
-                                  <PreviewAttachment
+                                  <PreviewAttachmentAny
                                     attachment={attachment}
                                     size={getAttachmentSize(attachment)}
                                   />
@@ -381,7 +404,7 @@ const PurePreviewMessage = ({
                                         className="bg-muted/30 p-2 border border-border/20 shadow-sm"
                                         style={{ borderRadius: '15px 15px 10px 15px' }}
                                       >
-                                        <PreviewAttachment
+                                        <PreviewAttachmentAny
                                           attachment={attachment}
                                           size={getAttachmentSize(attachment)}
                                         />
@@ -418,7 +441,7 @@ const PurePreviewMessage = ({
                                     }
                                   }}
                                 >
-                                  <Markdown allMessages={allMessages}>{textContent}</Markdown>
+                                  <MarkdownAny allMessages={allMessages}>{textContent}</MarkdownAny>
                                 </div>
                                );
                              }
@@ -473,17 +496,17 @@ const PurePreviewMessage = ({
                               <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                 <div className="flex-1 min-w-0 max-w-full">
                                   {typeof message.content === "string" ? (
-                                    <Markdown allMessages={allMessages}>{smoothContent}</Markdown>
+                                    <MarkdownAny allMessages={allMessages}>{smoothContent}</MarkdownAny>
                                   ) : (
                                     <div className="flex flex-col gap-2">
                                       {(message.content as any[]).map((part, index) => {
                                         if (part.type === "text") {
-                                          return <Markdown key={index} allMessages={allMessages}>{part.text}</Markdown>;
+                                          return <MarkdownAny key={index} allMessages={allMessages}>{part.text}</MarkdownAny>;
                                         }
                                         if (part.type === "image" && typeof part.image === 'string') {
                                           // Include image URLs in text content so they can be rendered inline by Markdown
                                           // This allows the Markdown component to detect and render AI-generated images properly
-                                          return <Markdown key={index} allMessages={allMessages}>{part.image}</Markdown>;
+                                          return <MarkdownAny key={index} allMessages={allMessages}>{part.image}</MarkdownAny>;
                                         }
                                         return null;
                                       })}
@@ -515,16 +538,16 @@ const PurePreviewMessage = ({
                               damping: 25,
                             }}
                           >
-                            <Button
+                            <ButtonAny
                               type="button"
                               title="Edit message"
                               variant="ghost"
                               className="p-2 h-fit rounded-2xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
                               onClick={handleEdit}
                             >
-                              <PencilEditIcon className="size-4" />
-                            </Button>
-                            <Button
+                              <PencilEditIconAny className="size-4" />
+                            </ButtonAny>
+                            <ButtonAny
                               type="button"
                               title={isCopied ? "Copied!" : "Copy message"}
                               variant="ghost"
@@ -532,11 +555,11 @@ const PurePreviewMessage = ({
                               onClick={handleCopy}
                             >
                               {isCopied ? (
-                                <Check className="size-4 text-green-500" />
+                                <CheckAny className="size-4 text-green-500" />
                               ) : (
-                                <Copy className="size-4" />
+                                <CopyAny className="size-4" />
                               )}
-                            </Button>
+                            </ButtonAny>
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -546,7 +569,7 @@ const PurePreviewMessage = ({
                   {message.content && mode === "edit" && (
                     <div className="flex flex-row gap-2 items-start">
                       <div className="size-8" />
-                      <MessageEditor
+                      <MessageEditorAny
                         key={message.id}
                         message={message}
                         setMode={setMode}
@@ -564,7 +587,7 @@ const PurePreviewMessage = ({
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3, delay: 0.3 }}
                     >
-                      <MessageActions
+                      <MessageActionsAny
                         key={`action-${message.id}`}
                         chatId={chatId}
                         message={message}

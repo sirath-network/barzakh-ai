@@ -17,6 +17,15 @@ import {
   TooltipTrigger,
 } from './ui/tooltip';
 
+const TooltipProviderAny = TooltipProvider as any;
+const TooltipAny = Tooltip as any;
+const TooltipTriggerAny = TooltipTrigger as any;
+const TooltipContentAny = TooltipContent as any;
+const ButtonAny = Button as any;
+const CopyIconAny = CopyIcon as any;
+const ThumbUpIconAny = ThumbUpIcon as any;
+const ThumbDownIconAny = ThumbDownIcon as any;
+
 export function PureMessageActions({
   chatId,
   message,
@@ -70,12 +79,12 @@ export function PureMessageActions({
   }
 
   return (
-    <TooltipProvider delayDuration={100}>
+    <TooltipProviderAny delayDuration={100}>
       <div className="flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <TooltipAny>
+          <TooltipTriggerAny asChild>
             {/* */}
-            <Button
+            <ButtonAny
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-neutral-500 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
@@ -84,15 +93,15 @@ export function PureMessageActions({
                 toast.success('Copied to clipboard!');
               }}
             >
-              <CopyIcon className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Copy</TooltipContent>
-        </Tooltip>
+              <CopyIconAny className="h-4 w-4" />
+            </ButtonAny>
+          </TooltipTriggerAny>
+          <TooltipContentAny>Copy</TooltipContentAny>
+        </TooltipAny>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
+        <TooltipAny>
+          <TooltipTriggerAny asChild>
+            <ButtonAny
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-neutral-500 transition-colors hover:text-blue-500 dark:text-neutral-400 dark:hover:text-blue-500"
@@ -100,20 +109,20 @@ export function PureMessageActions({
               onClick={() => handleVote('up')}
             >
               {/* */}
-              <ThumbUpIcon
+              <ThumbUpIconAny
                 className={cn(
                   'h-4 w-4',
                   vote?.isUpvoted && 'fill-blue-500 text-blue-500',
                 )}
               />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Like this response</TooltipContent>
-        </Tooltip>
+            </ButtonAny>
+          </TooltipTriggerAny>
+          <TooltipContentAny>Like this response</TooltipContentAny>
+        </TooltipAny>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
+        <TooltipAny>
+          <TooltipTriggerAny asChild>
+            <ButtonAny
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-neutral-500 transition-colors hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-500"
@@ -121,18 +130,18 @@ export function PureMessageActions({
               onClick={() => handleVote('down')}
             >
               {/* */}
-              <ThumbDownIcon
+              <ThumbDownIconAny
                 className={cn(
                   'h-4 w-4',
                   vote && !vote.isUpvoted && 'fill-red-500 text-red-500',
                 )}
               />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Dislike this response</TooltipContent>
-        </Tooltip>
+            </ButtonAny>
+          </TooltipTriggerAny>
+          <TooltipContentAny>Dislike this response</TooltipContentAny>
+        </TooltipAny>
       </div>
-    </TooltipProvider>
+    </TooltipProviderAny>
   );
 }
 

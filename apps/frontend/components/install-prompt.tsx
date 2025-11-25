@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { X, Share, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getWithExpiry, setWithExpiry } from "@barzakh/shared/lib/utils/utils";
+
+const CardAny = Card as any;
+const ButtonAny = Button as any;
+const XAny = X as any;
+const ShareAny = Share as any;
+const PlusAny = Plus as any;
+const DownloadAny = Download as any;
 
 export function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -73,10 +80,10 @@ export function InstallPrompt() {
       case "ios":
         return (
           <p className="text-neutral-600 dark:text-neutral-400">
-            Tap <Share className="inline h-4 w-4 mx-1" /> and then{" "}
+            Tap <ShareAny className="inline h-4 w-4 mx-1" /> and then{" "}
             <span className="whitespace-nowrap">
               &ldquo;Add to Home Screen&rdquo;{" "}
-              <Plus className="inline h-4 w-4 ml-1" />
+              <PlusAny className="inline h-4 w-4 ml-1" />
             </span>
           </p>
         );
@@ -91,7 +98,7 @@ export function InstallPrompt() {
         return (
           <p className="text-neutral-600 dark:text-neutral-400">
             Install our app for a better experience{" "}
-            <Download className="inline h-4 w-4 ml-1" />
+            <DownloadAny className="inline h-4 w-4 ml-1" />
           </p>
         );
     }
@@ -106,7 +113,7 @@ export function InstallPrompt() {
           exit={{ opacity: 0, y: 50 }}
           className="fixed md:hidden top-4 left-4 right-4 z-[100] md:left-auto md:right-4 md:w-96"
         >
-          <Card className="p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
+                    <CardAny className="p-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <h3 className="font-medium text-xl text-neutral-900 dark:text-neutral-100">
@@ -114,28 +121,28 @@ export function InstallPrompt() {
                 </h3>
                 {getInstructions()}
               </div>
-              <Button
+              <ButtonAny
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
                 onClick={handleDismiss}
               >
-                <X className="h-4 w-4" />
+                <XAny className="h-4 w-4" />
                 <span className="sr-only">Dismiss</span>
-              </Button>
+              </ButtonAny>
             </div>
 
             {platform !== "ios" && (
               <div className="mt-4 flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={handleDismiss}>
+                <ButtonAny variant="secondary" size="sm" onClick={handleDismiss}>
                   Maybe later
-                </Button>
-                <Button size="sm" onClick={handleInstall}>
+                </ButtonAny>
+                <ButtonAny size="sm" onClick={handleInstall}>
                   Install
-                </Button>
+                </ButtonAny>
               </div>
             )}
-          </Card>
+          </CardAny>
         </motion.div>
       )}
     </AnimatePresence>

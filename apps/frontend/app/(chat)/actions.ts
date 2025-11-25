@@ -34,7 +34,7 @@ export async function generateTitleFromUserMessage({
   if (typeof message.content === "string") {
     userText = message.content;
   } else if (Array.isArray(message.content)) {
-    const textPart = message.content.find((part) => part.type === "text");
+    const textPart = (message.content as any[]).find((part) => part.type === "text");
     if (textPart && "text" in textPart) {
       userText = textPart.text;
     }

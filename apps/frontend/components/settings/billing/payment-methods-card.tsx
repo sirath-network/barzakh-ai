@@ -215,8 +215,20 @@ export function PaymentMethodsCard({
   const otherMethods = paymentMethods?.filter((pm) => !pm.isDefault) ?? [];
   const hasMethods = paymentMethods && paymentMethods.length > 0;
 
+  // Temporarily disabled - Stripe integration coming soon
+  const isTemporarilyDisabled = true;
+
   return (
     <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm relative">
+      {/* Blur overlay for temporarily disabled state */}
+      {isTemporarilyDisabled && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-black/70 backdrop-blur-sm rounded-2xl">
+          <div className="text-center px-6">
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">Coming Soon</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Stripe payment methods will be available soon</p>
+          </div>
+        </div>
+      )}
       <div className="p-8 space-y-1">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 flex items-center justify-center">

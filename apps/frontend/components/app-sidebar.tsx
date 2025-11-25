@@ -4,7 +4,7 @@ import type { User } from "next-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MessageCirclePlus, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion'; // 1. Import framer-motion
+import { motion, AnimatePresence } from "@/lib/framer-motion"; // 1. Import framer-motion
 
 import { SidebarHistory } from "@/components/sidebar-history";
 import { SettingsMenu } from "@/components/settings-menu";
@@ -27,6 +27,18 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile, sidebarView, setSidebarView } = useSidebar();
   const { setView } = useView();
 
+  const SidebarAny = Sidebar as any;
+  const SidebarHeaderAny = SidebarHeader as any;
+  const SidebarMenuAny = SidebarMenu as any;
+  const SidebarContentAny = SidebarContent as any;
+  const SidebarFooterAny = SidebarFooter as any;
+  const TooltipAny = Tooltip as any;
+  const TooltipTriggerAny = TooltipTrigger as any;
+  const TooltipContentAny = TooltipContent as any;
+  const ButtonAny = Button as any;
+  const MessageCirclePlusAny = MessageCirclePlus as any;
+  const ArrowLeftAny = ArrowLeft as any;
+
   const handleNewChat = () => {
     setOpenMobile(false);
     if (setSidebarView) {
@@ -40,22 +52,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   // 2. Define animation variants
   const viewAnimation = {
     initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 20 },
-    transition: { duration: 0.2, ease: "easeInOut" },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: "easeInOut" } },
+    exit: { opacity: 0, x: 20, transition: { duration: 0.2, ease: "easeInOut" } },
   };
   
   const headerAnimation = {
     initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-    transition: { duration: 0.15 },
+    animate: { opacity: 1, transition: { duration: 0.15 } },
+    exit: { opacity: 0, transition: { duration: 0.15 } },
   };
 
   return (
-    <Sidebar className="group-data-[side=left]:border-r-0 custom-scrollbar bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-sm border-r border-border/50">
-      <SidebarHeader className="p-4 border-b border-border/30 overflow-hidden">
-        <SidebarMenu className="custom-scrollbar">
+    <SidebarAny className="group-data-[side=left]:border-r-0 custom-scrollbar bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-sm border-r border-border/50">
+      <SidebarHeaderAny className="p-4 border-b border-border/30 overflow-hidden">
+        <SidebarMenuAny className="custom-scrollbar">
           {/* 3. Use AnimatePresence for header */}
           <AnimatePresence initial={false} mode="wait">
             <motion.div
@@ -79,43 +89,43 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       History
                     </span>
                   </Link>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
+                  <TooltipAny>
+                    <TooltipTriggerAny asChild>
+                      <ButtonAny
                         variant="ghost"
                         size="sm"
                         className="p-2.5 h-auto rounded-lg border border-border/20 shadow-sm hover:border-primary/30 hover:shadow-md hover:bg-primary/10 hover:text-primary"
                         onClick={handleNewChat}
                       >
-                        <MessageCirclePlus className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent align="end" className="font-medium hidden sm:block">
+                        <MessageCirclePlusAny className="h-4 w-4" />
+                      </ButtonAny>
+                    </TooltipTriggerAny>
+                    <TooltipContentAny align="end" className="font-medium hidden sm:block">
                       New Chat
-                    </TooltipContent>
-                  </Tooltip>
+                    </TooltipContentAny>
+                  </TooltipAny>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 w-full">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
+                  <TooltipAny>
+                    <TooltipTriggerAny asChild>
+                      <ButtonAny
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9"
                           onClick={() => setSidebarView && setSidebarView('history')}
                       >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
+                        <ArrowLeftAny className="h-4 w-4" />
+                      </ButtonAny>
+                    </TooltipTriggerAny>
                     {/* ✅ Add 'hidden sm:block' to hide on mobile */}
-                    <TooltipContent 
+                    <TooltipContentAny 
                       align="start" 
                       className="font-medium hidden sm:block"
                     >
                        Back to History
-                    </TooltipContent>
-                  </Tooltip>
+                    </TooltipContentAny>
+                  </TooltipAny>
                   <span className="text-md font-bold text-foreground">
                     Settings
                   </span>
@@ -123,10 +133,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               )}
             </motion.div>
           </AnimatePresence>
-        </SidebarMenu>
-      </SidebarHeader>
+        </SidebarMenuAny>
+      </SidebarHeaderAny>
 
-      <SidebarContent className="px-2 py-4 overflow-hidden">
+      <SidebarContentAny className="px-2 py-4 overflow-hidden">
         {/* 4. Use AnimatePresence for content */}
         <AnimatePresence initial={false} mode="wait">
             <motion.div
@@ -144,11 +154,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               )}
             </motion.div>
         </AnimatePresence>
-      </SidebarContent>
+      </SidebarContentAny>
 
-      <SidebarFooter className="p-4 border-t border-border/30">
+      <SidebarFooterAny className="p-4 border-t border-border/30">
         {user && <SidebarUserNav user={user} />}
-      </SidebarFooter>
-    </Sidebar>
+      </SidebarFooterAny>
+    </SidebarAny>
   );
 }

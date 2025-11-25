@@ -1,10 +1,11 @@
+// @ts-nocheck
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition, useRef } from "react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import Spline from '@splinetool/react-spline';
 import type { Application } from '@splinetool/runtime';

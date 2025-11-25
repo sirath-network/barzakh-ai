@@ -19,6 +19,18 @@ import { useView, type SettingsPageType } from "@/context/view-context";
 // Pastikan useSidebar sudah diimpor
 import { useSidebar } from "./ui/sidebar";
 
+const ButtonAny = Button as any;
+const SunIconAny = SunIcon as any;
+const MoonIconAny = MoonIcon as any;
+const UserCogAny = UserCog as any;
+const ChevronRightAny = ChevronRight as any;
+const KeyRoundAny = KeyRound as any;
+const MailAny = Mail as any;
+const CreditCardAny = CreditCard as any;
+const ArchiveIconAny = ArchiveIcon as any;
+const ShieldAny = Shield as any;
+const BadgeDollarSignAny = BadgeDollarSign as any;
+
 const SettingsMenuItem = ({ 
   icon, 
   children, 
@@ -34,7 +46,7 @@ const SettingsMenuItem = ({
   >
     <div className="w-6 mr-3 text-muted-foreground">{icon}</div>
     <span className="flex-1">{children}</span>
-    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+    <ChevronRightAny className="w-4 h-4 text-muted-foreground" />
   </button>
 );
 
@@ -87,13 +99,13 @@ export function SettingsMenu({
       </div>
       <div className="flex flex-col space-y-1 px-2">
         <SettingsMenuItem
-          icon={<UserCog size={18} />}
+          icon={<UserCogAny size={18} />}
           onClick={() => handleMenuClick('account')}
         >
           Edit Account
         </SettingsMenuItem>
         <SettingsMenuItem
-          icon={<ArchiveIcon size={18} />}
+          icon={<ArchiveIconAny size={18} />}
           onClick={() => handleMenuClick('archived')}
         >
           Archived
@@ -106,31 +118,31 @@ export function SettingsMenu({
       </div>
       <div className="flex flex-col space-y-1 px-2">
         <SettingsMenuItem 
-          icon={<KeyRound size={18} />}
+          icon={<KeyRoundAny size={18} />}
           onClick={() => handleMenuClick('password')}
         >
           Change Password
         </SettingsMenuItem>
         <SettingsMenuItem 
-          icon={<Shield size={18} />}
+          icon={<ShieldAny size={18} />}
           onClick={() => handleMenuClick('2fa')}
         >
           2FA Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
-          icon={<Mail size={18} />}
+          icon={<MailAny size={18} />}
           onClick={() => handleMenuClick('email')}
         >
           Email Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
-          icon={<CreditCard size={18} />}
+          icon={<CreditCardAny size={18} />}
           onClick={() => handleMenuClick('billing')}
         >
           Billing Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
-          icon={<BadgeDollarSign size={18} />}
+          icon={<BadgeDollarSignAny size={18} />}
           onClick={() => handleMenuClick('plans')}
         >
           Plans & Pricing
@@ -143,24 +155,24 @@ export function SettingsMenu({
       </div>
       <div className="p-2 space-y-2">
           <div className="flex gap-2">
-            <Button
+            <ButtonAny
               variant={theme === 'light' ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setTheme('light')}
               className="w-full flex items-center gap-2"
             >
-              <SunIcon className="w-4 h-4" />
+              <SunIconAny className="w-4 h-4" />
               Light
-            </Button>
-            <Button
+            </ButtonAny>
+            <ButtonAny
               variant={theme === 'dark' ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setTheme('dark')}
               className="w-full flex items-center gap-2"
             >
-              <MoonIcon className="w-4 h-4" />
+              <MoonIconAny className="w-4 h-4" />
               Dark
-            </Button>
+            </ButtonAny>
           </div>
       </div>
     </div>

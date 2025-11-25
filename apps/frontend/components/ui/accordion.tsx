@@ -6,13 +6,19 @@ import { ChevronDownIcon } from "@radix-ui/react-icons"
 
 import { cn } from "@barzakh/shared/lib/utils/utils"
 
-const Accordion = AccordionPrimitive.Root
+const ChevronDownIconAny = ChevronDownIcon as any;
+const AccordionPrimitiveRootAny = AccordionPrimitive.Root as any;
+const AccordionPrimitiveItemAny = AccordionPrimitive.Item as any;
+const AccordionPrimitiveTriggerAny = AccordionPrimitive.Trigger as any;
+const AccordionPrimitiveContentAny = AccordionPrimitive.Content as any;
+
+const Accordion = AccordionPrimitiveRootAny
 
 const AccordionItem = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
 >(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Item
+  <AccordionPrimitiveItemAny
     ref={ref}
     className={cn("border-b", className)}
     {...props}
@@ -25,7 +31,7 @@ const AccordionTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
   <AccordionPrimitive.Header className="flex">
-    <AccordionPrimitive.Trigger
+    <AccordionPrimitiveTriggerAny
       ref={ref}
       className={cn(
         "flex flex-1 items-center justify-between py-4 text-sm font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180",
@@ -34,8 +40,8 @@ const AccordionTrigger = React.forwardRef<
       {...props}
     >
       {children}
-      <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
-    </AccordionPrimitive.Trigger>
+      <ChevronDownIconAny className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+    </AccordionPrimitiveTriggerAny>
   </AccordionPrimitive.Header>
 ))
 AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
@@ -44,13 +50,13 @@ const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Content
+  <AccordionPrimitiveContentAny
     ref={ref}
     className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
     {...props}
   >
     <div className={cn("pb-4 pt-0", className)}>{children}</div>
-  </AccordionPrimitive.Content>
+  </AccordionPrimitiveContentAny>
 ))
 AccordionContent.displayName = AccordionPrimitive.Content.displayName
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import type { ReactNode } from "react";
 
 const containerVariants = {
@@ -132,7 +132,7 @@ export function ActionResultOverlay({
             {/* */}
             {children && (
               <motion.div variants={itemVariants} className="w-full pt-2">
-                {children}
+                {children as any}
               </motion.div>
             )}
           </motion.div>

@@ -116,7 +116,7 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     // 4. Determine the period end date for active subscriptions.
     let periodEndTimestamp: number | null | undefined = invoice?.period_end;
     if (typeof periodEndTimestamp !== 'number') {
-        periodEndTimestamp = subscription.current_period_end ?? subscription.trial_end;
+        periodEndTimestamp = (subscription as any).current_period_end ?? subscription.trial_end;
     }
 
     if (typeof periodEndTimestamp !== 'number') {
@@ -218,8 +218,8 @@ export async function POST(req: Request) {
             case 'invoice.paid':
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
-                if (invoice.subscription && invoice.customer) {
-                    await manageSubscriptionStatusChange(invoice.subscription as string, invoice.customer as string, invoice);
+                if ((invoice as any).subscription && invoice.customer) {
+                    await manageSubscriptionStatusChange((invoice as any).subscription as string, invoice.customer as string, invoice);
                 }
                 break;
             }

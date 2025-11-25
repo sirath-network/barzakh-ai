@@ -30,6 +30,15 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TweetCard } from "./tweet-card";
 
+const GlobeAny = Globe as any;
+const SearchAny = Search as any;
+const ExternalLinkAny = ExternalLink as any;
+const CalendarAny = Calendar as any;
+const XAny = X as any;
+const ChevronLeftAny = ChevronLeft as any;
+const ChevronRightAny = ChevronRight as any;
+const DrawerContentAny = DrawerContent as any;
+
 type SearchImage = {
   url: string;
   description: string;
@@ -79,7 +88,7 @@ const SearchLoadingState = ({
         <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
-              <Globe className="h-4 w-4 text-neutral-500" />
+              <GlobeAny className="h-4 w-4 text-neutral-500" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -106,7 +115,7 @@ const SearchLoadingState = ({
                 variant="secondary"
                 className="px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex-shrink-0"
               >
-                <Search className="h-3 w-3 mr-1.5" />
+                <SearchAny className="h-3 w-3 mr-1.5" />
                 {query}
               </Badge>
             ))}
@@ -167,7 +176,7 @@ const ResultCard = ({ result }: { result: SearchResult }) => (
             className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center gap-1"
           >
             <span className="truncate">{new URL(result.url).hostname}</span>
-            <ExternalLink className="h-3 w-3 flex-shrink-0" />
+            <ExternalLinkAny className="h-3 w-3 flex-shrink-0" />
           </a>
         </div>
       </div>
@@ -178,7 +187,7 @@ const ResultCard = ({ result }: { result: SearchResult }) => (
     {result.published_date && (
       <div className="p-4 pt-3 border-t border-neutral-100 dark:border-neutral-800">
         <time className="text-xs text-neutral-500 flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
+          <CalendarAny className="h-3 w-3" />
           {new Date(result.published_date).toLocaleDateString()}
         </time>
       </div>
@@ -207,15 +216,15 @@ const ImageGrid = ({ images }: { images: SearchImage[] }) => {
           {selectedImage + 1} / {images.length}
         </span>
         <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40" onClick={() => setIsOpen(false)}>
-          <X className="h-4 w-4" />
+          <XAny className="h-4 w-4" />
         </Button>
       </div>
       <img src={images[selectedImage].url} alt={images[selectedImage].description} className="w-full h-full object-contain" />
       <Button variant="ghost" size="icon" className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40" onClick={() => setSelectedImage((p) => (p === 0 ? images.length - 1 : p - 1))}>
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeftAny className="h-4 w-4" />
       </Button>
       <Button variant="ghost" size="icon" className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40" onClick={() => setSelectedImage((p) => (p === images.length - 1 ? 0 : p + 1))}>
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRightAny className="h-4 w-4" />
       </Button>
       {images[selectedImage].description && (
         <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
@@ -258,9 +267,9 @@ const ImageGrid = ({ images }: { images: SearchImage[] }) => {
         </Dialog>
       ) : (
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerContent className="h-[85vh] p-0 border-none">
+          <DrawerContentAny className="h-[85vh] p-0 border-none">
             <ImageViewer />
-          </DrawerContent>
+          </DrawerContentAny>
         </Drawer>
       )}
     </div>
@@ -329,7 +338,7 @@ const MultiSearch: React.FC<{
           <AccordionTrigger className="p-0 mb-2 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
-                <Globe className="h-4 w-4 text-neutral-500" />
+                <GlobeAny className="h-4 w-4 text-neutral-500" />
               </div>
               <h2 className="font-medium text-left">Web Search Results</h2>
             </div>
@@ -339,7 +348,7 @@ const MultiSearch: React.FC<{
             <div className="flex overflow-x-auto gap-2 mb-4 no-scrollbar pb-1">
               {result.web.map((search, i) => (
                 <Badge key={i} variant="secondary" className="px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
-                  <Search className="h-3 w-3 mr-1.5" />
+                  <SearchAny className="h-3 w-3 mr-1.5" />
                   {search.query}
                 </Badge>
               ))}

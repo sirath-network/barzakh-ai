@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { DataGrid, type DataGridProps, type Column } from 'react-data-grid';
+import DataGrid, { type DataGridProps, type Column } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { useTheme } from 'next-themes';
 import { cn } from "@barzakh/shared/lib/utils/utils";
@@ -254,7 +254,9 @@ function areEqual(prevProps: SheetEditorProps, nextProps: SheetEditorProps) {
   );
 }
 
-export default React.memo(PureSheetEditor, areEqual);
+const SheetEditor = React.memo(PureSheetEditor, areEqual);
+
+export default SheetEditor;
 
 // Demo component for testing
 export function SheetEditorDemo() {

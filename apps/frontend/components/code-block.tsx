@@ -33,7 +33,13 @@ interface CodeBlockProps {
 
 // --- SUB-COMPONENTS ---
 
-const CodeHeader = ({ fileName, langName, lineCount }) => (
+interface CodeHeaderProps {
+  fileName: string;
+  langName: string;
+  lineCount: number;
+}
+
+const CodeHeader = ({ fileName, langName, lineCount }: CodeHeaderProps) => (
   <div className="flex items-center space-x-2">
     <span className="font-medium text-foreground truncate max-w-[180px]">{fileName}</span>
     <div className="px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-muted-foreground">
@@ -45,13 +51,22 @@ const CodeHeader = ({ fileName, langName, lineCount }) => (
   </div>
 );
 
-const CodeActions = ({ onCopy, isCopied, isCompact = false }) => (
+interface CodeActionsProps {
+  onCopy: () => void;
+  isCopied: boolean;
+  isCompact?: boolean;
+}
+
+const CodeActions = ({ onCopy, isCopied, isCompact = false }: CodeActionsProps) => {
+  const CheckAny = Check as any;
+  const CopyAny = Copy as any;
+  return (
   <div className="flex items-center space-x-2">
     <button onClick={onCopy} className={`flex items-center space-x-1.5 ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-muted text-muted-foreground rounded-md border hover:bg-accent transition-colors`} aria-label="Copy code to clipboard">
-      {isCopied ? <span role="status" className="flex items-center space-x-1.5 font-medium"><Check className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copied</span></span> : <span className="flex items-center space-x-1.5"><Copy className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copy</span></span>}
+      {isCopied ? <span role="status" className="flex items-center space-x-1.5 font-medium"><CheckAny className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copied</span></span> : <span className="flex items-center space-x-1.5"><CopyAny className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copy</span></span>}
     </button>
   </div>
-);
+)};
 
 
 // --- MAIN COMPONENT ---
@@ -68,6 +83,13 @@ export function CodeBlock({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  const ChevronDownAny = ChevronDown as any;
+  const ChevronRightAny = ChevronRight as any;
+  const Code2Any = Code2 as any;
+  const XAny = X as any;
+  const Maximize2Any = Maximize2 as any;
+  const ExternalLinkAny = ExternalLink as any;
 
   // State for side-by-side view
   const [panelWidth, setPanelWidth] = useState(50); // 50% width default
@@ -165,6 +187,7 @@ export function CodeBlock({
         return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
       }
     }
+
     
     // Fallback: Smart defaults based on language
     const smartDefaults: Record<string, string> = {
@@ -258,7 +281,7 @@ export function CodeBlock({
     <div className="fixed inset-0 z-50 bg-card flex flex-col sm:hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0">
         <CodeHeader fileName={fileName} langName={langConfig.name} lineCount={lineCount} />
-        <button onClick={() => setIsFullscreen(false)} className="p-2 rounded-lg hover:bg-muted" aria-label="Close"><X className="w-5 h-5 text-muted-foreground" /></button>
+        <button onClick={() => setIsFullscreen(false)} className="p-2 rounded-lg hover:bg-muted" aria-label="Close"><XAny className="w-5 h-5 text-muted-foreground" /></button>
       </div>
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b flex-shrink-0">
         <span className="text-xs text-muted-foreground">Swipe to scroll</span>
@@ -282,7 +305,7 @@ export function CodeBlock({
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                 title="Open in artifact viewer"
               >
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLinkAny className="w-3 h-3" />
                 <span className="hidden sm:inline">Open</span>
               </button>
               <button 
@@ -293,12 +316,12 @@ export function CodeBlock({
               >
                 {isExpanded ? (
                   <>
-                    <ChevronDown className="w-3 h-3" />
+                    <ChevronDownAny className="w-3 h-3" />
                     <span className="hidden sm:inline">Collapse</span>
                   </>
                 ) : (
                   <>
-                    <ChevronRight className="w-3 h-3" />
+                    <ChevronRightAny className="w-3 h-3" />
                     <span className="hidden sm:inline">Expand</span>
                   </>
                 )}
@@ -338,7 +361,7 @@ export function CodeBlock({
               >
                 <div className="p-4 h-full">
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-                    <Code2 className="w-8 h-8 mb-2 text-muted-foreground" />
+                    <Code2Any className="w-8 h-8 mb-2 text-muted-foreground" />
                     <p className="text-center">Extended code view</p>
                   </div>
                 </div>

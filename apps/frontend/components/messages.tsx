@@ -9,6 +9,9 @@ import { Vote } from "@/lib/db/schema";
 import equal from "fast-deep-equal";
 import { SearchGroupId } from "@barzakh/shared/lib/utils/utils";
 
+const PreviewMessageAny = PreviewMessage as any;
+const ThinkingMessageAny = ThinkingMessage as any;
+
 interface MessagesProps {
   chatId: string;
   isLoading: boolean;
@@ -34,7 +37,6 @@ function PureMessages({
   reload,
   isReadonly,
 }: MessagesProps) {
-
   return (
     <div
       className={`relative flex flex-col min-w-0 w-full max-w-full gap-6 md:gap-8 pt-4 ${
@@ -46,10 +48,10 @@ function PureMessages({
       {messages.map((message, index) => {
         const prevMessage = index > 0 ? messages[index - 1] : null;
         const isNewConversationTurn = prevMessage && prevMessage.role !== message.role;
-        
+
         return (
           <div key={message.id} className={isNewConversationTurn ? "mt-2" : ""}>
-            <PreviewMessage
+            <PreviewMessageAny
               chatId={chatId}
               message={message}
               isLoading={isLoading && messages.length - 1 === index}
@@ -72,7 +74,7 @@ function PureMessages({
       {isLoading &&
         messages.length > 0 &&
         messages[messages.length - 1].role === "user" && (
-          <ThinkingMessage messages={messages} />
+          <ThinkingMessageAny messages={messages} />
         )}
 
       <div className="shrink-0 h-8 w-full" />

@@ -3,6 +3,13 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Heart, Repeat2, BadgeCheck, MessageCircle, Share, Eye } from "lucide-react";
 
+const BadgeCheckAny = BadgeCheck as any;
+const MessageCircleAny = MessageCircle as any;
+const Repeat2Any = Repeat2 as any;
+const HeartAny = Heart as any;
+const EyeAny = Eye as any;
+const ShareAny = Share as any;
+
 // Custom X Icon Component
 const XIcon = ({ className }: { className?: string }) => (
   <svg
@@ -140,7 +147,7 @@ export const TweetCard = ({ tweet }: { tweet: Tweet }) => {
           />
           {tweet.author.verified && (
             <div className="absolute -bottom-1 -right-1 bg-white dark:bg-neutral-900 rounded-full p-0.5">
-              <BadgeCheck className="h-4 w-4 text-blue-500" />
+              <BadgeCheckAny className="h-4 w-4 text-blue-500" />
             </div>
           )}
         </div>
@@ -199,17 +206,17 @@ export const TweetCard = ({ tweet }: { tweet: Tweet }) => {
         <div className="flex items-center justify-between w-full text-xs text-neutral-500 dark:text-neutral-400">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 hover:text-blue-500 transition-colors cursor-pointer">
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircleAny className="h-4 w-4" />
               <span className="font-medium">{formatNumber(tweet.publicMetrics.quote_count)}</span>
             </div>
             
             <div className="flex items-center gap-1.5 hover:text-green-500 transition-colors cursor-pointer">
-              <Repeat2 className="h-4 w-4" />
+              <Repeat2Any className="h-4 w-4" />
               <span className="font-medium">{formatNumber(tweet.publicMetrics.retweet_count)}</span>
             </div>
             
             <div className="flex items-center gap-1.5 hover:text-red-500 transition-colors cursor-pointer">
-              <Heart className="h-4 w-4" />
+              <HeartAny className="h-4 w-4" />
               <span className="font-medium">{formatNumber(tweet.publicMetrics.like_count)}</span>
             </div>
           </div>
@@ -217,7 +224,7 @@ export const TweetCard = ({ tweet }: { tweet: Tweet }) => {
           <div className="flex items-center gap-3">
             {tweet.publicMetrics.impression_count > 0 && (
               <div className="flex items-center gap-1.5 text-neutral-400">
-                <Eye className="h-4 w-4" />
+                <EyeAny className="h-4 w-4" />
                 <span className="text-xs">{formatNumber(tweet.publicMetrics.impression_count)}</span>
               </div>
             )}
@@ -226,7 +233,7 @@ export const TweetCard = ({ tweet }: { tweet: Tweet }) => {
               className="p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               title="Share"
             >
-              <Share className="h-4 w-4" />
+              <ShareAny className="h-4 w-4" />
             </button>
           </div>
         </div>

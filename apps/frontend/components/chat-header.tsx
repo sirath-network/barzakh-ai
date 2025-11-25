@@ -50,8 +50,15 @@ function PureChatHeader({
     setIsClient(true);
   }, []);
 
+  const ButtonAny = Button as any;
+  const TooltipAny = Tooltip as any;
+  const TooltipTriggerAny = TooltipTrigger as any;
+  const TooltipContentAny = TooltipContent as any;
+  const MessageCirclePlusAny = MessageCirclePlus as any;
+  const ArrowLeftAny = ArrowLeft as any;
+
   const NewChatButton = () => (
-    <Button
+    <ButtonAny
       variant="outline"
       className="px-3"
       onClick={() => {
@@ -59,9 +66,9 @@ function PureChatHeader({
         router.refresh();
       }}
     >
-      <MessageCirclePlus className="h-5 w-5 md:mr-2" />
+      <MessageCirclePlusAny className="h-5 w-5 md:mr-2" />
       <span className="hidden md:inline">New Chat</span>
-    </Button>
+    </ButtonAny>
   );
 
   return (
@@ -73,22 +80,22 @@ function PureChatHeader({
 
           {/* 2. Show back button if onBackClick exists (settings mode) */}
           {onBackClick && (
-            <Button variant="ghost" size="icon" onClick={onBackClick} className="md:ml-2">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+            <ButtonAny variant="ghost" size="icon" onClick={onBackClick} className="md:ml-2">
+              <ArrowLeftAny className="h-5 w-5" />
+            </ButtonAny>
           )}
 
           {/* Show "New Chat" button only if NOT in settings mode */}
           {isClient && !onBackClick && (!isSidebarOpen || !isDesktop) && (
             isDesktop ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
-                     <MessageCirclePlus className="h-5 w-5"/>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>New Chat</TooltipContent>
-              </Tooltip>
+              <TooltipAny>
+                <TooltipTriggerAny asChild>
+                  <ButtonAny variant="ghost" size="icon" onClick={() => router.push('/')}>
+                     <MessageCirclePlusAny className="h-5 w-5"/>
+                  </ButtonAny>
+                </TooltipTriggerAny>
+                <TooltipContentAny>New Chat</TooltipContentAny>
+              </TooltipAny>
             ) : (
               <NewChatButton />
             )
@@ -121,12 +128,12 @@ function PureChatHeader({
             )
           ) : (
             // User is not logged in, show login button
-            <Button
+            <ButtonAny
               className="px-3 py-1 text-sm h-auto"
               onClick={() => router.push("/login")}
             >
               Login
-            </Button>
+            </ButtonAny>
           )}
         </div>
       </header>

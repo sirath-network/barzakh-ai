@@ -126,10 +126,25 @@ export async function POST(request: Request) {
       status: "confirmed",
     });
 
-    // Update user tier
+    // Get the daily message limit for the new tier
+    const getDailyMessageLimit = (tier: string): number => {
+      if (tier === "pro") {
+        return Number(process.env.PRO_USER_MESSAGE_LIMIT) || 200;
+      } else if (tier === "ultimate") {
+        return Number(process.env.ULTIMATE_USER_MESSAGE_LIMIT) || 1000;
+      }
+      return Number(process.env.FREE_USER_MESSAGE_LIMIT) || 5;
+    };
+
+    const newDailyLimit = getDailyMessageLimit(planId);
+
+    // Update user tier AND reset daily message limit to the new tier's limit
     await db
       .update(user)
-      .set({ tier: planId })
+      .set({ 
+        tier: planId,
+        dailyMessageRemaining: newDailyLimit,
+      })
       .where(eq(user.id, session.user.id));
 
     return NextResponse.json({ success: true });

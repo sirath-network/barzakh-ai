@@ -118,12 +118,12 @@ export function convertToUIMessages(
     const uiMessage: Message = {
       id: message.id,
       role: message.role as Message["role"],
-      content: shouldPreserveContent 
-        ? message.content.filter((part: any) => 
+      content: (shouldPreserveContent 
+        ? (message.content as any[]).filter((part: any) => 
             // Keep image and text parts, exclude metadata
             (part.type === 'image' || (part.type === 'text' && !part.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING')))
           )
-        : textContent, // For assistant/other messages, use extracted text
+        : textContent) as any, // For assistant/other messages, use extracted text
       reasoning,
       toolInvocations,
     };

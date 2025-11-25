@@ -74,7 +74,7 @@ function formatSubscription(
     planName:
       price?.nickname ??
       (typeof product?.name === "string" ? product.name : null) ??
-      subscription.plan?.nickname ??
+      (subscription as any).plan?.nickname ??
       null,
     amount: typeof price?.unit_amount === "number" ? price.unit_amount : null,
     currency: price?.currency ?? null,

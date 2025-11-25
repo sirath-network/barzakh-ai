@@ -18,11 +18,12 @@ const ViewContext = createContext<ViewContextType | undefined>(undefined);
 // Buat Provider untuk membungkus aplikasi
 export function ViewProvider({ children }: { children: ReactNode }) {
   const [currentView, setCurrentView] = useState<ViewType>('chat');
+  const ProviderAny = ViewContext.Provider as any;
 
   return (
-    <ViewContext.Provider value={{ view: currentView, setView: setCurrentView }}>
+    <ProviderAny value={{ view: currentView, setView: setCurrentView }}>
       {children}
-    </ViewContext.Provider>
+    </ProviderAny>
   );
 }
 

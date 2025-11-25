@@ -111,7 +111,7 @@ export async function POST(request: Request) {
         let originalVercelUrls: string[] = [];
         
         for (const textPart of textParts) {
-          if (textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
+          if (textPart.type === 'text' && textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
             const match = textPart.text.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
             if (match) {
               originalVercelUrls = match[1].split(', ').filter(url => url.trim());

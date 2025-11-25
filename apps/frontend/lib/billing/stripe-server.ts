@@ -72,7 +72,7 @@ export async function ensureStripeCustomer(
 
 export async function retrieveStripeCustomer(
   stripeCustomerId: string,
-  expand?: Stripe.CustomerExpandParameter[],
+  expand?: string[],
 ): Promise<Stripe.Customer> {
   const customer = await stripe.customers.retrieve(stripeCustomerId, {
     expand,

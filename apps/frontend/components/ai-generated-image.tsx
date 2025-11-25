@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { Download, Eye, X, AlertCircle, Share, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
@@ -476,7 +476,7 @@ export function AIGeneratedImage({
           {isExpiredUrl ? (
             <>
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-800 to-red-950/50 rounded-lg flex items-center justify-center border border-red-800/30">
-                <Eye className="w-8 h-8 text-red-400/70" />
+                {(() => { const EyeAny = Eye as any; return <EyeAny className="w-8 h-8 text-red-400/70" />; })()}
               </div>
               <p className="text-red-300/80 font-medium mb-2">Image auto-deleted after 1h</p>
               <p className="text-gray-400 text-xs mb-4">Barzakh AI generates temporary links for security</p>
@@ -491,7 +491,7 @@ export function AIGeneratedImage({
             </>
           ) : (
             <>
-          <Eye className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          {(() => { const EyeAny = Eye as any; return <EyeAny className="w-8 h-8 mx-auto mb-2 opacity-50" />; })()}
           <p className="text-sm">Failed to load generated image</p>
           <Button 
             variant="outline" 
@@ -583,7 +583,7 @@ export function AIGeneratedImage({
                   onClick={goToPreviousImage}
                   className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  {(() => { const ChevronLeftAny = ChevronLeft as any; return <ChevronLeftAny className="h-5 w-5" />; })()}
                 </Button>
                 
                 {/* Next button */}
@@ -593,7 +593,7 @@ export function AIGeneratedImage({
                   onClick={goToNextImage}
                   className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  {(() => { const ChevronRightAny = ChevronRight as any; return <ChevronRightAny className="h-5 w-5" />; })()}
                 </Button>
               </>
             )}
@@ -607,7 +607,7 @@ export function AIGeneratedImage({
                 disabled={isDownloading}
                 className="bg-white/90 hover:bg-white text-black shadow-lg"
               >
-                <Download className="w-4 h-4 mr-1" />
+                {(() => { const DownloadAny = Download as any; return <DownloadAny className="w-4 h-4 mr-1" />; })()}
                 {isDownloading ? 'Downloading...' : 'Download'}
               </Button>
             </div>
@@ -631,7 +631,7 @@ export function AIGeneratedImage({
             exit={{ opacity: 0, y: -10 }}
             className="mt-2 flex items-center gap-2 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-md border border-red-200 dark:border-red-800"
           >
-            <AlertCircle className="w-3 h-3 flex-shrink-0" />
+            {(() => { const AlertCircleAny = AlertCircle as any; return <AlertCircleAny className="w-3 h-3 flex-shrink-0" />; })()}
             <span className="flex-1">{downloadError}</span>
             <Button
               variant="ghost"
@@ -639,7 +639,7 @@ export function AIGeneratedImage({
               onClick={() => setDownloadError(null)}
               className="h-auto p-0 text-red-600 hover:text-red-700"
             >
-              <X className="w-3 h-3" />
+              {(() => { const XAny = X as any; return <XAny className="w-3 h-3" />; })()}
             </Button>
           </motion.div>
         )}
@@ -915,7 +915,7 @@ export function AIGeneratedImageCompact({
               {isDownloading ? (
                 <div className="w-3 h-3 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
               ) : (
-                <Download className="w-3 h-3" />
+                (() => { const DownloadAny = Download as any; return <DownloadAny className="w-3 h-3" />; })()
               )}
             </Button>
             
@@ -938,7 +938,7 @@ export function AIGeneratedImageCompact({
             {isDownloading ? (
               <div className="w-3 h-3 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
             ) : (
-              <Download className="w-3 h-3" />
+              (() => { const DownloadAny = Download as any; return <DownloadAny className="w-3 h-3" />; })()
             )}
           </Button>
         )}

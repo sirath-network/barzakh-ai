@@ -17,7 +17,7 @@ export default function EmailSettingsPage() {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
@@ -57,13 +57,13 @@ export default function EmailSettingsPage() {
     );
   }
 
-  const validateEmail = (email) => {
+  const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: Record<string, string> = {};
     if (!newEmail) {
       newErrors.newEmail = "Email address is required";
     } else if (!validateEmail(newEmail)) {

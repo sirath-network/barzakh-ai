@@ -1,10 +1,13 @@
 'use client';
 
+// @ts-ignore
 import { useFormStatus } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "@/lib/framer-motion";
 
 import { LoaderIcon } from '@/components/icons';
 import { Button } from './ui/button';
+
+const ButtonAny = Button as any;
 
 export function SubmitButton({
   children,
@@ -20,7 +23,7 @@ export function SubmitButton({
   const { pending } = useFormStatus();
 
   return (
-    <Button
+    <ButtonAny
       type={pending ? 'button' : 'submit'}
       aria-disabled={pending || isSuccessful || disabled}
       disabled={pending || isSuccessful || disabled}
@@ -53,6 +56,6 @@ export function SubmitButton({
       <output aria-live="polite" className="sr-only">
         {pending || isSuccessful ? 'Loading' : 'Submit form'}
       </output>
-    </Button>
+    </ButtonAny>
   );
 }

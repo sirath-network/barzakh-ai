@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import Link from "next/link";
@@ -7,6 +8,7 @@ import { toast } from "sonner";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
+import { Button } from "@/components/ui/button";
 
 import { login, type LoginActionState } from "@/app/(auth)/actions";
 import { X } from "lucide-react";

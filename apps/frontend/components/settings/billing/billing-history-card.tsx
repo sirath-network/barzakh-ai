@@ -34,8 +34,20 @@ export function BillingHistoryCard({
 }: BillingHistoryCardProps) {
   const hasInvoices = data?.invoices && data.invoices.length > 0;
 
+  // Temporarily disabled - Stripe integration coming soon
+  const isTemporarilyDisabled = true;
+
   return (
     <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm relative">
+      {/* Blur overlay for temporarily disabled state */}
+      {isTemporarilyDisabled && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-black/70 backdrop-blur-sm rounded-2xl">
+          <div className="text-center px-6">
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">Coming Soon</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Billing history will be available soon</p>
+          </div>
+        </div>
+      )}
       <div className="p-6 md:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div className="space-y-1">

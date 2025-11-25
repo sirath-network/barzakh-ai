@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       created: invoice.created,
       hostedInvoiceUrl: invoice.hosted_invoice_url,
       invoicePdf: invoice.invoice_pdf,
-      chargeId: invoice.charge ?? null,
+      chargeId: (invoice as any).charge ?? null,
     }));
 
     const nextCursor =

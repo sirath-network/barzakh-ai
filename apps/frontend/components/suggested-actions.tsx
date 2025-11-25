@@ -5,6 +5,8 @@ import { Button } from "./ui/button";
 import { ChatRequestOptions, CreateMessage, Message } from "ai";
 import { memo } from "react";
 
+const ButtonAny = Button as any;
+
 interface SuggestedActionsProps {
   chatId: string;
   append: (
@@ -48,7 +50,7 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
           key={`suggested-action-${suggestedAction.title}-${index}`}
           className={index > 1 ? "hidden sm:block" : "block"}
         >
-          <Button
+          <ButtonAny
             variant="ghost"
             onClick={async () => {
               window.history.replaceState({}, "", `/c/${chatId}`);
@@ -64,7 +66,7 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
             <span className="text-muted-foreground">
               {suggestedAction.label}
             </span>
-          </Button>
+          </ButtonAny>
         </motion.div>
       ))}
     </div>

@@ -3,7 +3,7 @@ import { getUser } from "@/lib/db/queries";
 import { savePasswordResetToken } from "@/lib/db/queries";
 import { sendResetEmail } from "@/lib/utils/email";
 import { nanoid } from "nanoid";
-import * as speakeasy from "speakeasy";
+import { authenticator } from "otplib";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -43,17 +43,12 @@ export async function POST(request: NextRequest) {
     
     // Try TOTP first
     if (dbUser.twoFactorSecret) {
-      const verifyResult = speakeasy.totp.verifyDelta({
-        secret: dbUser.twoFactorSecret,
-        encoding: "base32",
-        token: twoFactorToken,
-        window: 3, // Check wider window for delta calculation
-      });
+      // otplib checkDelta returns the delta (number) or null if invalid
+      const delta = authenticator.checkDelta(twoFactorToken, dbUser.twoFactorSecret);
+      
       // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
       // Reject tokens from 2+ steps ago (older than ~60 seconds)
-      // Check if verifyResult has a delta property and it's in the valid range
-      if (verifyResult && typeof verifyResult === 'object' && 'delta' in verifyResult) {
-        const delta = verifyResult.delta;
+      if (delta !== null) {
         isValid = delta >= -1 && delta <= 1;
       }
     }

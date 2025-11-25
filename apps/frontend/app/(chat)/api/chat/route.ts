@@ -32,7 +32,7 @@ function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
     if (message.toolInvocations && Array.isArray(message.toolInvocations)) {
       const validToolInvocations = message.toolInvocations.filter((invocation) => {
         // Keep only tool invocations that have results or are in 'partial-call' state
-        return invocation.result !== undefined || invocation.state === 'partial-call';
+        return (invocation as any).result !== undefined || invocation.state === 'partial-call';
       });
       
       // If no valid tool invocations remain, remove the toolInvocations property
@@ -57,7 +57,7 @@ function filterIncompleteToolCalls(messages: Array<Message>): Array<Message> {
     // Remove assistant messages that have incomplete tool calls
     if (message.role === 'assistant' && message.toolInvocations) {
       const hasIncompleteToolCalls = message.toolInvocations.some(
-        (invocation) => invocation.state === 'call' && !invocation.result
+        (invocation) => invocation.state === 'call' && !(invocation as any).result
       );
       
       if (hasIncompleteToolCalls) {
@@ -101,12 +101,12 @@ export async function POST(request: Request) {
     try {
       const dbMessages = await getMessagesByChatId({ id: history_for_context_id });
 
-      const contextMessages: Message[] = dbMessages.map(msg => ({
+      const contextMessages = dbMessages.map(msg => ({
         id: msg.id,
-        role: msg.role as 'user' | 'assistant' | 'system' | 'tool',
+        role: msg.role,
         content: msg.content as any,
         createdAt: msg.createdAt,
-      }));
+      })) as any[];
 
       // Prepend historical messages to the current message list
       messages.unshift(...contextMessages);
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
   
   try {
     const groupConfig = await getGroupConfig(group);
-    tools = groupConfig?.tools || [];
+    tools = [...(groupConfig?.tools || [])] as any[];
     systemPrompt = groupConfig?.systemPrompt || "";
     console.log("Group config loaded:", { tools: tools?.length, hasSystemPrompt: !!systemPrompt });
   } catch (error) {
@@ -260,7 +260,7 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error("Error in streamText:", error);
         // If still getting tool invocation error, try with fresh conversation
-        if (error.message?.includes("ToolInvocation must have a result")) {
+        if ((error as any).message?.includes("ToolInvocation must have a result")) {
           console.log("Retrying with fresh conversation context...");
           
           // Only keep the latest user message for fresh start

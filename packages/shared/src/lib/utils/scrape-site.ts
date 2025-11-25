@@ -2,15 +2,20 @@ import FirecrawlApp, { ScrapeResponse } from "@mendable/firecrawl-js";
 
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 const FIRECRAWL_API_ENDPOINT = process.env.FIRECRAWL_API_ENDPOINT;
-if (!FIRECRAWL_API_KEY || !FIRECRAWL_API_ENDPOINT) {
-  throw new Error(
-    "Missing required environment variables: FIRECRAWL_API_KEY or FIRECRAWL_API_ENDPOINT"
-  );
-}
 
-const app = new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY });
+const app = FIRECRAWL_API_KEY ? new FirecrawlApp({ apiKey: FIRECRAWL_API_KEY }) : null;
 
 export async function scrapeSite(linkToScrape: string) {
+  if (!FIRECRAWL_API_KEY || !FIRECRAWL_API_ENDPOINT) {
+    throw new Error(
+      "Missing required environment variables: FIRECRAWL_API_KEY or FIRECRAWL_API_ENDPOINT"
+    );
+  }
+
+  if (!app) {
+    throw new Error("FirecrawlApp not initialized");
+  }
+
   try {
     console.log("scraping link : ", linkToScrape);
 

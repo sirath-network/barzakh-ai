@@ -136,17 +136,18 @@ const ModelOptionList = ({
         );
 
         if (isDropdown) {
+          const DropdownMenuItemAny = DropdownMenuItem as any;
           return (
-            <DropdownMenuItem
+            <DropdownMenuItemAny
               key={model.id}
-              onSelect={(e) => {
+              onSelect={(e: any) => {
                 e.preventDefault(); // Prevent default dropdown behavior
                 onSelect(model);
               }}
               className={cn(commonClasses, "px-3 py-3.5 rounded-xl")}
             >
               {content}
-            </DropdownMenuItem>
+            </DropdownMenuItemAny>
           );
         }
 
@@ -208,7 +209,7 @@ export function ModelSelector({
   onModelSelect,
   disabled = false,
   ...buttonProps
-}: ModelSelectorProps & React.ComponentProps<typeof Button>) {
+}: ModelSelectorProps & React.ComponentProps<any>) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -317,27 +318,34 @@ export function ModelSelector({
 
   // Don't render until client-side hydration is complete
   if (!isClient) {
+    const ButtonAny = Button as any;
     return (
       <div className={cn("relative", className)}>
-        <Button
+        <ButtonAny
           variant="outline"
           disabled
           className="h-10 border-2 rounded-xl bg-neutral-200 dark:bg-neutral-800 opacity-50"
         >
           <div className="w-4 h-4 bg-muted rounded animate-pulse" />
-        </Button>
+        </ButtonAny>
       </div>
     );
   }
 
+  const ButtonAny = Button as any;
+  const DropdownMenuAny = DropdownMenu as any;
+  const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+  const DropdownMenuContentAny = DropdownMenuContent as any;
+  const BottomSheetAny = BottomSheet as any;
+
   return (
     <div className={cn("relative mr-0 sm:mr-1 mt-1", className)}>
-      <DropdownMenu 
+      <DropdownMenuAny 
         open={isDesktop && isExpanded} 
         onOpenChange={handleDropdownOpenChange}
       >
-        <DropdownMenuTrigger asChild>
-          <Button
+        <DropdownMenuTriggerAny asChild>
+          <ButtonAny
             {...buttonProps}
             variant="outline"
             onClick={handleMobileToggle}
@@ -369,11 +377,11 @@ export function ModelSelector({
                 </span>
               )}
             </div>
-          </Button>
-        </DropdownMenuTrigger>
+          </ButtonAny>
+        </DropdownMenuTriggerAny>
 
         {/* Desktop: Menu Dropdown */}
-        <DropdownMenuContent
+        <DropdownMenuContentAny
           align="end"
           className={cn(
             "w-[360px] p-0 rounded-2xl animate-in fade-in-0 zoom-in-95",
@@ -422,12 +430,12 @@ export function ModelSelector({
               isDropdown
             />
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenuContentAny>
+      </DropdownMenuAny>
 
       {/* Mobile: Bottom Sheet */}
       {!isDesktop && (
-        <BottomSheet
+        <BottomSheetAny
           isOpen={isExpanded}
           onClose={() => setIsExpanded(false)}
           title="Choose Models"
@@ -448,7 +456,7 @@ export function ModelSelector({
               </div>
             </div>
           </div>
-        </BottomSheet>
+        </BottomSheetAny>
       )}
     </div>
   );

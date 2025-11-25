@@ -52,9 +52,9 @@ const plans: Plan[] = [
       "Comprehensive project analysis",
       "Alerts when momentum breaks out",
       "Alerts on bookmarked projects",
-      "Chat with AIXBT for narrative scouting",
+      "Chat with Barzakh for narrative scouting",
       "1 custom daily reports",
-      "Integrations: Telegram, Discord, MCP",
+      "Higher chat, tools & models limits",
     ],
     monthlyPrice: 25,
     quarterlyPrice: 22,
@@ -339,40 +339,42 @@ export default function PlanDetailPage() {
                     )}
                   </div>
 
-                  {/* CTA Button */}
-                  <button
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={isCurrentPlan || isFree || isProcessingPlan}
-                    className={`
-                      w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
-                      ${
-                        isFree
-                          ? "bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-700"
-                          : isCurrentPlan
-                          ? "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 text-white cursor-default"
-                          : "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white"
-                      }
-                    `}
-                  >
-                      {isFree
-                        ? "EXPLORE FOR FREE"
-                        : isCurrentPlan
-                        ? "CURRENT PLAN"
-                        : isProcessingPlan
-                        ? "REDIRECTING..."
-                        : `SUBSCRIBE TO ${plan.name.split(" ")[0]}`}
-                  </button>
-
-                  {!isFree && (
+                  {/* CTA Button - Pay with Crypto (x402) */}
+                  {!isFree ? (
                     <button
                       onClick={() => {
                         setSelectedPlanForX402(plan.id);
                         setShowX402Modal(true);
                       }}
                       disabled={isCurrentPlan}
-                      className="w-full mt-2 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                      className={`
+                        w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
+                        ${
+                          isCurrentPlan
+                            ? "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 text-white cursor-default"
+                            : "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white"
+                        }
+                      `}
                     >
-                      PAY WITH CRYPTO (x402)
+                      {isCurrentPlan ? "CURRENT PLAN" : "PAY WITH CRYPTO (X402)"}
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-700"
+                    >
+                      EXPLORE FOR FREE
+                    </button>
+                  )}
+
+                  {/* Stripe Button - Coming Soon */}
+                  {!isFree && (
+                    <button
+                      onClick={() => handleSubscribe(plan.id)}
+                      disabled={isCurrentPlan || isProcessingPlan || true}
+                      className="w-full mt-2 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 transition-all opacity-50 cursor-not-allowed"
+                    >
+                      PAY WITH STRIPE (COMING SOON)
                     </button>
                   )}
 

@@ -55,6 +55,13 @@ export function AuthForm({
   const [otpValue, setOtpValue] = useState("");
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
+  const LabelAny = Label as any;
+  const InputAny = Input as any;
+  const OTPInputAny = OTPInput as any;
+  const EyeAny = Eye as any;
+  const EyeOffAny = EyeOff as any;
+  const TurnstileAny = Turnstile as any;
+
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setStoredEmail(e.target.value);
   };
@@ -161,13 +168,13 @@ export function AuthForm({
 
       {emailNeeded && !showOTPField && (
         <div className="flex flex-col gap-2">
-          <Label
+          <LabelAny
             htmlFor="email"
             className="text-zinc-600 font-normal dark:text-zinc-400"
           >
             {emailLabel}
-          </Label>
-          <Input
+          </LabelAny>
+          <InputAny
             id="email"
             name="email"
             className="bg-muted text-md md:text-sm"
@@ -188,14 +195,14 @@ export function AuthForm({
 
       {passwordNeeded && !showOTPField && (
         <div className="flex flex-col gap-2">
-          <Label
+          <LabelAny
             htmlFor="password"
             className="text-zinc-600 font-normal dark:text-zinc-400"
           >
             Password
-          </Label>
+          </LabelAny>
           <div className="relative">
-            <Input
+            <InputAny
               id="password"
               name="password"
               className="bg-muted text-md md:text-sm pr-10"
@@ -209,7 +216,7 @@ export function AuthForm({
               className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOffAny size={18} /> : <EyeAny size={18} />}
             </button>
           </div>
           {forgotPasswordNeeded && (
@@ -232,14 +239,14 @@ export function AuthForm({
 
       {passwordConfirmNeeded && !showOTPField && (
         <div className="flex flex-col gap-2">
-          <Label
+          <LabelAny
             htmlFor="passwordConfirm"
             className="text-zinc-600 font-normal dark:text-zinc-400"
           >
             Confirm Password
-          </Label>
+          </LabelAny>
           <div className="relative">
-            <Input
+            <InputAny
               id="passwordConfirm"
               name="passwordConfirm"
               className="bg-muted text-md md:text-sm pr-10"
@@ -253,7 +260,7 @@ export function AuthForm({
               className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
               tabIndex={-1}
             >
-              {showPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPasswordConfirm ? <EyeOffAny size={18} /> : <EyeAny size={18} />}
             </button>
           </div>
           {fieldErrors?.passwordConfirm?.map((error, i) => (
@@ -270,14 +277,14 @@ export function AuthForm({
           <input type="hidden" name="otp" value={otpValue} />
           
           <div className="flex flex-col gap-2">
-            <Label
+            <LabelAny
               htmlFor="otp"
               className="text-zinc-600 font-normal dark:text-zinc-400 text-center"
             >
               Verification Code
-            </Label>
+            </LabelAny>
             <div className="flex justify-center">
-              <OTPInput
+              <OTPInputAny
                 length={6}
                 value={otpValue}
                 onChange={handleOtpChange}
@@ -323,7 +330,7 @@ export function AuthForm({
       {onTurnstileSuccess && (
         <>
           <div className="flex justify-center items-center w-full">
-            <Turnstile ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
+            <TurnstileAny ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
           </div>
           {/* Hidden input for Turnstile token */}
           <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />

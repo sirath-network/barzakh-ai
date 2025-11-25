@@ -16,13 +16,13 @@ export default function PasswordSettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
   // Check if user is a Google OAuth user (no password set)
   const isGoogleUser = !session?.user?.hasPassword;
 
-  const validatePassword = (password) => {
+  const validatePassword = (password: string) => {
     const errors = [];
     if (password.length < 8) errors.push("At least 8 characters");
     if (!/(?=.*[a-z])/.test(password)) errors.push("One lowercase letter");
@@ -32,7 +32,7 @@ export default function PasswordSettingsPage() {
     return errors;
   };
 
-  const getPasswordStrength = (password) => {
+  const getPasswordStrength = (password: string) => {
     const errors = validatePassword(password);
     if (password.length === 0) return { strength: 0, label: "", color: "" };
     if (errors.length === 0) return { strength: 100, label: "Strong", color: "text-emerald-500 dark:text-emerald-400" };
@@ -42,7 +42,7 @@ export default function PasswordSettingsPage() {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: Record<string, string> = {};
     
     // Only require current password for users who have one (not Google OAuth users)
     if (!isGoogleUser && !currentPassword) {
@@ -71,7 +71,7 @@ export default function PasswordSettingsPage() {
     await handleLogout();
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
     setIsLoading(true);
@@ -111,7 +111,7 @@ export default function PasswordSettingsPage() {
       setPassword("");
       setConfirmPassword("");
       setTimeout(async () => await handleLogoutClick(), 2000);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(err.message || "Failed to update password");
     } finally {
       setIsLoading(false);

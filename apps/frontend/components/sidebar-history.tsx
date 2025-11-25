@@ -76,6 +76,36 @@ import { fetcher } from "@barzakh/shared/lib/utils/utils";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import { useView } from "@/context/view-context";
 
+const SidebarMenuItemAny = SidebarMenuItem as any;
+const SidebarMenuButtonAny = SidebarMenuButton as any;
+const SidebarGroupAny = SidebarGroup as any;
+const SidebarGroupContentAny = SidebarGroupContent as any;
+const SidebarMenuAny = SidebarMenu as any;
+const DropdownMenuAny = DropdownMenu as any;
+const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+const DropdownMenuContentAny = DropdownMenuContent as any;
+const DropdownMenuItemAny = DropdownMenuItem as any;
+const DropdownMenuSeparatorAny = DropdownMenuSeparator as any;
+const DropdownMenuSubAny = DropdownMenuSub as any;
+const DropdownMenuSubTriggerAny = DropdownMenuSubTrigger as any;
+const DropdownMenuPortalAny = DropdownMenuPortal as any;
+const DropdownMenuSubContentAny = DropdownMenuSubContent as any;
+const DialogAny = Dialog as any;
+const DialogContentAny = DialogContent as any;
+const DialogHeaderAny = DialogHeader as any;
+const DialogTitleAny = DialogTitle as any;
+const DialogFooterAny = DialogFooter as any;
+const AlertDialogAny = AlertDialog as any;
+const AlertDialogContentAny = AlertDialogContent as any;
+const AlertDialogHeaderAny = AlertDialogHeader as any;
+const AlertDialogTitleAny = AlertDialogTitle as any;
+const AlertDialogDescriptionAny = AlertDialogDescription as any;
+const AlertDialogFooterAny = AlertDialogFooter as any;
+const AlertDialogCancelAny = AlertDialogCancel as any;
+const AlertDialogActionAny = AlertDialogAction as any;
+const ButtonAny = Button as any;
+const InputAny = Input as any;
+
 type GroupedChats = {
   today: Chat[];
   yesterday: Chat[];
@@ -173,9 +203,9 @@ const PureChatItem = ({
   };
 
   return (
-    <SidebarMenuItem className="group">
+    <SidebarMenuItemAny className="group">
       <div className="relative flex items-center rounded-lg w-full min-w-0">
-        <SidebarMenuButton
+        <SidebarMenuButtonAny
           asChild
           isActive={isActive}
           className={`
@@ -205,11 +235,11 @@ const PureChatItem = ({
               {chat.title}
             </span>
           </Link>
-        </SidebarMenuButton>
+        </SidebarMenuButtonAny>
 
-        <DropdownMenu modal={true}>
-          <DropdownMenuTrigger asChild>
-            <Button
+        <DropdownMenuAny modal={true}>
+          <DropdownMenuTriggerAny asChild>
+            <ButtonAny
               variant="ghost"
               size="sm"
               className={`
@@ -222,20 +252,20 @@ const PureChatItem = ({
                 ${isActive ? "md:opacity-70 md:hover:opacity-100" : ""}
               `}
             >
-              <MoreHorizontalIcon className="h-4 w-4" />
+              <MoreHorizontalIcon />
               <span className="sr-only">More options</span>
-            </Button>
-          </DropdownMenuTrigger>
+            </ButtonAny>
+          </DropdownMenuTriggerAny>
 
-          <DropdownMenuContent
+          <DropdownMenuContentAny
             side="right"
             align="start"
             className="w-44 shadow-lg border border-border/50 bg-background/98 backdrop-blur-sm rounded-lg"
             sideOffset={8}
           >
-            <DropdownMenuItem
+            <DropdownMenuItemAny
               className="cursor-pointer"
-              onSelect={(e) => {
+              onSelect={(e: any) => {
                 e.preventDefault();
                 handleOpenEditModal();
               }}
@@ -244,17 +274,17 @@ const PureChatItem = ({
                 <PencilEditIcon size={16} />
               </span>
               <span className="font-medium">Edit title</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
+            </DropdownMenuItemAny>
+            <DropdownMenuSeparatorAny />
+            <DropdownMenuItemAny
               className="cursor-pointer"
               onSelect={() => onArchive(chat.id)}
             >
-              <ArchiveIcon className="mr-2 h-4 w-4" />
+              <span className="mr-2"><ArchiveIcon /></span>
               <span className="font-medium">Archive chat</span>
-            </DropdownMenuItem>
+            </DropdownMenuItemAny>
             {visibilityType === "public" && (
-              <DropdownMenuItem
+              <DropdownMenuItemAny
                 className="cursor-pointer"
                 onSelect={() => {
                   const url = `${window.location.origin}/c/${chat.id}`;
@@ -262,92 +292,92 @@ const PureChatItem = ({
                   toast.success("Link copied to clipboard");
                 }}
               >
-                <LinkIcon className="mr-2 h-4 w-4" />
+                <span className="mr-2"><LinkIcon /></span>
                 <span className="font-medium">Copy link</span>
-              </DropdownMenuItem>
+              </DropdownMenuItemAny>
             )}
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <ShareIcon className="mr-2 h-4 w-4" />
+            <DropdownMenuSubAny>
+              <DropdownMenuSubTriggerAny>
+                <span className="mr-2"><ShareIcon /></span>
                 <span className="font-medium">Share</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent
+              </DropdownMenuSubTriggerAny>
+              <DropdownMenuPortalAny>
+                <DropdownMenuSubContentAny
                   sideOffset={8}
                   className="w-44 shadow-lg border border-border/50 bg-background/98 backdrop-blur-sm rounded-lg"
                 >
-                  <DropdownMenuItem
+                  <DropdownMenuItemAny
                     className="cursor-pointer"
                     onClick={() => setVisibilityType("public")}
                   >
-                    <GlobeIcon className="mr-2 h-4 w-4" />
+                    <span className="mr-2"><GlobeIcon /></span>
                     <span className="font-medium">Public</span>
                     {visibilityType === "public" && (
                       <CheckCircleFillIcon className="ml-auto h-4 w-4 text-primary" />
                     )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </DropdownMenuItemAny>
+                  <DropdownMenuItemAny
                     className="cursor-pointer"
                     onClick={() => setVisibilityType("private")}
                   >
-                    <LockIcon className="mr-2 h-4 w-4" />
+                    <span className="mr-2"><LockIcon /></span>
                     <span className="font-medium">Private</span>
                     {visibilityType === "private" && (
                       <CheckCircleFillIcon className="ml-auto h-4 w-4 text-primary" />
                     )}
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
+                  </DropdownMenuItemAny>
+                </DropdownMenuSubContentAny>
+              </DropdownMenuPortalAny>
+            </DropdownMenuSubAny>
+            <DropdownMenuSeparatorAny />
+            <DropdownMenuItemAny
               className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
               onSelect={() => onDelete(chat.id)}
             >
-              <TrashIcon className="mr-2 h-4 w-4" />
+              <span className="mr-2"><TrashIcon /></span>
               <span className="font-medium">Delete chat</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuItemAny>
+          </DropdownMenuContentAny>
+        </DropdownMenuAny>
 
         {/* Edit Chat Name Modal */}
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="max-w-sm sm:max-w-md rounded-xl px-6 py-5 sm:px-7 sm:py-6">
-            <DialogHeader>
-              <DialogTitle>Change title name</DialogTitle>
-            </DialogHeader>
+        <DialogAny open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContentAny className="max-w-sm sm:max-w-md rounded-xl px-6 py-5 sm:px-7 sm:py-6">
+            <DialogHeaderAny>
+              <DialogTitleAny>Change title name</DialogTitleAny>
+            </DialogHeaderAny>
             <div className="py-4 sm:py-5">
-              <Input
+              <InputAny
                 ref={inputRef}
                 type="text"
                 value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
+                onChange={(e: any) => setEditTitle(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full"
                 maxLength={200}
                 placeholder="Enter chat name"
               />
             </div>
-            <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4">
-              <Button
+            <DialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4">
+              <ButtonAny
                 variant="outline"
                 onClick={handleCancelEdit}
                 className="w-full sm:w-auto"
               >
                 Cancel
-              </Button>
-              <Button
+              </ButtonAny>
+              <ButtonAny
                 onClick={handleSaveEdit}
                 disabled={!editTitle.trim()}
                 className="w-full sm:w-auto"
               >
                 Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </ButtonAny>
+            </DialogFooterAny>
+          </DialogContentAny>
+        </DialogAny>
       </div>
-    </SidebarMenuItem>
+    </SidebarMenuItemAny>
   );
 };
 
@@ -357,6 +387,8 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   if (prevProps.chat.title !== nextProps.chat.title) return false;
   return true;
 });
+
+const ChatItemAny = ChatItem as any;
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
@@ -437,8 +469,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
   if (!user) {
     return (
-      <SidebarGroup className="h-full">
-        <SidebarGroupContent className="h-full flex items-center justify-center">
+      <SidebarGroupAny className="h-full">
+        <SidebarGroupContentAny className="h-full flex items-center justify-center">
           <div className="px-4 py-8 text-center">
             <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-6 border border-border/30">
               <div className="text-muted-foreground text-sm font-medium mb-2">
@@ -449,18 +481,18 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               </div>
             </div>
           </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+        </SidebarGroupContentAny>
+      </SidebarGroupAny>
     );
   }
 
   if (isLoading) {
     return (
-      <SidebarGroup className="h-full">
+      <SidebarGroupAny className="h-full">
         <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
           Today
         </div>
-        <SidebarGroupContent className="h-full">
+        <SidebarGroupContentAny className="h-full">
           <div className="flex flex-col space-y-2">
             {[64, 48, 56, 72, 40].map((width, index) => (
               <div
@@ -475,15 +507,15 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               </div>
             ))}
           </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+        </SidebarGroupContentAny>
+      </SidebarGroupAny>
     );
   }
 
   if (history?.length === 0) {
     return (
-      <SidebarGroup className="h-full">
-        <SidebarGroupContent className="h-full flex items-center justify-center">
+      <SidebarGroupAny className="h-full">
+        <SidebarGroupContentAny className="h-full flex items-center justify-center">
           <div className="px-4 py-8 text-center">
             <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-6 border border-border/20">
               <div className="text-muted-foreground text-sm font-medium mb-2">
@@ -494,8 +526,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               </div>
             </div>
           </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+        </SidebarGroupContentAny>
+      </SidebarGroupAny>
     );
   }
 
@@ -541,8 +573,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   return (
     <>
       {/* Fixed: Add proper height constraints and scrolling */}
-      <SidebarGroup className="flex-1 min-h-0 h-full">
-        <SidebarGroupContent 
+      <SidebarGroupAny className="flex-1 min-h-0 h-full">
+        <SidebarGroupContentAny 
           className="h-full min-h-0"
           style={{
             // Force proper height calculation
@@ -559,7 +591,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               scrollbarColor: 'hsl(var(--muted-foreground) / 0.3) transparent',
             }}
           >
-            <SidebarMenu className="space-y-0.5 pb-4 px-1">
+            <SidebarMenuAny className="space-y-0.5 pb-4 px-1">
               {history &&
                 (() => {
                   const groupedChats = groupChatsByDate(history);
@@ -570,11 +602,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         <div>
                           <DateGroupHeader>Today</DateGroupHeader>
                           {groupedChats.today.map((chat) => (
-                            <ChatItem
+                            <ChatItemAny
                               key={chat.id}
                               chat={chat}
                               isActive={chat.id === id}
-                              onDelete={(chatId) => {
+                              onDelete={(chatId: string) => {
                                 setDeleteId(chatId);
                                 setShowDeleteDialog(true);
                               }}
@@ -591,11 +623,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         <div>
                           <DateGroupHeader>Yesterday</DateGroupHeader>
                           {groupedChats.yesterday.map((chat) => (
-                            <ChatItem
+                            <ChatItemAny
                               key={chat.id}
                               chat={chat}
                               isActive={chat.id === id}
-                              onDelete={(chatId) => {
+                              onDelete={(chatId: string) => {
                                 setDeleteId(chatId);
                                 setShowDeleteDialog(true);
                               }}
@@ -612,11 +644,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         <div>
                           <DateGroupHeader>Last 7 days</DateGroupHeader>
                           {groupedChats.lastWeek.map((chat) => (
-                            <ChatItem
+                            <ChatItemAny
                               key={chat.id}
                               chat={chat}
                               isActive={chat.id === id}
-                              onDelete={(chatId) => {
+                              onDelete={(chatId: string) => {
                                 setDeleteId(chatId);
                                 setShowDeleteDialog(true);
                               }}
@@ -633,11 +665,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         <div>
                           <DateGroupHeader>Last 30 days</DateGroupHeader>
                           {groupedChats.lastMonth.map((chat) => (
-                            <ChatItem
+                            <ChatItemAny
                               key={chat.id}
                               chat={chat}
                               isActive={chat.id === id}
-                              onDelete={(chatId) => {
+                              onDelete={(chatId: string) => {
                                 setDeleteId(chatId);
                                 setShowDeleteDialog(true);
                               }}
@@ -654,11 +686,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         <div>
                           <DateGroupHeader>Older</DateGroupHeader>
                           {groupedChats.older.map((chat) => (
-                            <ChatItem
+                            <ChatItemAny
                               key={chat.id}
                               chat={chat}
                               isActive={chat.id === id}
-                              onDelete={(chatId) => {
+                              onDelete={(chatId: string) => {
                                 setDeleteId(chatId);
                                 setShowDeleteDialog(true);
                               }}
@@ -673,36 +705,36 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                     </div>
                   );
                 })()}
-            </SidebarMenu>
+            </SidebarMenuAny>
           </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+        </SidebarGroupContentAny>
+      </SidebarGroupAny>
       
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg font-semibold">
+      <AlertDialogAny open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
+          <AlertDialogHeaderAny>
+            <AlertDialogTitleAny className="text-lg font-semibold">
               Delete conversation?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
+            </AlertDialogTitleAny>
+            <AlertDialogDescriptionAny className="text-sm text-muted-foreground leading-relaxed">
               This action cannot be undone. This will permanently delete your chat and remove it from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
-            <AlertDialogCancel 
+            </AlertDialogDescriptionAny>
+          </AlertDialogHeaderAny>
+          <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+            <AlertDialogCancelAny 
               className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200"
             >
               Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
+            </AlertDialogCancelAny>
+            <AlertDialogActionAny 
               onClick={handleDelete}
               className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
             >
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </AlertDialogActionAny>
+          </AlertDialogFooterAny>
+        </AlertDialogContentAny>
+      </AlertDialogAny>
 
       {/* Add these styles to ensure scrollbar is visible */}
       <style jsx>{`

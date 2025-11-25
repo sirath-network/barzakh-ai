@@ -17,6 +17,14 @@ import { CgSpinner } from "react-icons/cg";
 import { Image as ImageIcon, Paperclip } from "lucide-react";
 import { PreviewAttachment } from "./preview-attachment";
 
+const TextareaAny = Textarea as any;
+const ButtonAny = Button as any;
+const CgSpinnerAny = CgSpinner as any;
+const FiXAny = FiX as any;
+const FiSendAny = FiSend as any;
+const ImageIconAny = ImageIcon as any;
+const PaperclipAny = Paperclip as any;
+
 type EditableMedia = {
   id: string;
   url: string;
@@ -367,7 +375,7 @@ export function MessageEditor({
 
       <div className="flex flex-col w-full gap-5 rounded-3xl border border-border/40 bg-background/80 p-5 shadow-lg shadow-black/10 dark:bg-neutral-950/50">
         <div className="rounded-2xl border border-border/50 bg-background/90 p-1.5 shadow-inner shadow-black/5">
-          <Textarea
+          <TextareaAny
             ref={textareaRef}
             className="w-full border-none bg-transparent px-4 py-3 text-base placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
             value={editorState.text}
@@ -383,15 +391,15 @@ export function MessageEditor({
             to hop between branches.
           </p>
           <div className="flex flex-col gap-2 text-sm font-medium text-foreground md:flex-row">
-            <Button
+            <ButtonAny
               type="button"
               variant="ghost"
               className="h-10 rounded-xl border border-border/50 px-4 text-sm font-semibold md:w-auto"
               onClick={() => setMode("view")}
             >
               Cancel
-            </Button>
-            <Button
+            </ButtonAny>
+            <ButtonAny
               type="button"
               variant="default"
               className="h-10 rounded-xl px-5 text-sm font-semibold shadow-md shadow-primary/30 md:w-auto"
@@ -399,11 +407,11 @@ export function MessageEditor({
               onClick={handleSubmit}
             >
               {isSubmitting ? (
-                <CgSpinner className="h-4 w-4 animate-spin" />
+                <CgSpinnerAny className="h-4 w-4 animate-spin" />
               ) : (
                 "Save edits"
               )}
-            </Button>
+            </ButtonAny>
           </div>
         </div>
       </div>

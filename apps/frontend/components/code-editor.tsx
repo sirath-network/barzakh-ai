@@ -8,6 +8,13 @@ import { basicSetup } from 'codemirror';
 import React, { memo, useEffect, useRef, useState, useCallback } from 'react';
 import { Code, Copy, Download, Maximize2, Minimize2, Settings, Terminal } from 'lucide-react';
 
+const TerminalAny = Terminal as any;
+const SettingsAny = Settings as any;
+const CopyAny = Copy as any;
+const DownloadAny = Download as any;
+const Minimize2Any = Minimize2 as any;
+const Maximize2Any = Maximize2 as any;
+
 // Mock Suggestion type for demo
 type Suggestion = {
   id: string;
@@ -57,7 +64,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
           fontFamily: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace',
         },
       }),
-      EditorView.lineWrapping.of(wordWrap),
+      wordWrap ? EditorView.lineWrapping : [],
     ];
 
     return extensions;
@@ -169,7 +176,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
       {/* Header */}
       <div className="flex items-center justify-between bg-gray-800 px-3 py-2 border-b border-gray-700">
         <div className="flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-green-400" />
+          <TerminalAny className="w-4 h-4 text-green-400" />
           <span className="text-sm font-medium text-gray-300">Python Editor</span>
           {status === 'streaming' && (
             <div className="flex items-center gap-1">
@@ -187,21 +194,21 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
               title="Settings"
             >
-              <Settings className="w-4 h-4" />
+              <SettingsAny className="w-4 h-4" />
             </button>
             <button
               onClick={copyToClipboard}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
               title="Copy Code"
             >
-              <Copy className="w-4 h-4" />
+              <CopyAny className="w-4 h-4" />
             </button>
             <button
               onClick={downloadCode}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
               title="Download"
             >
-              <Download className="w-4 h-4" />
+              <DownloadAny className="w-4 h-4" />
             </button>
           </div>
           
@@ -211,7 +218,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
               onClick={() => setShowSettings(!showSettings)}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <SettingsAny className="w-4 h-4" />
             </button>
           </div>
           
@@ -220,7 +227,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
             className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2Any className="w-4 h-4" /> : <Maximize2Any className="w-4 h-4" />}
           </button>
         </div>
       </div>
@@ -271,14 +278,14 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
                 onClick={copyToClipboard}
                 className="w-full flex items-center gap-2 text-xs text-gray-300 hover:text-white p-1"
               >
-                <Copy className="w-3 h-3" />
+                <CopyAny className="w-3 h-3" />
                 Copy Code
               </button>
               <button
                 onClick={downloadCode}
                 className="w-full flex items-center gap-2 text-xs text-gray-300 hover:text-white p-1"
               >
-                <Download className="w-3 h-3" />
+                <DownloadAny className="w-3 h-3" />
                 Download
               </button>
             </div>

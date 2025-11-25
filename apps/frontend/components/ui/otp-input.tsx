@@ -4,6 +4,9 @@ import React, { useRef, useEffect, KeyboardEvent, ClipboardEvent, useState } fro
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
+const ClipboardCheckAny = ClipboardCheck as any;
+const ClipboardAny = Clipboard as any;
+
 interface OTPInputProps {
   length?: number;
   value: string;
@@ -230,12 +233,12 @@ export function OTPInput({
       >
         {isPasted ? (
           <>
-            <ClipboardCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <ClipboardCheckAny className="w-4 h-4 text-green-600 dark:text-green-400" />
             <span className="text-green-600 dark:text-green-400">Pasted!</span>
           </>
         ) : (
           <>
-            <Clipboard className="w-4 h-4" />
+            <ClipboardAny className="w-4 h-4" />
             <span>Paste Code</span>
           </>
         )}

@@ -19,6 +19,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+const PanelLeftAny = PanelLeft as any;
+const SlotAny = Slot as any;
+
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = '16rem';
@@ -295,7 +298,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <PanelLeft />
+      <PanelLeftAny />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
@@ -449,7 +452,7 @@ const SidebarGroupLabel = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<'div'> & { asChild?: boolean }
 >(({ className, asChild = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : 'div';
+  const Comp = asChild ? SlotAny : 'div';
 
   return (
     <Comp
@@ -470,7 +473,7 @@ const SidebarGroupAction = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<'button'> & { asChild?: boolean }
 >(({ className, asChild = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : 'button';
+  const Comp = asChild ? SlotAny : 'button';
 
   return (
     <Comp
@@ -569,7 +572,7 @@ const SidebarMenuButton = React.forwardRef<
     },
     ref,
   ) => {
-    const Comp = asChild ? Slot : 'button';
+    const Comp = asChild ? SlotAny : 'button';
     const { isMobile, state } = useSidebar();
 
     const button = (
@@ -615,7 +618,7 @@ const SidebarMenuAction = React.forwardRef<
     showOnHover?: boolean;
   }
 >(({ className, asChild = false, showOnHover = false, ...props }, ref) => {
-  const Comp = asChild ? Slot : 'button';
+  const Comp = asChild ? SlotAny : 'button';
 
   return (
     <Comp
@@ -727,7 +730,7 @@ const SidebarMenuSubButton = React.forwardRef<
     isActive?: boolean;
   }
 >(({ asChild = false, size = 'md', isActive, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : 'a';
+  const Comp = asChild ? SlotAny : 'a';
 
   return (
     <Comp

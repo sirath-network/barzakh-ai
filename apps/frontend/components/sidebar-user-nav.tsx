@@ -20,6 +20,15 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+const SidebarMenuAny = SidebarMenu as any;
+const SidebarMenuItemAny = SidebarMenuItem as any;
+const SidebarMenuButtonAny = SidebarMenuButton as any;
+const DropdownMenuAny = DropdownMenu as any;
+const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+const DropdownMenuContentAny = DropdownMenuContent as any;
+const DropdownMenuItemAny = DropdownMenuItem as any;
+const DropdownMenuSeparatorAny = DropdownMenuSeparator as any;
+
 interface SidebarUserNavProps {
   user: User;
 }
@@ -53,11 +62,11 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
   };
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background/80 data-[state=open]:text-sidebar-accent-foreground h-12 hover:bg-muted/60 transition-all duration-200 rounded-xl border border-border/30 shadow-sm hover:shadow-md">
+    <SidebarMenuAny>
+      <SidebarMenuItemAny>
+        <DropdownMenuAny>
+          <DropdownMenuTriggerAny asChild>
+            <SidebarMenuButtonAny className="data-[state=open]:bg-sidebar-accent bg-background/80 data-[state=open]:text-sidebar-accent-foreground h-12 hover:bg-muted/60 transition-all duration-200 rounded-xl border border-border/30 shadow-sm hover:shadow-md">
               <div className="flex w-full items-center justify-start gap-3">
                 {user?.image ? (
                   <Image
@@ -86,25 +95,25 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
                 </div>
                 <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </div>
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
+            </SidebarMenuButtonAny>
+          </DropdownMenuTriggerAny>
 
-          <DropdownMenuContent 
+          <DropdownMenuContentAny 
             side="top" 
             className="w-full min-w-[240px] shadow-xl border-border/50 bg-background/95 backdrop-blur-sm rounded-xl" 
             sideOffset={8}
           >
             <div className="block md:hidden">
-              <DropdownMenuItem className="focus:bg-muted/60 rounded-lg mx-1">
+              <DropdownMenuItemAny className="focus:bg-muted/60 rounded-lg mx-1">
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{user?.name || "User"}</span>
                   <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
                 </div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="mx-1" />
+              </DropdownMenuItemAny>
+              <DropdownMenuSeparatorAny className="mx-1" />
             </div>
 
-            <DropdownMenuItem
+            <DropdownMenuItemAny
               className="cursor-pointer focus:bg-muted/60 rounded-lg mx-1 transition-colors duration-200"
               onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
@@ -112,20 +121,20 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
                 <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
                 <span className="font-medium">{`Switch to ${theme === "light" ? "dark" : "light"} mode`}</span>
               </div>
-            </DropdownMenuItem>
+            </DropdownMenuItemAny>
 
-            <DropdownMenuSeparator className="mx-1" />
+            <DropdownMenuSeparatorAny className="mx-1" />
 
-            <DropdownMenuItem
+            <DropdownMenuItemAny
               className="cursor-pointer focus:bg-muted/60 rounded-lg mx-1 transition-colors duration-200"
               onSelect={handleSettingsClick} // Call the updated function
             >
               <span className="font-medium">Settings</span>
-            </DropdownMenuItem>
+            </DropdownMenuItemAny>
 
-            <DropdownMenuSeparator className="mx-1" />
+            <DropdownMenuSeparatorAny className="mx-1" />
 
-            <DropdownMenuItem asChild>
+            <DropdownMenuItemAny asChild>
               <button
                 type="button"
                 className="w-full cursor-pointer focus:bg-destructive/10 focus:text-destructive rounded-lg mx-1 transition-colors duration-200 font-medium"
@@ -133,10 +142,10 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
               >
                 Sign out
               </button>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+            </DropdownMenuItemAny>
+          </DropdownMenuContentAny>
+        </DropdownMenuAny>
+      </SidebarMenuItemAny>
+    </SidebarMenuAny>
   );
 }

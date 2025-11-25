@@ -210,7 +210,7 @@ export const webSearch = tool({
       for (const query of queries) {
         try {
           console.log(`Searching News for: ${query}`);
-          const result = await newsSearch.execute({ query });
+          const result = await newsSearch.execute({ query }, { toolCallId: 'internal-call', messages: [] });
           newsSearchResults.push(result);
           console.log(`News search completed for: ${query}`);
         } catch (error) {
