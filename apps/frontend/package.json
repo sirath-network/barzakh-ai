@@ -120,6 +120,7 @@
     "swr": "^2.2.5",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "@tailwindcss/typography": "^0.5.15",
     "thirdweb": "^5.112.4",
     "usehooks-ts": "^3.1.0",
     "vaul": "^1.1.2",
@@ -132,7 +133,6 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
-    "@tailwindcss/typography": "^0.5.15",
     "@types/bcryptjs": "^3.0.0",
     "@types/d3-scale": "^4.0.8",
     "@types/mime-types": "^3.0.1",
