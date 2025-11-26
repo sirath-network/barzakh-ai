@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const baseUrl = "https://sirath.network";
@@ -111,6 +112,7 @@ export default async function RootLayout({
           >
             <Toaster position="top-center" />
             {children}
+            <SpeedInsights />
           </ThemeProvider>
         </SessionProvider>
       </body>
