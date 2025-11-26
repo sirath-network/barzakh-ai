@@ -1,0 +1,1096 @@
+openapi: "3.0.3"
+info:
+  title: Barzakh AI API
+  version: "1.0.0"
+  description: |
+    API schema for Barzakh AI platform.
+    This schema is used by Cloudflare API Shield to validate incoming requests.
+  contact:
+    name: Barzakh Support
+    url: https://barzakh.ai/contact
+
+servers:
+  - url: https://barzakh.ai
+    description: Frontend (Main Application)
+  - url: https://api.barzakh.ai
+    description: Backend (External API)
+
+tags:
+  - name: Authentication
+    description: User authentication and 2FA endpoints
+  - name: Billing
+    description: Subscription and payment management
+  - name: Chat
+    description: Chat and AI completion endpoints
+  - name: Account
+    description: User account management
+  - name: Settings
+    description: User settings and preferences
+  - name: Files
+    description: File upload and image handling
+  - name: Webhooks
+    description: External service webhooks
+
+paths:
+  # ============================================
+  # AUTHENTICATION ENDPOINTS
+  # ============================================
+  /api/auth/callback/{provider}:
+    get:
+      tags: [Authentication]
+      operationId: authCallback
+      summary: OAuth callback handler
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, credentials]
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect after authentication
+
+  /api/auth/signin:
+    get:
+      tags: [Authentication]
+      operationId: getSignIn
+      summary: Get sign in page
+      responses:
+        "200":
+          description: Sign in page
+    post:
+      tags: [Authentication]
+      operationId: postSignIn
+      summary: Sign in with credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: Sign in successful
+
+  /api/auth/signout:
+    post:
+      tags: [Authentication]
+      operationId: signOut
+      summary: Sign out user
+      responses:
+        "200":
+          description: Sign out successful
+
+  /api/auth/session:
+    get:
+      tags: [Authentication]
+      operationId: getSession
+      summary: Get current session
+      responses:
+        "200":
+          description: Session data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+
+  /api/auth/resend-otp:
+    post:
+      tags: [Authentication]
+      operationId: resendOtp
+      summary: Resend OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+      responses:
+        "200":
+          description: OTP sent
+
+  # ============================================
+  # 2FA ENDPOINTS
+  # ============================================
+  /api/2fa/temp-login:
+    post:
+      tags: [Authentication]
+      operationId: tempLogin
+      summary: Temporary login for 2FA setup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TempLoginRequest"
+      responses:
+        "200":
+          description: Temporary token issued
+
+  /api/2fa/complete-login:
+    post:
+      tags: [Authentication]
+      operationId: completeLogin
+      summary: Complete login with 2FA code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Complete2FARequest"
+      responses:
+        "200":
+          description: Login completed
+
+  /api/2fa/forgot-password-verify:
+    post:
+      tags: [Authentication]
+      operationId: forgotPasswordVerify
+      summary: Verify forgot password with 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPassword2FARequest"
+      responses:
+        "200":
+          description: Verification successful
+
+  # ============================================
+  # BILLING ENDPOINTS
+  # ============================================
+  /api/billing/subscription:
+    get:
+      tags: [Billing]
+      operationId: getSubscription
+      summary: Get current subscription
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/create-checkout-session:
+    post:
+      tags: [Billing]
+      operationId: createCheckoutSession
+      summary: Create Stripe checkout session
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/manage-subscription:
+    post:
+      tags: [Billing]
+      operationId: manageSubscription
+      summary: Open Stripe customer portal
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Portal URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/cancel-subscription:
+    post:
+      tags: [Billing]
+      operationId: cancelSubscription
+      summary: Cancel current subscription
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Subscription cancelled
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/payment-methods:
+    get:
+      tags: [Billing]
+      operationId: getPaymentMethods
+      summary: Get saved payment methods
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Payment methods list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethodsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/create-setup-intent:
+    post:
+      tags: [Billing]
+      operationId: createSetupIntent
+      summary: Create setup intent for new payment method
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Setup intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clientSecret:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/invoices:
+    get:
+      tags: [Billing]
+      operationId: getInvoices
+      summary: Get billing history
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: starting_after
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Invoices list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoicesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # ACCOUNT ENDPOINTS
+  # ============================================
+  /api/account/delete:
+    delete:
+      tags: [Account]
+      operationId: deleteAccount
+      summary: Delete user account
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confirmation:
+                  type: string
+                  enum: ["DELETE"]
+      responses:
+        "200":
+          description: Account deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # EMAIL CHANGE ENDPOINTS
+  # ============================================
+  /api/changes-email/request-email-change:
+    post:
+      tags: [Account]
+      operationId: requestEmailChange
+      summary: Request email change
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newEmail]
+              properties:
+                newEmail:
+                  type: string
+                  format: email
+                  maxLength: 255
+      responses:
+        "200":
+          description: Verification email sent
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/changes-email/verify-email-change:
+    post:
+      tags: [Account]
+      operationId: verifyEmailChange
+      summary: Verify email change with code
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          description: Email changed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # SETTINGS ENDPOINTS
+  # ============================================
+  /api/settings:
+    get:
+      tags: [Settings]
+      operationId: getSettings
+      summary: Get user settings
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: username
+          in: query
+          schema:
+            type: string
+            maxLength: 50
+      responses:
+        "200":
+          description: Settings data
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Settings]
+      operationId: updateSettings
+      summary: Update user settings
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdateRequest"
+      responses:
+        "200":
+          description: Settings updated
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # CHAT ENDPOINTS (Frontend)
+  # ============================================
+  /api/chat:
+    get:
+      tags: [Chat]
+      operationId: getChats
+      summary: Get user chats
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chats list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    delete:
+      tags: [Chat]
+      operationId: deleteChat
+      summary: Delete a chat
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Chat deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # FILE ENDPOINTS
+  # ============================================
+  # Note: /api/files/upload uses multipart/form-data which Cloudflare API Shield
+  # cannot validate. This endpoint is protected by session auth and file size
+  # limits at the application level instead.
+  /api/files/upload:
+    post:
+      tags: [Files]
+      operationId: uploadFile
+      summary: Upload a file
+      description: |
+        Uploads a file using multipart/form-data.
+        Request body validation is not supported by Cloudflare API Shield.
+        Protection is handled via session authentication and server-side validation.
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: File too large
+
+  /api/proxy-image:
+    post:
+      tags: [Files]
+      operationId: proxyImage
+      summary: Proxy external image
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+      responses:
+        "200":
+          description: Proxied image data
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/persist-image:
+    post:
+      tags: [Files]
+      operationId: persistImage
+      summary: Persist image to storage
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  maxLength: 2048
+                filename:
+                  type: string
+                  maxLength: 255
+      responses:
+        "200":
+          description: Image persisted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # WEBHOOK ENDPOINTS
+  # ============================================
+  /api/webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      operationId: stripeWebhook
+      summary: Stripe webhook handler
+      security:
+        - StripeSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook processed
+        "400":
+          description: Invalid signature
+
+  # ============================================
+  # CRON ENDPOINTS
+  # ============================================
+  /api/messagelimitcron:
+    get:
+      tags: [Internal]
+      operationId: messageLimitCron
+      summary: Reset daily message limits
+      security:
+        - CronAuth: []
+      responses:
+        "200":
+          description: Limits reset
+
+  # ============================================
+  # ZERION API PROXY
+  # ============================================
+  /api/zerion/protocols:
+    get:
+      tags: [External APIs]
+      operationId: getZerionProtocols
+      summary: Get DeFi protocols from Zerion
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^0x[a-fA-F0-9]{40}$"
+      responses:
+        "200":
+          description: Protocols data
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # BACKEND API - CHAT COMPLETIONS
+  # ============================================
+  /api/chat/completions:
+    post:
+      tags: [Chat]
+      operationId: createChatCompletion
+      summary: Create chat completion (OpenAI-compatible)
+      servers:
+        - url: https://api.barzakh.ai
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatCompletionRequest"
+      responses:
+        "200":
+          description: Chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatCompletionResponse"
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-sent events stream
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /api/completions:
+    post:
+      tags: [Chat]
+      operationId: createCompletion
+      summary: Create completion (legacy)
+      servers:
+        - url: https://api.barzakh.ai
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatCompletionRequest"
+      responses:
+        "200":
+          description: Completion response
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+# ============================================
+# COMPONENTS
+# ============================================
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: __Secure-authjs.session-token
+      description: NextAuth.js session cookie
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API key as Bearer token
+
+    StripeSignature:
+      type: apiKey
+      in: header
+      name: stripe-signature
+      description: Stripe webhook signature
+
+    CronAuth:
+      type: apiKey
+      in: header
+      name: authorization
+      description: Cron job authorization
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        turnstileToken:
+          type: string
+
+    TempLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+
+    Complete2FARequest:
+      type: object
+      required: [tempToken, code]
+      properties:
+        tempToken:
+          type: string
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: "^[0-9]{6}$"
+
+    ForgotPassword2FARequest:
+      type: object
+      required: [email, code]
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+
+    SessionResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+            image:
+              type: string
+              format: uri
+            tier:
+              type: string
+              enum: [free, pro, ultimate]
+        expires:
+          type: string
+          format: date-time
+
+    SubscriptionResponse:
+      type: object
+      properties:
+        subscription:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+              enum: [active, canceled, past_due, trialing]
+            currentPeriodEnd:
+              type: string
+              format: date-time
+            cancelAtPeriodEnd:
+              type: boolean
+            plan:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                interval:
+                  type: string
+                  enum: [month, quarter, year]
+
+    CheckoutRequest:
+      type: object
+      required: [priceId]
+      properties:
+        priceId:
+          type: string
+          maxLength: 100
+        successUrl:
+          type: string
+          format: uri
+        cancelUrl:
+          type: string
+          format: uri
+
+    CheckoutResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        sessionId:
+          type: string
+
+    PaymentMethodsResponse:
+      type: object
+      properties:
+        paymentMethods:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              card:
+                type: object
+                properties:
+                  brand:
+                    type: string
+                  last4:
+                    type: string
+                  expMonth:
+                    type: integer
+                  expYear:
+                    type: integer
+        defaultPaymentMethodId:
+          type: string
+          nullable: true
+
+    InvoicesResponse:
+      type: object
+      properties:
+        invoices:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              amount:
+                type: integer
+              currency:
+                type: string
+              status:
+                type: string
+              created:
+                type: integer
+              invoicePdf:
+                type: string
+                format: uri
+        hasMore:
+          type: boolean
+        nextCursor:
+          type: string
+          nullable: true
+
+    SettingsUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: "^[a-zA-Z0-9_-]+$"
+        name:
+          type: string
+          maxLength: 100
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        currentPassword:
+          type: string
+
+    FileUploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        filename:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+
+    ChatCompletionRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        selectedChatModel:
+          type: string
+          enum:
+            - gpt-4o
+            - gpt-4o-mini
+            - gpt-4-turbo
+            - claude-sonnet
+            - claude-haiku
+            - gemini-2.0-flash
+            - gemini-1.5-pro
+            - deepseek-chat
+          default: gpt-4o-mini
+        group:
+          type: string
+          enum:
+            - search
+            - imagine
+            - multimodal
+            - code
+          default: search
+        stream:
+          type: boolean
+          default: true
+        max_tokens:
+          type: integer
+          minimum: 1
+          maximum: 32768
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+        content:
+          oneOf:
+            - type: string
+              maxLength: 100000
+            - type: array
+              maxItems: 20
+              items:
+                $ref: "#/components/schemas/ContentPart"
+
+    ContentPart:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [text, image]
+        text:
+          type: string
+          maxLength: 100000
+        image:
+          type: string
+          format: uri
+          maxLength: 10000
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          enum: [chat.completion, chat.completion.chunk]
+        created:
+          type: integer
+        model:
+          type: string
+        system_fingerprint:
+          type: string
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              message:
+                $ref: "#/components/schemas/ChatMessage"
+              delta:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  content:
+                    type: string
+              finish_reason:
+                type: string
+                enum: [stop, length, tool_calls, content_filter, null]
+                nullable: true
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
