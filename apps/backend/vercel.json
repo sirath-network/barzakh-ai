@@ -1,5 +1,5 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
-    "buildCommand": "cd ../.. && npm run build -- --filter=barzakh-api",
+    "buildCommand": "cd ../.. && pnpm run build -- --filter=barzakh-api",
     "outputDirectory": ".next"
 }
