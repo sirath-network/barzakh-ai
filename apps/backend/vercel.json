@@ -1,5 +1,10 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
+    "git": {
+        "deploymentEnabled": {
+            "dev-legacy": false
+        }
+    },
     "framework": "nextjs",
     "buildCommand": "cd ../.. && pnpm run build --filter=barzakh-api",
     "outputDirectory": ".next",
