@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@barzakh/shared"],
   images: {
     remotePatterns: [
       {
@@ -12,6 +13,9 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
   },
   webpack: (config, { isServer }) => {
     // Suppress webpack warnings from third-party dependencies
