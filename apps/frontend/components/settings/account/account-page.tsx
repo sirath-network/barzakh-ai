@@ -176,9 +176,6 @@ export default function AccountSettingsPage() {
       const newAvatarUrl = data.url;
       setAvatar(newAvatarUrl);
       
-      // Automatically save the avatar to the profile
-      toast.success("Avatar uploaded! Saving...");
-      
       const saveRes = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

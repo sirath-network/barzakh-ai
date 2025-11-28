@@ -22,7 +22,7 @@ export default function Page() {
   const [formData, setFormData] = useState<{ email: string; password: string } | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
-  const [lastProcessedStatus, setLastProcessedStatus] = useState<string>("");
+  const [lastProcessedTimestamp, setLastProcessedTimestamp] = useState<number>(0);
   const formRef = useRef<HTMLFormElement>(null);
   const turnstileRef = useRef<TurnstileInstance>(null);
   const spline = useRef<Application | null>(null);
@@ -104,36 +104,36 @@ export default function Page() {
   useEffect(() => {
     console.log('State changed:', state);
     
-    // Only process if status actually changed to prevent duplicate toasts
-    if (lastProcessedStatus === state.status) {
+    // Only process if timestamp actually changed to prevent duplicate toasts
+    if (state.timestamp && state.timestamp === lastProcessedTimestamp) {
       return;
     }
     
+    if (state.timestamp) {
+      setLastProcessedTimestamp(state.timestamp);
+    }
+    
     if (state.status === "user_exists") {
-      setLastProcessedStatus("user_exists");
       toast.error("Account already exists");
       turnstileRef.current?.reset();
     } else if (state.status === "failed") {
-      setLastProcessedStatus("failed");
       toast.error("Failed to create account. Please check your connection and try again.");
       turnstileRef.current?.reset();
     } else if (state.status === "invalid_data") {
-      setLastProcessedStatus("invalid_data");
       // Inline errors are displayed by the AuthForm component, so we only need a generic fallback toast.
       if (!state.fieldErrors || Object.keys(state.fieldErrors).length === 0) {
         toast.error("Please check your input and try again.");
       }
       turnstileRef.current?.reset();
     } else if (state.status === "too_small") {
-      setLastProcessedStatus("too_small");
       toast.error("Password should be at least 8 characters long.");
       turnstileRef.current?.reset();
     } else if (state.status === "otp_sent") {
-      setLastProcessedStatus("otp_sent");
       setShowOTPField(true);
       toast.success("Verification code sent to your email");
+      // Reset turnstile to get a fresh token for the next action (OTP verification or resend)
+      turnstileRef.current?.reset();
     } else if (state.status === "otp_verified") {
-      setLastProcessedStatus("otp_verified");
       setIsSuccessful(true);
       toast.success("Account created successfully! Redirecting...");
       setTimeout(() => router.push("/login"), 2000);
@@ -143,7 +143,7 @@ export default function Page() {
     if (state.email && state.email !== email) {
       setEmail(state.email);
     }
-  }, [state, router, email, lastProcessedStatus]);
+  }, [state, router, email, lastProcessedTimestamp]);
 
   const handleFormAction = (currentFormData: FormData) => {
     // Don't submit if already successful
@@ -276,7 +276,7 @@ export default function Page() {
         >
             <img
             alt="Brand Banner"
-            src="/images/barzakh/banner/sirath-banner.svg"
+            src="/images/barzakh/banner/sirath-banner.png"
             className="w-48 h-auto mb-4 mx-auto"
             />
             <h1 className="text-3xl font-bold text-white">All Features. One Platform!</h1>
@@ -301,7 +301,7 @@ export default function Page() {
                     <div className="space-y-2 text-center">
                         <img
                           alt="Brand Banner"
-                          src="/images/barzakh/banner/sirath-banner.svg"
+                          src="/images/barzakh/banner/sirath-banner.png"
                           className="w-32 h-auto mx-auto lg:hidden"
                         />
                         <h1 className="text-3xl font-bold">
@@ -312,6 +312,23 @@ export default function Page() {
                             ? `Enter the code sent to ${email}`
                             : "Get started for free."}
                         </p>
+                        {showOTPField && (
+                            <p className="text-sm text-muted-foreground">
+                                We&apos;ve sent a code to your email
+                            </p>
+                        )}
+                        {showOTPField && (
+                          <div className="text-center mt-2">
+                            <button
+                              type="button"
+                              onClick={handleResendOTP}
+                              disabled={isPending}
+                              className="text-sm text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isPending ? "Sending..." : "Didn't receive the code? Resend"}
+                            </button>
+                          </div>
+                        )}
                     </div>
 
                     <form action={handleFormAction}>
@@ -323,7 +340,6 @@ export default function Page() {
                             showOTPField={showOTPField}
                             emailLabel="Email"
                             forgotPasswordNeeded={false}
-                            onResendOTP={showOTPField ? handleResendOTP : undefined}
                             onTurnstileSuccess={handleTurnstileSuccess}
                             turnstileToken={turnstileToken}
                             turnstileRef={turnstileRef}

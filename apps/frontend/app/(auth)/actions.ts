@@ -308,6 +308,7 @@ export interface RegisterActionState {
     otp?: string[];
   };
   email?: string;
+  timestamp?: number;
 }
 
     // Modify the register action to handle OTP flow
@@ -315,6 +316,7 @@ export interface RegisterActionState {
       prevState: RegisterActionState,
       formData: FormData
     ): Promise<RegisterActionState> => {
+      const timestamp = Date.now();
       try {
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
@@ -324,7 +326,7 @@ export interface RegisterActionState {
         const isTurnstileValid = await verifyTurnstile(turnstileResponse);
 
         if (!isTurnstileValid) {
-          return { status: "failed" };
+          return { status: "failed", timestamp };
         }
 
         console.log('Registration attempt:', { email, hasOtp: !!otp });
@@ -338,7 +340,8 @@ export interface RegisterActionState {
             return { 
               status: "invalid_data",
               fieldErrors: { otp: ["Invalid or expired OTP"] },
-              email
+              email,
+              timestamp
             };
           }
 
@@ -348,7 +351,8 @@ export interface RegisterActionState {
           
           return { 
             status: "otp_verified",
-            email
+            email,
+            timestamp
           };
         }
 
@@ -364,7 +368,8 @@ export interface RegisterActionState {
             return {
               status: "invalid_data",
               fieldErrors: error.flatten().fieldErrors,
-              email
+              email,
+              timestamp
             };
           }
           throw error;
@@ -377,6 +382,7 @@ export interface RegisterActionState {
                 status: "user_exists",
                 fieldErrors: { email: ["An account with this email already exists."] },
                 email,
+                timestamp
             };
         }
 
@@ -387,7 +393,8 @@ export interface RegisterActionState {
 
         return { 
           status: "otp_sent",
-          email
+          email,
+          timestamp
         };
     } catch (error) {
         console.error('Registration error:', error);
@@ -397,6 +404,7 @@ export interface RegisterActionState {
             return {
                 status: "user_exists",
                 fieldErrors: { email: ["An account with this email already exists."] },
+                timestamp
             };
         }
 
@@ -404,11 +412,12 @@ export interface RegisterActionState {
         return {
             status: "invalid_data",
             fieldErrors: error.flatten().fieldErrors,
+            timestamp
         };
         }
         
         captureException(error).catch(console.error);
-        return { status: "failed" };
+        return { status: "failed", timestamp };
     }
 };
 

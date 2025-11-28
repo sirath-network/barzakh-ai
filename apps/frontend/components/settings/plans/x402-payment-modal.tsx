@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp, LogOut } from "lucide-react";
 import { parseUnits, encodeFunctionData, formatUnits } from "viem";
 
 interface X402PaymentModalProps {
@@ -107,6 +107,22 @@ export function X402PaymentModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const disconnectWallet = async () => {
+    try {
+      if (typeof window !== "undefined" && (window as any).ethereum) {
+        await (window as any).ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }],
+        });
+      }
+    } catch (error) {
+      console.log("Revoke permissions not supported or cancelled", error);
+    }
+    setConnectedAddress(null);
+    setUserBalance(null);
+    toast.info("Wallet disconnected");
+  };
+
   const connectWallet = async () => {
     if (typeof window === "undefined" || !(window as any).ethereum) {
       toast.error("MetaMask not found");
@@ -118,11 +134,11 @@ export function X402PaymentModal({
       const ethereum = (window as any).ethereum;
       await ethereum.request({ method: "eth_requestAccounts" });
       
-      // Switch to Base Sepolia
+      // Switch to Base Mainnet
       try {
         await ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x14a34" }], // 84532 in hex
+          params: [{ chainId: "0x2105" }], // 8453 in hex
         });
       } catch (switchError: any) {
         if (switchError.code === 4902) {
@@ -130,15 +146,15 @@ export function X402PaymentModal({
             method: "wallet_addEthereumChain",
             params: [
               {
-                chainId: "0x14a34",
-                chainName: "Base Sepolia",
-                rpcUrls: ["https://sepolia.base.org"],
+                chainId: "0x2105",
+                chainName: "Base",
+                rpcUrls: ["https://mainnet.base.org"],
                 nativeCurrency: {
                   name: "Ether",
                   symbol: "ETH",
                   decimals: 18,
                 },
-                blockExplorerUrls: ["https://sepolia.basescan.org"],
+                blockExplorerUrls: ["https://basescan.org"],
               },
             ],
           });
@@ -182,6 +198,52 @@ export function X402PaymentModal({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const verifyWithRetry = async (hash: string, maxRetries = 5) => {
+    let retries = maxRetries;
+    const toastId = toast.loading("Verifying payment...");
+
+    while (retries > 0) {
+      try {
+        const res = await fetch("/api/billing/x402/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transactionHash: hash, planId, billingCycle }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          toast.dismiss(toastId);
+          toast.success("Payment verified! Subscription active.");
+          onSuccess();
+          onClose();
+          return true;
+        } else if (res.status === 409 && data.code === "BLOCK_NOT_FOUND") {
+           // Retryable error
+           console.log(`Block not found, retrying verification... (${retries} left)`);
+           toast.loading(`Verifying... Block confirmation pending (${retries} retries left)`, { id: toastId });
+           retries--;
+           await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
+           continue;
+        } else {
+          toast.dismiss(toastId);
+          toast.error(data.error || "Verification failed");
+          setStep("payment");
+          return false;
+        }
+      } catch (error) {
+        console.error(error);
+        // Network error, maybe retry?
+        retries--;
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+    toast.dismiss(toastId);
+    toast.error("Verification timed out. Please try again manually.");
+    setStep("payment");
+    return false;
   };
 
   const handlePayWithMetaMask = async () => {
@@ -230,8 +292,8 @@ export function X402PaymentModal({
       });
 
       setTxHash(newTxHash);
-      toast.success("Transaction sent! Waiting for confirmation...");
-      setIsWaitingConfirmation(true);
+      
+      const confirmationToastId = toast.loading("Waiting for transaction confirmation...");
       
       // Wait for transaction confirmation
       const waitForConfirmation = async (hash: string): Promise<boolean> => {
@@ -248,8 +310,10 @@ export function X402PaymentModal({
             if (receipt) {
               // Check if transaction was successful (status 0x1)
               if (receipt.status === "0x1") {
+                toast.dismiss(confirmationToastId);
                 return true;
               } else {
+                toast.dismiss(confirmationToastId);
                 toast.error("Transaction failed on-chain");
                 return false;
               }
@@ -263,6 +327,7 @@ export function X402PaymentModal({
           attempts++;
         }
         
+        toast.dismiss(confirmationToastId);
         return false; // Timeout
       };
 
@@ -273,30 +338,9 @@ export function X402PaymentModal({
       setIsWaitingConfirmation(false);
       
       if (confirmed) {
-        toast.success("Transaction confirmed! Verifying payment...");
-        // Auto-trigger verification
+        // Auto-trigger verification (toast is handled inside verifyWithRetry)
         setStep("verifying");
-        try {
-          const res = await fetch("/api/billing/x402/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transactionHash: newTxHash, planId, billingCycle }),
-          });
-
-          const data = await res.json();
-          if (res.ok && data.success) {
-            toast.success("Payment verified! Subscription active.");
-            onSuccess();
-            onClose();
-          } else {
-            toast.error(data.error || "Verification failed");
-            setStep("payment");
-          }
-        } catch (verifyError) {
-          console.error(verifyError);
-          toast.error("Error verifying payment. Please click 'Verify Payment' manually.");
-          setStep("payment");
-        }
+        await verifyWithRetry(newTxHash);
       } else {
         toast.info("Could not confirm transaction automatically. Please verify manually.");
       }
@@ -317,21 +361,7 @@ export function X402PaymentModal({
     if (!txHash) return;
     try {
       setStep("verifying");
-      const res = await fetch("/api/billing/x402/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactionHash: txHash, planId, billingCycle }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success("Payment verified! Subscription active.");
-        onSuccess();
-        onClose();
-      } else {
-        toast.error(data.error || "Verification failed");
-        setStep("payment");
-      }
+      await verifyWithRetry(txHash);
     } catch (error) {
       console.error(error);
       toast.error("Error verifying payment");
@@ -341,23 +371,24 @@ export function X402PaymentModal({
 
   return (
     <DialogAny open={isOpen} onOpenChange={onClose}>
-      <DialogContentAny className="sm:max-w-md">
+      <DialogContentAny className="sm:max-w-md w-[90%] rounded-xl">
         <DialogHeaderAny>
           <DialogTitleAny>Pay with Crypto (x402)</DialogTitleAny>
           <DialogDescriptionAny>
-            Secure payment via Base Sepolia
+            Secure payment via Base
           </DialogDescriptionAny>
         </DialogHeaderAny>
 
+        <div className="overflow-y-auto max-h-[60vh] sm:max-h-[70vh] px-1">
         {step === "init" && (
-          <div className="flex flex-col items-center justify-center py-8 space-y-6">
-            <div className="p-4 bg-primary/10 rounded-full">
-                <Wallet className="h-8 w-8 text-primary" />
+          <div className="flex flex-col items-center justify-center py-6 space-y-5">
+            <div className="p-3 bg-primary/10 rounded-full">
+                <Wallet className="h-6 w-6 text-primary" />
             </div>
             <div className="text-center space-y-2">
                 <h3 className="font-medium">Crypto Payment</h3>
                 <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-                  Subscribe to the <strong>{planId.toUpperCase()}</strong> plan using USDC on Base Sepolia.
+                  Subscribe to the <strong>{planId.toUpperCase()}</strong> plan using USDC on Base.
                 </p>
             </div>
             <ButtonAny onClick={initPayment} disabled={isLoading} className="w-full max-w-xs">
@@ -382,7 +413,7 @@ export function X402PaymentModal({
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Send to address</span>
-                    <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">Base Sepolia</span>
+                    <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">Base</span>
                 </div>
                 <div className="flex items-center gap-2 p-2 bg-background rounded border shadow-sm">
                   <code className="flex-1 text-xs font-mono truncate text-muted-foreground">
@@ -423,9 +454,18 @@ export function X402PaymentModal({
                                     }`}>
                                         <Wallet className="h-3.5 w-3.5" />
                                     </div>
-                                    <span className="text-sm font-medium">
-                                        {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
-                                    </span>
+                                    <div className="flex flex-col items-start">
+                                        <span className="text-sm font-medium">
+                                            {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
+                                        </span>
+                                        <button 
+                                            onClick={disconnectWallet}
+                                            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
+                                        >
+                                            <LogOut className="h-3 w-3" />
+                                            Disconnect
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-xs text-muted-foreground">Balance</div>
@@ -477,7 +517,7 @@ export function X402PaymentModal({
                             This usually takes a few seconds. Please don't close this window.
                         </p>
                         <a 
-                            href={`https://sepolia.basescan.org/tx/${txHash}`}
+                            href={`https://basescan.org/tx/${txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300 hover:underline mt-1"
@@ -532,6 +572,7 @@ export function X402PaymentModal({
             <p className="text-sm text-muted-foreground">Verifying transaction on-chain...</p>
           </div>
         )}
+        </div>
       </DialogContentAny>
     </DialogAny>
   );

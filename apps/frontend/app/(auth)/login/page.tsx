@@ -311,7 +311,7 @@ export default function Page() {
           >
               <img
                 alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.svg" 
+                src="/images/barzakh/banner/sirath-banner.png" 
                 className="w-48 h-auto mb-4 mx-auto" 
               />
               <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
@@ -333,7 +333,7 @@ export default function Page() {
             <div className="space-y-2 text-center">
               <img
                 alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.svg"
+                src="/images/barzakh/banner/sirath-banner.png"
                 className="w-32 h-auto mx-auto lg:hidden"
               />
               <h1 className="text-3xl font-bold">Sign In</h1>

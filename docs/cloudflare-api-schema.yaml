@@ -315,6 +315,101 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/billing/update-subscription:
+    post:
+      tags: [Billing]
+      operationId: updateSubscription
+      summary: Update existing Stripe subscription
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionRequest"
+      responses:
+        "200":
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateSubscriptionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No active subscription found
+
+  # ============================================
+  # X402 CRYPTO PAYMENT ENDPOINTS
+  # ============================================
+  /api/billing/x402/subscribe:
+    post:
+      tags: [Billing]
+      operationId: x402Subscribe
+      summary: Initiate x402 crypto payment for subscription
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/X402SubscribeRequest"
+      responses:
+        "402":
+          description: Payment required with crypto payment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/X402PaymentDetailsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/x402/verify:
+    post:
+      tags: [Billing]
+      operationId: x402Verify
+      summary: Verify x402 crypto payment transaction
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/X402VerifyRequest"
+      responses:
+        "200":
+          description: Payment verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Transaction not found
+        "409":
+          description: Block not found yet (retryable)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: [BLOCK_NOT_FOUND]
+
   # ============================================
   # ACCOUNT ENDPOINTS
   # ============================================
@@ -605,6 +700,28 @@ paths:
       responses:
         "200":
           description: Limits reset
+
+  /api/reset-limit:
+    post:
+      tags: [Account]
+      operationId: resetMessageLimit
+      summary: Reset user's daily message limit
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Message limit reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: Server error
 
   # ============================================
   # ZERION API PROXY
@@ -964,6 +1081,93 @@ components:
           maxLength: 128
         currentPassword:
           type: string
+
+    UpdateSubscriptionRequest:
+      type: object
+      required: [priceId]
+      properties:
+        priceId:
+          type: string
+          maxLength: 100
+        subscriptionId:
+          type: string
+          maxLength: 100
+        prorationBehavior:
+          type: string
+          enum: [create_prorations, none, always_invoice]
+          default: create_prorations
+        paymentMethodId:
+          type: string
+          maxLength: 100
+
+    UpdateSubscriptionResponse:
+      type: object
+      properties:
+        subscription:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            priceId:
+              type: string
+              nullable: true
+            cancelAtPeriodEnd:
+              type: boolean
+            currentPeriodEnd:
+              type: string
+              format: date-time
+              nullable: true
+
+    X402SubscribeRequest:
+      type: object
+      required: [planId, billingCycle]
+      properties:
+        planId:
+          type: string
+          enum: [pro, ultimate]
+        billingCycle:
+          type: string
+          enum: [monthly, quarterly, yearly]
+
+    X402PaymentDetailsResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        paymentDetails:
+          type: object
+          properties:
+            chainId:
+              type: integer
+            chainName:
+              type: string
+            receiver:
+              type: string
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            amount:
+              type: string
+            currency:
+              type: string
+            token:
+              type: string
+              pattern: "^0x[a-fA-F0-9]{40}$"
+
+    X402VerifyRequest:
+      type: object
+      required: [transactionHash, planId]
+      properties:
+        transactionHash:
+          type: string
+          pattern: "^0x[a-fA-F0-9]{64}$"
+        planId:
+          type: string
+          enum: [pro, ultimate]
+        billingCycle:
+          type: string
+          enum: [monthly, quarterly, yearly]
+          default: monthly
 
     FileUploadResponse:
       type: object

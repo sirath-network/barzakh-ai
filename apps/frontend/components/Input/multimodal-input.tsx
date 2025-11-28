@@ -100,7 +100,7 @@ const QuestionSuggestions = ({
 }) => {
   const [aiSuggestions, setAiSuggestions] = useState<EnhancedSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
-  const { width } = useWindowSize();
+  const { width, height } = useWindowSize();
 
   // SOLUTION: Use state for totalSuggestions to avoid hydration mismatch.
   // Default value (6) is used for server-side rendering and initial client rendering.
@@ -111,10 +111,12 @@ const QuestionSuggestions = ({
   useEffect(() => {
     if (width < 640) {
       setTotalSuggestions(2); // Set to mobile value if screen is small
+    } else if (height < 800) {
+      setTotalSuggestions(3); // Show fewer suggestions on short screens to prevent scrolling
     } else {
       setTotalSuggestions(6); // Set to desktop value if screen is large
     }
-  }, [width]); // Run this effect when component mounts and when screen width changes
+  }, [width, height]); // Run this effect when component mounts and when screen width/height changes
 
   // Fetch AI/global suggestions
   useEffect(() => {
@@ -656,6 +658,42 @@ function PureMultimodalInput({
       setSelectedGroup(localStorageChatMode);
     }
   }, [localStorageChatMode, setSelectedGroup]);
+
+  // Sync model with forced model when component mounts and group is a forced-model group
+  // This ensures that when user returns after closing browser, the correct model is displayed
+  useEffect(() => {
+    const forcedModel = FORCED_MODEL_BY_GROUP[selectedGroup];
+    
+    if (forcedModel) {
+      // If current group requires a forced model but the displayed model is different
+      if (selectedModelId !== forcedModel) {
+        // Save current model as previous (if not already in a forced group)
+        if (!previousModel) {
+          setPreviousModel(selectedModelId);
+        }
+        // Update the displayed model to match the forced model
+        onModelChange?.(forcedModel);
+      }
+    } else {
+      // Current group doesn't require a forced model
+      // If we have a previousModel saved, it means user was previously in a forced group
+      // and we should restore their preferred model
+      if (previousModel && selectedModelId !== previousModel) {
+        // Check if the current model is one of the forced models (meaning it was set by a group)
+        const forcedModelValues = Object.values(FORCED_MODEL_BY_GROUP);
+        if (forcedModelValues.includes(selectedModelId)) {
+          onModelChange?.(previousModel);
+          // Also update the cookie to persist the restoration
+          import("@/app/(chat)/actions").then(({ saveChatModelAsCookie }) => {
+            saveChatModelAsCookie(previousModel);
+          });
+        }
+        setPreviousModel(null);
+      }
+    }
+    // Only run on mount and when selectedGroup changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroup]);
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);

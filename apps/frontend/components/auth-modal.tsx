@@ -98,14 +98,14 @@ export default function AuthModal({
             {resolvedTheme == "dark" ? (
               <img
                 alt="Barzakh AI"
-                src="/images/barzakh/banner/sirath-banner.svg"
+                src="/images/barzakh/banner/sirath-banner.png"
                 className=" w-32 sm:w-48 h-auto"
               />
             ) : (
               resolvedTheme == "light" && (
                 <img
                   alt="Barzakh AI"
-                  src="/images/barzakh/banner/sirath-banner.svg"
+                  src="/images/barzakh/banner/sirath-banner.png"
                   className=" w-32 sm:w-48 h-auto"
                 />
               )

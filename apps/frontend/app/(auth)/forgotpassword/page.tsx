@@ -223,6 +223,11 @@ export default function Page() {
           title: "Code Resent", 
           message: "A new verification code has been sent to your email." 
         });
+        
+        // Auto-close the success overlay after 2 seconds
+        setTimeout(() => {
+          setOverlayState({ status: "idle", message: "" });
+        }, 2000);
       } else {
         setOverlayState({ 
           status: "error", 
@@ -380,7 +385,7 @@ export default function Page() {
           >
               <img
                 alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.svg" 
+                src="/images/barzakh/banner/sirath-banner.png" 
                 className="w-48 h-auto mb-4 mx-auto"
               />
               <h1 className="text-3xl font-bold text-white">Forgot Password?</h1>
@@ -401,7 +406,7 @@ export default function Page() {
             <div className="space-y-4 text-center">
                <img
                 alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.svg"
+                src="/images/barzakh/banner/sirath-banner.png"
                 className="w-32 h-auto mx-auto lg:hidden" 
               />
               <h1 className="text-3xl font-bold">

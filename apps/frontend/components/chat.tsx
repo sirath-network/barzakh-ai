@@ -228,10 +228,10 @@ export function Chat({
           `}
         >
           <InstallPrompt />
-          {messages.length === 0 && <div className="h-[18vh]"></div>}
+          {messages.length === 0 && <div className="hidden md:block h-[18vh]"></div>}
           
           {/* CHANGED: Add correct ref and id here */}
-          <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
             <MessagesAny
               chatId={id}
               isLoading={isLoading}
