@@ -83,9 +83,14 @@ export async function POST(request: Request) {
 
         if (dbUser && (dbUser.tier === "pro" || dbUser.tier === "ultimate")) {
           if (cancelImmediately) {
+            const freeLimit = Number(process.env.FREE_USER_MESSAGE_LIMIT) || 5;
             await db
               .update(user)
-              .set({ tier: "free", x402CancelAtPeriodEnd: false })
+              .set({ 
+                tier: "free", 
+                x402CancelAtPeriodEnd: false,
+                dailyMessageRemaining: freeLimit
+              })
               .where(eq(user.id, session.user.id));
             
             return NextResponse.json({
@@ -130,6 +135,16 @@ export async function POST(request: Request) {
       const canceledSubscription = await stripe.subscriptions.cancel(
         targetSubscriptionId,
       );
+
+      // Optimistically update DB to remove benefits immediately
+      const freeLimit = Number(process.env.FREE_USER_MESSAGE_LIMIT) || 5;
+      await db
+        .update(user)
+        .set({
+          tier: "free",
+          dailyMessageRemaining: freeLimit,
+        })
+        .where(eq(user.id, session.user.id));
 
       return NextResponse.json({
         subscription: sanitizeSubscription(canceledSubscription),

@@ -208,7 +208,7 @@ export default function ResetPassword() {
               >
                   <img
                     alt="Brand Banner"
-                    src="/images/barzakh/banner/sirath-banner.svg" 
+                    src="/images/barzakh/banner/sirath-banner.png" 
                     className="w-48 h-auto mb-4 mx-auto"
                   />
                   <h1 className="text-3xl font-bold text-white">Reset Your Password</h1>
@@ -229,7 +229,7 @@ export default function ResetPassword() {
                     <div className="space-y-4 text-center">
                        <img
                         alt="Brand Banner"
-                        src="/images/barzakh/banner/sirath-banner.svg"
+                        src="/images/barzakh/banner/sirath-banner.png"
                         className="w-32 h-auto mx-auto lg:hidden" 
                       />
                       <h1 className="text-3xl font-bold">Set New Password</h1>

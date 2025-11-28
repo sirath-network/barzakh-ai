@@ -79,26 +79,28 @@ export function InstallPrompt() {
     switch (platform) {
       case "ios":
         return (
-          <p className="text-neutral-600 dark:text-neutral-400">
-            Tap <ShareAny className="inline h-4 w-4 mx-1" /> and then{" "}
-            <span className="whitespace-nowrap">
+          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+            Tap <ShareAny className="inline h-4 w-4 mx-0.5 align-text-bottom" /> and then{" "}
+            <span className="font-medium text-neutral-900 dark:text-neutral-100">
               &ldquo;Add to Home Screen&rdquo;{" "}
-              <PlusAny className="inline h-4 w-4 ml-1" />
+              <PlusAny className="inline h-4 w-4 ml-0.5 align-text-bottom" />
             </span>
           </p>
         );
       case "android":
         return (
-          <p className="text-neutral-600 dark:text-neutral-400">
-            Tap the menu <span className="font-bold">⋮</span> and select
-            &ldquo;Install app&rdquo;
+          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+            Tap the menu <span className="font-bold px-1 text-neutral-900 dark:text-neutral-100">⋮</span> and select{" "}
+            <span className="font-medium text-neutral-900 dark:text-neutral-100">
+              &ldquo;Add to Home Screen&rdquo;
+            </span>
           </p>
         );
       default:
         return (
-          <p className="text-neutral-600 dark:text-neutral-400">
+          <p className="text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
             Install our app for a better experience{" "}
-            <DownloadAny className="inline h-4 w-4 ml-1" />
+            <DownloadAny className="inline h-4 w-4 ml-1 align-text-bottom" />
           </p>
         );
     }

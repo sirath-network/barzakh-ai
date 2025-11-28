@@ -59,9 +59,6 @@ ALTER TABLE "User" ADD COLUMN "tier" varchar(64) DEFAULT 'free' NOT NULL;--> sta
 ALTER TABLE "User" ADD COLUMN "messageCount" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "User" ADD COLUMN "dailyMessageRemaining" integer DEFAULT 50 NOT NULL;--> statement-breakpoint
 ALTER TABLE "User" ADD COLUMN "tokenVersion" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "User" ADD COLUMN "twoFactorSecret" text;--> statement-breakpoint
-ALTER TABLE "User" ADD COLUMN "twoFactorEnabled" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "User" ADD COLUMN "backupCodes" text;--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "BillingAddress" ADD CONSTRAINT "BillingAddress_customerId_Customer_id_fk" FOREIGN KEY ("customerId") REFERENCES "public"."Customer"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION

@@ -34,13 +34,7 @@ function TextStrip() {
       {show && (
         <div className="z-50 w-full flex justify-center items-center bg-barzakhOrange rounded-b-md py-1 px-3">
           <div className="flex flex-col sm:flex-row items-center">
-            <span className=" font-semibold text-sm md:text-base text-center">
-              Barzakh (Beta): In development — features may change.
-            </span>
           </div>
-          <button className="ml-5 hover:scale-110" onClick={hideStrip}>
-            <X className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
-          </button>
         </div>
       )}
     </>

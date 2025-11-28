@@ -23,15 +23,15 @@ export async function POST(request: Request) {
   }
 
   // Use a default test address if env var is not set
-  const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0xd4100f16dbc770f5247dc3251d61b4a48c34f630"; 
-  const usdcAddress = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC
+  const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535"; 
+  const usdcAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
 
   return NextResponse.json(
     {
       error: "Payment Required",
       paymentDetails: {
-        chainId: 84532, // Base Sepolia
-        chainName: "Base Sepolia",
+        chainId: 8453, // Base Mainnet
+        chainName: "Base",
         receiver: receiverAddress,
         amount: amount,
         currency: "USDC",

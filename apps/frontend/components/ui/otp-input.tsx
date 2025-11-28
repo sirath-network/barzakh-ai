@@ -1,11 +1,6 @@
 "use client";
 
 import React, { useRef, useEffect, KeyboardEvent, ClipboardEvent, useState } from "react";
-import { Clipboard, ClipboardCheck } from "lucide-react";
-import { toast } from "sonner";
-
-const ClipboardCheckAny = ClipboardCheck as any;
-const ClipboardAny = Clipboard as any;
 
 interface OTPInputProps {
   length?: number;
@@ -29,7 +24,6 @@ export function OTPInput({
   className = "",
 }: OTPInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [isPasted, setIsPasted] = useState(false);
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
   const lastValueRef = useRef("");
 
@@ -136,39 +130,12 @@ export function OTPInput({
     
     if (cleaned) {
       onChange(cleaned);
-      setIsPasted(true);
-      setTimeout(() => setIsPasted(false), 2000);
       // Focus the last filled input or the last input
       const focusIndex = Math.min(cleaned.length - 1, length - 1);
       if (inputRefs.current[focusIndex]) {
         inputRefs.current[focusIndex]?.focus();
       }
 
-    }
-  };
-
-  // Paste button handler
-  const handlePasteClick = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      const cleaned = cleanValue(text);
-      
-      if (cleaned) {
-        onChange(cleaned);
-        setIsPasted(true);
-        setTimeout(() => setIsPasted(false), 2000);
-        // Focus the last filled input or the last input
-        const focusIndex = Math.min(cleaned.length - 1, length - 1);
-        if (inputRefs.current[focusIndex]) {
-          inputRefs.current[focusIndex]?.focus();
-        }
-
-      } else {
-        toast.error("No valid code found in clipboard");
-      }
-    } catch (error) {
-      toast.error("Unable to read from clipboard");
-      console.error("Clipboard read error:", error);
     }
   };
 
@@ -201,7 +168,7 @@ export function OTPInput({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col gap-3 w-fit mx-auto">
       <div className={`flex gap-1.5 sm:gap-2 justify-center px-2 ${className}`}>
         {Array.from({ length }).map((_, index) => (
           <input
@@ -223,26 +190,6 @@ export function OTPInput({
           />
         ))}
       </div>
-      
-      {/* Paste Button - Only visible on mobile */}
-      <button
-        type="button"
-        onClick={handlePasteClick}
-        disabled={disabled}
-        className="md:hidden flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-      >
-        {isPasted ? (
-          <>
-            <ClipboardCheckAny className="w-4 h-4 text-green-600 dark:text-green-400" />
-            <span className="text-green-600 dark:text-green-400">Pasted!</span>
-          </>
-        ) : (
-          <>
-            <ClipboardAny className="w-4 h-4" />
-            <span>Paste Code</span>
-          </>
-        )}
-      </button>
     </div>
   );
 }

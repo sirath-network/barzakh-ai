@@ -25,6 +25,7 @@ import {
   ArchiveRestoreIcon,
   LinkIcon,
   PencilEditIcon,
+  BarzakhAI,
 } from "@/components/icons";
 import {
   Accordion,
@@ -470,15 +471,19 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   if (!user) {
     return (
       <SidebarGroupAny className="h-full">
-        <SidebarGroupContentAny className="h-full flex items-center justify-center">
-          <div className="px-4 py-8 text-center">
-            <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-6 border border-border/30">
-              <div className="text-muted-foreground text-sm font-medium mb-2">
-                Welcome!
-              </div>
-              <div className="text-sm text-muted-foreground/80 leading-relaxed">
-                Login to save and revisit your previous conversations
-              </div>
+        <SidebarGroupContentAny className="h-full flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-[240px] flex flex-col items-center gap-4 text-center">
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+              <BarzakhAI size={32} />
+            </div>
+            
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-foreground tracking-tight">
+                Welcome to Barzakh AI
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed px-2">
+                Sign in to save your chat history and access it from any device.
+              </p>
             </div>
           </div>
         </SidebarGroupContentAny>
