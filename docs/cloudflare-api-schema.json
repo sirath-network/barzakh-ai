@@ -3,35 +3,58 @@
   "info": {
     "title": "Barzakh AI API",
     "version": "1.0.0",
-    "description": "API schema for Barzakh AI platform. This schema is used by Cloudflare API Shield to validate incoming requests.",
+    "description": "API schema for Barzakh AI platform.\nThis schema is used by Cloudflare API Shield to validate incoming requests.\n",
     "contact": {
       "name": "Barzakh Support",
-      "url": "https://barzakh.ai/contact"
+      "url": "https://barzakh.tech/contact"
     }
   },
   "servers": [
     {
-      "url": "https://barzakh.ai",
+      "url": "https://chat.barzakh.tech",
       "description": "Frontend (Main Application)"
     },
     {
-      "url": "https://api.barzakh.ai",
+      "url": "https://staging.barzakh.tech",
       "description": "Backend (External API)"
     }
   ],
   "tags": [
-    { "name": "Authentication", "description": "User authentication and 2FA endpoints" },
-    { "name": "Billing", "description": "Subscription and payment management" },
-    { "name": "Chat", "description": "Chat and AI completion endpoints" },
-    { "name": "Account", "description": "User account management" },
-    { "name": "Settings", "description": "User settings and preferences" },
-    { "name": "Files", "description": "File upload and image handling" },
-    { "name": "Webhooks", "description": "External service webhooks" }
+    {
+      "name": "Authentication",
+      "description": "User authentication and 2FA endpoints"
+    },
+    {
+      "name": "Billing",
+      "description": "Subscription and payment management"
+    },
+    {
+      "name": "Chat",
+      "description": "Chat and AI completion endpoints"
+    },
+    {
+      "name": "Account",
+      "description": "User account management"
+    },
+    {
+      "name": "Settings",
+      "description": "User settings and preferences"
+    },
+    {
+      "name": "Files",
+      "description": "File upload and image handling"
+    },
+    {
+      "name": "Webhooks",
+      "description": "External service webhooks"
+    }
   ],
   "paths": {
     "/api/auth/callback/{provider}": {
       "get": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "authCallback",
         "summary": "OAuth callback handler",
         "parameters": [
@@ -41,50 +64,89 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["google", "credentials"]
+              "enum": [
+                "google",
+                "credentials"
+              ]
             }
           },
-          { "name": "code", "in": "query", "schema": { "type": "string" } },
-          { "name": "state", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "302": { "description": "Redirect after authentication" }
+          "302": {
+            "description": "Redirect after authentication"
+          }
         }
       }
     },
     "/api/auth/signin": {
       "get": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "getSignIn",
         "summary": "Get sign in page",
-        "responses": { "200": { "description": "Sign in page" } }
+        "responses": {
+          "200": {
+            "description": "Sign in page"
+          }
+        }
       },
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "postSignIn",
         "summary": "Sign in with credentials",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SignInRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "Sign in successful" } }
+        "responses": {
+          "200": {
+            "description": "Sign in successful"
+          }
+        }
       }
     },
     "/api/auth/signout": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "signOut",
         "summary": "Sign out user",
-        "responses": { "200": { "description": "Sign out successful" } }
+        "responses": {
+          "200": {
+            "description": "Sign out successful"
+          }
+        }
       }
     },
     "/api/auth/session": {
       "get": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "getSession",
         "summary": "Get current session",
         "responses": {
@@ -92,7 +154,9 @@
             "description": "Session data",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
               }
             }
           }
@@ -101,7 +165,9 @@
     },
     "/api/auth/resend-otp": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "resendOtp",
         "summary": "Resend OTP code",
         "requestBody": {
@@ -110,95 +176,147 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email"],
+                "required": [
+                  "email"
+                ],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "maxLength": 255 }
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  }
                 }
               }
             }
           }
         },
-        "responses": { "200": { "description": "OTP sent" } }
+        "responses": {
+          "200": {
+            "description": "OTP sent"
+          }
+        }
       }
     },
     "/api/2fa/temp-login": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "tempLogin",
         "summary": "Temporary login for 2FA setup",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/TempLoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/TempLoginRequest"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "Temporary token issued" } }
+        "responses": {
+          "200": {
+            "description": "Temporary token issued"
+          }
+        }
       }
     },
     "/api/2fa/complete-login": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "completeLogin",
         "summary": "Complete login with 2FA code",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/Complete2FARequest" }
+              "schema": {
+                "$ref": "#/components/schemas/Complete2FARequest"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "Login completed" } }
+        "responses": {
+          "200": {
+            "description": "Login completed"
+          }
+        }
       }
     },
     "/api/2fa/forgot-password-verify": {
       "post": {
-        "tags": ["Authentication"],
+        "tags": [
+          "Authentication"
+        ],
         "operationId": "forgotPasswordVerify",
         "summary": "Verify forgot password with 2FA",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ForgotPassword2FARequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPassword2FARequest"
+              }
             }
           }
         },
-        "responses": { "200": { "description": "Verification successful" } }
+        "responses": {
+          "200": {
+            "description": "Verification successful"
+          }
+        }
       }
     },
     "/api/billing/subscription": {
       "get": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "getSubscription",
         "summary": "Get current subscription",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Subscription details",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SubscriptionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/billing/create-checkout-session": {
       "post": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "createCheckoutSession",
         "summary": "Create Stripe checkout session",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CheckoutRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
             }
           }
         },
@@ -207,20 +325,30 @@
             "description": "Checkout session created",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CheckoutResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/billing/manage-subscription": {
       "post": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "manageSubscription",
         "summary": "Open Stripe customer portal",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Portal URL",
@@ -228,52 +356,85 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "url": { "type": "string", "format": "uri" } }
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/billing/cancel-subscription": {
       "post": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "cancelSubscription",
         "summary": "Cancel current subscription",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Subscription cancelled" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Subscription cancelled"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/billing/payment-methods": {
       "get": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "getPaymentMethods",
         "summary": "Get saved payment methods",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Payment methods list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PaymentMethodsResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodsResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/billing/create-setup-intent": {
       "post": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "createSetupIntent",
         "summary": "Create setup intent for new payment method",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Setup intent created",
@@ -281,48 +442,236 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "clientSecret": { "type": "string" } }
+                  "properties": {
+                    "clientSecret": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/billing/invoices": {
       "get": {
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "operationId": "getInvoices",
         "summary": "Get billing history",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "limit",
             "in": "query",
-            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
           },
-          { "name": "starting_after", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "starting_after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Invoices list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/InvoicesResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/InvoicesResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/update-subscription": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "updateSubscription",
+        "summary": "Update existing Stripe subscription",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No active subscription found"
+          }
+        }
+      }
+    },
+    "/api/billing/x402/subscribe": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "x402Subscribe",
+        "summary": "Initiate x402 crypto payment for subscription",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/X402SubscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "402": {
+            "description": "Payment required with crypto payment details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/X402PaymentDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/x402/verify": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "x402Verify",
+        "summary": "Verify x402 crypto payment transaction",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/X402VerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          },
+          "409": {
+            "description": "Block not found yet (retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "BLOCK_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
     "/api/account/delete": {
-      "delete": {
-        "tags": ["Account"],
+      "post": {
+        "tags": [
+          "Account"
+        ],
         "operationId": "deleteAccount",
         "summary": "Delete user account",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -330,195 +679,351 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "confirmation": { "type": "string", "enum": ["DELETE"] }
+                  "confirmation": {
+                    "type": "string",
+                    "enum": [
+                      "DELETE"
+                    ]
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Account deleted" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Account deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/changes-email/request-email-change": {
       "post": {
-        "tags": ["Account"],
+        "tags": [
+          "Account"
+        ],
         "operationId": "requestEmailChange",
         "summary": "Request email change",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["newEmail"],
+                "required": [
+                  "newEmail"
+                ],
                 "properties": {
-                  "newEmail": { "type": "string", "format": "email", "maxLength": 255 }
+                  "newEmail": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Verification email sent" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Verification email sent"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/changes-email/verify-email-change": {
       "post": {
-        "tags": ["Account"],
+        "tags": [
+          "Account"
+        ],
         "operationId": "verifyEmailChange",
         "summary": "Verify email change with code",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["code"],
+                "required": [
+                  "code"
+                ],
                 "properties": {
-                  "code": { "type": "string", "minLength": 6, "maxLength": 6, "pattern": "^[0-9]{6}$" }
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^[0-9]{6}$"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Email changed" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Email changed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/settings": {
       "get": {
-        "tags": ["Settings"],
+        "tags": [
+          "Settings"
+        ],
         "operationId": "getSettings",
         "summary": "Get user settings",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "parameters": [
-          { "name": "username", "in": "query", "schema": { "type": "string", "maxLength": 50 } }
+          {
+            "name": "username",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Settings data" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Settings data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       },
       "patch": {
-        "tags": ["Settings"],
+        "tags": [
+          "Settings"
+        ],
         "operationId": "updateSettings",
         "summary": "Update user settings",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SettingsUpdateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SettingsUpdateRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Settings updated" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Settings updated"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/chat": {
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "operationId": "getChats",
         "summary": "Get user chats",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Chats list" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Chats list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       },
       "delete": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "operationId": "deleteChat",
         "summary": "Delete a chat",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "parameters": [
-          { "name": "id", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } }
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Chat deleted" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Chat deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/files/upload": {
       "post": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "operationId": "uploadFile",
         "summary": "Upload a file",
-        "description": "Uploads a file using multipart/form-data. Request body validation is not supported by Cloudflare API Shield. Protection is handled via session authentication and server-side validation.",
-        "security": [{ "SessionAuth": [] }],
+        "description": "Uploads a file using multipart/form-data.\nRequest body validation is not supported by Cloudflare API Shield.\nProtection is handled via session authentication and server-side validation.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "File uploaded",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/FileUploadResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "413": { "description": "File too large" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "description": "File too large"
+          }
         }
       }
     },
     "/api/proxy-image": {
       "post": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "operationId": "proxyImage",
         "summary": "Proxy external image",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["url"],
+                "required": [
+                  "url"
+                ],
                 "properties": {
-                  "url": { "type": "string", "format": "uri", "maxLength": 2048 }
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Proxied image data" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Proxied image data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/persist-image": {
       "post": {
-        "tags": ["Files"],
+        "tags": [
+          "Files"
+        ],
         "operationId": "persistImage",
         "summary": "Persist image to storage",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["url"],
+                "required": [
+                  "url"
+                ],
                 "properties": {
-                  "url": { "type": "string", "format": "uri", "maxLength": 2048 },
-                  "filename": { "type": "string", "maxLength": 255 }
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  },
+                  "filename": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
                 }
               }
             }
@@ -531,76 +1036,168 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": { "url": { "type": "string", "format": "uri" } }
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/webhooks/stripe": {
       "post": {
-        "tags": ["Webhooks"],
+        "tags": [
+          "Webhooks"
+        ],
         "operationId": "stripeWebhook",
         "summary": "Stripe webhook handler",
-        "security": [{ "StripeSignature": [] }],
+        "security": [
+          {
+            "StripeSignature": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "type": "object", "additionalProperties": true }
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Webhook processed" },
-          "400": { "description": "Invalid signature" }
+          "200": {
+            "description": "Webhook processed"
+          },
+          "400": {
+            "description": "Invalid signature"
+          }
         }
       }
     },
     "/api/messagelimitcron": {
       "get": {
-        "tags": ["Internal"],
+        "tags": [
+          "Internal"
+        ],
         "operationId": "messageLimitCron",
         "summary": "Reset daily message limits",
-        "security": [{ "CronAuth": [] }],
-        "responses": { "200": { "description": "Limits reset" } }
+        "security": [
+          {
+            "CronAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Limits reset"
+          }
+        }
+      }
+    },
+    "/api/reset-limit": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "resetMessageLimit",
+        "summary": "Reset user's daily message limit",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message limit reset successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
       }
     },
     "/api/zerion/protocols": {
       "get": {
-        "tags": ["External APIs"],
+        "tags": [
+          "External APIs"
+        ],
         "operationId": "getZerionProtocols",
         "summary": "Get DeFi protocols from Zerion",
-        "security": [{ "SessionAuth": [] }],
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "address",
             "in": "query",
             "required": true,
-            "schema": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" }
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Protocols data" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Protocols data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
     "/api/chat/completions": {
       "post": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "operationId": "createChatCompletion",
         "summary": "Create chat completion (OpenAI-compatible)",
-        "servers": [{ "url": "https://api.barzakh.ai" }],
-        "security": [{ "BearerAuth": [] }],
+        "servers": [
+          {
+            "url": "https://staging.barzakh.tech"
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ChatCompletionRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
             }
           }
         },
@@ -609,37 +1206,64 @@
             "description": "Chat completion response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ChatCompletionResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionResponse"
+                }
               },
               "text/event-stream": {
-                "schema": { "type": "string", "description": "Server-sent events stream" }
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events stream"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
         }
       }
     },
     "/api/completions": {
       "post": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "operationId": "createCompletion",
         "summary": "Create completion (legacy)",
-        "servers": [{ "url": "https://api.barzakh.ai" }],
-        "security": [{ "BearerAuth": [] }],
+        "servers": [
+          {
+            "url": "https://staging.barzakh.tech"
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ChatCompletionRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Completion response" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "200": {
+            "description": "Completion response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     }
@@ -675,7 +1299,9 @@
         "description": "Authentication required",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       },
@@ -683,21 +1309,41 @@
         "description": "Invalid request",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       },
       "RateLimited": {
         "description": "Rate limit exceeded",
         "headers": {
-          "Retry-After": { "schema": { "type": "integer" } },
-          "X-RateLimit-Limit": { "schema": { "type": "integer" } },
-          "X-RateLimit-Remaining": { "schema": { "type": "integer" } },
-          "X-RateLimit-Reset": { "schema": { "type": "integer" } }
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Limit": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Remaining": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Reset": {
+            "schema": {
+              "type": "integer"
+            }
+          }
         },
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/Error" }
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       }
@@ -705,45 +1351,104 @@
     "schemas": {
       "Error": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
-          "error": { "type": "string" },
-          "message": { "type": "string" },
-          "details": { "type": "array", "items": { "type": "object" } }
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
         }
       },
       "SignInRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email", "maxLength": 255 },
-          "password": { "type": "string", "minLength": 8, "maxLength": 128 },
-          "turnstileToken": { "type": "string" }
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "turnstileToken": {
+            "type": "string"
+          }
         }
       },
       "TempLoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email", "maxLength": 255 },
-          "password": { "type": "string", "minLength": 8, "maxLength": 128 }
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
         }
       },
       "Complete2FARequest": {
         "type": "object",
-        "required": ["tempToken", "code"],
+        "required": [
+          "tempToken",
+          "code"
+        ],
         "properties": {
-          "tempToken": { "type": "string" },
-          "code": { "type": "string", "minLength": 6, "maxLength": 6, "pattern": "^[0-9]{6}$" }
+          "tempToken": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "pattern": "^[0-9]{6}$"
+          }
         }
       },
       "ForgotPassword2FARequest": {
         "type": "object",
-        "required": ["email", "code"],
+        "required": [
+          "email",
+          "code"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "code": { "type": "string", "minLength": 6, "maxLength": 6 },
-          "newPassword": { "type": "string", "minLength": 8, "maxLength": 128 }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
         }
       },
       "SessionResponse": {
@@ -752,14 +1457,34 @@
           "user": {
             "type": "object",
             "properties": {
-              "id": { "type": "string" },
-              "email": { "type": "string", "format": "email" },
-              "name": { "type": "string" },
-              "image": { "type": "string", "format": "uri" },
-              "tier": { "type": "string", "enum": ["free", "pro", "ultimate"] }
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "name": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string",
+                "format": "uri"
+              },
+              "tier": {
+                "type": "string",
+                "enum": [
+                  "free",
+                  "pro",
+                  "ultimate"
+                ]
+              }
             }
           },
-          "expires": { "type": "string", "format": "date-time" }
+          "expires": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "SubscriptionResponse": {
@@ -769,16 +1494,42 @@
             "type": "object",
             "nullable": true,
             "properties": {
-              "id": { "type": "string" },
-              "status": { "type": "string", "enum": ["active", "canceled", "past_due", "trialing"] },
-              "currentPeriodEnd": { "type": "string", "format": "date-time" },
-              "cancelAtPeriodEnd": { "type": "boolean" },
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "canceled",
+                  "past_due",
+                  "trialing"
+                ]
+              },
+              "currentPeriodEnd": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "cancelAtPeriodEnd": {
+                "type": "boolean"
+              },
               "plan": {
                 "type": "object",
                 "properties": {
-                  "id": { "type": "string" },
-                  "name": { "type": "string" },
-                  "interval": { "type": "string", "enum": ["month", "quarter", "year"] }
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "month",
+                      "quarter",
+                      "year"
+                    ]
+                  }
                 }
               }
             }
@@ -787,18 +1538,34 @@
       },
       "CheckoutRequest": {
         "type": "object",
-        "required": ["priceId"],
+        "required": [
+          "priceId"
+        ],
         "properties": {
-          "priceId": { "type": "string", "maxLength": 100 },
-          "successUrl": { "type": "string", "format": "uri" },
-          "cancelUrl": { "type": "string", "format": "uri" }
+          "priceId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "successUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "cancelUrl": {
+            "type": "string",
+            "format": "uri"
+          }
         }
       },
       "CheckoutResponse": {
         "type": "object",
         "properties": {
-          "url": { "type": "string", "format": "uri" },
-          "sessionId": { "type": "string" }
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sessionId": {
+            "type": "string"
+          }
         }
       },
       "PaymentMethodsResponse": {
@@ -809,21 +1576,36 @@
             "items": {
               "type": "object",
               "properties": {
-                "id": { "type": "string" },
-                "type": { "type": "string" },
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
                 "card": {
                   "type": "object",
                   "properties": {
-                    "brand": { "type": "string" },
-                    "last4": { "type": "string" },
-                    "expMonth": { "type": "integer" },
-                    "expYear": { "type": "integer" }
+                    "brand": {
+                      "type": "string"
+                    },
+                    "last4": {
+                      "type": "string"
+                    },
+                    "expMonth": {
+                      "type": "integer"
+                    },
+                    "expYear": {
+                      "type": "integer"
+                    }
                   }
                 }
               }
             }
           },
-          "defaultPaymentMethodId": { "type": "string", "nullable": true }
+          "defaultPaymentMethodId": {
+            "type": "string",
+            "nullable": true
+          }
         }
       },
       "InvoicesResponse": {
@@ -834,74 +1616,302 @@
             "items": {
               "type": "object",
               "properties": {
-                "id": { "type": "string" },
-                "amount": { "type": "integer" },
-                "currency": { "type": "string" },
-                "status": { "type": "string" },
-                "created": { "type": "integer" },
-                "invoicePdf": { "type": "string", "format": "uri" }
+                "id": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "created": {
+                  "type": "integer"
+                },
+                "invoicePdf": {
+                  "type": "string",
+                  "format": "uri"
+                }
               }
             }
           },
-          "hasMore": { "type": "boolean" },
-          "nextCursor": { "type": "string", "nullable": true }
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
         }
       },
       "SettingsUpdateRequest": {
         "type": "object",
         "properties": {
-          "username": { "type": "string", "minLength": 3, "maxLength": 50, "pattern": "^[a-zA-Z0-9_-]+$" },
-          "name": { "type": "string", "maxLength": 100 },
-          "password": { "type": "string", "minLength": 8, "maxLength": 128 },
-          "currentPassword": { "type": "string" }
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50,
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "currentPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateSubscriptionRequest": {
+        "type": "object",
+        "required": [
+          "priceId"
+        ],
+        "properties": {
+          "priceId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "subscriptionId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "prorationBehavior": {
+            "type": "string",
+            "enum": [
+              "create_prorations",
+              "none",
+              "always_invoice"
+            ],
+            "default": "create_prorations"
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "maxLength": 100
+          }
+        }
+      },
+      "UpdateSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "priceId": {
+                "type": "string",
+                "nullable": true
+              },
+              "cancelAtPeriodEnd": {
+                "type": "boolean"
+              },
+              "currentPeriodEnd": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "X402SubscribeRequest": {
+        "type": "object",
+        "required": [
+          "planId",
+          "billingCycle"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "ultimate"
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "yearly"
+            ]
+          }
+        }
+      },
+      "X402PaymentDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "paymentDetails": {
+            "type": "object",
+            "properties": {
+              "chainId": {
+                "type": "integer"
+              },
+              "chainName": {
+                "type": "string"
+              },
+              "receiver": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              },
+              "amount": {
+                "type": "string"
+              },
+              "currency": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$"
+              }
+            }
+          }
+        }
+      },
+      "X402VerifyRequest": {
+        "type": "object",
+        "required": [
+          "transactionHash",
+          "planId"
+        ],
+        "properties": {
+          "transactionHash": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{64}$"
+          },
+          "planId": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "ultimate"
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "yearly"
+            ],
+            "default": "monthly"
+          }
         }
       },
       "FileUploadResponse": {
         "type": "object",
         "properties": {
-          "url": { "type": "string", "format": "uri" },
-          "filename": { "type": "string" },
-          "size": { "type": "integer" },
-          "contentType": { "type": "string" }
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "contentType": {
+            "type": "string"
+          }
         }
       },
       "ChatCompletionRequest": {
         "type": "object",
-        "required": ["messages"],
+        "required": [
+          "messages"
+        ],
         "properties": {
           "messages": {
             "type": "array",
             "minItems": 1,
             "maxItems": 100,
-            "items": { "$ref": "#/components/schemas/ChatMessage" }
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
           },
           "selectedChatModel": {
             "type": "string",
-            "enum": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "claude-sonnet", "claude-haiku", "gemini-2.0-flash", "gemini-1.5-pro", "deepseek-chat"],
+            "enum": [
+              "gpt-4o",
+              "gpt-4o-mini",
+              "gpt-4-turbo",
+              "claude-sonnet",
+              "claude-haiku",
+              "gemini-2.0-flash",
+              "gemini-1.5-pro",
+              "deepseek-chat"
+            ],
             "default": "gpt-4o-mini"
           },
           "group": {
             "type": "string",
-            "enum": ["search", "imagine", "multimodal", "code"],
+            "enum": [
+              "search",
+              "imagine",
+              "multimodal",
+              "code"
+            ],
             "default": "search"
           },
-          "stream": { "type": "boolean", "default": true },
-          "max_tokens": { "type": "integer", "minimum": 1, "maximum": 32768 },
-          "temperature": { "type": "number", "minimum": 0, "maximum": 2 }
+          "stream": {
+            "type": "boolean",
+            "default": true
+          },
+          "max_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          }
         }
       },
       "ChatMessage": {
         "type": "object",
-        "required": ["role", "content"],
+        "required": [
+          "role",
+          "content"
+        ],
         "properties": {
-          "role": { "type": "string", "enum": ["system", "user", "assistant"] },
+          "role": {
+            "type": "string",
+            "enum": [
+              "system",
+              "user",
+              "assistant"
+            ]
+          },
           "content": {
             "oneOf": [
-              { "type": "string", "maxLength": 100000 },
+              {
+                "type": "string",
+                "maxLength": 100000
+              },
               {
                 "type": "array",
                 "maxItems": 20,
-                "items": { "$ref": "#/components/schemas/ContentPart" }
+                "items": {
+                  "$ref": "#/components/schemas/ContentPart"
+                }
               }
             ]
           }
@@ -909,38 +1919,81 @@
       },
       "ContentPart": {
         "type": "object",
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "properties": {
-          "type": { "type": "string", "enum": ["text", "image"] },
-          "text": { "type": "string", "maxLength": 100000 },
-          "image": { "type": "string", "format": "uri", "maxLength": 10000 }
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 10000
+          }
         }
       },
       "ChatCompletionResponse": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "object": { "type": "string", "enum": ["chat.completion", "chat.completion.chunk"] },
-          "created": { "type": "integer" },
-          "model": { "type": "string" },
-          "system_fingerprint": { "type": "string" },
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "enum": [
+              "chat.completion",
+              "chat.completion.chunk"
+            ]
+          },
+          "created": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "system_fingerprint": {
+            "type": "string"
+          },
           "choices": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "index": { "type": "integer" },
-                "message": { "$ref": "#/components/schemas/ChatMessage" },
+                "index": {
+                  "type": "integer"
+                },
+                "message": {
+                  "$ref": "#/components/schemas/ChatMessage"
+                },
                 "delta": {
                   "type": "object",
                   "properties": {
-                    "role": { "type": "string" },
-                    "content": { "type": "string" }
+                    "role": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
                   }
                 },
                 "finish_reason": {
                   "type": "string",
-                  "enum": ["stop", "length", "tool_calls", "content_filter", null],
+                  "enum": [
+                    "stop",
+                    "length",
+                    "tool_calls",
+                    "content_filter",
+                    null
+                  ],
                   "nullable": true
                 }
               }
@@ -949,9 +2002,15 @@
           "usage": {
             "type": "object",
             "properties": {
-              "prompt_tokens": { "type": "integer" },
-              "completion_tokens": { "type": "integer" },
-              "total_tokens": { "type": "integer" }
+              "prompt_tokens": {
+                "type": "integer"
+              },
+              "completion_tokens": {
+                "type": "integer"
+              },
+              "total_tokens": {
+                "type": "integer"
+              }
             }
           }
         }

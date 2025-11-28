@@ -2,6 +2,7 @@ import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
+import { validateImageFile, checkFileContent, checkImageMetadata } from '@/lib/security';
 
 const FileSchema = z.object({
   file: z.any(),
@@ -61,6 +62,80 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // ===========================================
+    // SECURITY CHECK: File Content Validation
+    // ===========================================
+    const isImageFile = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(fileExtension);
+    
+    if (isImageFile) {
+      // Validate image file (magic bytes, SVG scripts, etc.)
+      const imageSecurityCheck = await validateImageFile(file as File, {
+        maxSize: 10 * 1024 * 1024,
+        checkMagicBytes: true,
+      });
+      
+      if (!imageSecurityCheck.safe) {
+        console.warn(`[SECURITY] Blocked malicious image upload from user ${session.user?.id}:`, {
+          filename: file.name,
+          threats: imageSecurityCheck.threats.map(t => ({ type: t.type, description: t.description })),
+          riskScore: imageSecurityCheck.riskScore,
+        });
+        return NextResponse.json(
+          { 
+            error: 'Security violation detected in uploaded image',
+            details: imageSecurityCheck.threats[0]?.description || 'File validation failed',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Also check image metadata for hidden payloads (polyglots, embedded scripts)
+      const metadataCheck = await checkImageMetadata(file as File);
+      if (!metadataCheck.safe) {
+        console.warn(`[SECURITY] Blocked image with suspicious metadata from user ${session.user?.id}:`, {
+          filename: file.name,
+          threats: metadataCheck.threats.map(t => ({ type: t.type, description: t.description })),
+          riskScore: metadataCheck.riskScore,
+        });
+        return NextResponse.json(
+          { 
+            error: 'Security violation detected in image metadata',
+            details: metadataCheck.threats[0]?.description || 'Metadata validation failed',
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      // For text-based files, check content for malicious patterns
+      const textExtensions = ['js', 'ts', 'jsx', 'tsx', 'py', 'html', 'txt', 'md', 'json', 'xml', 'yaml', 'yml', 'sql', 'sh', 'bat', 'ps1'];
+      
+      if (textExtensions.includes(fileExtension)) {
+        try {
+          const textContent = await (file as File).text();
+          const contentSecurityCheck = checkFileContent(file.name, textContent);
+          
+          if (!contentSecurityCheck.safe) {
+            console.warn(`[SECURITY] Blocked file with suspicious content from user ${session.user?.id}:`, {
+              filename: file.name,
+              threats: contentSecurityCheck.threats.map(t => ({ type: t.type, description: t.description })),
+              riskScore: contentSecurityCheck.riskScore,
+            });
+            return NextResponse.json(
+              { 
+                error: 'Security violation detected in file content',
+                details: contentSecurityCheck.threats[0]?.description || 'Content validation failed',
+              },
+              { status: 400 }
+            );
+          }
+        } catch (readError) {
+          // If we can't read the file as text, continue with upload
+          console.warn('Could not read file as text for security check:', readError);
+        }
+      }
+    }
+    // ===========================================
 
     const fileBuffer = await file.arrayBuffer();
 
