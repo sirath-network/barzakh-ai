@@ -7,12 +7,12 @@ info:
     This schema is used by Cloudflare API Shield to validate incoming requests.
   contact:
     name: Barzakh Support
-    url: https://barzakh.ai/contact
+    url: https://barzakh.tech/contact
 
 servers:
-  - url: https://barzakh.ai
+  - url: https://chat.barzakh.tech
     description: Frontend (Main Application)
-  - url: https://api.barzakh.ai
+  - url: https://staging.barzakh.tech
     description: Backend (External API)
 
 tags:
@@ -414,7 +414,7 @@ paths:
   # ACCOUNT ENDPOINTS
   # ============================================
   /api/account/delete:
-    delete:
+    post:
       tags: [Account]
       operationId: deleteAccount
       summary: Delete user account
@@ -755,7 +755,7 @@ paths:
       operationId: createChatCompletion
       summary: Create chat completion (OpenAI-compatible)
       servers:
-        - url: https://api.barzakh.ai
+        - url: https://staging.barzakh.tech
       security:
         - BearerAuth: []
       requestBody:
@@ -788,7 +788,7 @@ paths:
       operationId: createCompletion
       summary: Create completion (legacy)
       servers:
-        - url: https://api.barzakh.ai
+        - url: https://staging.barzakh.tech
       security:
         - BearerAuth: []
       requestBody:

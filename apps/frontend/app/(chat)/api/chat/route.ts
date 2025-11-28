@@ -24,6 +24,12 @@ import {
 } from "@barzakh/shared/lib/utils/utils";
 import { cleanMessageContentForStorage } from "@barzakh/shared/lib/utils/restore-image-urls";
 import { generateTitleFromUserMessage } from "../../actions";
+import {
+  performSecurityCheck,
+  securityBlockResponse,
+  validateImageUrl,
+  type SecurityCheckResult,
+} from "@/lib/security";
 
 // Function to validate and clean messages
 function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
@@ -175,6 +181,48 @@ export async function POST(request: Request) {
   if (!userMessage) {
     return new Response("No user message found", { status: 400 });
   }
+
+  // ===========================================
+  // SECURITY CHECK: Prompt Injection Protection
+  // ===========================================
+  const securityCheck = performSecurityCheck(messages, {
+    blockThreshold: 50, // Block if risk score >= 50
+    logEvents: true,
+    sanitizeInsteadOfBlock: false,
+  });
+
+  if (!securityCheck.safe) {
+    console.warn(`[SECURITY] Blocked message from user ${session.user.id}:`, {
+      threats: securityCheck.threats.map(t => t.type),
+      riskScore: securityCheck.riskScore,
+    });
+    return securityBlockResponse(securityCheck);
+  }
+
+  // Check image URLs in multimodal content
+  const messageContent = userMessage.content as any;
+  if (typeof messageContent !== 'string' && Array.isArray(messageContent)) {
+    for (const part of messageContent) {
+      if (part.type === 'image' && part.image) {
+        const imageCheck = validateImageUrl(part.image);
+        if (!imageCheck.safe) {
+          console.warn(`[SECURITY] Blocked malicious image URL from user ${session.user.id}:`, {
+            threats: imageCheck.threats.map(t => t.type),
+            riskScore: imageCheck.riskScore,
+          });
+          return new Response(
+            JSON.stringify({
+              error: 'Security Block',
+              message: 'The image URL you provided was blocked for security reasons.',
+              code: 'MALICIOUS_IMAGE_URL',
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+  }
+  // ===========================================
 
   const chat = await getChatById({ id });
 
