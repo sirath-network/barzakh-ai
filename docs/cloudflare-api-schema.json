@@ -1761,24 +1761,41 @@
             "type": "object",
             "properties": {
               "chainId": {
-                "type": "integer"
+                "type": "integer",
+                "description": "Chain ID (338 for Cronos Testnet)"
               },
               "chainName": {
-                "type": "string"
+                "type": "string",
+                "description": "Human readable chain name"
               },
               "receiver": {
                 "type": "string",
-                "pattern": "^0x[a-fA-F0-9]{40}$"
+                "pattern": "^0x[a-fA-F0-9]{40}$",
+                "description": "Wallet address to send payment to"
               },
               "amount": {
-                "type": "string"
+                "type": "string",
+                "description": "Amount of TCRO to send"
               },
               "currency": {
-                "type": "string"
+                "type": "string",
+                "description": "Currency symbol (TCRO)"
               },
               "token": {
-                "type": "string",
-                "pattern": "^0x[a-fA-F0-9]{40}$"
+                "type": ["string", "null"],
+                "description": "Token contract address (null for native token)"
+              },
+              "isNativeToken": {
+                "type": "boolean",
+                "description": "Whether this is a native token transfer"
+              },
+              "usdPrice": {
+                "type": "number",
+                "description": "USD price of the plan"
+              },
+              "croUsdPrice": {
+                "type": "number",
+                "description": "Current CRO/USD exchange rate"
               }
             }
           }

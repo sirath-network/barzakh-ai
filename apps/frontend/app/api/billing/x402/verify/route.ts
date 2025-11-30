@@ -1,18 +1,79 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { createPublicClient, http, parseAbiItem, decodeEventLog } from "viem";
-import { base } from "viem/chains";
+import { createPublicClient, http, defineChain } from "viem";
 import { db } from "@/lib/db/db";
 import { x402_transactions, user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+// Define Cronos EVM Testnet chain
+const cronosTestnet = defineChain({
+  id: 338,
+  name: 'Cronos Testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Test CRO',
+    symbol: 'TCRO',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://evm-t3.cronos.org'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'Cronos Explorer', url: 'https://explorer.cronos.org/testnet' },
+  },
+  testnet: true,
+});
+
 // Use a dedicated RPC URL if available for better reliability
-const rpcUrl = process.env.BASE_RPC_URL || "https://mainnet.base.org";
+const rpcUrl = process.env.CRONOS_TESTNET_RPC_URL || "https://evm-t3.cronos.org";
 
 const client = createPublicClient({
-  chain: base,
+  chain: cronosTestnet,
   transport: http(rpcUrl),
 });
+
+// Cache CRO price for 5 minutes to avoid excessive API calls
+let cachedCroPrice: { price: number; timestamp: number } | null = null;
+const CRO_PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCroUsdPrice(): Promise<number> {
+  if (cachedCroPrice && Date.now() - cachedCroPrice.timestamp < CRO_PRICE_CACHE_TTL) {
+    return cachedCroPrice.price;
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=crypto-com-chain&vs_currencies=usd"
+    );
+    
+    if (!response.ok) {
+      return cachedCroPrice?.price ?? 0.10;
+    }
+
+    const data = await response.json();
+    const price = data["crypto-com-chain"]?.usd ?? 0.10;
+    cachedCroPrice = { price, timestamp: Date.now() };
+    return price;
+  } catch (error) {
+    console.error("Error fetching CRO price:", error);
+    return cachedCroPrice?.price ?? 0.10;
+  }
+}
+
+// USD prices for each plan and billing cycle
+const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
+  pro: {
+    monthly: 25,
+    quarterly: 66,
+    yearly: 240,
+  },
+  ultimate: {
+    monthly: 250,
+    quarterly: 660,
+    yearly: 2400,
+  },
+};
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -78,58 +139,34 @@ export async function POST(request: Request) {
     // This avoids the unreliable getBlock call that often fails on public RPCs.
     // For replay attack prevention, we already check if transactionHash exists in DB above.
 
-    // Verify USDC Transfer
-    const usdcAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base Mainnet USDC
-    if (tx.to?.toLowerCase() !== usdcAddress.toLowerCase()) {
-       return NextResponse.json({ error: "Invalid contract interaction" }, { status: 400 });
-    }
-
-    // Find Transfer event
-    const transferEventAbi = parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)');
-    const transferLog = receipt.logs.find(log => 
-        log.address.toLowerCase() === usdcAddress.toLowerCase() &&
-        log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" // Transfer topic
-    );
-
-    if (!transferLog) {
-        return NextResponse.json({ error: "Transfer event not found" }, { status: 400 });
-    }
-
-    const decodedLog = decodeEventLog({
-        abi: [transferEventAbi],
-        data: transferLog.data,
-        topics: transferLog.topics,
-    });
-
+    // Verify Native TCRO Transfer
     const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
     
-    // @ts-ignore
-    if (decodedLog.args.to.toLowerCase() !== receiverAddress.toLowerCase()) {
-        return NextResponse.json({ error: "Invalid receiver" }, { status: 400 });
+    // Check that the transaction was sent to the receiver address (native transfer)
+    if (tx.to?.toLowerCase() !== receiverAddress.toLowerCase()) {
+       return NextResponse.json({ error: "Invalid receiver address" }, { status: 400 });
     }
 
-    // Validate Amount
-    // @ts-ignore
-    const paidAmount = BigInt(decodedLog.args.value);
-    let expectedAmount = BigInt(0);
-
+    // Get USD price for the plan and calculate expected TCRO amount
     const cycle = billingCycle || "monthly";
-
-    if (planId === "pro") {
-      if (cycle === "monthly") expectedAmount = BigInt(25 * 1000000);
-      else if (cycle === "quarterly") expectedAmount = BigInt(66 * 1000000);
-      else if (cycle === "yearly") expectedAmount = BigInt(240 * 1000000);
-    } else if (planId === "ultimate") {
-      if (cycle === "monthly") expectedAmount = BigInt(250 * 1000000);
-      else if (cycle === "quarterly") expectedAmount = BigInt(660 * 1000000);
-      else if (cycle === "yearly") expectedAmount = BigInt(2400 * 1000000);
+    const usdPrice = PLAN_PRICES_USD[planId]?.[cycle] ?? 0;
+    
+    if (usdPrice === 0) {
+      return NextResponse.json({ error: "Invalid plan or billing cycle" }, { status: 400 });
     }
 
-    // Allow a small margin of error? No, exact amount for stablecoins.
-    // But maybe user sent slightly more? We should check >= expectedAmount
+    // Fetch current CRO/USD price to calculate expected TCRO
+    const croUsdPrice = await getCroUsdPrice();
+    const expectedTcro = usdPrice / croUsdPrice;
+    
+    // Convert to wei (18 decimals) - allow 5% slippage for price fluctuations
+    const expectedAmount = BigInt(Math.floor(expectedTcro * 0.95 * 10 ** 18));
+    const paidAmount = tx.value;
+
     if (paidAmount < expectedAmount) {
+       const paidTcro = Number(paidAmount) / 10 ** 18;
        return NextResponse.json({ 
-         error: `Insufficient payment amount. Expected ${Number(expectedAmount) / 1000000} USDC, got ${Number(paidAmount) / 1000000} USDC` 
+         error: `Insufficient payment. Expected ~${expectedTcro.toFixed(2)} TCRO ($${usdPrice}), got ${paidTcro.toFixed(2)} TCRO` 
        }, { status: 400 });
     }
 
@@ -137,33 +174,38 @@ export async function POST(request: Request) {
     await db.insert(x402_transactions).values({
       userId: session.user.id,
       transactionHash: transactionHash,
-      chainId: 8453, // Base Mainnet
-      // @ts-ignore
-      amount: decodedLog.args.value.toString(),
-      tokenAddress: usdcAddress,
+      chainId: 338, // Cronos EVM Testnet
+      amount: paidAmount.toString(),
+      tokenAddress: null, // Native token
       senderAddress: receipt.from,
       planId: planId,
       billingCycle: billingCycle || "monthly",
       status: "confirmed",
     });
 
-    // Get the daily message limit for the new tier
-    const getDailyMessageLimit = (tier: string): number => {
+    // Get the daily message limit for the new tier and billing cycle
+    const getDailyMessageLimit = (tier: string, cycle: string): number => {
+      const cycleKey = cycle.toUpperCase();
       if (tier === "pro") {
-        return Number(process.env.PRO_USER_MESSAGE_LIMIT) || 100;
+        if (cycleKey === "YEARLY") return Number(process.env.PRO_YEARLY_USER_MESSAGE_LIMIT) || 150;
+        if (cycleKey === "QUARTERLY") return Number(process.env.PRO_QUARTERLY_USER_MESSAGE_LIMIT) || 100;
+        return Number(process.env.PRO_MONTHLY_USER_MESSAGE_LIMIT) || 50;
       } else if (tier === "ultimate") {
-        return Number(process.env.ULTIMATE_USER_MESSAGE_LIMIT) || 1000;
+        if (cycleKey === "YEARLY") return Number(process.env.ULTIMATE_YEARLY_USER_MESSAGE_LIMIT) || 500;
+        if (cycleKey === "QUARTERLY") return Number(process.env.ULTIMATE_QUARTERLY_USER_MESSAGE_LIMIT) || 350;
+        return Number(process.env.ULTIMATE_MONTHLY_USER_MESSAGE_LIMIT) || 250;
       }
-      return Number(process.env.FREE_USER_MESSAGE_LIMIT) || 20;
+      return Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10;
     };
 
-    const newDailyLimit = getDailyMessageLimit(planId);
+    const newDailyLimit = getDailyMessageLimit(planId, billingCycle || "monthly");
 
-    // Update user tier AND reset daily message limit to the new tier's limit
+    // Update user tier, billing cycle AND reset daily message limit to the new tier's limit
     await db
       .update(user)
       .set({ 
         tier: planId,
+        billingCycle: billingCycle || "monthly",
         dailyMessageRemaining: newDailyLimit,
       })
       .where(eq(user.id, session.user.id));

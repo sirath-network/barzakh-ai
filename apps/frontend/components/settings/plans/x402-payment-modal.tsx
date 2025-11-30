@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp, LogOut } from "lucide-react";
-import { parseUnits, encodeFunctionData, formatUnits } from "viem";
+import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp, LogOut, AlertTriangle } from "lucide-react";
+import { parseEther, formatEther } from "viem";
 
 interface X402PaymentModalProps {
   isOpen: boolean;
@@ -15,27 +15,9 @@ interface X402PaymentModalProps {
   planId: string;
   billingCycle: string;
   onSuccess: () => void;
+  currentTier?: string | null; // Current subscription tier if any
+  currentBillingCycle?: string | null; // Current billing cycle if any
 }
-
-const USDC_ABI = [
-  {
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "transfer",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
 
 const DialogAny = Dialog as any;
 const DialogContentAny = DialogContent as any;
@@ -52,6 +34,8 @@ export function X402PaymentModal({
   planId,
   billingCycle,
   onSuccess,
+  currentTier,
+  currentBillingCycle,
 }: X402PaymentModalProps) {
   const [step, setStep] = useState<"init" | "payment" | "verifying">("init");
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
@@ -62,6 +46,22 @@ export function X402PaymentModal({
   const [userBalance, setUserBalance] = useState<string | null>(null);
   const [isWaitingConfirmation, setIsWaitingConfirmation] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [confirmPlanChange, setConfirmPlanChange] = useState(false);
+
+  // Check if user is changing plans (different tier OR different billing cycle)
+  const hasPaidSubscription = currentTier && currentTier !== "free";
+  const isTierChange = hasPaidSubscription && currentTier !== planId;
+  const isBillingCycleChange = hasPaidSubscription && currentTier === planId && currentBillingCycle !== billingCycle;
+  const isChangingPlan = isTierChange || isBillingCycleChange;
+  
+  const isUpgrade = isTierChange && (
+    (currentTier === "pro" && planId === "ultimate") ||
+    (currentTier === "free" && (planId === "pro" || planId === "ultimate"))
+  );
+  const isDowngrade = isTierChange && (
+    (currentTier === "ultimate" && planId === "pro") ||
+    ((currentTier === "pro" || currentTier === "ultimate") && planId === "free")
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -74,6 +74,7 @@ export function X402PaymentModal({
       setUserBalance(null);
       setIsWaitingConfirmation(false);
       setShowManualEntry(false);
+      setConfirmPlanChange(false);
     }
   }, [isOpen, planId, billingCycle]);
 
@@ -134,11 +135,11 @@ export function X402PaymentModal({
       const ethereum = (window as any).ethereum;
       await ethereum.request({ method: "eth_requestAccounts" });
       
-      // Switch to Base Mainnet
+      // Switch to Cronos EVM Testnet
       try {
         await ethereum.request({
           method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x2105" }], // 8453 in hex
+          params: [{ chainId: "0x152" }], // 338 in hex
         });
       } catch (switchError: any) {
         if (switchError.code === 4902) {
@@ -146,15 +147,15 @@ export function X402PaymentModal({
             method: "wallet_addEthereumChain",
             params: [
               {
-                chainId: "0x2105",
-                chainName: "Base",
-                rpcUrls: ["https://mainnet.base.org"],
+                chainId: "0x152",
+                chainName: "Cronos Testnet",
+                rpcUrls: ["https://evm-t3.cronos.org"],
                 nativeCurrency: {
-                  name: "Ether",
-                  symbol: "ETH",
+                  name: "Test CRO",
+                  symbol: "TCRO",
                   decimals: 18,
                 },
-                blockExplorerUrls: ["https://basescan.org"],
+                blockExplorerUrls: ["https://explorer.cronos.org/testnet"],
               },
             ],
           });
@@ -166,27 +167,15 @@ export function X402PaymentModal({
       const userAddress = ethereum.selectedAddress;
       setConnectedAddress(userAddress);
 
-      // Fetch user's USDC balance
-      const balanceOfData = encodeFunctionData({
-        abi: USDC_ABI,
-        functionName: "balanceOf",
-        args: [userAddress as `0x${string}`],
-      });
-
+      // Fetch user's native TCRO balance
       const balanceHex = await ethereum.request({
-        method: "eth_call",
-        params: [
-          {
-            to: paymentDetails.token,
-            data: balanceOfData,
-          },
-          "latest",
-        ],
+        method: "eth_getBalance",
+        params: [userAddress, "latest"],
       });
 
       const balance = BigInt(balanceHex);
-      const formattedBalance = formatUnits(balance, 6);
-      setUserBalance(parseFloat(formattedBalance).toFixed(2));
+      const formattedBalance = formatEther(balance);
+      setUserBalance(parseFloat(formattedBalance).toFixed(4));
 
     } catch (error: any) {
       if (error.code === 4001) {
@@ -262,31 +251,25 @@ export function X402PaymentModal({
       const ethereum = (window as any).ethereum;
       
       // Check balance again before payment
-      const requiredAmount = parseUnits(paymentDetails.amount, 6);
-      const currentBalance = parseUnits(userBalance || "0", 6);
+      const requiredAmount = parseEther(paymentDetails.amount);
+      const currentBalance = parseEther(userBalance || "0");
       
       if (currentBalance < requiredAmount) {
         toast.error(
-          `Insufficient USDC balance. You have ${userBalance} USDC but need ${paymentDetails.amount} USDC.`
+          `Insufficient TCRO balance. You have ${userBalance} TCRO but need ${paymentDetails.amount} TCRO.`
         );
         setIsLoading(false);
         return;
       }
 
+      // Send native TCRO transfer
       const newTxHash = await ethereum.request({
         method: "eth_sendTransaction",
         params: [
           {
-            to: paymentDetails.token,
+            to: paymentDetails.receiver,
             from: connectedAddress,
-            data: encodeFunctionData({
-              abi: USDC_ABI,
-              functionName: "transfer",
-              args: [
-                paymentDetails.receiver as `0x${string}`,
-                parseUnits(paymentDetails.amount, 6),
-              ],
-            }),
+            value: "0x" + requiredAmount.toString(16), // Convert to hex
           },
         ],
       });
@@ -375,7 +358,7 @@ export function X402PaymentModal({
         <DialogHeaderAny>
           <DialogTitleAny>Pay with Crypto (x402)</DialogTitleAny>
           <DialogDescriptionAny>
-            Secure payment via Base
+            Secure payment via Cronos Testnet
           </DialogDescriptionAny>
         </DialogHeaderAny>
 
@@ -388,13 +371,46 @@ export function X402PaymentModal({
             <div className="text-center space-y-2">
                 <h3 className="font-medium">Crypto Payment</h3>
                 <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-                  Subscribe to the <strong>{planId.toUpperCase()}</strong> plan using USDC on Base.
+                  Subscribe to the <strong>{planId.toUpperCase()}</strong> plan using TCRO on Cronos Testnet.
                 </p>
             </div>
-            <ButtonAny onClick={initPayment} disabled={isLoading} className="w-full max-w-xs">
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Proceed to Payment
-            </ButtonAny>
+            
+            {/* Plan Change Warning */}
+            {isChangingPlan && !confirmPlanChange && (
+              <div className="w-full max-w-xs space-y-3">
+                <div className="p-3 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                        {isBillingCycleChange ? "Billing Cycle Change" : isUpgrade ? "Plan Upgrade" : "Plan Change"}
+                      </p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        {isBillingCycleChange ? (
+                          <>Your current <strong>{currentTier?.toUpperCase()} ({currentBillingCycle?.toUpperCase()})</strong> subscription will be <strong>cancelled immediately</strong> and replaced with <strong>{planId.toUpperCase()} ({billingCycle.toUpperCase()})</strong>. Any remaining time on your current plan will not be refunded or prorated.</>
+                        ) : (
+                          <>Your current <strong>{currentTier?.toUpperCase()}</strong> subscription will be <strong>cancelled immediately</strong> and replaced with the new <strong>{planId.toUpperCase()}</strong> plan. Any remaining time on your current plan will not be refunded or prorated.</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ButtonAny 
+                  onClick={() => setConfirmPlanChange(true)} 
+                  className="w-full"
+                  variant="outline"
+                >
+                  I understand, continue
+                </ButtonAny>
+              </div>
+            )}
+            
+            {(!isChangingPlan || confirmPlanChange) && (
+              <ButtonAny onClick={initPayment} disabled={isLoading} className="w-full max-w-xs">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Proceed to Payment
+              </ButtonAny>
+            )}
           </div>
         )}
 
@@ -404,16 +420,23 @@ export function X402PaymentModal({
             <div className="p-4 bg-muted/50 rounded-lg space-y-4 border">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total Amount</span>
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{paymentDetails.amount}</span>
-                    <span className="text-sm font-medium text-muted-foreground">USDC</span>
+                <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{paymentDetails.amount}</span>
+                        <span className="text-sm font-medium text-muted-foreground">TCRO</span>
+                    </div>
+                    {paymentDetails.usdPrice && (
+                        <span className="text-xs text-muted-foreground">
+                            ≈ ${paymentDetails.usdPrice} USD @ ${paymentDetails.croUsdPrice?.toFixed(4)}/CRO
+                        </span>
+                    )}
                 </div>
               </div>
               
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Send to address</span>
-                    <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">Base</span>
+                    <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">Cronos Testnet</span>
                 </div>
                 <div className="flex items-center gap-2 p-2 bg-background rounded border shadow-sm">
                   <code className="flex-1 text-xs font-mono truncate text-muted-foreground">
@@ -474,7 +497,7 @@ export function X402PaymentModal({
                                         ? "text-red-600 dark:text-red-400"
                                         : "text-green-600 dark:text-green-400"
                                     }`}>
-                                        {userBalance ?? "..."} USDC
+                                        {userBalance ?? "..."} TCRO
                                     </div>
                                 </div>
                             </div>
@@ -482,7 +505,7 @@ export function X402PaymentModal({
                             {userBalance && parseFloat(userBalance) < parseFloat(paymentDetails.amount) && (
                                 <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 mt-2 pt-2 border-t border-red-200 dark:border-red-900/50">
                                     <AlertCircle className="h-3 w-3" />
-                                    <span>Insufficient balance. You need {paymentDetails.amount} USDC.</span>
+                                    <span>Insufficient balance. You need {paymentDetails.amount} TCRO.</span>
                                 </div>
                             )}
                         </div>
@@ -499,7 +522,7 @@ export function X402PaymentModal({
                                     {isWaitingConfirmation ? "Confirming Transaction..." : "Processing..."}
                                 </>
                             ) : (
-                                `Pay ${paymentDetails.amount} USDC`
+                                `Pay ${paymentDetails.amount} TCRO`
                             )}
                         </ButtonAny>
                     </div>
@@ -517,7 +540,7 @@ export function X402PaymentModal({
                             This usually takes a few seconds. Please don't close this window.
                         </p>
                         <a 
-                            href={`https://basescan.org/tx/${txHash}`}
+                            href={`https://explorer.cronos.org/testnet/tx/${txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300 hover:underline mt-1"

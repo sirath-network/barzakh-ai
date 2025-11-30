@@ -140,6 +140,7 @@ export const authOptions: NextAuthConfig = {
             token.image = newUser.image;
             token.username = newUser.username;
             token.tier = newUser.tier;
+            token.billingCycle = newUser.billingCycle;
             token.hasPassword = false; // Google OAuth users don't have password initially
             token.tokenVersion = newUser.tokenVersion;
           }
@@ -172,6 +173,7 @@ export const authOptions: NextAuthConfig = {
           token.image = dbUser.image;
           token.username = dbUser.username;
           token.tier = dbUser.tier;
+          token.billingCycle = dbUser.billingCycle;
           token.hasPassword = !!dbUser.password;
         } else {
           // Cache miss or expired, fetch from DB
@@ -193,6 +195,7 @@ export const authOptions: NextAuthConfig = {
             token.image = dbUser.image;
             token.username = dbUser.username;
             token.tier = dbUser.tier;
+            token.billingCycle = dbUser.billingCycle;
             token.hasPassword = !!dbUser.password;
             token.tokenVersion = dbUser.tokenVersion;
             
@@ -214,6 +217,7 @@ export const authOptions: NextAuthConfig = {
         session.user.image = token.image as string;
         session.user.username = token.username as string;
         session.user.tier = token.tier as string;
+        session.user.billingCycle = token.billingCycle as string;
         session.user.hasPassword = token.hasPassword as boolean;
       }
       return session;

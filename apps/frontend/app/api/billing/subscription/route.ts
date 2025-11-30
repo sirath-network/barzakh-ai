@@ -192,6 +192,23 @@ export async function GET(request: Request) {
          });
       }
 
+      // Fixed USD prices for plans in cents
+      const PLAN_PRICES_CENTS: Record<string, Record<string, number>> = {
+        pro: {
+          monthly: 2500,      // $25
+          quarterly: 6600,    // $66
+          yearly: 24000,      // $240
+        },
+        ultimate: {
+          monthly: 25000,     // $250
+          quarterly: 66000,   // $660
+          yearly: 240000,     // $2400
+        },
+      };
+
+      // Get the fixed USD price in cents based on tier and billing cycle
+      const amountInCents = PLAN_PRICES_CENTS[dbUser.tier]?.[billingCycle] ?? 0;
+
       const mockSubscription = {
         id: "x402-sub",
         status: "active",
@@ -202,14 +219,15 @@ export async function GET(request: Request) {
         nextBillingDate: currentPeriodEnd.toISOString(),
         priceId: "x402-price",
         planName: dbUser.tier.charAt(0).toUpperCase() + dbUser.tier.slice(1),
-        // Convert USDC (6 decimals) to cents (2 decimals) for display compatibility
-        // 25 USDC = 25,000,000 units -> 2500 cents
-        amount: latestTx ? Math.round(parseInt(latestTx.amount) / 10000) : 0,
-        currency: "USD", // Use USD for display formatting
+        amount: amountInCents,
+        currency: "USD",
         interval: interval,
         intervalCount: intervalCount,
         defaultPaymentMethodId: null,
-        metadata: { tier: dbUser.tier },
+        metadata: { 
+          tier: dbUser.tier,
+          paidWithTcro: true,
+        },
       };
 
       return NextResponse.json({

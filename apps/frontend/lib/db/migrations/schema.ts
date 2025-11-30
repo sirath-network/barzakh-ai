@@ -1,49 +1,8 @@
-import { pgTable, unique, uuid, varchar, integer, text, boolean, foreignKey, timestamp, json, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, uuid, varchar, json, timestamp, unique, text, boolean, integer, primaryKey } from "drizzle-orm/pg-core"
   import { sql } from "drizzle-orm"
 
 
 
-
-export const user = pgTable("User", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	email: varchar({ length: 64 }),
-	password: varchar({ length: 64 }),
-	walletAddress: varchar({ length: 64 }),
-	tier: varchar({ length: 64 }).default('free').notNull(),
-	messageCount: integer().default(0).notNull(),
-	dailyMessageRemaining: integer().default(50).notNull(),
-	name: text(),
-	username: text(),
-	image: text(),
-	twoFactorSecret: text(),
-	twoFactorEnabled: boolean().default(false).notNull(),
-	backupCodes: text(),
-	tokenVersion: integer().default(0).notNull(),
-	x402CancelAtPeriodEnd: boolean().default(false).notNull(),
-},
-(table) => {
-	return {
-		userEmailUnique: unique("User_email_unique").on(table.email),
-		userUsernameUnique: unique("User_username_unique").on(table.username),
-	}
-});
-
-export const emailChangeRequests = pgTable("EmailChangeRequests", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	userId: uuid().notNull(),
-	newEmail: varchar({ length: 64 }).notNull(),
-	code: varchar().notNull(),
-	expiresAt: timestamp({ mode: 'string' }).notNull(),
-},
-(table) => {
-	return {
-		emailChangeRequestsUserIdUserIdFk: foreignKey({
-			columns: [table.userId],
-			foreignColumns: [user.id],
-			name: "EmailChangeRequests_userId_User_id_fk"
-		}),
-	}
-});
 
 export const message = pgTable("Message", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -62,24 +21,6 @@ export const message = pgTable("Message", {
 	}
 });
 
-export const subscription = pgTable("Subscription", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	customerId: uuid().notNull(),
-	stripeSubscriptionId: varchar({ length: 255 }).notNull(),
-	stripePriceId: varchar({ length: 255 }).notNull(),
-	stripeCurrentPeriodEnd: timestamp({ mode: 'string' }).notNull(),
-},
-(table) => {
-	return {
-		subscriptionCustomerIdCustomerIdFk: foreignKey({
-			columns: [table.customerId],
-			foreignColumns: [customer.id],
-			name: "Subscription_customerId_Customer_id_fk"
-		}),
-		subscriptionStripeSubscriptionIdUnique: unique("Subscription_stripeSubscriptionId_unique").on(table.stripeSubscriptionId),
-	}
-});
-
 export const otpToken = pgTable("OTPToken", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	email: varchar({ length: 64 }).notNull(),
@@ -90,18 +31,6 @@ export const otpToken = pgTable("OTPToken", {
 (table) => {
 	return {
 		otpTokenEmailUnique: unique("OTPToken_email_unique").on(table.email),
-	}
-});
-
-export const passwordResetToken = pgTable("PasswordResetToken", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	email: varchar({ length: 64 }).notNull(),
-	token: varchar().notNull(),
-	expiry: timestamp({ mode: 'string' }).notNull(),
-},
-(table) => {
-	return {
-		passwordResetTokenEmailUnique: unique("PasswordResetToken_email_unique").on(table.email),
 	}
 });
 
@@ -118,40 +47,28 @@ export const suggestion = pgTable("Suggestion", {
 },
 (table) => {
 	return {
-		suggestionDocumentIdDocumentCreatedAtDocumentIdCreatedAtF: foreignKey({
-			columns: [table.documentId, table.documentCreatedAt],
-			foreignColumns: [document.id, document.createdAt],
-			name: "Suggestion_documentId_documentCreatedAt_Document_id_createdAt_f"
-		}),
 		suggestionUserIdUserIdFk: foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
 			name: "Suggestion_userId_User_id_fk"
 		}),
+		suggestionDocumentIdDocumentCreatedAtDocumentIdCreatedAtF: foreignKey({
+			columns: [table.documentId, table.documentCreatedAt],
+			foreignColumns: [document.id, document.createdAt],
+			name: "Suggestion_documentId_documentCreatedAt_Document_id_createdAt_f"
+		}),
 	}
 });
 
-export const x402Transaction = pgTable("X402Transaction", {
+export const passwordResetToken = pgTable("PasswordResetToken", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	userId: uuid().notNull(),
-	transactionHash: varchar({ length: 66 }).notNull(),
-	chainId: integer().notNull(),
-	amount: varchar({ length: 64 }).notNull(),
-	tokenAddress: varchar({ length: 42 }),
-	planId: varchar({ length: 64 }).notNull(),
-	status: varchar({ length: 32 }).default('pending').notNull(),
-	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
-	billingCycle: varchar({ length: 32 }).default('monthly').notNull(),
-	senderAddress: varchar({ length: 42 }),
+	email: varchar({ length: 64 }).notNull(),
+	token: varchar().notNull(),
+	expiry: timestamp({ mode: 'string' }).notNull(),
 },
 (table) => {
 	return {
-		x402TransactionUserIdUserIdFk: foreignKey({
-			columns: [table.userId],
-			foreignColumns: [user.id],
-			name: "X402Transaction_userId_User_id_fk"
-		}),
-		x402TransactionTransactionHashUnique: unique("X402Transaction_transactionHash_unique").on(table.transactionHash),
+		passwordResetTokenEmailUnique: unique("PasswordResetToken_email_unique").on(table.email),
 	}
 });
 
@@ -205,6 +122,90 @@ export const billingAddress = pgTable("BillingAddress", {
 			foreignColumns: [customer.id],
 			name: "BillingAddress_customerId_Customer_id_fk"
 		}),
+	}
+});
+
+export const emailChangeRequests = pgTable("EmailChangeRequests", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	userId: uuid().notNull(),
+	newEmail: varchar({ length: 64 }).notNull(),
+	code: varchar().notNull(),
+	expiresAt: timestamp({ mode: 'string' }).notNull(),
+},
+(table) => {
+	return {
+		emailChangeRequestsUserIdUserIdFk: foreignKey({
+			columns: [table.userId],
+			foreignColumns: [user.id],
+			name: "EmailChangeRequests_userId_User_id_fk"
+		}),
+	}
+});
+
+export const subscription = pgTable("Subscription", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	customerId: uuid().notNull(),
+	stripeSubscriptionId: varchar({ length: 255 }).notNull(),
+	stripePriceId: varchar({ length: 255 }).notNull(),
+	stripeCurrentPeriodEnd: timestamp({ mode: 'string' }).notNull(),
+},
+(table) => {
+	return {
+		subscriptionCustomerIdCustomerIdFk: foreignKey({
+			columns: [table.customerId],
+			foreignColumns: [customer.id],
+			name: "Subscription_customerId_Customer_id_fk"
+		}),
+		subscriptionStripeSubscriptionIdUnique: unique("Subscription_stripeSubscriptionId_unique").on(table.stripeSubscriptionId),
+	}
+});
+
+export const x402Transaction = pgTable("X402Transaction", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	userId: uuid().notNull(),
+	transactionHash: varchar({ length: 66 }).notNull(),
+	chainId: integer().notNull(),
+	amount: varchar({ length: 64 }).notNull(),
+	tokenAddress: varchar({ length: 42 }),
+	senderAddress: varchar({ length: 42 }),
+	planId: varchar({ length: 64 }).notNull(),
+	billingCycle: varchar({ length: 32 }).default('monthly').notNull(),
+	status: varchar({ length: 32 }).default('pending').notNull(),
+	createdAt: timestamp({ mode: 'string' }).defaultNow().notNull(),
+},
+(table) => {
+	return {
+		x402TransactionUserIdUserIdFk: foreignKey({
+			columns: [table.userId],
+			foreignColumns: [user.id],
+			name: "X402Transaction_userId_User_id_fk"
+		}),
+		x402TransactionTransactionHashUnique: unique("X402Transaction_transactionHash_unique").on(table.transactionHash),
+	}
+});
+
+export const user = pgTable("User", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	email: varchar({ length: 64 }),
+	password: varchar({ length: 64 }),
+	twoFactorSecret: text(),
+	twoFactorEnabled: boolean().default(false).notNull(),
+	backupCodes: text(),
+	walletAddress: varchar({ length: 64 }),
+	name: text(),
+	username: text(),
+	image: text(),
+	tier: varchar({ length: 64 }).default('free').notNull(),
+	messageCount: integer().default(0).notNull(),
+	dailyMessageRemaining: integer().default(10).notNull(),
+	tokenVersion: integer().default(0).notNull(),
+	x402CancelAtPeriodEnd: boolean().default(false).notNull(),
+	billingCycle: varchar({ length: 32 }).default('monthly').notNull(),
+},
+(table) => {
+	return {
+		userEmailUnique: unique("User_email_unique").on(table.email),
+		userUsernameUnique: unique("User_username_unique").on(table.username),
 	}
 });
 
