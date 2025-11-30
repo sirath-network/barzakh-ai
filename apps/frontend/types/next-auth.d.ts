@@ -5,6 +5,7 @@ declare module "next-auth" {
   interface User extends DefaultUser {
     username: string | null;
     tier: string;
+    billingCycle: string;
     messageCount: number;
     hasPassword: boolean;
     tokenVersion?: number;
@@ -18,6 +19,7 @@ declare module "next-auth" {
       image: string | null;
       username: string | null;
       tier: string;
+      billingCycle: string;
       hasPassword: boolean;
     } & DefaultSession["user"];
   }
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
     image?: string | null;
     username?: string | null;
     tier?: string;
+    billingCycle?: string;
     hasPassword?: boolean;
     tokenVersion?: number;
   }

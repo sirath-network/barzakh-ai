@@ -658,11 +658,16 @@ export async function decrementRemainingMessageCount(userId: string) {
 }
 export async function resetRemainingMessageCountForEveryone() {
   try {
+    // Reset message limits based on tier AND billing cycle
     await db.update(user).set({
       dailyMessageRemaining: sql`CASE
-        WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
-        WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
-        WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
+        WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT || 10}
+        WHEN tier = 'pro' AND "billingCycle" = 'yearly' THEN ${process.env.PRO_YEARLY_USER_MESSAGE_LIMIT || 150}
+        WHEN tier = 'pro' AND "billingCycle" = 'quarterly' THEN ${process.env.PRO_QUARTERLY_USER_MESSAGE_LIMIT || 100}
+        WHEN tier = 'pro' THEN ${process.env.PRO_MONTHLY_USER_MESSAGE_LIMIT || 50}
+        WHEN tier = 'ultimate' AND "billingCycle" = 'yearly' THEN ${process.env.ULTIMATE_YEARLY_USER_MESSAGE_LIMIT || 500}
+        WHEN tier = 'ultimate' AND "billingCycle" = 'quarterly' THEN ${process.env.ULTIMATE_QUARTERLY_USER_MESSAGE_LIMIT || 350}
+        WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_MONTHLY_USER_MESSAGE_LIMIT || 250}
         ELSE ${user.dailyMessageRemaining}
       END`,
     });
@@ -674,13 +679,18 @@ export async function resetRemainingMessageCountForEveryone() {
 
 export async function resetRemainingMessageCountForUser(userId: string) {
   try {
+    // Reset message limit based on tier AND billing cycle
     await db
       .update(user)
       .set({
         dailyMessageRemaining: sql`CASE
-          WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT}
-          WHEN tier = 'pro' THEN ${process.env.PRO_USER_MESSAGE_LIMIT}
-          WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_USER_MESSAGE_LIMIT}
+          WHEN tier = 'free' THEN ${process.env.FREE_USER_MESSAGE_LIMIT || 10}
+          WHEN tier = 'pro' AND "billingCycle" = 'yearly' THEN ${process.env.PRO_YEARLY_USER_MESSAGE_LIMIT || 150}
+          WHEN tier = 'pro' AND "billingCycle" = 'quarterly' THEN ${process.env.PRO_QUARTERLY_USER_MESSAGE_LIMIT || 100}
+          WHEN tier = 'pro' THEN ${process.env.PRO_MONTHLY_USER_MESSAGE_LIMIT || 50}
+          WHEN tier = 'ultimate' AND "billingCycle" = 'yearly' THEN ${process.env.ULTIMATE_YEARLY_USER_MESSAGE_LIMIT || 500}
+          WHEN tier = 'ultimate' AND "billingCycle" = 'quarterly' THEN ${process.env.ULTIMATE_QUARTERLY_USER_MESSAGE_LIMIT || 350}
+          WHEN tier = 'ultimate' THEN ${process.env.ULTIMATE_MONTHLY_USER_MESSAGE_LIMIT || 250}
           ELSE ${user.dailyMessageRemaining}
         END`,
       })

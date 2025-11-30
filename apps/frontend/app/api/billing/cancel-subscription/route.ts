@@ -87,7 +87,8 @@ export async function POST(request: Request) {
             await db
               .update(user)
               .set({ 
-                tier: "free", 
+                tier: "free",
+                billingCycle: "monthly",
                 x402CancelAtPeriodEnd: false,
                 dailyMessageRemaining: freeLimit
               })

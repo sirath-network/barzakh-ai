@@ -112,6 +112,29 @@ function inferPlanIdFromSubscription(
   return null;
 }
 
+function inferBillingCycleFromSubscription(
+  subscription: SubscriptionSummary | null | undefined,
+): BillingCycle | null {
+  if (!subscription) {
+    return null;
+  }
+
+  const interval = subscription.interval;
+  const intervalCount = subscription.intervalCount ?? 1;
+
+  if (interval === "year") {
+    return "yearly";
+  }
+  if (interval === "month" && intervalCount === 3) {
+    return "quarterly";
+  }
+  if (interval === "month") {
+    return "monthly";
+  }
+
+  return null;
+}
+
 export default function PlanDetailPage() {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [processingPlanId, setProcessingPlanId] = useState<Plan["id"] | null>(null);
@@ -161,6 +184,11 @@ export default function PlanDetailPage() {
   if (!currentPlanId && !isLoadingSubscription) {
     currentPlanId = "free";
   }
+
+  // Infer the current billing cycle from subscription
+  const currentBillingCycle = useMemo(() => {
+    return inferBillingCycleFromSubscription(subscription);
+  }, [subscription]);
 
   const cancellationDateLabel = useMemo(() => {
     if (!subscription?.cancelAtPeriodEnd) {
@@ -280,18 +308,20 @@ export default function PlanDetailPage() {
           {plans.map((plan) => {
             const price = getPrice(plan);
             const totalPrice = getTotalPrice(plan);
-            const isCurrentPlan = currentPlanId === plan.id;
+            const isSameTier = currentPlanId === plan.id;
+            // Only show "Current Plan" if both tier AND billing cycle match
+            const isExactCurrentPlan = isSameTier && currentBillingCycle === billingCycle;
             const isProcessingPlan = processingPlanId === plan.id;
             const isFree = plan.id === "free";
             const isCancellationScheduled =
-              isCurrentPlan && subscription?.cancelAtPeriodEnd;
+              isSameTier && subscription?.cancelAtPeriodEnd;
 
             return (
               <div
                 key={plan.id}
                 className={`
                   bg-white dark:bg-black/80 rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-sm
-                  ${isCurrentPlan ? "border-red-500 dark:border-red-500" : "border-gray-200 dark:border-red-900/50"}
+                  ${isExactCurrentPlan ? "border-red-500 dark:border-red-500" : "border-gray-200 dark:border-red-900/50"}
                   hover:border-red-500/50 dark:hover:border-red-500/50 transition-all
                 `}
               >
@@ -346,17 +376,17 @@ export default function PlanDetailPage() {
                         setSelectedPlanForX402(plan.id);
                         setShowX402Modal(true);
                       }}
-                      disabled={isCurrentPlan}
+                      disabled={isExactCurrentPlan}
                       className={`
                         w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
                         ${
-                          isCurrentPlan
-                            ? "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 text-white cursor-default"
+                          isExactCurrentPlan
+                            ? "bg-red-950/50 border-2 border-red-500 text-red-300 cursor-default"
                             : "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white"
                         }
                       `}
                     >
-                      {isCurrentPlan ? "CURRENT PLAN" : "PAY WITH CRYPTO (X402)"}
+                      {isExactCurrentPlan ? "CURRENT PLAN" : "PAY WITH CRYPTO (X402)"}
                     </button>
                   ) : (
                     <button
@@ -371,7 +401,7 @@ export default function PlanDetailPage() {
                   {!isFree && (
                     <button
                       onClick={() => handleSubscribe(plan.id)}
-                      disabled={isCurrentPlan || isProcessingPlan || true}
+                      disabled={isExactCurrentPlan || isProcessingPlan || true}
                       className="w-full mt-2 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 transition-all opacity-50 cursor-not-allowed"
                     >
                       PAY WITH STRIPE (COMING SOON)
@@ -405,6 +435,8 @@ export default function PlanDetailPage() {
           onClose={() => setShowX402Modal(false)}
           planId={selectedPlanForX402}
           billingCycle={billingCycle}
+          currentTier={currentPlanId}
+          currentBillingCycle={currentBillingCycle}
           onSuccess={() => {
             window.location.reload();
           }}

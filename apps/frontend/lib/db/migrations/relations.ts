@@ -1,21 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { user, emailChangeRequests, chat, message, customer, subscription, document, suggestion, x402Transaction, billingAddress, vote } from "./schema";
-
-export const emailChangeRequestsRelations = relations(emailChangeRequests, ({one}) => ({
-	user: one(user, {
-		fields: [emailChangeRequests.userId],
-		references: [user.id]
-	}),
-}));
-
-export const userRelations = relations(user, ({many}) => ({
-	emailChangeRequests: many(emailChangeRequests),
-	suggestions: many(suggestion),
-	x402Transactions: many(x402Transaction),
-	chats: many(chat),
-	customers: many(customer),
-	documents: many(document),
-}));
+import { chat, message, user, suggestion, document, customer, billingAddress, emailChangeRequests, subscription, x402Transaction, vote } from "./schema";
 
 export const messageRelations = relations(message, ({one, many}) => ({
 	chat: one(chat, {
@@ -34,31 +18,24 @@ export const chatRelations = relations(chat, ({one, many}) => ({
 	votes: many(vote),
 }));
 
-export const subscriptionRelations = relations(subscription, ({one}) => ({
-	customer: one(customer, {
-		fields: [subscription.customerId],
-		references: [customer.id]
-	}),
-}));
-
-export const customerRelations = relations(customer, ({one, many}) => ({
-	subscriptions: many(subscription),
-	user: one(user, {
-		fields: [customer.userId],
-		references: [user.id]
-	}),
-	billingAddresses: many(billingAddress),
-}));
-
 export const suggestionRelations = relations(suggestion, ({one}) => ({
-	document: one(document, {
-		fields: [suggestion.documentId],
-		references: [document.id]
-	}),
 	user: one(user, {
 		fields: [suggestion.userId],
 		references: [user.id]
 	}),
+	document: one(document, {
+		fields: [suggestion.documentId],
+		references: [document.id]
+	}),
+}));
+
+export const userRelations = relations(user, ({many}) => ({
+	suggestions: many(suggestion),
+	chats: many(chat),
+	customers: many(customer),
+	emailChangeRequests: many(emailChangeRequests),
+	x402Transactions: many(x402Transaction),
+	documents: many(document),
 }));
 
 export const documentRelations = relations(document, ({one, many}) => ({
@@ -69,17 +46,40 @@ export const documentRelations = relations(document, ({one, many}) => ({
 	}),
 }));
 
-export const x402TransactionRelations = relations(x402Transaction, ({one}) => ({
+export const customerRelations = relations(customer, ({one, many}) => ({
 	user: one(user, {
-		fields: [x402Transaction.userId],
+		fields: [customer.userId],
 		references: [user.id]
 	}),
+	billingAddresses: many(billingAddress),
+	subscriptions: many(subscription),
 }));
 
 export const billingAddressRelations = relations(billingAddress, ({one}) => ({
 	customer: one(customer, {
 		fields: [billingAddress.customerId],
 		references: [customer.id]
+	}),
+}));
+
+export const emailChangeRequestsRelations = relations(emailChangeRequests, ({one}) => ({
+	user: one(user, {
+		fields: [emailChangeRequests.userId],
+		references: [user.id]
+	}),
+}));
+
+export const subscriptionRelations = relations(subscription, ({one}) => ({
+	customer: one(customer, {
+		fields: [subscription.customerId],
+		references: [customer.id]
+	}),
+}));
+
+export const x402TransactionRelations = relations(x402Transaction, ({one}) => ({
+	user: one(user, {
+		fields: [x402Transaction.userId],
+		references: [user.id]
 	}),
 }));
 

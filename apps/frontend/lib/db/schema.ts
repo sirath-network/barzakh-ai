@@ -21,10 +21,11 @@ import {
   username: text("username").unique(),
   image: text("image"),
   tier: varchar("tier", { length: 64 }).notNull().default("free"),
+  billingCycle: varchar("billingCycle", { length: 32 }).notNull().default("monthly"),
   messageCount: integer("messageCount").notNull().default(0),
   dailyMessageRemaining: integer("dailyMessageRemaining")
     .notNull()
-    .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 5),
+    .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10),
   // 2FA fields
   twoFactorSecret: text("twoFactorSecret"),
   twoFactorEnabled: boolean("twoFactorEnabled").notNull().default(false),

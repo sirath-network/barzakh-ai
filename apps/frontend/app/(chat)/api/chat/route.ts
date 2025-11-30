@@ -149,11 +149,22 @@ export async function POST(request: Request) {
   const users = await getUserById(session.user.id!);
   const user_info = users[0];
 
-  const tierLimitMap: Record<string, string | undefined> = {
-    free: process.env.FREE_USER_MESSAGE_LIMIT,
-    pro: process.env.PRO_USER_MESSAGE_LIMIT,
-    ultimate: process.env.ULTIMATE_USER_MESSAGE_LIMIT,
+  // Get message limit based on tier and billing cycle
+  const getMessageLimit = (tier: string, cycle: string): number => {
+    const cycleKey = cycle?.toUpperCase() || "MONTHLY";
+    if (tier === "pro") {
+      if (cycleKey === "YEARLY") return Number(process.env.PRO_YEARLY_USER_MESSAGE_LIMIT) || 150;
+      if (cycleKey === "QUARTERLY") return Number(process.env.PRO_QUARTERLY_USER_MESSAGE_LIMIT) || 100;
+      return Number(process.env.PRO_MONTHLY_USER_MESSAGE_LIMIT) || 50;
+    } else if (tier === "ultimate") {
+      if (cycleKey === "YEARLY") return Number(process.env.ULTIMATE_YEARLY_USER_MESSAGE_LIMIT) || 500;
+      if (cycleKey === "QUARTERLY") return Number(process.env.ULTIMATE_QUARTERLY_USER_MESSAGE_LIMIT) || 350;
+      return Number(process.env.ULTIMATE_MONTHLY_USER_MESSAGE_LIMIT) || 250;
+    }
+    return Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10;
   };
+
+  const userMessageLimit = getMessageLimit(user_info.tier, user_info.billingCycle);
 
   const rateLimitedTiers: Array<typeof user_info.tier> = ["free", "pro", "ultimate"];
   const isRateLimitedTier = rateLimitedTiers.includes(user_info.tier as typeof rateLimitedTiers[number]);
@@ -161,7 +172,8 @@ export async function POST(request: Request) {
   if (isRateLimitedTier && user_info.dailyMessageRemaining <= 0) {
     console.warn(`User ${user_info.email} blocked: ${user_info.tier} tier message limit exceeded`);
     const tierLabel = user_info.tier.toUpperCase();
-    const limit = tierLimitMap[user_info.tier] ?? "configured";
+    const cycleLabel = user_info.billingCycle?.toUpperCase() || "MONTHLY";
+    const limit = userMessageLimit;
     const upgradePrompt =
       user_info.tier === "free"
         ? "Upgrade to PRO or ULTIMATE for more usage and other perks!"
@@ -170,7 +182,7 @@ export async function POST(request: Request) {
         : "Contact support to extend your Ultimate tier limits.";
 
     return new Response(
-      `${tierLabel} tier limit of messages per day reached! ${upgradePrompt}`,
+      `${tierLabel} (${cycleLabel}) tier limit of ${limit} messages per day reached! ${upgradePrompt}`,
       {
         status: 403,
       }

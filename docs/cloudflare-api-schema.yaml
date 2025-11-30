@@ -1141,18 +1141,33 @@ components:
           properties:
             chainId:
               type: integer
+              description: Chain ID (338 for Cronos Testnet)
             chainName:
               type: string
+              description: Human readable chain name
             receiver:
               type: string
               pattern: "^0x[a-fA-F0-9]{40}$"
+              description: Wallet address to send payment to
             amount:
               type: string
+              description: Amount of TCRO to send
             currency:
               type: string
+              description: Currency symbol (TCRO)
             token:
               type: string
-              pattern: "^0x[a-fA-F0-9]{40}$"
+              nullable: true
+              description: Token contract address (null for native token)
+            isNativeToken:
+              type: boolean
+              description: Whether this is a native token transfer
+            usdPrice:
+              type: number
+              description: USD price of the plan
+            croUsdPrice:
+              type: number
+              description: Current CRO/USD exchange rate
 
     X402VerifyRequest:
       type: object

@@ -58,15 +58,46 @@ function resolveTierFromSubscription(subscription: Stripe.Subscription): Tier {
     return "pro";
 }
 
-function getDailyMessageLimitForTier(tier: Tier): number | undefined {
-    const envValue =
-        tier === "free"
-            ? process.env.FREE_USER_MESSAGE_LIMIT
-            : tier === "pro"
-            ? process.env.PRO_USER_MESSAGE_LIMIT
-            : process.env.ULTIMATE_USER_MESSAGE_LIMIT;
+function resolveBillingCycleFromSubscription(subscription: Stripe.Subscription): string {
+    const price = subscription.items.data[0]?.price;
+    if (!price?.recurring) return "monthly";
+    
+    const interval = price.recurring.interval;
+    const intervalCount = price.recurring.interval_count ?? 1;
+    
+    if (interval === "year") return "yearly";
+    if (interval === "month" && intervalCount === 3) return "quarterly";
+    return "monthly";
+}
+
+function getDailyMessageLimitForTier(tier: Tier, billingCycle: string = "monthly"): number | undefined {
+    let envValue: string | undefined;
+    
+    if (tier === "free") {
+        envValue = process.env.FREE_USER_MESSAGE_LIMIT;
+    } else if (tier === "pro") {
+        if (billingCycle === "yearly") envValue = process.env.PRO_YEARLY_USER_MESSAGE_LIMIT;
+        else if (billingCycle === "quarterly") envValue = process.env.PRO_QUARTERLY_USER_MESSAGE_LIMIT;
+        else envValue = process.env.PRO_MONTHLY_USER_MESSAGE_LIMIT;
+    } else if (tier === "ultimate") {
+        if (billingCycle === "yearly") envValue = process.env.ULTIMATE_YEARLY_USER_MESSAGE_LIMIT;
+        else if (billingCycle === "quarterly") envValue = process.env.ULTIMATE_QUARTERLY_USER_MESSAGE_LIMIT;
+        else envValue = process.env.ULTIMATE_MONTHLY_USER_MESSAGE_LIMIT;
+    }
 
     if (!envValue) {
+        // Return defaults matching .env
+        if (tier === "free") return 10;
+        if (tier === "pro") {
+            if (billingCycle === "yearly") return 150;
+            if (billingCycle === "quarterly") return 100;
+            return 50;
+        }
+        if (tier === "ultimate") {
+            if (billingCycle === "yearly") return 500;
+            if (billingCycle === "quarterly") return 350;
+            return 250;
+        }
         return undefined;
     }
 
@@ -95,9 +126,10 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
     const tier = resolveTierFromSubscription(subscription);
-    const dailyLimit = getDailyMessageLimitForTier(tier);
+    const billingCycle = resolveBillingCycleFromSubscription(subscription);
+    const dailyLimit = getDailyMessageLimitForTier(tier, billingCycle);
 
-    const updatePayload: { tier: Tier; dailyMessageRemaining?: number } = { tier };
+    const updatePayload: { tier: Tier; billingCycle: string; dailyMessageRemaining?: number } = { tier, billingCycle };
     if (typeof dailyLimit === "number") {
         updatePayload.dailyMessageRemaining = dailyLimit;
     }
@@ -105,7 +137,7 @@ async function manageSubscriptionStatusChange(subscriptionId: string, customerId
     await db.update(userTable)
         .set(updatePayload)
         .where(eq(userTable.id, userId));
-    console.log(`✅ User tier set to "${tier}" for userId: ${userId}`);
+    console.log(`✅ User tier set to "${tier}" (${billingCycle}) for userId: ${userId}`);
 
     // If the tier is now 'free', we don't need to sync subscription dates.
     // The 'customer.subscription.deleted' handler will remove the subscription record.
@@ -238,7 +270,7 @@ export async function POST(req: Request) {
                     const customer = await db.select().from(customerTable).where(eq(customerTable.id, localSub[0].customerId));
                     if (customer.length > 0) {
                         const freeLimit = getDailyMessageLimitForTier("free");
-                        const resetPayload: { tier: Tier; dailyMessageRemaining?: number } = { tier: "free" };
+                        const resetPayload: { tier: Tier; billingCycle: string; dailyMessageRemaining?: number } = { tier: "free", billingCycle: "monthly" };
                         if (typeof freeLimit === "number") {
                             resetPayload.dailyMessageRemaining = freeLimit;
                         }
