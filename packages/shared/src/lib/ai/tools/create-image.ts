@@ -258,7 +258,7 @@ function extractCandidateParts(candidate: any): any[] {
 
 const COMET_GEMINI_ENDPOINT =
   process.env.COMETAPI_IMAGE_ENDPOINT ||
-  "https://api.cometapi.com/v1beta/models/gemini-3-pro-image:generateContent";
+  "https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image:generateContent";
 
 async function generateGeminiImage(
   prompt: string,

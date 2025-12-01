@@ -279,9 +279,9 @@ export default function TwoFactorSettingsPage() {
             
             <div className="p-6 md:p-8 space-y-6">
               {/* Status Section */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-red-950/30 rounded-lg border border-gray-200 dark:border-red-900/50 gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-red-900/40 rounded-lg flex items-center justify-center flex-shrink-0">
                     {status.twoFactorEnabled ? (
                       <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     ) : (
@@ -323,10 +323,10 @@ export default function TwoFactorSettingsPage() {
 
               {/* Backup Codes Management Section - Only shown when 2FA is enabled */}
               {status.twoFactorEnabled && (
-                <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Key className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-red-900/40 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Key className="w-5 h-5 text-gray-600 dark:text-red-300" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Backup Codes</h3>
@@ -362,46 +362,46 @@ export default function TwoFactorSettingsPage() {
               {setupData && !status.twoFactorEnabled && (
                 <div className="space-y-6">
                   {/* QR Code Section */}
-                  <div className="bg-gray-50 dark:bg-gray-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+                  <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <QrCode className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <QrCode className="w-5 h-5 text-gray-600 dark:text-red-400" />
                       <h3 className="font-semibold text-gray-900 dark:text-white">Scan QR Code</h3>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       Use your authenticator app (Google Authenticator, Authy, etc.) to scan this QR code:
                     </p>
                     <div className="flex justify-center">
                       <img 
                         src={setupData.qrCode} 
                         alt="2FA QR Code" 
-                        className="w-40 h-40 sm:w-48 sm:h-48 border border-gray-300 dark:border-gray-600 rounded-lg"
+                        className="w-40 h-40 sm:w-48 sm:h-48 border border-gray-300 dark:border-red-800/50 rounded-lg bg-white"
                       />
                     </div>
                   </div>
 
                   {/* Manual Entry Section */}
-                  <div className="bg-gray-50 dark:bg-gray-800/50 border border-red-200 dark:border-red-700 rounded-xl p-6">
+                  <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <Copy className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <Copy className="w-5 h-5 text-gray-600 dark:text-red-400" />
                       <h3 className="font-semibold text-gray-900 dark:text-white">Manual Entry Key</h3>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       If you can't scan the QR code, enter this key manually in your authenticator app:
                     </p>
-                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600">
+                    <div className="flex items-center gap-2 p-3 bg-white dark:bg-black/40 rounded-lg border border-gray-300 dark:border-red-900/50">
                       <code className="flex-1 font-mono text-sm text-gray-900 dark:text-white break-all">
                         {showSecret ? setupData.manualEntryKey : "•".repeat(setupData.manualEntryKey.length)}
                       </code>
                       <div className="flex gap-1">
                         <button
                           onClick={() => setShowSecret(!showSecret)}
-                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
                         >
                           {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={() => copyToClipboard(setupData.manualEntryKey)}
-                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
@@ -410,12 +410,12 @@ export default function TwoFactorSettingsPage() {
                   </div>
 
                   {/* Verification Section */}
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Verify Setup</h3>
+                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      <h3 className="font-semibold text-amber-900 dark:text-amber-100">Verify Setup</h3>
                     </div>
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-4">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
                       Enter the 6-digit code from your authenticator app to complete the setup:
                     </p>
                     <div className="space-y-4">
@@ -454,7 +454,7 @@ export default function TwoFactorSettingsPage() {
 
               {/* Disable Section */}
               {status.twoFactorEnabled && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <ShieldX className="w-5 h-5 text-red-600 dark:text-red-400" />
                     <h3 className="font-semibold text-red-900 dark:text-red-100">Disable 2FA</h3>
@@ -497,7 +497,7 @@ export default function TwoFactorSettingsPage() {
 
               {/* Backup Codes */}
               {showBackupCodes && backupCodes.length > 0 && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <Key className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Backup Codes</h3>
@@ -509,7 +509,7 @@ export default function TwoFactorSettingsPage() {
                     {backupCodes.map((code, index) => (
                       <div
                         key={index}
-                        className="p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs sm:text-sm text-center break-all"
+                        className="p-3 bg-white dark:bg-black/40 rounded border border-gray-300 dark:border-emerald-800/50 font-mono text-xs sm:text-sm text-center break-all text-gray-900 dark:text-emerald-100"
                       >
                         {code}
                       </div>
@@ -518,7 +518,7 @@ export default function TwoFactorSettingsPage() {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={downloadBackupCodes}
-                      className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-sm flex items-center justify-center gap-2"
+                      className="flex-1 bg-gray-100 dark:bg-red-950/40 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-red-900/50 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-sm flex items-center justify-center gap-2"
                     >
                       <Download className="w-4 h-4" />
                       Download Codes
@@ -626,7 +626,7 @@ export default function TwoFactorSettingsPage() {
               </p>
             </div>
             <button onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-              className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm">
+              className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm">
               Contact Support
             </button>
           </div>

@@ -14,7 +14,7 @@ export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-claude": cometai("claude-opus-4-5-20251101"),
+    "chat-model-claude": cometai("claude-haiku-4-5-20251001"),
     "chat-model-grok": cometai("grok-4-fast-reasoning"),
     "chat-model-glm": cometai("glm-4.6"),
     "chat-model-gigantic": cometai("gpt-5"),
@@ -53,7 +53,7 @@ export const chatModels: Array<ChatModel> = [
   },
   {
     id: "chat-model-claude",
-    name: "claude-opus-4-5",
+    name: "claude-haiku-4-5",
     description: "Claude model for experimental tasks",
   },
   {
@@ -71,9 +71,9 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "gemini-3-pro-image",
-    name: "Gemini 3 Pro Image",
+    id: "gemini-2.5-flash-image",
+    name: "Gemini 2.5 Flash Image",
     description:
-      "Gemini 3 Pro Image via CometAPI for fast, high-fidelity generations.",
+      "Gemini 2.5 Flash Image via CometAPI for fast, high-fidelity generations.",
   },
 ];

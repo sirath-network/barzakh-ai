@@ -179,7 +179,7 @@ export default function BillingPage() {
             </div>
             <button
               onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-              className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm"
+              className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm"
             >
               Contact Support
             </button>

@@ -102,7 +102,7 @@ export function SettingsMenu({
           icon={<UserCogAny size={18} />}
           onClick={() => handleMenuClick('account')}
         >
-          Edit Account
+          Profile Settings
         </SettingsMenuItem>
         <SettingsMenuItem
           icon={<ArchiveIconAny size={18} />}

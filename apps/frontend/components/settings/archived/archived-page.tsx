@@ -95,7 +95,7 @@ const ArchivedChatItem = ({
             flex items-center gap-4 flex-1 min-w-0 rounded-lg p-3 transition-all duration-200
             ${
               isActive
-                ? "bg-gradient-to-r from-red-50 to-red-25 dark:from-red-950/50 dark:to-red-900/30 text-red-700 dark:text-red-300"
+                ? "bg-gradient-to-r from-gray-100 to-gray-50 dark:from-red-950/50 dark:to-red-900/30 text-gray-700 dark:text-red-300"
                 : "hover:bg-gray-50 dark:hover:bg-red-900/20"
             }
           `}
@@ -104,15 +104,15 @@ const ArchivedChatItem = ({
             w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border transition-all duration-200
             ${
               isActive 
-                ? "bg-red-100 dark:bg-red-800/50 border-red-200 dark:border-red-700/50" 
+                ? "bg-gray-200 dark:bg-red-800/50 border-gray-300 dark:border-red-700/50" 
                 : "bg-gray-100 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50"
             }
           `}>
-            <ArchiveRestoreAny className={`w-5 h-5 ${isActive ? "text-red-600 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
+            <ArchiveRestoreAny className={`w-5 h-5 ${isActive ? "text-gray-700 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-sm truncate ${
-              isActive ? "text-red-900 dark:text-red-200" : "text-gray-900 dark:text-white"
+              isActive ? "text-gray-900 dark:text-red-200" : "text-gray-900 dark:text-white"
             }`}>
               {chat.title}
             </h3>
@@ -151,7 +151,7 @@ const ArchivedChatItem = ({
               className="cursor-pointer rounded-lg m-1 hover:bg-gray-50 dark:hover:bg-red-900/20 focus:bg-gray-50 dark:focus:bg-red-900/20"
               onSelect={() => onRestore(chat.id)}
             >
-              <RotateCcwAny className="mr-3 h-4 w-4 text-green-600 dark:text-green-400" />
+              <RotateCcwAny className="mr-3 h-4 w-4 text-white-600 dark:text-white-400" />
               <span className="font-medium text-gray-700 dark:text-gray-200">Restore chat</span>
             </DropdownMenuItemAny>
             <DropdownMenuSeparatorAny className="bg-gray-200 dark:bg-red-900/30" />
@@ -455,7 +455,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               </p>
             </div>
             <button onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-              className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm">
+              className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm">
               Contact Support
             </button>
           </div>

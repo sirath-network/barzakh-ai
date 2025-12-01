@@ -68,7 +68,6 @@ export async function POST(request: Request) {
   const croUsdPrice = await getCroUsdPrice();
   
   // Calculate TCRO amount: USD price / CRO price
-  // e.g., $25 / $0.10 = 250 TCRO
   const tcroAmount = usdPrice / croUsdPrice;
   
   // Round to 2 decimal places for cleaner display

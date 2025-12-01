@@ -272,7 +272,7 @@ export function SubscriptionCard({
           <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-5">
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-300">Plan</span>
-              <span className="font-medium text-red-600 dark:text-red-400">
+              <span className="font-medium text-gray-800 dark:text-red-400">
                 {isLoadingState
                   ? "Loading..."
                   : formattedPlanName ?? "Custom Plan"}
@@ -345,7 +345,7 @@ export function SubscriptionCard({
                   {showCancelOptions && (
                     <>
                       <div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 dark:bg-black/60 px-4 py-6 backdrop-blur-md"
                         onClick={() => {
                           if (showImmediateCancelConfirm) {
                             setShowImmediateCancelConfirm(false);
@@ -355,7 +355,7 @@ export function SubscriptionCard({
                         }}
                       >
                         <div
-                          className="w-full max-w-md rounded-2xl border border-red-200/70 dark:border-red-900/60 bg-white/97 dark:bg-black/90 p-6 shadow-2xl shadow-red-900/20"
+                          className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-red-900/60 bg-white dark:bg-black/90 p-6 shadow-2xl ring-1 ring-gray-900/5 dark:ring-red-500/10"
                           onClick={(event) => event.stopPropagation()}
                         >
                           <div className="space-y-4">
@@ -371,11 +371,11 @@ export function SubscriptionCard({
                             <div className="space-y-3">
                               {showImmediateCancelConfirm ? (
                                 <>
-                                  <div className="rounded-xl border border-red-300/70 dark:border-red-800 bg-red-50/80 dark:bg-red-950/30 px-4 py-4 text-sm text-red-700 dark:text-red-200">
-                                    <p className="font-semibold">
+                                  <div className="rounded-xl border border-gray-300 dark:border-red-800 bg-gray-50 dark:bg-red-950/30 px-4 py-4 text-sm text-gray-700 dark:text-red-200">
+                                    <p className="font-semibold text-gray-900 dark:text-red-200">
                                       Cancel immediately?
                                     </p>
-                                    <p className="mt-2 text-xs text-red-600 dark:text-red-300 leading-relaxed">
+                                    <p className="mt-2 text-xs text-gray-600 dark:text-red-300 leading-relaxed">
                                       This will end your Ultimate access right away and any remaining time in the current billing cycle will be forfeited. This action cannot be undone.
                                     </p>
                                   </div>
@@ -408,7 +408,7 @@ export function SubscriptionCard({
                                       await handleCancelSubscriptionAtPeriodEnd();
                                     }}
                                     disabled={isUpdatingSubscription}
-                                    className="w-full rounded-xl border border-gray-200 dark:border-red-900/40 bg-gray-50/80 dark:bg-red-950/20 px-4 py-4 text-left transition-all hover:border-red-300 hover:bg-white dark:hover:border-red-700/60 dark:hover:bg-red-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="w-full rounded-xl border border-gray-200 dark:border-red-900/40 bg-gray-50/80 dark:bg-red-950/20 px-4 py-4 text-left transition-all hover:border-gray-300 hover:bg-white dark:hover:border-red-700/60 dark:hover:bg-red-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
                                   >
                                     <span className="block text-sm font-semibold text-gray-900 dark:text-white">
                                       Cancel at end of period
@@ -421,12 +421,13 @@ export function SubscriptionCard({
                                   <button
                                     onClick={() => setShowImmediateCancelConfirm(true)}
                                     disabled={isUpdatingSubscription}
-                                    className="w-full rounded-xl border border-red-300/70 dark:border-red-800 bg-red-50/90 dark:bg-red-950/40 px-4 py-4 text-left text-red-700 dark:text-red-200 transition-all hover:border-red-400 hover:bg-red-100 dark:hover:border-red-700 dark:hover:bg-red-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="group relative w-full rounded-xl border-2 border-red-300 dark:border-red-700 bg-gradient-to-br from-red-50 to-white dark:from-red-950/60 dark:to-red-900/30 px-4 py-4 text-left transition-all hover:border-red-400 hover:shadow-lg hover:shadow-red-200/50 dark:hover:border-red-600 dark:hover:shadow-red-900/30 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
                                   >
-                                    <span className="block text-sm font-semibold">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-100/50 to-transparent dark:via-red-500/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                    <span className="relative block text-sm font-semibold text-red-700 dark:text-red-200">
                                       Cancel immediately
                                     </span>
-                                    <span className="mt-2 block text-xs text-red-600 dark:text-red-300">
+                                    <span className="relative mt-2 block text-xs text-red-500 dark:text-red-300">
                                       End access right away and stop billing.
                                     </span>
                                   </button>
@@ -468,10 +469,10 @@ export function SubscriptionCard({
           <div className="p-8 border-t border-gray-200 dark:border-red-900/30 space-y-6">
             <div className="text-center space-y-2">
             </div>
-            <div className="relative overflow-hidden rounded-3xl border border-dashed border-red-900/40 bg-white/40 dark:bg-black/40">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-red-900/20 blur-xl" />
+            <div className="relative overflow-hidden rounded-3xl border border-dashed border-gray-300 dark:border-red-900/40 bg-white/40 dark:bg-black/40">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gray-400/10 via-transparent to-gray-500/20 dark:from-red-500/10 dark:via-transparent dark:to-red-900/20 blur-xl" />
               <div className="relative px-8 py-12 text-center space-y-5 backdrop-blur-md">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-200 dark:bg-red-800/30 shadow-inner shadow-red-900/50">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:text-red-200 dark:bg-red-800/30 shadow-inner dark:shadow-red-900/50">
                   <Lock className="h-7 w-7 animate-[pulse_2s_ease-in-out_infinite]" />
                 </div>
                 <div className="space-y-1.5">
@@ -482,7 +483,7 @@ export function SubscriptionCard({
                     Pick a subscription tier from the dedicated Plans &amp; Pricing section to unlock billing management and premium features.
                   </p>
                 </div>
-                <p className="text-xs uppercase tracking-wider text-red-500/70 dark:text-red-300/80">
+                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-red-300/80">
                   Data available after subscribing
                 </p>
               </div>

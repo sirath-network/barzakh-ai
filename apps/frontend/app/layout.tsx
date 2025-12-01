@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Web3Provider } from "@/components/providers/web3-provider";
 import { SessionProvider } from "next-auth/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
-const baseUrl = "https://sirath.network";
+const baseUrl = "https://barzakh.framer.ai";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -110,9 +111,11 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Toaster position="top-center" />
-            {children}
-            <SpeedInsights />
+            <Web3Provider>
+              <Toaster position="top-center" />
+              {children}
+              <SpeedInsights />
+            </Web3Provider>
           </ThemeProvider>
         </SessionProvider>
       </body>

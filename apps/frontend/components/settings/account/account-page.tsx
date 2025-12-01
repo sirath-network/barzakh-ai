@@ -362,7 +362,7 @@ export default function AccountSettingsPage() {
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20"
+                        className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -382,7 +382,7 @@ export default function AccountSettingsPage() {
                         type="text"
                         value={username}
                         onChange={(e) => handleUsernameChange(e.target.value)}
-                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${
                           username && !usernameValidation.isValid 
                             ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
                             : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
@@ -601,7 +601,7 @@ export default function AccountSettingsPage() {
               </div>
               <button 
                 onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-                className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm"
+                className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm"
               >
                 Contact Support
               </button>
