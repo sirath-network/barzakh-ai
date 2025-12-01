@@ -107,9 +107,9 @@ export function BillingAddressCard({
             <div className="absolute inset-0 flex items-center justify-center bg-gray-200/50 dark:bg-black/60 backdrop-blur-[1px]">
               <div className="text-center space-y-4 p-6">
                 <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-700 rounded-full animate-pulse opacity-20"></div>
-                  <div className="absolute inset-2 bg-gradient-to-r from-red-500 to-red-600 rounded-full animate-ping opacity-30"></div>
-                  <Lock className="w-8 h-8 text-red-600 dark:text-red-400 relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-500 to-gray-600 dark:from-red-600 dark:to-red-700 rounded-full animate-pulse opacity-20"></div>
+                  <div className="absolute inset-2 bg-gradient-to-r from-gray-400 to-gray-500 dark:from-red-500 dark:to-red-600 rounded-full animate-ping opacity-30"></div>
+                  <Lock className="w-8 h-8 text-gray-600 dark:text-red-400 relative z-10" />
                 </div>
 
                 <div className="space-y-2">

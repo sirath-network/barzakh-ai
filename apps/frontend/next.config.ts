@@ -18,6 +18,23 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   webpack: (config, { isServer }) => {
+    // Handle WalletConnect / RainbowKit / wagmi dependencies
+    // These packages have optional dependencies that aren't needed for web
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      'pino-pretty': false,
+      'lokijs': false,
+      'encoding': false,
+    };
+
+    // Externalize problematic React Native dependencies on server
+    if (isServer) {
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : []),
+        '@react-native-async-storage/async-storage',
+      ];
+    }
+
     // Suppress webpack warnings from third-party dependencies
     config.ignoreWarnings = [
       {
@@ -37,6 +54,16 @@ const nextConfig: NextConfig = {
       },
       {
         message: /Critical dependency: the request of a dependency is an expression/,
+      },
+      // Ignore MetaMask SDK and WalletConnect module resolution warnings
+      {
+        module: /node_modules\/@metamask\/sdk/,
+      },
+      {
+        module: /node_modules\/@walletconnect/,
+      },
+      {
+        module: /node_modules\/pino/,
       },
     ];
     return config;

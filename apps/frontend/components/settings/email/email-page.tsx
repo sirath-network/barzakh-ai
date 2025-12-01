@@ -214,7 +214,7 @@ export default function EmailSettingsPage() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Email Address</label>
-                    <div className="bg-gray-100 dark:bg-gray-900/80 rounded-lg p-4 border border-gray-200 dark:border-red-900/30">
+                    <div className="bg-gray-100 dark:bg-red-950/30 rounded-lg p-4 border border-gray-200 dark:border-red-900/50">
                       <div className="flex items-center gap-3">
                         <Mail className="w-5 h-5 text-gray-500 dark:text-red-400" />
                         <span className="text-gray-900 dark:text-white font-medium break-all">
@@ -239,7 +239,7 @@ export default function EmailSettingsPage() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Email</label>
-                    <div className="bg-gray-100 dark:bg-gray-900/80 rounded-lg p-3 border border-gray-200 dark:border-red-900/30">
+                    <div className="bg-gray-100 dark:bg-red-950/30 rounded-lg p-3 border border-gray-200 dark:border-red-900/50">
                       <span className="text-gray-700 dark:text-gray-200 break-all">{currentEmail}</span>
                     </div>
                   </div>
@@ -255,7 +255,7 @@ export default function EmailSettingsPage() {
                           setNewEmail(e.target.value); 
                           if (errors.newEmail) setErrors({...errors, newEmail: ""}); 
                         }}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${
                           errors.newEmail ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
                         }`}
                         placeholder="Enter your new email address" 
@@ -280,7 +280,7 @@ export default function EmailSettingsPage() {
                           setPassword(e.target.value); 
                           if (errors.password) setErrors({...errors, password: ""}); 
                         }}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${
                           errors.password ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
                         }`}
                         placeholder="Enter your current password" 
@@ -302,12 +302,12 @@ export default function EmailSettingsPage() {
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required for security verification</p>
                   </div>
 
-                  <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-4 border border-red-200 dark:border-red-700/50">
+                  <div className="bg-red-50 dark:bg-red-950/40 rounded-xl p-4 border border-red-200 dark:border-red-800/60">
                     <div className="flex gap-3">
                       <Shield className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <h3 className="font-semibold text-red-800 dark:text-red-300 mb-1">Security Notice</h3>
-                        <p className="text-sm text-red-700 dark:text-red-200">
+                        <h3 className="font-semibold text-red-800 dark:text-red-200 mb-1">Security Notice</h3>
+                        <p className="text-sm text-red-700 dark:text-red-300">
                           After updating your email, you'll be automatically logged out and need to sign in again.
                         </p>
                       </div>
@@ -359,8 +359,8 @@ export default function EmailSettingsPage() {
               {message.text && (
                 <div className={`p-4 rounded-lg border ${
                   message.type === "success" 
-                    ? "bg-emerald-50 dark:bg-emerald-900/50 border-emerald-200 dark:border-emerald-700" 
-                    : "bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-700"
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60" 
+                    : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60"
                 }`}>
                   <div className="flex items-center gap-3">
                     {message.type === "success" ? (
@@ -369,7 +369,7 @@ export default function EmailSettingsPage() {
                       <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0" />
                     )}
                     <p className={`text-sm font-medium ${
-                      message.type === "success" ? "text-emerald-800 dark:text-emerald-300" : "text-red-800 dark:text-red-300"
+                      message.type === "success" ? "text-emerald-800 dark:text-emerald-200" : "text-red-800 dark:text-red-200"
                     }`}>
                       {message.text}
                     </p>
@@ -519,7 +519,7 @@ export default function EmailSettingsPage() {
             </div>
             <button 
               onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")} 
-              className="bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-red-900/30 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/20 text-xs md:text-sm"
+              className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm"
             >
               Contact Support
             </button>

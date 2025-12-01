@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp, LogOut, AlertTriangle } from "lucide-react";
 import { parseEther, formatEther } from "viem";
+import { useAccount, useBalance, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { cronosTestnet } from "@/lib/wagmi";
 
 interface X402PaymentModalProps {
   isOpen: boolean;
@@ -15,8 +18,8 @@ interface X402PaymentModalProps {
   planId: string;
   billingCycle: string;
   onSuccess: () => void;
-  currentTier?: string | null; // Current subscription tier if any
-  currentBillingCycle?: string | null; // Current billing cycle if any
+  currentTier?: string | null;
+  currentBillingCycle?: string | null;
 }
 
 const DialogAny = Dialog as any;
@@ -42,13 +45,33 @@ export function X402PaymentModal({
   const [txHash, setTxHash] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [connectedAddress, setConnectedAddress] = useState<string | null>(null);
-  const [userBalance, setUserBalance] = useState<string | null>(null);
-  const [isWaitingConfirmation, setIsWaitingConfirmation] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [confirmPlanChange, setConfirmPlanChange] = useState(false);
 
-  // Check if user is changing plans (different tier OR different billing cycle)
+  // RainbowKit/Wagmi hooks
+  const { address, isConnected, chain } = useAccount();
+  const { data: balanceData } = useBalance({
+    address: address,
+    chainId: cronosTestnet.id,
+  });
+  const { switchChain } = useSwitchChain();
+  
+  const { 
+    sendTransaction, 
+    data: sendTxHash,
+    isPending: isSending,
+    isError: sendError,
+    reset: resetSendTransaction 
+  } = useSendTransaction();
+
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed 
+  } = useWaitForTransactionReceipt({
+    hash: sendTxHash,
+  });
+
+  // Check if user is changing plans
   const hasPaidSubscription = currentTier && currentTier !== "free";
   const isTierChange = hasPaidSubscription && currentTier !== planId;
   const isBillingCycleChange = hasPaidSubscription && currentTier === planId && currentBillingCycle !== billingCycle;
@@ -58,11 +81,18 @@ export function X402PaymentModal({
     (currentTier === "pro" && planId === "ultimate") ||
     (currentTier === "free" && (planId === "pro" || planId === "ultimate"))
   );
+
   const isDowngrade = isTierChange && (
     (currentTier === "ultimate" && planId === "pro") ||
     ((currentTier === "pro" || currentTier === "ultimate") && planId === "free")
   );
 
+  const isOnCorrectChain = chain?.id === cronosTestnet.id;
+  const userBalance = balanceData ? formatEther(balanceData.value) : null;
+  const hasInsufficientBalance = userBalance && paymentDetails && 
+    parseFloat(userBalance) < parseFloat(paymentDetails.amount);
+
+  // Reset modal state when opened
   useEffect(() => {
     if (isOpen) {
       setStep("init");
@@ -70,13 +100,26 @@ export function X402PaymentModal({
       setTxHash("");
       setIsLoading(false);
       setCopied(false);
-      setConnectedAddress(null);
-      setUserBalance(null);
-      setIsWaitingConfirmation(false);
       setShowManualEntry(false);
       setConfirmPlanChange(false);
+      resetSendTransaction?.();
     }
-  }, [isOpen, planId, billingCycle]);
+  }, [isOpen, planId, billingCycle, resetSendTransaction]);
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isConfirmed && sendTxHash) {
+      setStep("verifying");
+      verifyWithRetry(sendTxHash);
+    }
+  }, [isConfirmed, sendTxHash]);
+
+  // Handle send error
+  useEffect(() => {
+    if (sendError) {
+      toast.error("Transaction failed. Please try again.");
+    }
+  }, [sendError]);
 
   const initPayment = async () => {
     try {
@@ -108,87 +151,6 @@ export function X402PaymentModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const disconnectWallet = async () => {
-    try {
-      if (typeof window !== "undefined" && (window as any).ethereum) {
-        await (window as any).ethereum.request({
-          method: "wallet_revokePermissions",
-          params: [{ eth_accounts: {} }],
-        });
-      }
-    } catch (error) {
-      console.log("Revoke permissions not supported or cancelled", error);
-    }
-    setConnectedAddress(null);
-    setUserBalance(null);
-    toast.info("Wallet disconnected");
-  };
-
-  const connectWallet = async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      toast.error("MetaMask not found");
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const ethereum = (window as any).ethereum;
-      await ethereum.request({ method: "eth_requestAccounts" });
-      
-      // Switch to Cronos EVM Testnet
-      try {
-        await ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x152" }], // 338 in hex
-        });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-          await ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: "0x152",
-                chainName: "Cronos Testnet",
-                rpcUrls: ["https://evm-t3.cronos.org"],
-                nativeCurrency: {
-                  name: "Test CRO",
-                  symbol: "TCRO",
-                  decimals: 18,
-                },
-                blockExplorerUrls: ["https://explorer.cronos.org/testnet"],
-              },
-            ],
-          });
-        } else {
-          throw switchError;
-        }
-      }
-
-      const userAddress = ethereum.selectedAddress;
-      setConnectedAddress(userAddress);
-
-      // Fetch user's native TCRO balance
-      const balanceHex = await ethereum.request({
-        method: "eth_getBalance",
-        params: [userAddress, "latest"],
-      });
-
-      const balance = BigInt(balanceHex);
-      const formattedBalance = formatEther(balance);
-      setUserBalance(parseFloat(formattedBalance).toFixed(4));
-
-    } catch (error: any) {
-      if (error.code === 4001) {
-        toast.info("Connection cancelled");
-        return;
-      }
-      console.error("Connection error:", error);
-      toast.error(error.message || "Failed to connect wallet");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const verifyWithRetry = async (hash: string, maxRetries = 5) => {
     let retries = maxRetries;
     const toastId = toast.loading("Verifying payment...");
@@ -210,12 +172,11 @@ export function X402PaymentModal({
           onClose();
           return true;
         } else if (res.status === 409 && data.code === "BLOCK_NOT_FOUND") {
-           // Retryable error
-           console.log(`Block not found, retrying verification... (${retries} left)`);
-           toast.loading(`Verifying... Block confirmation pending (${retries} retries left)`, { id: toastId });
-           retries--;
-           await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
-           continue;
+          console.log(`Block not found, retrying verification... (${retries} left)`);
+          toast.loading(`Verifying... Block confirmation pending (${retries} retries left)`, { id: toastId });
+          retries--;
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          continue;
         } else {
           toast.dismiss(toastId);
           toast.error(data.error || "Verification failed");
@@ -224,7 +185,6 @@ export function X402PaymentModal({
         }
       } catch (error) {
         console.error(error);
-        // Network error, maybe retry?
         retries--;
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
@@ -235,108 +195,37 @@ export function X402PaymentModal({
     return false;
   };
 
-  const handlePayWithMetaMask = async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      toast.error("MetaMask not found");
+  const handlePayment = async () => {
+    if (!isConnected || !address) {
+      toast.error("Please connect your wallet first");
       return;
     }
 
-    if (!connectedAddress) {
-      await connectWallet();
+    if (!isOnCorrectChain) {
+      try {
+        switchChain({ chainId: cronosTestnet.id });
+      } catch (error) {
+        toast.error("Please switch to Cronos Testnet");
+      }
+      return;
+    }
+
+    if (hasInsufficientBalance) {
+      toast.error(
+        `Insufficient TCRO balance. You have ${parseFloat(userBalance || "0").toFixed(4)} TCRO but need ${paymentDetails.amount} TCRO.`
+      );
       return;
     }
 
     try {
-      setIsLoading(true);
-      const ethereum = (window as any).ethereum;
-      
-      // Check balance again before payment
-      const requiredAmount = parseEther(paymentDetails.amount);
-      const currentBalance = parseEther(userBalance || "0");
-      
-      if (currentBalance < requiredAmount) {
-        toast.error(
-          `Insufficient TCRO balance. You have ${userBalance} TCRO but need ${paymentDetails.amount} TCRO.`
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      // Send native TCRO transfer
-      const newTxHash = await ethereum.request({
-        method: "eth_sendTransaction",
-        params: [
-          {
-            to: paymentDetails.receiver,
-            from: connectedAddress,
-            value: "0x" + requiredAmount.toString(16), // Convert to hex
-          },
-        ],
+      const amount = parseEther(paymentDetails.amount);
+      sendTransaction({
+        to: paymentDetails.receiver as `0x${string}`,
+        value: amount,
       });
-
-      setTxHash(newTxHash);
-      
-      const confirmationToastId = toast.loading("Waiting for transaction confirmation...");
-      
-      // Wait for transaction confirmation
-      const waitForConfirmation = async (hash: string): Promise<boolean> => {
-        const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds max
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-          try {
-            const receipt = await ethereum.request({
-              method: "eth_getTransactionReceipt",
-              params: [hash],
-            });
-            
-            if (receipt) {
-              // Check if transaction was successful (status 0x1)
-              if (receipt.status === "0x1") {
-                toast.dismiss(confirmationToastId);
-                return true;
-              } else {
-                toast.dismiss(confirmationToastId);
-                toast.error("Transaction failed on-chain");
-                return false;
-              }
-            }
-          } catch (err) {
-            console.log("Waiting for receipt...", err);
-          }
-          
-          // Wait 2 seconds before next check
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          attempts++;
-        }
-        
-        toast.dismiss(confirmationToastId);
-        return false; // Timeout
-      };
-
-      // Wait minimum 5 seconds then check for confirmation
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const confirmed = await waitForConfirmation(newTxHash);
-      setIsWaitingConfirmation(false);
-      
-      if (confirmed) {
-        // Auto-trigger verification (toast is handled inside verifyWithRetry)
-        setStep("verifying");
-        await verifyWithRetry(newTxHash);
-      } else {
-        toast.info("Could not confirm transaction automatically. Please verify manually.");
-      }
     } catch (error: any) {
-      if (error.code === 4001) {
-        toast.info("Transaction cancelled");
-        return;
-      }
-      
       console.error("Payment error:", error);
       toast.error(error.message || "Payment failed. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -352,9 +241,37 @@ export function X402PaymentModal({
     }
   };
 
+  // Handle dialog close - prevent closing when RainbowKit modal is interacting
+  const handleOpenChange = (open: boolean) => {
+    // Only allow closing if explicitly requested (not from focus loss)
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
-    <DialogAny open={isOpen} onOpenChange={onClose}>
-      <DialogContentAny className="sm:max-w-md w-[90%] rounded-xl">
+    <DialogAny open={isOpen} onOpenChange={handleOpenChange} modal={false}>
+      <DialogContentAny 
+        className="sm:max-w-md w-[90%] rounded-xl"
+        onPointerDownOutside={(e: any) => {
+          // Prevent closing when clicking on RainbowKit modal
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-rk]') || target.closest('[data-radix-popper-content-wrapper]')) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e: any) => {
+          // Prevent closing when interacting with RainbowKit
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-rk]') || target.closest('[data-radix-popper-content-wrapper]')) {
+            e.preventDefault();
+          }
+        }}
+        onFocusOutside={(e: any) => {
+          // Prevent closing when focus moves to RainbowKit modal
+          e.preventDefault();
+        }}
+      >
         <DialogHeaderAny>
           <DialogTitleAny>Pay with Crypto (x402)</DialogTitleAny>
           <DialogDescriptionAny>
@@ -383,7 +300,7 @@ export function X402PaymentModal({
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                        {isBillingCycleChange ? "Billing Cycle Change" : isUpgrade ? "Plan Upgrade" : "Plan Change"}
+                        {isBillingCycleChange ? "Billing Cycle Change" : isUpgrade ? "Plan Upgrade" : isDowngrade ? "Plan Downgrade" : "Plan Change"}
                       </p>
                       <p className="text-xs text-amber-700 dark:text-amber-300">
                         {isBillingCycleChange ? (
@@ -454,24 +371,63 @@ export function X402PaymentModal({
               </div>
             </div>
 
-            {/* Wallet Section */}
+            {/* Wallet Section - Using RainbowKit */}
             <div className="space-y-3">
-                {!connectedAddress ? (
-                    <ButtonAny onClick={connectWallet} disabled={isLoading} className="w-full" size="lg">
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2 h-4 w-4" />}
-                        Connect Wallet to Pay
-                    </ButtonAny>
+                {!isConnected ? (
+                    <div className="flex flex-col items-center gap-3">
+                        <ConnectButton.Custom>
+                          {({ openConnectModal, mounted }) => {
+                            const ready = mounted;
+                            return (
+                              <ButtonAny
+                                onClick={openConnectModal}
+                                disabled={!ready}
+                                className="w-full"
+                                size="lg"
+                              >
+                                <Wallet className="mr-2 h-4 w-4" />
+                                Connect Wallet
+                              </ButtonAny>
+                            );
+                          }}
+                        </ConnectButton.Custom>
+                    </div>
                 ) : (
                     <div className="space-y-3">
+                        {/* Wrong Chain Warning */}
+                        {!isOnCorrectChain && (
+                          <div className="p-3 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                  Wrong Network
+                                </p>
+                                <p className="text-xs text-amber-700 dark:text-amber-300">
+                                  Please switch to Cronos Testnet to continue.
+                                </p>
+                              </div>
+                              <ButtonAny
+                                size="sm"
+                                variant="outline"
+                                onClick={() => switchChain({ chainId: cronosTestnet.id })}
+                              >
+                                Switch
+                              </ButtonAny>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Wallet Info */}
                         <div className={`p-3 rounded-lg border transition-colors ${
-                            userBalance && parseFloat(userBalance) < parseFloat(paymentDetails.amount)
+                            hasInsufficientBalance
                             ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
                             : "bg-green-50/50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
                         }`}>
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
                                     <div className={`p-1.5 rounded-full ${
-                                        userBalance && parseFloat(userBalance) < parseFloat(paymentDetails.amount)
+                                        hasInsufficientBalance
                                         ? "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"
                                         : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
                                     }`}>
@@ -479,30 +435,34 @@ export function X402PaymentModal({
                                     </div>
                                     <div className="flex flex-col items-start">
                                         <span className="text-sm font-medium">
-                                            {connectedAddress.slice(0, 6)}...{connectedAddress.slice(-4)}
+                                            {address?.slice(0, 6)}...{address?.slice(-4)}
                                         </span>
-                                        <button 
-                                            onClick={disconnectWallet}
-                                            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
-                                        >
-                                            <LogOut className="h-3 w-3" />
-                                            Disconnect
-                                        </button>
+                                        <ConnectButton.Custom>
+                                          {({ openAccountModal }) => (
+                                            <button 
+                                                onClick={openAccountModal}
+                                                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
+                                            >
+                                                <LogOut className="h-3 w-3" />
+                                                Disconnect
+                                            </button>
+                                          )}
+                                        </ConnectButton.Custom>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-xs text-muted-foreground">Balance</div>
                                     <div className={`font-mono font-medium ${
-                                        userBalance && parseFloat(userBalance) < parseFloat(paymentDetails.amount)
+                                        hasInsufficientBalance
                                         ? "text-red-600 dark:text-red-400"
                                         : "text-green-600 dark:text-green-400"
                                     }`}>
-                                        {userBalance ?? "..."} TCRO
+                                        {userBalance ? parseFloat(userBalance).toFixed(4) : "..."} TCRO
                                     </div>
                                 </div>
                             </div>
                             
-                            {userBalance && parseFloat(userBalance) < parseFloat(paymentDetails.amount) && (
+                            {hasInsufficientBalance && (
                                 <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 mt-2 pt-2 border-t border-red-200 dark:border-red-900/50">
                                     <AlertCircle className="h-3 w-3" />
                                     <span>Insufficient balance. You need {paymentDetails.amount} TCRO.</span>
@@ -511,15 +471,15 @@ export function X402PaymentModal({
                         </div>
 
                         <ButtonAny 
-                            onClick={handlePayWithMetaMask} 
-                            disabled={isLoading || isWaitingConfirmation || (userBalance !== null && parseFloat(userBalance) < parseFloat(paymentDetails.amount))} 
+                            onClick={handlePayment} 
+                            disabled={isSending || isConfirming || hasInsufficientBalance || !isOnCorrectChain} 
                             className="w-full"
                             size="lg"
                         >
-                            {isLoading || isWaitingConfirmation ? (
+                            {isSending || isConfirming ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {isWaitingConfirmation ? "Confirming Transaction..." : "Processing..."}
+                                    {isConfirming ? "Confirming Transaction..." : "Processing..."}
                                 </>
                             ) : (
                                 `Pay ${paymentDetails.amount} TCRO`
@@ -530,7 +490,7 @@ export function X402PaymentModal({
             </div>
               
             {/* Transaction Status */}
-            {isWaitingConfirmation && txHash && (
+            {isConfirming && sendTxHash && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-start gap-3">
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400 mt-0.5" />
@@ -540,7 +500,7 @@ export function X402PaymentModal({
                             This usually takes a few seconds. Please don't close this window.
                         </p>
                         <a 
-                            href={`https://explorer.cronos.org/testnet/tx/${txHash}`}
+                            href={`https://explorer.cronos.org/testnet/tx/${sendTxHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300 hover:underline mt-1"
@@ -571,13 +531,13 @@ export function X402PaymentModal({
                                 placeholder="0x..."
                                 value={txHash}
                                 onChange={(e: any) => setTxHash(e.target.value)}
-                                disabled={isWaitingConfirmation}
+                                disabled={isConfirming}
                                 className="font-mono text-xs"
                             />
                         </div>
                         <ButtonAny 
                             onClick={verifyPayment} 
-                            disabled={!txHash || isLoading || isWaitingConfirmation} 
+                            disabled={!txHash || isLoading || isConfirming} 
                             variant="secondary" 
                             className="w-full"
                         >

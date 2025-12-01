@@ -321,8 +321,8 @@ export default function PlanDetailPage() {
                 key={plan.id}
                 className={`
                   bg-white dark:bg-black/80 rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-sm
-                  ${isExactCurrentPlan ? "border-red-500 dark:border-red-500" : "border-gray-200 dark:border-red-900/50"}
-                  hover:border-red-500/50 dark:hover:border-red-500/50 transition-all
+                  ${isExactCurrentPlan ? "border-gray-400 dark:border-red-500" : "border-gray-200 dark:border-red-900/50"}
+                  hover:border-gray-500 dark:hover:border-red-500/50 transition-all
                 `}
               >
                 {/* Plan Icon/Illustration */}
@@ -381,7 +381,7 @@ export default function PlanDetailPage() {
                         w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
                         ${
                           isExactCurrentPlan
-                            ? "bg-red-950/50 border-2 border-red-500 text-red-300 cursor-default"
+                            ? "bg-gray-100 dark:bg-red-950/50 border-2 border-gray-400 dark:border-red-500 text-gray-600 dark:text-red-300 cursor-default shadow-[0_0_10px_rgba(156,163,175,0.5)] dark:shadow-none"
                             : "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white"
                         }
                       `}
@@ -412,7 +412,7 @@ export default function PlanDetailPage() {
                   <div className="space-y-2 sm:space-y-3 pt-3 md:pt-4 border-t border-gray-200 dark:border-red-900/30">
                     {plan.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                         <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm flex items-center gap-1">
                           {feature}
                           {feature.includes("Comprehensive project analysis") && (

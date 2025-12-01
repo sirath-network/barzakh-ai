@@ -135,7 +135,7 @@ export function BillingHistoryCard({
                             href={invoice.invoicePdf ?? invoice.hostedInvoiceUrl ?? "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm font-semibold text-gray-900 underline decoration-dashed underline-offset-4 hover:text-red-600 dark:text-white dark:hover:text-red-400"
+                            className="text-sm font-semibold text-gray-900 underline decoration-dashed underline-offset-4 hover:text-gray-600 dark:text-white dark:hover:text-red-400"
                           >
                             Download PDF
                           </a>
@@ -192,7 +192,7 @@ export function BillingHistoryCard({
                           href={invoice.invoicePdf ?? invoice.hostedInvoiceUrl ?? "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-semibold text-red-600 hover:text-red-500 dark:text-red-300 dark:hover:text-red-200 underline decoration-dashed underline-offset-4"
+                          className="text-sm font-semibold text-gray-700 hover:text-gray-500 dark:text-red-300 dark:hover:text-red-200 underline decoration-dashed underline-offset-4"
                         >
                           Download
                         </a>
