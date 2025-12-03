@@ -1,6 +1,6 @@
 /**
- * Utility to restore original Vercel Blob URLs from message content
- * This fixes the issue where AI SDK converts Vercel Blob URLs to temporary Google AI URLs
+ * Utility to restore original storage URLs (R2/Blob) from message content
+ * This fixes the issue where AI SDK converts storage URLs to temporary Google AI URLs
  */
 
 export function extractOriginalImageUrls(content: any): string[] {
@@ -33,7 +33,7 @@ export function restoreOriginalImageUrls(content: any): any {
     return content;
   }
   
-  // Extract original Vercel Blob URLs
+  // Extract original storage URLs (R2 or Vercel Blob)
   const originalUrls = extractOriginalImageUrls(content);
   
   // Count existing images
@@ -45,9 +45,9 @@ export function restoreOriginalImageUrls(content: any): any {
     return content;
   }
   
-  console.log(`🔗 Found ${originalUrls.length} original Vercel Blob URLs to restore for ${imageCount} images`);
+  console.log(`🔗 Found ${originalUrls.length} original storage URLs to restore for ${imageCount} images`);
   
-  // Find and replace non-Vercel URLs with original Vercel Blob URLs
+  // Find and replace non-storage URLs with original storage URLs
   let urlIndex = 0;
   const restoredContent = content.map(part => {
     // Remove the text part that contains the metadata
@@ -67,24 +67,26 @@ export function restoreOriginalImageUrls(content: any): any {
     if (part.type === 'image' && part.image) {
       const isGoogleAIUrl = part.image.includes('generativelanguage.googleapis.com') ||
                            part.image.includes('generative-ai-image-store.googleapis.com');
+      const isR2Storage = part.image.includes('r2.barzakh.tech');
       const isVercelBlob = part.image.includes('blob.vercel-storage.com');
+      const isPermanentStorage = isR2Storage || isVercelBlob;
       
-      // Replace non-Vercel URLs with original Vercel Blob URLs
-      if (!isVercelBlob && urlIndex < originalUrls.length) {
+      // Replace non-permanent URLs with original storage URLs
+      if (!isPermanentStorage && urlIndex < originalUrls.length) {
         const originalUrl = originalUrls[urlIndex];
         if (isGoogleAIUrl) {
-          console.log(`✅ Restoring Google AI URL to Vercel Blob: ${part.image.substring(0, 50)}... → ${originalUrl}`);
+          console.log(`✅ Restoring Google AI URL to storage: ${part.image.substring(0, 50)}... → ${originalUrl}`);
         } else {
-          console.log(`✅ Replacing URL with Vercel Blob: ${part.image.substring(0, 50)}... → ${originalUrl}`);
+          console.log(`✅ Replacing URL with storage URL: ${part.image.substring(0, 50)}... → ${originalUrl}`);
         }
         urlIndex++;
         return {
           ...part,
           image: originalUrl
         };
-      } else if (isVercelBlob) {
-        // Image is already a Vercel Blob URL, keep it
-        console.log(`✓ Image already using Vercel Blob Storage: ${part.image.substring(0, 60)}...`);
+      } else if (isPermanentStorage) {
+        // Image is already using permanent storage, keep it
+        console.log(`✓ Image already using permanent storage: ${part.image.substring(0, 60)}...`);
         urlIndex++; // Still increment to match with metadata
         return part;
       }
@@ -104,7 +106,7 @@ export function restoreOriginalImageUrls(content: any): any {
 }
 
 /**
- * Clean tool results to ensure they have permanent Vercel Blob URLs
+ * Clean tool results to ensure they have permanent storage URLs (R2 or Blob)
  * Tool results from createImage contain imageUrls that should already be persisted
  */
 export function cleanToolResult(result: any): any {
@@ -116,22 +118,22 @@ export function cleanToolResult(result: any): any {
   if (result.imageUrls && Array.isArray(result.imageUrls)) {
     console.log(`🖼️  Processing tool result with ${result.imageUrls.length} image URLs`);
     
-    // Check if URLs are already Vercel Blob URLs
-    const allVercelBlob = result.imageUrls.every((url: string) => 
-      url.includes('blob.vercel-storage.com')
+    // Check if URLs are using permanent storage (R2 or Vercel Blob)
+    const allPermanentStorage = result.imageUrls.every((url: string) => 
+      url.includes('r2.barzakh.tech') || url.includes('blob.vercel-storage.com')
     );
     
-    if (allVercelBlob) {
-      console.log('✅ All tool result images already using Vercel Blob Storage');
+    if (allPermanentStorage) {
+      console.log('✅ All tool result images already using permanent storage');
       return result;
     }
     
-    // If any URLs are NOT Vercel Blob, log a warning
-    const nonVercelUrls = result.imageUrls.filter((url: string) => 
-      !url.includes('blob.vercel-storage.com')
+    // If any URLs are NOT permanent storage, log a warning
+    const nonPermanentUrls = result.imageUrls.filter((url: string) => 
+      !url.includes('r2.barzakh.tech') && !url.includes('blob.vercel-storage.com')
     );
-    if (nonVercelUrls.length > 0) {
-      console.warn('⚠️  Tool result contains non-Vercel Blob URLs:', nonVercelUrls);
+    if (nonPermanentUrls.length > 0) {
+      console.warn('⚠️  Tool result contains non-permanent URLs:', nonPermanentUrls);
       console.warn('⚠️  These URLs may expire! This suggests persistence failed.');
     }
   }
@@ -141,7 +143,7 @@ export function cleanToolResult(result: any): any {
 
 /**
  * Clean message content before saving to database
- * - Restores original Vercel Blob URLs for user images
+ * - Restores original storage URLs (R2/Blob) for user images
  * - Removes metadata markers
  * - Validates tool results have permanent URLs
  */

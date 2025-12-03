@@ -38,7 +38,12 @@ export async function POST(request: NextRequest) {
 
     // Security: Only allow certain domains or protocols
     const allowedDomains = [
-      // Vercel Blob Storage
+      // Cloudflare R2 Storage (primary storage)
+      'r2.barzakh.tech',
+      'r2.cloudflarestorage.com',
+      'pub-', // R2 public bucket subdomain pattern
+      
+      // Vercel Blob Storage (legacy)
       'blob.vercel-storage.com',
       
       // Firebase Storage

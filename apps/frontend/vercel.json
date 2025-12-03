@@ -8,6 +8,11 @@
     "framework": "nextjs",
     "buildCommand": "cd ../.. && pnpm run build --filter=barzakh",
     "outputDirectory": ".next",
+    "functions": {
+        "app/(chat)/api/files/upload/route.ts": {
+            "maxDuration": 60
+        }
+    },
     "crons": [
         {
             "path": "/api/messagelimitcron",
