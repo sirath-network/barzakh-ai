@@ -378,11 +378,11 @@ export default function EmailSettingsPage() {
               )}
             </div>
 
-            <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-between">
+            <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end gap-3">
               {isEditing && (
                 <button 
                   onClick={handleCancel}
-                  className="px-6 py-3 border border-gray-300 dark:border-red-900/30 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-red-900/20 hover:text-gray-900 dark:hover:text-white font-semibold transition-colors text-sm"
+                  className="px-4 py-2 border border-gray-300 dark:border-red-900/30 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-red-900/20 hover:text-gray-900 dark:hover:text-white font-semibold transition-colors text-sm"
                 >
                   Cancel
                 </button>
@@ -392,7 +392,7 @@ export default function EmailSettingsPage() {
                 <button 
                   onClick={handleRequestChange} 
                   disabled={isLoading || !newEmail || !password || !validateEmail(newEmail) || newEmail === currentEmail}
-                  className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto"
+                  className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isLoading ? (
                     <>
@@ -412,7 +412,7 @@ export default function EmailSettingsPage() {
                 <button 
                   onClick={handleVerifyChange} 
                   disabled={isLoading || verificationCode.length !== 6}
-                  className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all flex items-center justify-center gap-2 text-sm ml-auto"
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all flex items-center justify-center gap-2 text-sm"
                 >
                   {isLoading ? (
                     <>
