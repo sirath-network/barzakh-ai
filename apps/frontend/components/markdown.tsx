@@ -28,8 +28,28 @@ const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
 // Create components inside the component to access allWebFiles
 const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
   code: (props: any) => {
+    const { className, children, node, ...rest } = props;
+    
+    // Check if this is inline code (no language class) or a code block
+    // Inline code: `code` - no className or className without language-
+    // Block code: ```language\ncode``` - has className with language-
+    const isInlineCode = !className || !className.includes('language-');
+    
+    if (isInlineCode) {
+      // Render inline code as a simple styled <code> element
+      return (
+        <code 
+          className="px-1.5 py-0.5 mx-0.5 text-sm font-mono bg-muted/50 rounded border border-border/30 break-words"
+          {...rest}
+        >
+          {children}
+        </code>
+      );
+    }
+    
+    // For block code, use CodeBlockCompact or CodeBlock
     const Component = USE_COMPACT_CODE_BLOCKS ? CodeBlockCompact : CodeBlock;
-    return <Component {...props} allCodeBlocks={allWebFiles} />;
+    return <Component className={className} {...rest} allCodeBlocks={allWebFiles}>{children}</Component>;
   },
   small: ({ children }) => (
     <small className="break-long-words">{children}</small>
@@ -75,47 +95,61 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
     return <span className="break-long-words">{children}</span>;
   },
 
-  p: ({ children }) => {
-    // Check if children contains code blocks, images, or other block elements
-    const hasBlockElements = React.Children.toArray(children).some((child: any) => {
-      // Check for code elements with language classes (code blocks)
-      if (child?.props?.className?.includes('language-')) {
-        return true;
-      }
-      
-      // Check for CodeBlock or CodeBlockCompact components
-      if (child?.type?.name === 'CodeBlock' || child?.type?.name === 'CodeBlockCompact') {
-        return true;
-      }
-      
-      // Check for code elements that are NOT inline (multi-line code blocks)
-      if (child?.type === 'code' && child?.props?.className) {
-        return true;
-      }
-      
-      // Check for pre elements (preformatted text blocks)
-      if (child?.type === 'pre') {
-        return true;
-      }
-      
-      // Check for image containers
-      if (child?.props?.className?.includes('my-4 max-w-full') || 
-          child?.props?.className?.includes('block my-4 max-w-full')) {
-        return true;
-      }
-      
-      // Check for any div elements
-      if (child?.type === 'div') {
-        return true;
-      }
-      
-      // Check for block spans
-      if (child?.type === 'span' && child?.props?.className?.includes('block')) {
-        return true;
-      }
-      
-      return false;
-    });
+  p: ({ children, node }) => {
+    // Helper to recursively check for block-level elements in children
+    const checkForBlockElements = (elements: React.ReactNode): boolean => {
+      return React.Children.toArray(elements).some((child: any) => {
+        if (!child || typeof child !== 'object') return false;
+        
+        // Check for code elements with language classes (these become CodeBlockCompact = div)
+        if (child?.props?.className?.includes('language-')) {
+          return true;
+        }
+        
+        // Check the node property (HAST node) for code with className
+        if (child?.props?.node?.properties?.className) {
+          const classNames = child.props.node.properties.className;
+          if (Array.isArray(classNames) && classNames.some((c: string) => c?.includes?.('language-'))) {
+            return true;
+          }
+        }
+        
+        // Check for CodeBlock or CodeBlockCompact components
+        if (child?.type?.name === 'CodeBlock' || child?.type?.name === 'CodeBlockCompact') {
+          return true;
+        }
+        
+        // Check for pre elements (preformatted text blocks)
+        if (child?.type === 'pre') {
+          return true;
+        }
+        
+        // Check for image containers
+        if (child?.props?.className?.includes('my-4 max-w-full') || 
+            child?.props?.className?.includes('block my-4 max-w-full')) {
+          return true;
+        }
+        
+        // Check for any div elements
+        if (child?.type === 'div') {
+          return true;
+        }
+        
+        // Check for block spans
+        if (child?.type === 'span' && child?.props?.className?.includes('block')) {
+          return true;
+        }
+        
+        // Recursively check nested children
+        if (child?.props?.children) {
+          return checkForBlockElements(child.props.children);
+        }
+        
+        return false;
+      });
+    };
+    
+    const hasBlockElements = checkForBlockElements(children);
     
     // Use div for block elements to avoid <p> nesting issues
     if (hasBlockElements) {

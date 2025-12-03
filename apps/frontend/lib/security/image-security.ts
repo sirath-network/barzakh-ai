@@ -34,6 +34,10 @@ export const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'a
 
 /** Trusted image CDN domains */
 export const TRUSTED_IMAGE_DOMAINS = [
+  // Cloudflare R2 Storage (primary)
+  'r2.barzakh.tech',
+  'r2.cloudflarestorage.com',
+  // Vercel Blob Storage (legacy)
   'blob.vercel-storage.com',
   'vercel-storage.com',
   'images.unsplash.com',

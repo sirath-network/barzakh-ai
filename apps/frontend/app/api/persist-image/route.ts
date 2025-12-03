@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`📥 API received ${imageUrls.length} images to persist`);
 
-    // Persist all images to Vercel Blob Storage
+    // Persist all images to Cloudflare R2 Storage
     const persistedUrls = await persistImagesToBlob(imageUrls);
 
     return NextResponse.json({

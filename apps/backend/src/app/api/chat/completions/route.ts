@@ -106,7 +106,7 @@ export async function POST(request: Request) {
           .filter((part: any) => part.type === "image" && part.image)
           .map((part: any) => part.image);
         
-        // Extract original Vercel Blob URLs from the message text
+        // Extract original storage URLs (R2 or Vercel Blob) from the message text
         const textParts = lastMessage.content.filter((part: any) => part.type === "text");
         let originalVercelUrls: string[] = [];
         
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
             const match = textPart.text.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
             if (match) {
               originalVercelUrls = match[1].split(', ').filter(url => url.trim());
-              console.log("🔗 Found original Vercel Blob URLs in message:", originalVercelUrls);
+              console.log("🔗 Found original storage URLs in message:", originalVercelUrls);
               break;
             }
           }
@@ -123,33 +123,40 @@ export async function POST(request: Request) {
         
         console.log("Image URLs received in API:", imageUrls);
         console.log("Image URL sources:", imageUrls.map(url => {
-          if (url.includes('blob.vercel-storage.com')) return 'Vercel Blob Storage';
+          if (url.includes('r2.barzakh.tech')) return 'Cloudflare R2 Storage';
+          if (url.includes('blob.vercel-storage.com')) return 'Vercel Blob Storage (legacy)';
           if (url.includes('generativelanguage.googleapis.com')) return 'Google AI';
           if (url.includes('storage.googleapis.com')) return 'Google Cloud Storage';
           return 'Unknown';
         }));
         
         if (imageUrls.length > 0) {
-          // Check if URLs are from Vercel Blob Storage (which should be persistent)
+          // Check if URLs are from our storage (R2 or legacy Vercel Blob)
+          const r2Urls = imageUrls.filter(url => url.includes('r2.barzakh.tech'));
           const vercelBlobUrls = imageUrls.filter(url => url.includes('blob.vercel-storage.com'));
           const googleAUrls = imageUrls.filter(url => url.includes('generativelanguage.googleapis.com'));
           
-          if (vercelBlobUrls.length > 0) {
-            console.log("✅ Found Vercel Blob Storage URLs - these should be persistent for editing");
-            console.log("Vercel Blob URLs:", vercelBlobUrls);
-            const imageHint = `Available images for editing (persistent Vercel Blob URLs): ${vercelBlobUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These URLs are persistent and should work for editing.`;
+          if (r2Urls.length > 0) {
+            console.log("✅ Found Cloudflare R2 Storage URLs - these are persistent for editing");
+            console.log("R2 URLs:", r2Urls);
+            const imageHint = `Available images for editing (persistent R2 URLs): ${r2Urls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These URLs are persistent and should work for editing.`;
+            messages.push({ role: "system", content: imageHint });
+          } else if (vercelBlobUrls.length > 0) {
+            console.log("✅ Found Vercel Blob Storage URLs (legacy) - these should be persistent for editing");
+            console.log("Cloudflare R2 Storage URL:", vercelBlobUrls);
+            const imageHint = `Available images for editing (persistent storage URLs): ${vercelBlobUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These URLs are persistent and should work for editing.`;
             messages.push({ role: "system", content: imageHint });
           } else if (googleAUrls.length > 0 && originalVercelUrls.length > 0) {
-            console.log("⚠️ Google AI URLs detected, but original Vercel Blob URLs found");
+            console.log("⚠️ Google AI URLs detected, but original storage URLs found");
             console.log("Google AI URLs:", googleAUrls);
-            console.log("Original Vercel Blob URLs:", originalVercelUrls);
-            console.log("✅ Using original Vercel Blob URLs for editing instead of converted Google AI URLs");
-            const imageHint = `Available images for editing (original Vercel Blob URLs): ${originalVercelUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These are the original URLs before Google AI conversion and should work for editing.`;
+            console.log("Original storage URLs:", originalVercelUrls);
+            console.log("✅ Using original storage URLs for editing instead of converted Google AI URLs");
+            const imageHint = `Available images for editing (original storage URLs): ${originalVercelUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. These are the original URLs before Google AI conversion and should work for editing.`;
             messages.push({ role: "system", content: imageHint });
           } else if (googleAUrls.length > 0) {
             console.log("⚠️ Warning: Only Google AI URLs found - these may expire quickly");
             console.log("Google AI URLs:", googleAUrls);
-            console.log("⚠️ This suggests the AI SDK converted Vercel Blob URLs to Google AI URLs");
+            console.log("⚠️ This suggests the AI SDK converted storage URLs to Google AI URLs");
             const imageHint = `Available images for editing (may expire): ${googleAUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage. Note: These URLs may expire quickly, so editing might not work. For better results, please upload images directly to the chat.`;
             messages.push({ role: "system", content: imageHint });
           } else {

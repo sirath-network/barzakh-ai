@@ -816,12 +816,28 @@ function PureMultimodalInput({
       const fileContentPromises = otherAttachments.map(async (attachment) => {
         const attachmentName = attachment.name || 'file';
         try {
-          const response = await fetch(attachment.url);
+          // Try direct fetch first
+          let response = await fetch(attachment.url);
+          
+          // If direct fetch fails (CORS), try via proxy
+          if (!response.ok) {
+            console.log(`Direct fetch failed for ${attachmentName}, trying proxy...`);
+            response = await fetch('/api/proxy-file', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fileUrl: attachment.url }),
+            });
+          }
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
           const content = await response.text();
           return `\n\n${attachmentName}\n\`\`\`${attachmentName.split('.').pop() || 'text'}\n${content}\n\`\`\``;
         } catch (error) {
           console.error(`Failed to read file ${attachmentName}:`, error);
-          return `\n\n${attachmentName} - Unable to read content`;
+          return `\n\n${attachmentName} - Unable to read content (URL: ${attachment.url})`;
         }
       });
       
@@ -896,6 +912,15 @@ function PureMultimodalInput({
 
   const uploadFile = async (file: File) => {
     console.log("Uploading file:", file.name, "Type:", file.type, "Size:", file.size);
+    
+    // Client-side size validation (25MB limit for Cloudflare R2)
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+    if (file.size > MAX_FILE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      toast.error(`File "${file.name}" is too large (${sizeMB}MB). Maximum size is 25MB.`);
+      return null;
+    }
+    
     const formData = new FormData();
     formData.append("file", file);
     try {
@@ -905,7 +930,7 @@ function PureMultimodalInput({
       });
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ File uploaded successfully to Vercel Blob Storage:", data.url);
+        console.log("✅ File uploaded successfully to Cloudflare R2 Storage:", data.url);
         const attachment = {
           url: data.url,
           name: data.pathname,

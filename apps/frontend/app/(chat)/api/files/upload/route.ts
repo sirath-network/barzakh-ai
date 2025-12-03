@@ -1,8 +1,21 @@
-import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
 import { validateImageFile, checkFileContent, checkImageMetadata } from '@/lib/security';
+import { uploadToR2 } from '@/lib/r2-storage';
+
+// Increase body size limit for file uploads
+// Cloudflare R2 has much higher limits than Vercel Blob
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '25mb',
+    },
+  },
+};
+
+// Next.js 13+ App Router: Use route segment config
+export const maxDuration = 60; // 60 seconds timeout for large uploads
 
 const FileSchema = z.object({
   file: z.any(),
@@ -29,9 +42,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid file upload' }, { status: 400 });
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    // Cloudflare R2 supports much larger files than Vercel Blob
+    // Setting limit to 25MB for user uploads
+    const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+    
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'File size should be less than 10MB' },
+        { error: 'File size should be less than 25MB' },
         { status: 400 },
       );
     }
@@ -71,7 +88,7 @@ export async function POST(request: Request) {
     if (isImageFile) {
       // Validate image file (magic bytes, SVG scripts, etc.)
       const imageSecurityCheck = await validateImageFile(file as File, {
-        maxSize: 10 * 1024 * 1024,
+        maxSize: MAX_FILE_SIZE,
         checkMagicBytes: true,
       });
       
@@ -140,16 +157,22 @@ export async function POST(request: Request) {
     const fileBuffer = await file.arrayBuffer();
 
     try {
-      const blob = await put(file.name, fileBuffer, {
-        access: 'public',
-        // Add cache control to make URLs more persistent
-        cacheControlMaxAge: 31536000, // 1 year
+      // Generate a unique filename to avoid collisions
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueFilename = `${timestamp}-${randomSuffix}-${sanitizedName}`;
+
+      const result = await uploadToR2(uniqueFilename, fileBuffer, {
+        contentType: file.type,
+        folder: 'uploads', // Organize uploads in a folder
+        cacheControl: 'public, max-age=31536000', // 1 year cache
       });
 
       return NextResponse.json({
-        url: blob.url,
+        url: result.url,
         pathname: file.name,
-        contentType: file.type,
+        contentType: result.contentType,
         extension: file.name.split('.').pop() || null,
       });
     } catch (uploadError) {

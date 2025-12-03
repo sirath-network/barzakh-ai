@@ -243,7 +243,7 @@ export async function POST(request: Request) {
     await saveChat({ id, userId: session.user.id, title });
   }
 
-  // Clean user message content to restore original Vercel Blob URLs before saving
+  // Clean user message content to restore original storage URLs before saving
   const cleanedUserContent = cleanMessageContentForStorage(userMessage.content);
 
   await saveMessages({
@@ -288,7 +288,7 @@ export async function POST(request: Request) {
                 // Guard against saving empty messages if AI response fails
                 if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
                   const messagesToSave = sanitizedResponseMessages.map((message) => {
-                    // Clean message content to restore original Vercel Blob URLs
+                    // Clean message content to restore original storage URLs (R2/Blob)
                     const cleanedContent = cleanMessageContentForStorage(message.content);
                     
                     return {
@@ -348,7 +348,7 @@ export async function POST(request: Request) {
                   if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
                     await saveMessages({
                       messages: sanitizedResponseMessages.map((message) => {
-                        // Clean message content to restore original Vercel Blob URLs
+                        // Clean message content to restore original storage URLs (R2/Blob)
                         const cleanedContent = cleanMessageContentForStorage(message.content);
                         
                         return {
