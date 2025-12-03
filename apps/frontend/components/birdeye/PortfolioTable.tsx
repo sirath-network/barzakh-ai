@@ -780,7 +780,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     <Loader2Any className="w-6 h-6 animate-spin text-zinc-400" />
                   </div>
                 ) : nftCollections.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {nftCollections.map((collection, idx) => (
                       <motion.div
                         key={idx}
