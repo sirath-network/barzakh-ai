@@ -76,18 +76,15 @@ export const QuestionSuggestions = ({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const { width, height } = useWindowSize();
 
-  const [totalSuggestions, setTotalSuggestions] = useState(6);
+  const [totalSuggestions, setTotalSuggestions] = useState(3);
 
   useEffect(() => {
     if (width < 640) {
       setTotalSuggestions(2);
-    } else if (width < 1400) {
-      // Tablet/iPad/Small Laptop view - show 3 suggestions
-      setTotalSuggestions(3);
-    } else if (height < 800) {
-      setTotalSuggestions(3);
+    } else if (width < 1024) {
+      setTotalSuggestions(4);
     } else {
-      setTotalSuggestions(6);
+      setTotalSuggestions(3);
     }
   }, [width, height]);
 
@@ -164,19 +161,14 @@ export const QuestionSuggestions = ({
     );
   };
 
-  const isMobile = width < 768;
-
   if (isLoadingSuggestions && (!history || history.length === 0)) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 w-full">
-        <div className={cn("flex gap-2", isMobile ? "flex-col w-full" : "flex-wrap justify-center")}>
-          {Array.from({ length: isMobile ? 3 : 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
+          {Array.from({ length: totalSuggestions }).map((_, i) => (
             <div 
               key={i} 
-              className={cn(
-                "bg-muted/30 animate-pulse",
-                isMobile ? "h-14 w-full rounded-2xl" : "h-10 w-32 rounded-full border border-border/20"
-              )} 
+              className="h-12 w-full rounded-xl bg-muted/30 animate-pulse border border-border/20"
             />
           ))}
         </div>
@@ -196,7 +188,7 @@ export const QuestionSuggestions = ({
       transition={{ duration: 0.2 }}
       className="mb-6 w-full"
     >
-      <div className={cn("flex gap-2", isMobile ? "flex-col w-full" : "flex-wrap justify-center")}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
         {suggestions.map((suggestion, index) => {
            const IconComponent = suggestion.icon as any;
            return (
@@ -209,13 +201,13 @@ export const QuestionSuggestions = ({
               onClick={() => handleSuggestionClick(suggestion)}
               className={cn(
                 "group flex items-center gap-3 cursor-pointer transition-all duration-200",
-                isMobile 
-                  ? "w-full p-4 rounded-2xl bg-secondary/40 hover:bg-secondary/60 text-left border border-transparent" 
-                  : "px-4 py-2 rounded-full border bg-muted/40 hover:bg-muted/80 border-border/40 hover:border-border/60 hover:shadow-sm active:scale-95"
+                "w-full p-3 rounded-xl border text-left",
+                "bg-muted/40 hover:bg-muted/80 border-border/40 hover:border-border/60",
+                "hover:shadow-sm active:scale-95"
               )}
             >
-              <IconComponent className={cn("shrink-0", isMobile ? "h-5 w-5 opacity-70" : "h-4 w-4", suggestion.iconColor)} />
-              <span className={cn("font-medium text-foreground/90", isMobile ? "text-sm truncate flex-1 min-w-0" : "text-sm truncate max-w-[200px]")}>
+              <IconComponent className={cn("shrink-0 h-4 w-4", suggestion.iconColor)} />
+              <span className="font-medium text-foreground/90 text-sm truncate flex-1 min-w-0">
                 {suggestion.title}
               </span>
             </motion.button>

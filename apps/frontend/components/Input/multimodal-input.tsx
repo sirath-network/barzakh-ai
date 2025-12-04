@@ -278,6 +278,12 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const MAX_HEIGHT = 300;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
@@ -980,7 +986,7 @@ function PureMultimodalInput({
                   <PreviewAttachment
                     attachment={attachment}
                     onRemove={() => removeAttachment(index)}
-                    size={width && width < 640 ? "small" : "default"}
+                    size={isMounted && width < 640 ? "small" : "default"}
                   />
                 </motion.div>
               ))}
@@ -997,7 +1003,7 @@ function PureMultimodalInput({
                   <PreviewAttachment
                     attachment={{ url: "", name: filename, contentType: "" }}
                     isUploading={true}
-                    size={width && width < 640 ? "small" : "default"}
+                    size={isMounted && width < 640 ? "small" : "default"}
                   />
                 </motion.div>
               ))}
@@ -1063,7 +1069,7 @@ function PureMultimodalInput({
         />
 
         <AnimatePresence>
-          {(width < 768 || messages.length > 0 || input.length > 0 || attachments.length > 0) && (
+          {((isMounted && width < 768) || messages.length > 0 || input.length > 0 || attachments.length > 0) && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
