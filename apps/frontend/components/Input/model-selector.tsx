@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import BottomSheet from "../bottom-sheet";
-import { saveChatModelAsCookie } from "@/app/(chat)/actions";
 import { chatModels } from "@barzakh/shared/lib/ai/models";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { Search, SearchX } from "lucide-react";
@@ -264,8 +263,14 @@ export function ModelSelector({
         onModelSelect(model.id);
       }
 
-      // Save to cookie asynchronously without blocking UI
-      await saveChatModelAsCookie(model.id);
+      // Save to cookie asynchronously via API route to avoid page refresh/flicker
+      await fetch("/api/set-model-cookie", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model: model.id }),
+      });
       
     } catch (error) {
       console.error("Failed to save model selection:", error);
@@ -347,23 +352,20 @@ export function ModelSelector({
         <DropdownMenuTriggerAny asChild>
           <ButtonAny
             {...buttonProps}
-            variant="outline"
+            variant="ghost"
             onClick={handleMobileToggle}
             disabled={disabled || isUpdating}
             className={cn(
-              "h-10 w-10 p-0 border-2 rounded-xl transition-all duration-200",
-              "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700",
-              "text-neutral-900 dark:text-neutral-200",
-              "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+              "h-9 w-9 p-0 rounded-full transition-all duration-200",
+              "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              "data-[state=open]:bg-muted/50 data-[state=open]:text-foreground",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               className
             )}
             title={selectedChatModel?.name}
           >
             <div className="flex items-center justify-center">
-              {isUpdating ? (
-                <div className="animate-spin size-4 border-2 border-current border-t-transparent rounded-full" />
-              ) : selectedModelIconSrc ? (
+              {selectedModelIconSrc ? (
                 <Image
                   src={selectedModelIconSrc}
                   alt={selectedChatModel?.name || "Model icon"}

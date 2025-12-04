@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { TypeAnimation } from "react-type-animation";
 import Image from "next/image";
 import { UserCircle } from "lucide-react";
 
@@ -113,15 +112,12 @@ export const Overview = () => {
 
           {/* Text Content */}
           <div className="flex flex-col">
-            <TypeAnimation
-              key={displayName} // Use displayName as key
-              sequence={[`${greeting}, ${displayName}!`, 3000]}
-              wrapper="h1"
-              cursor={true}
-              speed={50}
-              repeat={0}
+            <motion.h1
+              variants={itemVariants}
               className="text-2xl font-semibold font-gramatika sm:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-rose-400 dark:via-red-500 dark:to-rose-500"
-            />
+            >
+              {greeting}, {displayName}!
+            </motion.h1>
             <motion.p
               variants={itemVariants}
               className="mt-1 text-sm text-gray-400 sm:text-base"

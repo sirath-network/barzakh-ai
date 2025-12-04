@@ -26,238 +26,13 @@ import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
 import {
   ArrowDown,
-  TrendingUp,
-  Clock,
-  Sparkles,
-  MessageCircleMore,
 } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
-
-interface EnhancedSuggestion {
-  title: string;
-  subtitle: string;
-  category: 'frequent' | 'recent' | 'trending' | 'followup' | 'predefined';
-  confidence: number;
-  context?: string;
-  relatedTopics?: string[];
-  lastUsed?: Date;
-  frequency?: number;
-}
-
-const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
-  {
-    title: 'Explain how blockchain works',
-    subtitle: 'Crypto & Web3',
-    category: 'predefined',
-    confidence: 0.85,
-  },
-  {
-    title: 'What is the difference between Bitcoin and Ethereum?',
-    subtitle: 'Crypto & Web3',
-    category: 'predefined',
-    confidence: 0.85,
-  },
-  {
-    title: 'What are smart contracts?',
-    subtitle: 'Crypto & Web3',
-    category: 'predefined',
-    confidence: 0.85,
-  },
-  {
-    title: 'How do I create my own cryptocurrency?',
-    subtitle: 'Crypto & Web3',
-    category: 'predefined',
-    confidence: 0.8,
-  },
-  {
-    title: 'What is DeFi (Decentralized Finance)?',
-    subtitle: 'Crypto & Web3',
-    category: 'predefined',
-    confidence: 0.8,
-  },
-  {
-    title: 'Explain the concept of NFTs',
-    subtitle: 'Crypto & Web3',
-    category: 'predefined',
-    confidence: 0.8,
-  },
-];
+import { QuestionSuggestions } from "./question-suggestions";
 
 // =====================================================================
 // START OF MODIFIED CODE
 // =====================================================================
-const QuestionSuggestions = ({
-  append,
-  history,
-  user,
-}: {
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
-  ) => Promise<string | null | undefined>;
-  history: ChatHistory[] | undefined;
-  user: User | undefined;
-}) => {
-  const [aiSuggestions, setAiSuggestions] = useState<EnhancedSuggestion[]>([]);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
-  const { width, height } = useWindowSize();
-
-  // SOLUTION: Use state for totalSuggestions to avoid hydration mismatch.
-  // Default value (6) is used for server-side rendering and initial client rendering.
-  const [totalSuggestions, setTotalSuggestions] = useState(6);
-
-  // SOLUTION: Use useEffect to adjust the value on the client side after the component is mounted.
-  // This is safe because it only runs in the browser, not on the server.
-  useEffect(() => {
-    if (width < 640) {
-      setTotalSuggestions(2); // Set to mobile value if screen is small
-    } else if (height < 800) {
-      setTotalSuggestions(3); // Show fewer suggestions on short screens to prevent scrolling
-    } else {
-      setTotalSuggestions(6); // Set to desktop value if screen is large
-    }
-  }, [width, height]); // Run this effect when component mounts and when screen width/height changes
-
-  // Fetch AI/global suggestions
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      setIsLoadingSuggestions(true);
-      try {
-        const randomBlockchainSuggestions = BLOCKCHAIN_SUGGESTIONS.sort(() => 0.5 - Math.random());
-        setAiSuggestions(randomBlockchainSuggestions);
-      } catch (error) {
-        console.error("Failed to fetch suggestions:", error);
-        setAiSuggestions([]);
-      } finally {
-        setIsLoadingSuggestions(false);
-      }
-    };
-
-    fetchSuggestions();
-  }, []);
-
-  const suggestions = useMemo(() => {
-    const sortedHistory = [...(history || [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    const historyItems = sortedHistory.slice(0, totalSuggestions).map(chat => ({
-      key: chat.id,
-      title: chat.title,
-      subtitle: undefined,
-      isHistory: true,
-      icon: MessageCircleMore,
-      iconColor: 'text-gray-500 dark:text-gray-400',
-    }));
-
-    const neededAiItems = totalSuggestions - historyItems.length;
-
-    if (neededAiItems <= 0) {
-      return historyItems;
-    }
-
-    const aiItems = aiSuggestions.slice(0, neededAiItems).map((s, i) => ({
-      key: `ai-${i}`,
-      title: s.title,
-      subtitle: s.subtitle,
-      isHistory: false,
-      icon: Sparkles,
-      iconColor: 'text-purple-500 dark:text-purple-400',
-    }));
-
-    return [...historyItems, ...aiItems];
-  }, [history, aiSuggestions, totalSuggestions]);
-
-  const handleSuggestionClick = (suggestion: { key: string; title: string; isHistory: boolean; }) => {
-    if (!user) {
-      toast.error("Please log in to start a conversation.", {
-        position: "top-center",
-        duration: 3000,
-      });
-      return;
-    }
-
-    const chatRequestOptions: ChatRequestOptions = {};
-
-    if (suggestion.isHistory) {
-      chatRequestOptions.body = {
-        history_for_context_id: suggestion.key
-      };
-    }
-
-    append(
-      {
-        content: suggestion.title,
-        role: "user",
-      },
-      chatRequestOptions
-    );
-  };
-
-  if (isLoadingSuggestions && (!history || history.length === 0)) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 w-full">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-          {/* Skeleton loader will now always render 6 items on the server (according to initial state) */}
-          {Array.from({ length: totalSuggestions }).map((_, i) => (
-            <div key={i} className="p-3 bg-muted/30 rounded-lg border border-border/20 animate-pulse h-[68px]">
-              <div className="h-4 bg-muted rounded mb-2 w-3/4" />
-              <div className="h-3 bg-muted/60 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      </motion.div>
-    );
-  }
-
-  if (suggestions.length === 0) {
-    return null;
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2 }}
-      className="mb-4 w-full"
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-        {suggestions.map((suggestion, index) => {
-           const IconComponent = suggestion.icon as any;
-           return (
-            <motion.button
-              key={suggestion.key}
-              type="button"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => handleSuggestionClick(suggestion)}
-              className={cn(
-                "group p-3 text-left rounded-lg border cursor-pointer transition-all duration-200 text-sm",
-                "bg-muted/50 hover:bg-muted border-border/30",
-                "hover:border-border/60 hover:shadow-md",
-                "transform hover:-translate-y-0.5 active:translate-y-0"
-              )}
-            >
-              <div className="flex items-start gap-2">
-                <IconComponent className={cn("h-4 w-4 mt-0.5 shrink-0", suggestion.iconColor)} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground/90 truncate pr-2">
-                    {suggestion.title}
-                  </p>
-                  {suggestion.subtitle && (
-                    <p className="text-xs text-muted-foreground/80 mt-1">
-                      {suggestion.subtitle}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </motion.button>
-          );
-        })}
-      </div>
-    </motion.div>
-  );
-};
 
 const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
   "on_chain",
@@ -347,11 +122,10 @@ function PureAttachmentsButton({
   return (
     <Button
       className={cn(
-        "rounded-xl p-2.5 h-fit w-fit transition-all duration-300",
-        "bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700",
-        "border border-neutral-200/50 dark:border-neutral-700/50",
-        "hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
-        "disabled:opacity-50 disabled:hover:translate-y-0"
+        "rounded-full p-2 h-9 w-9 transition-all duration-200",
+        "text-muted-foreground hover:text-foreground",
+        "hover:bg-muted/50",
+        "disabled:opacity-50"
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -469,6 +243,7 @@ function PureMultimodalInput({
   isAtBottom,
   history,
   onSubmitMessage,
+  disableSuggestions,
 }: {
   chatId: string;
   input: string;
@@ -499,6 +274,7 @@ function PureMultimodalInput({
   isAtBottom: boolean;
   history: ChatHistory[] | undefined;
   onSubmitMessage?: () => void;
+  disableSuggestions?: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -515,7 +291,7 @@ function PureMultimodalInput({
   const [localStorageChatMode, setLocalStorageChatMode] =
     useLocalStorage<SearchGroupId>("chatMode", "search");
 
-  const showSuggestions = messages.length === 0 && !input;
+  const showSuggestions = messages.length === 0 && !input && !disableSuggestions;
 
   const imageInlineCacheRef = useRef<Record<string, string>>({});
   const imageInlinePromisesRef = useRef<
@@ -684,8 +460,10 @@ function PureMultimodalInput({
         if (forcedModelValues.includes(selectedModelId)) {
           onModelChange?.(previousModel);
           // Also update the cookie to persist the restoration
-          import("@/app/(chat)/actions").then(({ saveChatModelAsCookie }) => {
-            saveChatModelAsCookie(previousModel);
+          fetch("/api/set-model-cookie", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: previousModel }),
           });
         }
         setPreviousModel(null);
@@ -1004,8 +782,11 @@ function PureMultimodalInput({
         updateGroupState();
 
         if (selectedModelId !== nextForcedModel) {
-          const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-          await saveChatModelAsCookie(nextForcedModel);
+          await fetch("/api/set-model-cookie", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: nextForcedModel }),
+          });
           onModelChange?.(nextForcedModel);
         }
 
@@ -1018,8 +799,11 @@ function PureMultimodalInput({
 
         if (previousModel) {
           if (previousModel !== selectedModelId) {
-            const { saveChatModelAsCookie } = await import("@/app/(chat)/actions");
-            await saveChatModelAsCookie(previousModel);
+            await fetch("/api/set-model-cookie", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model: previousModel }),
+            });
             onModelChange?.(previousModel);
           }
           setPreviousModel(null);
@@ -1221,7 +1005,7 @@ function PureMultimodalInput({
           )}
         </AnimatePresence>
 
-        <div className="relative flex items-end w-full px-2 pt-3 pb-2">
+        <div className="relative flex items-end w-full px-2 pt-2 pb-2">
           <Textarea
             ref={textareaRef}
             placeholder={
@@ -1278,29 +1062,39 @@ function PureMultimodalInput({
           accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/bmp,image/ico,application/pdf,text/plain,text/markdown,text/csv,application/json,application/javascript,text/javascript,text/x-typescript,application/x-typescript,text/html,text/css,application/xml,text/xml,text/yaml,text/x-python,text/x-java-source,text/x-c,text/x-c++,text/x-csharp,text/x-php,text/x-ruby,text/x-go,text/x-rust,text/x-swift,text/x-kotlin,text/x-sql,text/x-shellscript,text/x-batch,text/x-powershell,application/x-zip,application/x-rar,application/x-7z,application/x-tar,application/gzip,text/x-dockerfile,.js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.cs,.php,.rb,.go,.rs,.swift,.kt,.html,.css,.scss,.sass,.less,.vue,.svelte,.json,.xml,.yaml,.yml,.toml,.ini,.cfg,.conf,.txt,.md,.csv,.tsv,.log,.rtf,.sql,.sh,.bat,.ps1,.dockerfile,.gitignore,.env"
         />
 
-
-
-        <div className="flex items-center justify-between w-full px-3 pb-3 pt-1 border-t border-neutral-200/50 dark:border-neutral-800/50 bg-gradient-to-b from-transparent to-neutral-50/50 dark:to-neutral-950/50">
-          <div className="flex flex-row gap-2 items-center">
-            <AttachmentsButton
-              fileInputRef={fileInputRef}
-              isLoading={isLoading}
-            />
-            <GroupSelector
-              selectedGroupId={selectedGroup}
-              onGroupSelect={handleGroupSelect}
-            />
-          </div>
-          <div className="flex flex-row gap-2 items-center">
-            {!isReadonly && (
-              <ModelSelector
-                selectedModelId={selectedModelId}
-                onModelSelect={handleModelSelect}
-                disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
-              />
-            )}
-          </div>
-        </div>
+        <AnimatePresence>
+          {(width < 768 || messages.length > 0 || input.length > 0 || attachments.length > 0) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="flex items-center justify-between w-full px-2 pb-2 pt-1">
+                <div className="flex flex-row gap-1 items-center">
+                  <AttachmentsButton
+                    fileInputRef={fileInputRef}
+                    isLoading={isLoading}
+                  />
+                  <GroupSelector
+                    selectedGroupId={selectedGroup}
+                    onGroupSelect={handleGroupSelect}
+                  />
+                </div>
+                <div className="flex flex-row gap-1 items-center">
+                  {!isReadonly && (
+                    <ModelSelector
+                      selectedModelId={selectedModelId}
+                      onModelSelect={handleModelSelect}
+                      disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
+                    />
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

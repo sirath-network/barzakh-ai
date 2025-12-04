@@ -16,6 +16,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function saveChatModelAsCookieClient(model: string) {
+  if (typeof document !== "undefined") {
+    document.cookie = `chat-model=${model}; path=/; max-age=31536000; SameSite=Lax`;
+  }
+}
+
 // 3. Your convertToUIMessages function remains below (no need to change)
 export function convertToUIMessages(
   messages: Array<DBMessage>

@@ -16,7 +16,7 @@ import {
   useMemo,
 } from "react";
 import { useWindowSize } from "usehooks-ts";
-import { LucideProps, ChevronDown, Search, SearchX } from "lucide-react";
+import { Search, SearchX, LayoutGrid, X } from "lucide-react";
 import Image from "next/image";
 
 import BottomSheet from "../bottom-sheet";
@@ -210,6 +210,16 @@ export const GroupSelector = ({
     [selectedGroupId]
   );
 
+  const isDefault = selectedGroupId === 'search';
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const searchGroup = searchGroups.find(g => g.id === 'search');
+    if (searchGroup) {
+      onGroupSelect(searchGroup);
+    }
+  };
+
   const SelectedIcon = selectedGroup?.icon as any;
 
   const handleSelect = useCallback(
@@ -286,56 +296,32 @@ export const GroupSelector = ({
   const BottomSheetAny = BottomSheet as any;
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative flex items-center gap-1", className)}>
       <DropdownMenuAny 
         open={isDesktop && isExpanded} 
         onOpenChange={handleDropdownOpenChange}
       >
         <DropdownMenuTriggerAny asChild>
           <ButtonAny
-            variant="outline"
+            variant="ghost"
             onClick={handleMobileToggle}
             disabled={disabled}
             className={cn(
-              "h-10 px-2 rounded-xl border-1 transition-all duration-200",
-              "bg-background hover:bg-accent hover:text-accent-foreground",
-              "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-              "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
-              "data-[state=open]:ring-2 data-[state=open]:ring-primary/20",
+              "h-9 rounded-full transition-all duration-200",
+              "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              "data-[state=open]:bg-muted/50 data-[state=open]:text-foreground",
               disabled && "opacity-50 cursor-not-allowed",
-              isDesktop
-                ? "min-w-[200px] justify-between"
-                : "w-12 p-0 justify-center"
+              isDefault ? "px-3 w-auto" : "w-9 px-0 justify-center"
             )}
           >
-            <div className="flex items-center gap-2.5">
-              <div className="flex-shrink-0">
-                {selectedGroup?.img ? (
-                  <Image
-                    src={selectedGroup.img}
-                    alt="Selected group icon"
-                    width={24}
-                    height={24}
-                    className="bg-white rounded-full object-contain"
-                  />
-                ) : (
-                  SelectedIcon && <SelectedIcon className="size-6" />
-                )}
-              </div>
-              {isDesktop && (
-                <span className="font-medium truncate">
-                  {selectedGroup?.name}
+            <div className="flex items-center gap-2">
+              <LayoutGrid  className="size-5" />
+              {isDefault && (
+                <span className="font-medium truncate text-sm">
+                  Tools
                 </span>
               )}
             </div>
-            {isDesktop && (
-              <ChevronDown
-                className={cn(
-                  "size-4 transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )}
-              />
-            )}
           </ButtonAny>
         </DropdownMenuTriggerAny>
 
@@ -376,6 +362,31 @@ export const GroupSelector = ({
           </div>
         </DropdownMenuContentAny>
       </DropdownMenuAny>
+
+      {!isDefault && selectedGroup && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full border border-border/50 animate-in fade-in slide-in-from-left-2">
+            <div className="flex-shrink-0">
+                {selectedGroup.img ? (
+                  <Image
+                    src={selectedGroup.img}
+                    alt="Selected group icon"
+                    width={20}
+                    height={20}
+                    className="bg-white rounded-full object-contain"
+                  />
+                ) : (
+                  SelectedIcon && <SelectedIcon className="size-4" />
+                )}
+            </div>
+            <span className="text-sm font-medium max-w-[100px] truncate">{selectedGroup.name}</span>
+            <button 
+              onClick={handleReset}
+              className="ml-1 p-0.5 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="size-3" />
+            </button>
+        </div>
+      )}
 
       {!isDesktop && (
         <BottomSheetAny
