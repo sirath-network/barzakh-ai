@@ -29,6 +29,8 @@ import PlanDetailPage from "@/components/settings/plans/plan-detail-page";
 import { ArtifactProvider } from "@/context/artifact-context";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ArtifactViewer } from "./artifact-viewer";
+import { Overview } from "./overview";
+import { QuestionSuggestions } from "./Input/question-suggestions";
 
 const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
   account: <AccountSettingsPage />,
@@ -228,50 +230,88 @@ export function Chat({
           `}
         >
           <InstallPrompt />
-          {messages.length === 0 && <div className="hidden md:block h-[18vh]"></div>}
           
-          {/* CHANGED: Add correct ref and id here */}
-          <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
-            <MessagesAny
-              chatId={id}
-              isLoading={isLoading}
-              votes={votes}
-              messages={messages}
-              setMessages={setMessages}
-              // CHANGED: Remove setIsAtBottom prop from here
-              selectedGroup={selectedGroup}
-              reload={reload}
-              isReadonly={isReadonly}
-            />
-          </div>
-          <div className="flex-shrink-0">
-            <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-              {!isReadonly && (
-                <MultimodalInputAny
+          {messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center p-4 md:justify-center md:pb-24 md:overflow-y-auto custom-scrollbar">
+              <div className="flex-1 w-full max-w-3xl flex flex-col items-center justify-center gap-6 md:gap-8 md:flex-none overflow-y-auto md:overflow-visible">
+                <Overview />
+              </div>
+              
+              <div className="w-full max-w-3xl mt-4 md:mt-8 flex-none">
+                <div className="w-full mb-4">
+                  <QuestionSuggestions append={append} history={history} user={user} />
+                </div>
+                <div className="w-full">
+                  <MultimodalInputAny
+                    chatId={id}
+                    input={input}
+                    setInput={setInput}
+                    handleSubmit={handleSubmit}
+                    isLoading={isLoading}
+                    isReadonly={isReadonly}
+                    selectedModelId={currentModelId}
+                    onModelChange={setCurrentModelId}
+                    stop={stop}
+                    attachments={attachments}
+                    setAttachments={setAttachments}
+                    messages={messages}
+                    setMessages={setMessages}
+                    append={append}
+                    user={user}
+                    selectedGroup={selectedGroup}
+                    setSelectedGroup={setSelectedGroup}
+                    isAtBottom={isAtBottom}
+                    history={history}
+                    onSubmitMessage={scrollToBottom}
+                    disableSuggestions={true}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
+                <MessagesAny
                   chatId={id}
-                  input={input}
-                  setInput={setInput}
-                  handleSubmit={handleSubmit}
                   isLoading={isLoading}
-                  isReadonly={isReadonly}
-                  selectedModelId={currentModelId}
-                  onModelChange={setCurrentModelId}
-                  stop={stop}
-                  attachments={attachments}
-                  setAttachments={setAttachments}
+                  votes={votes}
                   messages={messages}
                   setMessages={setMessages}
-                  append={append}
-                  user={user}
                   selectedGroup={selectedGroup}
-                  setSelectedGroup={setSelectedGroup}
-                  isAtBottom={isAtBottom}
-                  history={history}
-                  onSubmitMessage={scrollToBottom}
+                  reload={reload}
+                  isReadonly={isReadonly}
                 />
-              )}
-            </form>
-          </div>
+              </div>
+              <div className="flex-shrink-0">
+                <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
+                  {!isReadonly && (
+                    <MultimodalInputAny
+                      chatId={id}
+                      input={input}
+                      setInput={setInput}
+                      handleSubmit={handleSubmit}
+                      isLoading={isLoading}
+                      isReadonly={isReadonly}
+                      selectedModelId={currentModelId}
+                      onModelChange={setCurrentModelId}
+                      stop={stop}
+                      attachments={attachments}
+                      setAttachments={setAttachments}
+                      messages={messages}
+                      setMessages={setMessages}
+                      append={append}
+                      user={user}
+                      selectedGroup={selectedGroup}
+                      setSelectedGroup={setSelectedGroup}
+                      isAtBottom={isAtBottom}
+                      history={history}
+                      onSubmitMessage={scrollToBottom}
+                    />
+                  )}
+                </form>
+              </div>
+            </>
+          )}
         </div>
 
         <main

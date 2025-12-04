@@ -98,35 +98,32 @@
 
 /* Custom scrollbar for better appearance */
 .scrollbar-thin {
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .scrollbar-thumb-zinc-300::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
 }
 
 .scrollbar-thumb-zinc-300::-webkit-scrollbar-track {
-  background: transparent;
+  display: none;
 }
 
 .scrollbar-thumb-zinc-300::-webkit-scrollbar-thumb {
-  background-color: rgb(212 212 216);
-  border-radius: 3px;
+  display: none;
 }
 
 .scrollbar-thumb-zinc-600::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
 }
 
 .scrollbar-thumb-zinc-600::-webkit-scrollbar-track {
-  background: transparent;
+  display: none;
 }
 
 .scrollbar-thumb-zinc-600::-webkit-scrollbar-thumb {
-  background-color: rgb(82 82 91);
-  border-radius: 3px;
+  display: none;
 }
 
 /* Responsive breakpoints for mobile optimization */
@@ -260,49 +257,53 @@
 }
 
 /* Custom scrollbar only for elements with 'custom-scrollbar' class */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px; /* Vertical scrollbar width */
-  height: 8px; /* Horizontal scrollbar height */
+  display: none;
+}
+
+.custom-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* Track (background of scrollbar) */
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f3f4f6; /* Light mode track */
-  border-radius: 4px;
+  display: none;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-track {
-  background: #1e1e1e; /* Dark mode track */
+  display: none;
 }
 
 /* Scrollbar thumb (draggable part) */
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #a1a1aa; /* Light mode thumb */
-  border-radius: 4px;
+  display: none;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #52525b; /* Dark mode thumb */
+  display: none;
 }
 
 /* Thumb hover effect */
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #71717a; /* Light mode hover */
+  display: none;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46; /* Dark mode hover */
+  display: none;
 }
 
 /* Firefox scrollbar styling */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #a1a1aa #f3f4f6; /* thumb track */
-}
-
-.dark .custom-scrollbar {
-  scrollbar-color: #52525b #1e1e1e; /* Dark mode colors */
-}
+/* Already handled in .custom-scrollbar rule above */
 
 /* Force scrollable behavior for sidebar content */
 [data-sidebar="content"] {
@@ -310,6 +311,8 @@
   overflow-x: hidden !important;
   height: 100% !important;
   max-height: 100% !important;
+  -ms-overflow-style: none;
+  scrollbar-width: none !important;
 }
 
 /* Ensure sidebar groups can scroll */
@@ -328,55 +331,47 @@
   height: calc(100vh - 160px) !important;
 }
 
-/* Visible scrollbar for sidebar specifically */
+/* Hidden scrollbar for sidebar specifically */
 [data-sidebar="content"]::-webkit-scrollbar {
-  width: 6px !important;
-  display: block !important;
+  display: none !important;
 }
 
 [data-sidebar="content"]::-webkit-scrollbar-track {
-  background: hsl(var(--muted)) !important;
-  border-radius: 3px !important;
+  display: none !important;
 }
 
 [data-sidebar="content"]::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3) !important;
-  border-radius: 3px !important;
+  display: none !important;
 }
 
 [data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5) !important;
+  display: none !important;
 }
 
 /* Firefox */
-[data-sidebar="content"] {
-  scrollbar-width: thin !important;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted)) !important;
-}
+/* Already handled in [data-sidebar="content"] rule above */
 
 /* Alternative: Remove custom-scrollbar class entirely from problematic elements */
 .force-scroll {
   overflow-y: auto !important;
-  scrollbar-width: thin !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
 }
 
 .force-scroll::-webkit-scrollbar {
-  width: 6px !important;
-  display: block !important;
+  display: none !important;
 }
 
 .force-scroll::-webkit-scrollbar-track {
-  background: hsl(var(--muted)) !important;
-  border-radius: 3px !important;
+  display: none !important;
 }
 
 .force-scroll::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3) !important;
-  border-radius: 3px !important;
+  display: none !important;
 }
 
 .force-scroll::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5) !important;
+  display: none !important;
 }
 
 @layer base {
