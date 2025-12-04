@@ -232,7 +232,7 @@ export function Chat({
           <InstallPrompt />
           
           {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center p-4 md:justify-center md:overflow-y-auto custom-scrollbar">
+            <div className="flex-1 flex flex-col items-center p-4 md:justify-center md:pb-24 md:overflow-y-auto custom-scrollbar">
               <div className="flex-1 w-full max-w-3xl flex flex-col items-center justify-center gap-6 md:gap-8 md:flex-none overflow-y-auto md:overflow-visible">
                 <Overview />
               </div>

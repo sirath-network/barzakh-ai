@@ -16,7 +16,7 @@ import {
   useMemo,
 } from "react";
 import { useWindowSize } from "usehooks-ts";
-import { Search, SearchX, LayoutGrid, X } from "lucide-react";
+import { Search, SearchX, Settings2, X } from "lucide-react";
 import Image from "next/image";
 
 import BottomSheet from "../bottom-sheet";
@@ -315,7 +315,7 @@ export const GroupSelector = ({
             )}
           >
             <div className="flex items-center gap-2">
-              <LayoutGrid  className="size-5" />
+              <Settings2  className="size-5" />
               {isDefault && (
                 <span className="font-medium truncate text-sm">
                   Tools
