@@ -267,7 +267,7 @@ export default function TwoFactorSettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Card */}
           <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+            <div className="p-4 md:p-8 border-b border-gray-200 dark:border-red-900/30">
               <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Security Status</h2>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
                 {status.twoFactorEnabled 
@@ -277,7 +277,7 @@ export default function TwoFactorSettingsPage() {
               </p>
             </div>
             
-            <div className="p-6 md:p-8 space-y-6">
+            <div className="p-4 md:p-8 space-y-6">
               {/* Status Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-red-950/30 rounded-lg border border-gray-200 dark:border-red-900/50 gap-4">
                 <div className="flex items-center gap-3">
@@ -362,7 +362,7 @@ export default function TwoFactorSettingsPage() {
               {setupData && !status.twoFactorEnabled && (
                 <div className="space-y-6">
                   {/* QR Code Section */}
-                  <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-xl p-6">
+                  <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-xl p-4 md:p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <QrCode className="w-5 h-5 text-gray-600 dark:text-red-400" />
                       <h3 className="font-semibold text-gray-900 dark:text-white">Scan QR Code</h3>
@@ -380,7 +380,7 @@ export default function TwoFactorSettingsPage() {
                   </div>
 
                   {/* Manual Entry Section */}
-                  <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-xl p-6">
+                  <div className="bg-gray-50 dark:bg-red-950/30 border border-gray-200 dark:border-red-900/50 rounded-xl p-4 md:p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <Copy className="w-5 h-5 text-gray-600 dark:text-red-400" />
                       <h3 className="font-semibold text-gray-900 dark:text-white">Manual Entry Key</h3>
@@ -410,7 +410,7 @@ export default function TwoFactorSettingsPage() {
                   </div>
 
                   {/* Verification Section */}
-                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-6">
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 md:p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                       <h3 className="font-semibold text-amber-900 dark:text-amber-100">Verify Setup</h3>
@@ -454,7 +454,7 @@ export default function TwoFactorSettingsPage() {
 
               {/* Disable Section */}
               {status.twoFactorEnabled && (
-                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-xl p-6">
+                <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-xl p-4 md:p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <ShieldX className="w-5 h-5 text-red-600 dark:text-red-400" />
                     <h3 className="font-semibold text-red-900 dark:text-red-100">Disable 2FA</h3>
@@ -497,7 +497,7 @@ export default function TwoFactorSettingsPage() {
 
               {/* Backup Codes */}
               {showBackupCodes && backupCodes.length > 0 && (
-                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-6">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 md:p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <Key className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">Backup Codes</h3>
