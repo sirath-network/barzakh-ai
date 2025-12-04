@@ -665,6 +665,118 @@ paths:
           $ref: "#/components/responses/Unauthorized"
 
   # ============================================
+  # HISTORY & VOTE ENDPOINTS
+  # ============================================
+  /api/history:
+    get:
+      tags: [Chat]
+      operationId: getHistory
+      summary: Get chat history
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: History list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/vote:
+    get:
+      tags: [Chat]
+      operationId: getVotes
+      summary: Get votes for a chat
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: chatId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Votes list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      tags: [Chat]
+      operationId: voteMessage
+      summary: Vote on a message
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chatId, messageId, type]
+              properties:
+                chatId:
+                  type: string
+                  format: uuid
+                messageId:
+                  type: string
+                  format: uuid
+                type:
+                  type: string
+                  enum: [up, down]
+      responses:
+        "200":
+          description: Vote recorded
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # UTILITY ENDPOINTS
+  # ============================================
+  /api/set-model-cookie:
+    post:
+      tags: [Settings]
+      operationId: setModelCookie
+      summary: Set chat model cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model]
+              properties:
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Cookie set
+
+  /api/proxy-file:
+    post:
+      tags: [Files]
+      operationId: proxyFile
+      summary: Proxy external file
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileUrl]
+              properties:
+                fileUrl:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: File content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Domain not allowed
+
+  # ============================================
   # WEBHOOK ENDPOINTS
   # ============================================
   /api/webhooks/stripe:
@@ -1223,9 +1335,18 @@ components:
           type: string
           enum:
             - search
+            - on_chain
+            - coding
+            - creditcoin
+            - vana
+            - wormhole
+            - flow
+            - zeta
+            - sei
+            - monad
+            - solana
             - imagine
-            - multimodal
-            - code
+            - aptos
           default: search
         stream:
           type: boolean

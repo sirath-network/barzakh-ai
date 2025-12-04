@@ -14,8 +14,8 @@ export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-claude": cometai("claude-haiku-4-5-20251001"),
-    "chat-model-grok": cometai("grok-4-fast-reasoning"),
+    "chat-model-claude": cometai("claude-opus-4-5-20251101-thinking"),
+    "chat-model-grok": cometai("grok-4-1-fast-reasoning"),
     "chat-model-glm": cometai("glm-4.6"),
     "chat-model-gigantic": cometai("gpt-5"),
     "title-model": openai("gpt-4-turbo"),
@@ -52,14 +52,14 @@ export const chatModels: Array<ChatModel> = [
     description: "GLM-4.6 model for experimental tasks",
   },
   {
-    id: "chat-model-claude",
-    name: "claude-haiku-4-5",
-    description: "Claude model for experimental tasks",
+    id: "chat-model-grok",
+    name: "grok-4.1-fast-reasoning",
+    description: "Grok model for experimental tasks",
   },
   {
-    id: "chat-model-grok",
-    name: "grok-4-fast-reasoning",
-    description: "Grok model for experimental tasks",
+    id: "chat-model-claude",
+    name: "claude-opus-4.5-thinking",
+    description: "Claude model for experimental tasks",
   },
 ];
 

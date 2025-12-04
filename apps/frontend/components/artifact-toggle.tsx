@@ -19,24 +19,18 @@ export function ArtifactToggle() {
   return (
     <ButtonAny
       variant={isArtifactOpen ? "default" : "outline"}
-      size="sm"
+      size="icon"
       onClick={toggleArtifact}
       className={cn(
-        "gap-2 transition-all",
+        "h-9 w-9 transition-all",
         isArtifactOpen && "bg-primary text-primary-foreground"
       )}
       title={isArtifactOpen ? "Close artifact viewer" : "Open artifact viewer"}
     >
       {isArtifactOpen ? (
-        <>
-          <XAny className="w-4 h-4" />
-          <span className="hidden sm:inline">Close Artifact</span>
-        </>
+        <XAny className="w-4 h-4" />
       ) : (
-        <>
-          <FileCodeAny className="w-4 h-4" />
-          <span className="hidden sm:inline">View Artifact</span>
-        </>
+        <FileCodeAny className="w-4 h-4" />
       )}
     </ButtonAny>
   );
