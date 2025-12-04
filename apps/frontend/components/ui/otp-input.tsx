@@ -163,13 +163,13 @@ export function OTPInput({
       return "w-9 h-10 sm:w-10 sm:h-12 text-base sm:text-lg";
     } else {
       // TOTP codes: slightly larger boxes
-      return "w-11 h-12 sm:w-12 sm:h-14 text-lg sm:text-xl";
+      return "w-8 h-10 min-[350px]:w-9 min-[350px]:h-10 min-[375px]:w-11 min-[375px]:h-12 sm:w-12 sm:h-14 text-lg sm:text-xl";
     }
   };
 
   return (
     <div className="flex flex-col gap-3 w-fit mx-auto">
-      <div className={`flex gap-1.5 sm:gap-2 justify-center px-2 ${className}`}>
+      <div className={`flex gap-1 min-[350px]:gap-1.5 sm:gap-2 justify-center px-0 min-[350px]:px-2 ${className}`}>
         {Array.from({ length }).map((_, index) => (
           <input
             key={index}
