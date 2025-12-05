@@ -61,7 +61,7 @@ export function X402PaymentModal({
   const { switchChain } = useSwitchChain();
   
   const { 
-    sendTransaction, 
+    sendTransactionAsync,
     data: sendTxHash,
     isPending: isSending,
     isError: sendError,
@@ -69,7 +69,7 @@ export function X402PaymentModal({
   } = useSendTransaction();
 
   const {
-    signMessage,
+    signMessageAsync,
     data: signatureData,
     isPending: isSigningMessage,
     isError: signError,
@@ -145,20 +145,8 @@ export function X402PaymentModal({
     }
   }, [sendError]);
 
-  // Handle signature error
-  useEffect(() => {
-    if (signError) {
-      toast.error("Signature failed. Please try again.");
-      setIsVerifyingSignature(false);
-    }
-  }, [signError]);
+  // Effects for handling signature success/error removed in favor of async/await handling
 
-  // Handle signature success
-  useEffect(() => {
-    if (signatureData && signatureMessage && address) {
-      verifyWalletSignature(signatureData);
-    }
-  }, [signatureData, signatureMessage, address]);
 
   // Request signature message from server
   const requestSignatureMessage = async () => {
@@ -180,10 +168,24 @@ export function X402PaymentModal({
       setSignatureMessage(data.message);
       
       // Trigger signature request
-      signMessage({ message: data.message });
+      const signature = await signMessageAsync({ message: data.message });
+      if (signature) {
+        verifyWalletSignature(signature);
+      }
     } catch (error: any) {
-      console.error("Error requesting signature:", error);
-      toast.error(error.message || "Failed to request signature");
+      // Handle user rejection specifically
+      if (error.name === 'UserRejectedRequestError' || 
+          error.message?.includes('User rejected the request') ||
+          error.code === 4001) {
+        toast.info("Signature request cancelled");
+      } else if (error.message?.includes('Failed to connect to MetaMask') || 
+                 error.message?.includes('Resource unavailable')) {
+        toast.error("Connection to wallet failed. Please try again.");
+      } else {
+        console.error("Error requesting signature:", error);
+        toast.error(error.message || "Failed to request signature");
+      }
+      
       setIsVerifyingSignature(false);
     }
   };
@@ -313,11 +315,25 @@ export function X402PaymentModal({
 
     try {
       const amount = parseEther(paymentDetails.amount);
-      sendTransaction({
+      await sendTransactionAsync({
         to: paymentDetails.receiver as `0x${string}`,
         value: amount,
       });
     } catch (error: any) {
+      // Check for user rejection
+      if (error.code === 4001 || 
+          error.name === 'UserRejectedRequestError' || 
+          error.message?.includes('User rejected the request')) {
+        toast.info("Transaction cancelled");
+        return;
+      }
+
+      if (error.message?.includes('Failed to connect to MetaMask') || 
+          error.message?.includes('Resource unavailable')) {
+        toast.error("Connection to wallet failed. Please try again.");
+        return;
+      }
+
       console.error("Payment error:", error);
       toast.error(error.message || "Payment failed. Please try again.");
     }

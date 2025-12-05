@@ -5,9 +5,16 @@ import { useSession, signOut } from "next-auth/react";
 import { handleLogout } from "@/lib/auth-utils";
 import { Mail, Shield, CheckCircle, AlertCircle, Eye, EyeOff, ArrowLeft, Key } from "lucide-react";
 import { OTPInput } from "@/components/ui/otp-input";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useView } from "@/context/view-context";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export default function EmailSettingsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
+  const router = useRouter();
+  const { setView } = useView();
+  const { setOpenMobile } = useSidebar();
   const [currentEmail, setCurrentEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +27,10 @@ export default function EmailSettingsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
+  
+  const hasPassword = session?.user?.hasPassword;
+  // Robust check for Web3 user using walletAddress
+  const isWeb3User = !!(session?.user as any)?.walletAddress;
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -71,11 +82,15 @@ export default function EmailSettingsPage() {
     } else if (newEmail === currentEmail) {
       newErrors.newEmail = "New email must be different from current email";
     }
-    if (!password) {
-      newErrors.password = "Current password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password seems too short";
+    
+    if (hasPassword) {
+      if (!password) {
+        newErrors.password = "Current password is required";
+      } else if (password.length < 6) {
+        newErrors.password = "Password seems too short";
+      }
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -144,20 +159,55 @@ export default function EmailSettingsPage() {
       if (response.ok) {
         setCurrentEmail(newEmail);
         setHasAutoSubmitted(false);
-        setMessage({ type: "success", text: "🎉 Email updated successfully! You'll be signed out in 3 seconds to complete the change." });
-        setIsLoggingOut(true);
-        setTimeout(async () => {
-          try {
-            // Use only handleLogout which already handles signOut internally
-            await handleLogoutClick();
-          } catch (error) {
-            console.error("Logout error:", error);
-            // Force redirect even if there's an error
-            if (typeof window !== "undefined") {
-              window.location.replace("/login");
-            }
+
+        // Special handling for Web3 users setting up their profile
+        // Only skip logout if they are setting email for the first time
+        if (isWeb3User && !session?.user?.email) {
+          if (!hasPassword) {
+            toast.success("Email set successfully!", {
+              description: "Please set a password to secure your account.",
+              action: {
+                label: "Set Password",
+                onClick: () => {
+                  setView("password");
+                  setOpenMobile(false);
+                },
+              },
+              duration: 5000,
+            });
+          } else {
+            toast.success("Email updated successfully!");
           }
-        }, 3000);
+
+          // Update session to reflect new email without logging out
+          // Pass the new tokenVersion to prevent mismatch logout
+          await update({ 
+            user: { 
+              ...session?.user, 
+              email: newEmail,
+              tokenVersion: responseData.tokenVersion 
+            } 
+          });
+          // Reset editing state
+          setIsEditing(false);
+          setShowVerification(false);
+          setVerificationCode("");
+        } else {
+          setMessage({ type: "success", text: "🎉 Email updated successfully! You'll be signed out in 3 seconds to complete the change." });
+          setIsLoggingOut(true);
+          setTimeout(async () => {
+            try {
+              // Use only handleLogout which already handles signOut internally
+              await handleLogoutClick();
+            } catch (error) {
+              console.error("Logout error:", error);
+              // Force redirect even if there's an error
+              if (typeof window !== "undefined") {
+                window.location.replace("/login");
+              }
+            }
+          }, 3000);
+        }
       } else {
         setHasAutoSubmitted(false);
         setMessage({ type: "error", text: responseData.message || "Invalid or expired verification code" });
@@ -210,39 +260,77 @@ export default function EmailSettingsPage() {
             </div>
 
             <div className="p-6 md:p-8 space-y-6">
+              {message.text && (
+                <div className={`p-4 rounded-lg border ${
+                  message.type === "success" 
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60" 
+                    : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {message.type === "success" ? (
+                      <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0" />
+                    )}
+                    <p className={`text-sm font-medium ${
+                      message.type === "success" ? "text-emerald-800 dark:text-emerald-200" : "text-red-800 dark:text-red-200"
+                    }`}>
+                      {message.text}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {isWeb3User && !currentEmail && !message.text && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4 mb-6">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-amber-800 dark:text-amber-200 mb-1">Complete Your Profile</h3>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        Please set up an email address to secure your account.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {!isEditing ? (
                 <div className="space-y-6">
+                  {currentEmail && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Email Address</label>
                     <div className="bg-gray-100 dark:bg-red-950/30 rounded-lg p-4 border border-gray-200 dark:border-red-900/50">
                       <div className="flex items-center gap-3">
                         <Mail className="w-5 h-5 text-gray-500 dark:text-red-400" />
                         <span className="text-gray-900 dark:text-white font-medium break-all">
-                          {currentEmail || "No email found"}
+                          {currentEmail}
                         </span>
                       </div>
                     </div>
                   </div>
+                  )}
 
                   <div className="flex justify-end">
                     <button
                       onClick={handleStartEditing}
-                      disabled={!currentEmail}
                       className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <Mail className="w-4 h-4" />
-                      Change Email
+                      {currentEmail ? "Change Email" : "Set Email"}
                     </button>
                   </div>
                 </div>
               ) : !showVerification ? (
                 <div className="space-y-6">
+                  {currentEmail && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Email</label>
                     <div className="bg-gray-100 dark:bg-red-950/30 rounded-lg p-3 border border-gray-200 dark:border-red-900/50">
                       <span className="text-gray-700 dark:text-gray-200 break-all">{currentEmail}</span>
                     </div>
                   </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">New Email Address</label>
@@ -269,6 +357,7 @@ export default function EmailSettingsPage() {
                     )}
                   </div>
 
+                  {hasPassword && (
                   <div>
                     <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Password</label>
                     <div className="relative">
@@ -301,18 +390,21 @@ export default function EmailSettingsPage() {
                     )}
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Required for security verification</p>
                   </div>
+                  )}
 
-                  <div className="bg-red-50 dark:bg-red-950/40 rounded-xl p-4 border border-red-200 dark:border-red-800/60">
-                    <div className="flex gap-3">
-                      <Shield className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <h3 className="font-semibold text-red-800 dark:text-red-200 mb-1">Security Notice</h3>
-                        <p className="text-sm text-red-700 dark:text-red-300">
-                          After updating your email, you'll be automatically logged out and need to sign in again.
-                        </p>
+                  {(!isWeb3User || currentEmail) && (
+                    <div className="bg-red-50 dark:bg-red-950/40 rounded-xl p-4 border border-red-200 dark:border-red-800/60">
+                      <div className="flex gap-3">
+                        <Shield className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-semibold text-red-800 dark:text-red-200 mb-1">Security Notice</h3>
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            After updating your email, you'll be automatically logged out and need to sign in again.
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -355,27 +447,6 @@ export default function EmailSettingsPage() {
                   </div>
                 </div>
               )}
-
-              {message.text && (
-                <div className={`p-4 rounded-lg border ${
-                  message.type === "success" 
-                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60" 
-                    : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/60"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    {message.type === "success" ? (
-                      <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0" />
-                    )}
-                    <p className={`text-sm font-medium ${
-                      message.type === "success" ? "text-emerald-800 dark:text-emerald-200" : "text-red-800 dark:text-red-200"
-                    }`}>
-                      {message.text}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end gap-3">
@@ -391,7 +462,7 @@ export default function EmailSettingsPage() {
               {isEditing && !showVerification && (
                 <button 
                   onClick={handleRequestChange} 
-                  disabled={isLoading || !newEmail || !password || !validateEmail(newEmail) || newEmail === currentEmail}
+                  disabled={isLoading || !newEmail || (hasPassword && !password) || !validateEmail(newEmail) || newEmail === currentEmail}
                   className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isLoading ? (

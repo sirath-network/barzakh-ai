@@ -22,6 +22,7 @@ import { useView } from "@/context/view-context";
 import AccountSettingsPage from "@/components/settings/account/account-page";
 import EmailSettingsPage from "@/components/settings/email/email-page";
 import PasswordSettingsPage from "@/components/settings/password/password-page";
+import WalletSettingsPage from "@/components/settings/wallet/wallet-page";
 import BillingSettingsPage from "@/components/settings/billing/billing-page";
 import { ArchivedPage } from "@/components/settings/archived/archived-page";
 import TwoFactorSettingsPage from "@/components/settings/2fa/two-factor-page";
@@ -36,6 +37,7 @@ const settingsViews = (user: User | undefined): Record<string, React.ReactNode> 
   account: <AccountSettingsPage />,
   email: <EmailSettingsPage />,
   password: <PasswordSettingsPage />,
+  wallet: <WalletSettingsPage />,
   billing: <BillingSettingsPage />,
   archived: <ArchivedPage user={user} />,
   "2fa": <TwoFactorSettingsPage />,

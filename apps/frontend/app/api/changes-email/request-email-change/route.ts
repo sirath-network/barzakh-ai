@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { compareSync } from "bcrypt-ts";
 import { auth } from '@/app/(auth)/auth';
-import { getUser, saveEmailChangeRequest, generateOTP } from "@/lib/db/queries";
+import { getUser, saveEmailChangeRequest, generateOTP, getUserById } from "@/lib/db/queries";
 import { sendOTPEmail } from "@/lib/utils/email"; 
 
 export async function POST(req: NextRequest) {
   const session = await auth();
 
-  if (!session?.user?.email || !session.user.id) {
+  if (!session?.user?.id) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
   }
 
@@ -17,10 +17,8 @@ export async function POST(req: NextRequest) {
   if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
     return NextResponse.json({ message: 'A valid new email is required' }, { status: 400 });
   }
-  if (!currentPassword) {
-    return NextResponse.json({ message: 'Your current password is required' }, { status: 400 });
-  }
-  if (newEmail.toLowerCase() === session.user.email.toLowerCase()) {
+  
+  if (session.user.email && newEmail.toLowerCase() === session.user.email.toLowerCase()) {
     return NextResponse.json({ message: 'New email must be different from the current one' }, { status: 400 });
   }
   
@@ -32,14 +30,21 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Security Check: Validate Password ---
-    const [currentUser] = await getUser(session.user.email);
-    if (!currentUser || !currentUser.password) {
-      return NextResponse.json({ message: 'User not found or password not set.' }, { status: 404 });
+    const [currentUser] = await getUserById(session.user.id);
+    if (!currentUser) {
+      return NextResponse.json({ message: 'User not found.' }, { status: 404 });
     }
 
-    const isPasswordValid = compareSync(currentPassword, currentUser.password);
-    if (!isPasswordValid) {
-      return NextResponse.json({ message: 'The password you entered is incorrect' }, { status: 403 });
+    // Only validate password if user has one set
+    if (currentUser.password) {
+      if (!currentPassword) {
+        return NextResponse.json({ message: 'Your current password is required' }, { status: 400 });
+      }
+
+      const isPasswordValid = compareSync(currentPassword, currentUser.password);
+      if (!isPasswordValid) {
+        return NextResponse.json({ message: 'The password you entered is incorrect' }, { status: 403 });
+      }
     }
 
     // --- Generate OTP ---
@@ -53,11 +58,15 @@ export async function POST(req: NextRequest) {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
     });
 
-    // ✅ Send OTP to OLD EMAIL (session.user.email)
-    await sendOTPEmail(session.user.email, otp);
+    // ✅ Determine where to send the OTP
+    // If user has an existing email, send to that for security (authorize change).
+    // If user has NO email (Web3 setup), send to the NEW email (verify ownership).
+    const emailToSendTo = session.user.email || newEmail;
+
+    await sendOTPEmail(emailToSendTo, otp);
 
     return NextResponse.json({ 
-      message: `Verification code sent to your current email: ${session.user.email}` 
+      message: `Verification code sent to ${session.user.email ? 'your current email' : 'your new email'}: ${emailToSendTo}` 
     }, { status: 200 });
 
   } catch (error) {

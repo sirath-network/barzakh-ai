@@ -119,7 +119,7 @@ function PureChatHeader({
           {/* Show artifact toggle if not in settings mode */}
           {!title && <ArtifactToggle />}
           
-          {user && user.email ? (
+          {user ? (
             // User is logged in, show nav only if there's no title
             !title && (
               <div className="scale-90">

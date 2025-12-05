@@ -1,6 +1,6 @@
 import { auth } from "@/app/(auth)/auth";
 import { stripe } from "@/lib/stripe";
-import { getUser } from "@/lib/db/queries";
+import { getUserById } from "@/lib/db/queries";
 import { db } from "@/lib/db/db";
 import { customer as customerTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await getUser(session.user.email!);
+  const user = await getUserById(session.user.id);
   if (!user || user.length === 0) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
