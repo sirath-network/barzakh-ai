@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp, LogOut, AlertTriangle } from "lucide-react";
 import { parseEther, formatEther } from "viem";
-import { useAccount, useBalance, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain } from "wagmi";
+import { useAccount, useBalance, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain, useSignMessage } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { PenLine } from "lucide-react";
 import { cronosTestnet } from "@/lib/wagmi";
 
 interface X402PaymentModalProps {
@@ -40,13 +41,16 @@ export function X402PaymentModal({
   currentTier,
   currentBillingCycle,
 }: X402PaymentModalProps) {
-  const [step, setStep] = useState<"init" | "payment" | "verifying">("init");
+  const [step, setStep] = useState<"init" | "signature" | "payment" | "verifying">("init");
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
   const [txHash, setTxHash] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [confirmPlanChange, setConfirmPlanChange] = useState(false);
+  const [isWalletVerified, setIsWalletVerified] = useState(false);
+  const [signatureMessage, setSignatureMessage] = useState<string | null>(null);
+  const [isVerifyingSignature, setIsVerifyingSignature] = useState(false);
 
   // RainbowKit/Wagmi hooks
   const { address, isConnected, chain } = useAccount();
@@ -63,6 +67,14 @@ export function X402PaymentModal({
     isError: sendError,
     reset: resetSendTransaction 
   } = useSendTransaction();
+
+  const {
+    signMessage,
+    data: signatureData,
+    isPending: isSigningMessage,
+    isError: signError,
+    reset: resetSignMessage,
+  } = useSignMessage();
 
   const { 
     isLoading: isConfirming, 
@@ -102,9 +114,21 @@ export function X402PaymentModal({
       setCopied(false);
       setShowManualEntry(false);
       setConfirmPlanChange(false);
+      setIsWalletVerified(false);
+      setSignatureMessage(null);
+      setIsVerifyingSignature(false);
       resetSendTransaction?.();
+      resetSignMessage?.();
     }
-  }, [isOpen, planId, billingCycle, resetSendTransaction]);
+  }, [isOpen, planId, billingCycle, resetSendTransaction, resetSignMessage]);
+
+  // Reset wallet verification when address changes
+  useEffect(() => {
+    setIsWalletVerified(false);
+    setSignatureMessage(null);
+    setIsVerifyingSignature(false);
+    resetSignMessage?.();
+  }, [address, resetSignMessage]);
 
   // Handle transaction confirmation
   useEffect(() => {
@@ -120,6 +144,76 @@ export function X402PaymentModal({
       toast.error("Transaction failed. Please try again.");
     }
   }, [sendError]);
+
+  // Handle signature error
+  useEffect(() => {
+    if (signError) {
+      toast.error("Signature failed. Please try again.");
+      setIsVerifyingSignature(false);
+    }
+  }, [signError]);
+
+  // Handle signature success
+  useEffect(() => {
+    if (signatureData && signatureMessage && address) {
+      verifyWalletSignature(signatureData);
+    }
+  }, [signatureData, signatureMessage, address]);
+
+  // Request signature message from server
+  const requestSignatureMessage = async () => {
+    if (!address) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      setIsVerifyingSignature(true);
+      const res = await fetch(`/api/wallet/verify-signature?address=${address}`);
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to get signature message");
+      }
+
+      const data = await res.json();
+      setSignatureMessage(data.message);
+      
+      // Trigger signature request
+      signMessage({ message: data.message });
+    } catch (error: any) {
+      console.error("Error requesting signature:", error);
+      toast.error(error.message || "Failed to request signature");
+      setIsVerifyingSignature(false);
+    }
+  };
+
+  // Verify the signature with the server
+  const verifyWalletSignature = async (signature: string) => {
+    try {
+      const res = await fetch("/api/wallet/verify-signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, signature }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Signature verification failed");
+      }
+
+      setIsWalletVerified(true);
+      setIsVerifyingSignature(false);
+      toast.success("Wallet verified successfully!");
+    } catch (error: any) {
+      console.error("Signature verification error:", error);
+      toast.error(error.message || "Signature verification failed");
+      setIsVerifyingSignature(false);
+      resetSignMessage?.();
+      setSignatureMessage(null);
+    }
+  };
 
   const initPayment = async () => {
     try {
@@ -392,6 +486,63 @@ export function X402PaymentModal({
                           }}
                         </ConnectButton.Custom>
                     </div>
+                ) : !isWalletVerified ? (
+                    <div className="space-y-3">
+                        {/* Signature Verification Section */}
+                        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                                    <PenLine className="h-4 w-4" />
+                                </div>
+                                <div className="space-y-1 flex-1">
+                                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                        Verify Wallet Ownership
+                                    </p>
+                                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                                        Sign a message to prove you own this wallet. This links your wallet to your account for secure payments.
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+                                        <div className="p-1 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                                            <Wallet className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <span className="text-xs font-mono text-blue-700 dark:text-blue-300">
+                                            {address?.slice(0, 6)}...{address?.slice(-4)}
+                                        </span>
+                                        <ConnectButton.Custom>
+                                          {({ openAccountModal }) => (
+                                            <button 
+                                                onClick={openAccountModal}
+                                                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors ml-auto"
+                                            >
+                                                <LogOut className="h-3 w-3" />
+                                                Change
+                                            </button>
+                                          )}
+                                        </ConnectButton.Custom>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <ButtonAny 
+                            onClick={requestSignatureMessage} 
+                            disabled={isSigningMessage || isVerifyingSignature} 
+                            className="w-full"
+                            size="lg"
+                        >
+                            {isSigningMessage || isVerifyingSignature ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {isSigningMessage ? "Sign in your wallet..." : "Verifying..."}
+                                </>
+                            ) : (
+                                <>
+                                    <PenLine className="mr-2 h-4 w-4" />
+                                    Sign to Verify Wallet
+                                </>
+                            )}
+                        </ButtonAny>
+                    </div>
                 ) : (
                     <div className="space-y-3">
                         {/* Wrong Chain Warning */}
@@ -434,9 +585,15 @@ export function X402PaymentModal({
                                         <Wallet className="h-3.5 w-3.5" />
                                     </div>
                                     <div className="flex flex-col items-start">
-                                        <span className="text-sm font-medium">
-                                            {address?.slice(0, 6)}...{address?.slice(-4)}
-                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-sm font-medium">
+                                                {address?.slice(0, 6)}...{address?.slice(-4)}
+                                            </span>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                                <Check className="h-2.5 w-2.5" />
+                                                Verified
+                                            </span>
+                                        </div>
                                         <ConnectButton.Custom>
                                           {({ openAccountModal }) => (
                                             <button 
