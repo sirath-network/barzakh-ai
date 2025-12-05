@@ -660,6 +660,95 @@
         }
       }
     },
+    "/api/wallet/verify-signature": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "getWalletSignatureMessage",
+        "summary": "Get message to sign for wallet verification",
+        "description": "Generates a unique nonce/message for the user to sign with their wallet. This is used to verify wallet ownership before crypto payments.",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "Ethereum-compatible wallet address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signature message generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletSignatureMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "verifyWalletSignature",
+        "summary": "Verify wallet signature and link to account",
+        "description": "Verifies the signature from the user's wallet and links the wallet address to the user's account for future crypto payments.",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletVerifySignatureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet verified and linked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletVerifySignatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Invalid session or nonce mismatch"
+          }
+        }
+      }
+    },
     "/api/account/delete": {
       "post": {
         "tags": [
@@ -2011,6 +2100,53 @@
               "yearly"
             ],
             "default": "monthly"
+          }
+        }
+      },
+      "WalletSignatureMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message to sign with the wallet"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Seconds until the nonce expires"
+          }
+        }
+      },
+      "WalletVerifySignatureRequest": {
+        "type": "object",
+        "required": [
+          "address",
+          "signature"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "Ethereum-compatible wallet address"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]+$",
+            "description": "Signature from the wallet"
+          }
+        }
+      },
+      "WalletVerifySignatureResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
           }
         }
       },

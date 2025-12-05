@@ -1028,7 +1028,11 @@ function PureMultimodalInput({
             style={{ maxHeight: `${MAX_HEIGHT}px` }}
             rows={1}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
+              // On mobile/tablet (width < 768), Enter adds a new line
+              // On desktop, Enter sends the message (Shift+Enter for new line)
+              const isDesktop = width && width >= 768;
+              
+              if (event.key === "Enter" && !event.shiftKey && isDesktop) {
                 event.preventDefault();
                 // Only allow sending if no files are uploading
                 if (uploadQueue.length === 0) {
