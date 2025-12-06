@@ -83,7 +83,7 @@ const ArchivedChatItem = ({
   setView: (view: any) => void;
 }) => {
   return (
-    <div className="group bg-white dark:bg-black/40 rounded-xl border border-gray-200 dark:border-red-900/30 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden backdrop-blur-sm">
+    <div className="group bg-white dark:bg-black/60 rounded-xl border border-gray-200 dark:border-red-900/50 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden backdrop-blur-sm">
       <div className="relative flex items-center p-4">
         <Link
           href={`/c/${chat.id}`}
@@ -95,28 +95,28 @@ const ArchivedChatItem = ({
             flex items-center gap-4 flex-1 min-w-0 rounded-lg p-3 transition-all duration-200
             ${
               isActive
-                ? "bg-gradient-to-r from-gray-100 to-gray-50 dark:from-red-950/50 dark:to-red-900/30 text-gray-700 dark:text-red-300"
-                : "hover:bg-gray-50 dark:hover:bg-red-900/20"
+                ? "bg-muted text-foreground"
+                : "hover:bg-muted/50"
             }
           `}
         >
           <div className={`
-            w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md border transition-all duration-200
+            w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border transition-all duration-200
             ${
               isActive 
-                ? "bg-gray-200 dark:bg-red-800/50 border-gray-300 dark:border-red-700/50" 
-                : "bg-gray-100 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700/50"
+                ? "bg-background border-border" 
+                : "bg-muted/50 border-border"
             }
           `}>
-            <ArchiveRestoreAny className={`w-5 h-5 ${isActive ? "text-gray-700 dark:text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
+            <ArchiveRestoreAny className={`w-5 h-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-sm truncate ${
-              isActive ? "text-gray-900 dark:text-red-200" : "text-gray-900 dark:text-white"
+              isActive ? "text-foreground" : "text-foreground"
             }`}>
               {chat.title}
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Archived conversation
             </p>
           </div>
@@ -130,9 +130,9 @@ const ArchivedChatItem = ({
               className={`
                 flex-shrink-0 h-10 w-10 p-0 rounded-xl border
                 opacity-0 group-hover:opacity-100 transition-all duration-200
-                hover:bg-gray-50 dark:hover:bg-red-900/30 hover:text-gray-700 dark:hover:text-gray-200
-                data-[state=open]:opacity-100 data-[state=open]:bg-gray-50 dark:data-[state=open]:bg-red-900/30
-                border-gray-200 dark:border-red-900/30
+                hover:bg-muted hover:text-foreground
+                data-[state=open]:opacity-100 data-[state=open]:bg-muted
+                border-border
                 ${isActive ? "opacity-70 hover:opacity-100" : ""}
               `}
             >
@@ -144,19 +144,19 @@ const ArchivedChatItem = ({
           <DropdownMenuContentAny
             side="right"
             align="start"
-            className="w-48 shadow-2xl border border-gray-200 dark:border-red-900/50 bg-white/98 dark:bg-black/95 backdrop-blur-sm rounded-xl"
+            className="w-48 shadow-lg border border-border bg-popover backdrop-blur-sm rounded-xl"
             sideOffset={8}
           >
             <DropdownMenuItemAny
-              className="cursor-pointer rounded-lg m-1 hover:bg-gray-50 dark:hover:bg-red-900/20 focus:bg-gray-50 dark:focus:bg-red-900/20"
+              className="cursor-pointer rounded-lg m-1 hover:bg-muted focus:bg-muted"
               onSelect={() => onRestore(chat.id)}
             >
-              <RotateCcwAny className="mr-3 h-4 w-4 text-white-600 dark:text-white-400" />
-              <span className="font-medium text-gray-700 dark:text-gray-200">Restore chat</span>
+              <RotateCcwAny className="mr-3 h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">Unarchive Conversation</span>
             </DropdownMenuItemAny>
-            <DropdownMenuSeparatorAny className="bg-gray-200 dark:bg-red-900/30" />
+            <DropdownMenuSeparatorAny className="bg-border" />
             <DropdownMenuItemAny
-              className="cursor-pointer rounded-lg m-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 focus:bg-red-50 dark:focus:bg-red-900/30"
+              className="cursor-pointer rounded-lg m-1 text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
               onSelect={() => onDelete(chat.id)}
             >
               <Trash2Any className="mr-3 h-4 w-4" />
@@ -197,9 +197,9 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
           }
         });
         globalMutate("/api/history");
-        return "Chat restored successfully";
+        return "Unarchived successfully";
       },
-      error: "Failed to restore chat",
+      error: "Failed to unarchive conversation",
     });
   };
 
@@ -275,24 +275,24 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
         {/* Header Section */}
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
-              <ArchiveAny className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-border">
+              <ArchiveAny className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Archived Conversations</h1>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">Manage your archived conversations</p>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground">Archived Conversations</h1>
+              <p className="text-sm md:text-base text-muted-foreground">Manage your archived conversations</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
             <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Archived Chats</h2>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">
+                  <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Archived Chats</h2>
+                  <p className="text-muted-foreground text-sm">
                     {archivedHistory?.length || 0} archived {(archivedHistory?.length || 0) === 1 ? 'conversation' : 'conversations'}
                   </p>
                 </div>
@@ -391,14 +391,14 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Quick Actions</h3>
+                <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
               </div>
               <div className="p-6 md:p-8 space-y-3">
                 <ButtonAny 
                   variant="outline" 
-                  className="w-full justify-start gap-2 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
+                  className="w-full justify-start gap-2 border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/40 text-foreground hover:bg-gray-50 dark:hover:bg-red-900/30"
                   onClick={() => window.location.href = '/'}
                 >
                   <CircleArrowLeftAny className="w-4 h-4" />
@@ -407,37 +407,37 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               </div>
             </div>
             {/* Archive Info */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About Archives</h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">How archiving works</p>
+                <h3 className="text-lg font-bold text-foreground mb-2">About Archives</h3>
+                <p className="text-muted-foreground text-sm">How archiving works</p>
               </div>
               <div className="p-6 md:p-8 space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <ArchiveAny className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <ArchiveAny className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Safe Storage</h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Archived chats are stored securely and don't appear in your main chat list</p>
+                    <h4 className="font-medium text-foreground text-sm">Safe Storage</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Archived chats are stored securely and don't appear in your main chat list</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <RotateCcwAny className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <RotateCcwAny className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Easy Restoration</h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Restore any chat anytime to continue where you left off</p>
+                    <h4 className="font-medium text-foreground text-sm">Easy Restoration</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Restore any chat anytime to continue where you left off</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Trash2Any className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Trash2Any className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">Permanent Deletion</h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Permanently delete conversations you no longer need</p>
+                    <h4 className="font-medium text-foreground text-sm">Permanent Deletion</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Permanently delete conversations you no longer need</p>
                   </div>
                 </div>
               </div>
@@ -446,16 +446,16 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
         </div>
 
         {/* Help Section */}
-        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-lg border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">Need Help?</h3>
-              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+              <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Having trouble managing your archived conversations? Our support team is here to help.
               </p>
             </div>
             <button onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-              className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm">
+              className="bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-gray-800 dark:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-300 dark:border-white/20 text-xs md:text-sm">
               Contact Support
             </button>
           </div>

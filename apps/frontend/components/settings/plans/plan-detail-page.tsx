@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, Check, Info } from "lucide-react";
+import { ArrowLeft, Check, Info, BadgeDollarSign } from "lucide-react";
 import { useView } from "@/context/view-context";
 import useSWR from "swr";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
@@ -275,10 +275,14 @@ export default function PlanDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-4 md:mb-6">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white uppercase tracking-wider font-mono">
-            Plans Settings
-          </h1>
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-border">
+            <BadgeDollarSign className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Plans Settings</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Choose the perfect plan for your needs</p>
+          </div>
         </div>
 
         {/* Billing Cycle Selector */}

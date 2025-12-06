@@ -443,7 +443,7 @@ export async function restoreChat({ id }: { id: string }) {
       .set({ isArchived: false })
       .where(eq(chat.id, id));
   } catch (error) {
-    console.error("Failed to restore chat in database");
+    console.error("Failed to unarchive conversation in database");
     throw error;
   }
 }

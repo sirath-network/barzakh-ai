@@ -110,7 +110,7 @@ export function SettingsMenu({
           icon={<ArchiveIconAny size={18} />}
           onClick={() => handleMenuClick('archived')}
         >
-          Archived
+          Archived Settings
         </SettingsMenuItem>
       </div>
 
@@ -119,18 +119,6 @@ export function SettingsMenu({
         Security
       </div>
       <div className="flex flex-col space-y-1 px-2">
-        <SettingsMenuItem 
-          icon={<KeyRoundAny size={18} />}
-          onClick={() => handleMenuClick('password')}
-        >
-          Password Settings
-        </SettingsMenuItem>
-        <SettingsMenuItem 
-          icon={<WalletAny size={18} />}
-          onClick={() => handleMenuClick('wallet')}
-        >
-          Wallet Connection
-        </SettingsMenuItem>
         <SettingsMenuItem 
           icon={<ShieldAny size={18} />}
           onClick={() => handleMenuClick('2fa')}
@@ -144,16 +132,35 @@ export function SettingsMenu({
           Email Settings
         </SettingsMenuItem>
         <SettingsMenuItem 
-          icon={<CreditCardAny size={18} />}
-          onClick={() => handleMenuClick('billing')}
+          icon={<WalletAny size={18} />}
+          onClick={() => handleMenuClick('wallet')}
         >
-          Billing Settings
+          Wallet Settings
         </SettingsMenuItem>
+        <SettingsMenuItem 
+          icon={<KeyRoundAny size={18} />}
+          onClick={() => handleMenuClick('password')}
+        >
+          Password Settings
+        </SettingsMenuItem>
+      </div>
+
+      {/* Subscription Section */}
+      <div className="px-3 pt-4 pb-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+        Subscription
+      </div>
+      <div className="flex flex-col space-y-1 px-2">
         <SettingsMenuItem 
           icon={<BadgeDollarSignAny size={18} />}
           onClick={() => handleMenuClick('plans')}
         >
           Plans & Pricing
+        </SettingsMenuItem>
+        <SettingsMenuItem 
+          icon={<CreditCardAny size={18} />}
+          onClick={() => handleMenuClick('billing')}
+        >
+          Billing Settings
         </SettingsMenuItem>
       </div>
 

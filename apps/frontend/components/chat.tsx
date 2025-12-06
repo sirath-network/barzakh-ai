@@ -3,6 +3,7 @@ import type { Attachment, Message } from "ai";
 import { useChat } from "ai/react";
 // NEW: Import useRef and useEffect
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import { ChatHeader } from "@/components/chat-header";
 import type { Vote, Chat as ChatHistory } from "@/lib/db/schema";
@@ -17,6 +18,8 @@ import { VisibilityType } from "./visibility-selector";
 import { toast } from "sonner";
 import { User } from "next-auth";
 import { InstallPrompt } from "./install-prompt";
+import { ArchiveRestore } from "lucide-react";
+import { restoreChat } from "@/app/(chat)/actions";
 
 import { useView } from "@/context/view-context";
 import AccountSettingsPage from "@/components/settings/account/account-page";
@@ -50,6 +53,7 @@ export function Chat({
   selectedChatModel,
   selectedVisibilityType,
   isReadonly,
+  isArchived = false,
   user,
 }: {
   id: string;
@@ -57,6 +61,7 @@ export function Chat({
   selectedChatModel: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  isArchived?: boolean;
   user?: User;
 }) {
   const { mutate } = useSWRConfig();
@@ -189,6 +194,29 @@ export function Chat({
 
   const { setOpen, setOpenMobile, setSidebarView, isMobile } = useSidebar();
 
+  const [isUnarchiving, setIsUnarchiving] = useState(false);
+  const [isCurrentlyArchived, setIsCurrentlyArchived] = useState(isArchived);
+  const router = useRouter();
+
+  const handleUnarchive = async () => {
+    setIsUnarchiving(true);
+    try {
+      await restoreChat({ chatId: id });
+      toast.success("Unarchived successfully");
+      // Update local state immediately for better UX
+      setIsCurrentlyArchived(false);
+      // Refresh history cache and router data without full page reload
+      mutate("/api/history");
+      mutate("/api/history/archived");
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to unarchive chat:", error);
+      toast.error("Failed to unarchive conversation");
+    } finally {
+      setIsUnarchiving(false);
+    }
+  };
+
   const ChatHeaderAny = ChatHeader as any;
   const MessagesAny = Messages as any;
   const MultimodalInputAny = MultimodalInput as any;
@@ -286,7 +314,22 @@ export function Chat({
               </div>
               <div className="flex-shrink-0">
                 <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-                  {!isReadonly && (
+                  {isCurrentlyArchived ? (
+                    <div className="flex flex-col items-center justify-center py-4 px-6">
+                      <p className="text-sm text-muted-foreground mb-3 text-center">
+                        This conversation is archived. To continue, please unarchive it first.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleUnarchive}
+                        disabled={isUnarchiving}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground rounded-full font-medium transition-colors border border-border text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ArchiveRestore className="w-4 h-4" />
+                        {isUnarchiving ? "Restoring..." : "Unarchive"}
+                      </button>
+                    </div>
+                  ) : (
                     <MultimodalInputAny
                       chatId={id}
                       input={input}

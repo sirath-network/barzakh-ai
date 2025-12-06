@@ -126,8 +126,8 @@ export default function BillingPage() {
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50 flex-shrink-0">
-              <IdCard  className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-border flex-shrink-0">
+              <IdCard  className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">Manage Subscription &amp; Payments</h1>
@@ -179,7 +179,7 @@ export default function BillingPage() {
             </div>
             <button
               onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-              className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm"
+              className="bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-gray-800 dark:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-300 dark:border-white/20 text-xs md:text-sm"
             >
               Contact Support
             </button>
