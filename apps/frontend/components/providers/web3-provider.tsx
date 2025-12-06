@@ -72,9 +72,11 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProviderWrapper>
-          {children}
-        </RainbowKitProviderWrapper>
+        {mounted && (
+          <RainbowKitProviderWrapper>
+            {children}
+          </RainbowKitProviderWrapper>
+        )}
       </QueryClientProvider>
     </WagmiProvider>
   );
