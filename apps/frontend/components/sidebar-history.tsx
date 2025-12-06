@@ -437,7 +437,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
             return history.filter((h) => h.id !== chatId);
           }
         });
-        return "Chat archived successfully";
+        return "Archived successfully";
       },
       error: "Failed to archive chat",
     });

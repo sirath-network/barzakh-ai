@@ -827,6 +827,26 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/history/archived:
+    get:
+      tags: [Chat]
+      operationId: getArchivedHistory
+      summary: Get archived chat history
+      description: Returns list of archived conversations for the authenticated user
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Archived history list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/vote:
     get:
       tags: [Chat]
@@ -1217,6 +1237,26 @@ components:
         expires:
           type: string
           format: date-time
+
+    Chat:
+      type: object
+      description: A chat conversation
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        visibility:
+          type: string
+          enum: [public, private]
+        isArchived:
+          type: boolean
 
     SubscriptionResponse:
       type: object

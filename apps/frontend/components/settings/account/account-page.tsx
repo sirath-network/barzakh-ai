@@ -285,22 +285,22 @@ export default function AccountSettingsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
             <div className="flex items-center gap-3 mb-3 md:mb-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 dark:bg-gradient-to-br dark:from-red-600 dark:to-red-700 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-red-700/50">
-                <User className="w-5 h-5 md:w-6 md:h-6 text-gray-600 dark:text-white" />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-border">
+                <User className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Account Settings</h1>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300">Manage your account profile and preferences</p>
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">Account Settings</h1>
+                <p className="text-sm md:text-base text-muted-foreground">Manage your account profile and preferences</p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form Card */}
-            <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Information</h2>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
+            <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-border">
+                <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Profile Information</h2>
+                <p className="text-muted-foreground text-sm">
                   Update your personal information and profile picture
                 </p>
               </div>
@@ -413,30 +413,30 @@ export default function AccountSettingsPage() {
                       </>
                     )}
                     
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg border border-gray-200 dark:border-gray-700/50">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Username Requirements:</p>
-                      <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                    <div className="mt-3 p-4 bg-transparent dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
+                      <p className="text-xs font-medium text-foreground mb-2">Username Requirements:</p>
+                      <ul className="text-xs text-muted-foreground space-y-1">
                         <li className="flex items-center gap-1">
                           <div className={`w-1.5 h-1.5 rounded-full ${
-                            username.length >= 3 ? 'bg-emerald-500' : 'bg-gray-400'
+                            username.length >= 3 ? 'bg-emerald-500' : 'bg-muted-foreground/30'
                           }`}></div>
                           3-20 characters
                         </li>
                         <li className="flex items-center gap-1">
                           <div className={`w-1.5 h-1.5 rounded-full ${
-                            /^[a-z]/.test(username) ? 'bg-emerald-500' : 'bg-gray-400'
+                            /^[a-z]/.test(username) ? 'bg-emerald-500' : 'bg-muted-foreground/30'
                           }`}></div>
                           Must start with a letter
                         </li>
                         <li className="flex items-center gap-1">
                           <div className={`w-1.5 h-1.5 rounded-full ${
-                            /^[a-z0-9]+$/.test(username) ? 'bg-emerald-500' : 'bg-gray-400'
+                            /^[a-z0-9]+$/.test(username) ? 'bg-emerald-500' : 'bg-muted-foreground/30'
                           }`}></div>
                           Lowercase letters and numbers only
                         </li>
                         <li className="flex items-center gap-1">
                           <div className={`w-1.5 h-1.5 rounded-full ${
-                            !username.includes(' ') ? 'bg-emerald-500' : 'bg-gray-400'
+                            !username.includes(' ') ? 'bg-emerald-500' : 'bg-muted-foreground/30'
                           }`}></div>
                           No spaces or special characters
                         </li>
@@ -445,12 +445,12 @@ export default function AccountSettingsPage() {
                   </div>
 
                   {/* Security Notice */}
-                  <div className="bg-red-50 dark:bg-red-900/30 rounded-xl p-4 border border-red-200 dark:border-red-700/50">
+                  <div className="bg-transparent dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
                     <div className="flex gap-3">
-                      <Shield className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                      <Shield className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                       <div>
-                        <h3 className="font-semibold text-red-800 dark:text-red-300 mb-1">Profile Visibility</h3>
-                        <p className="text-sm text-red-700 dark:text-red-200">
+                        <h3 className="font-semibold text-foreground mb-1">Profile Visibility</h3>
+                        <p className="text-sm text-muted-foreground">
                           Your username and profile picture are public. Choose information you're comfortable sharing.
                         </p>
                       </div>
@@ -490,77 +490,83 @@ export default function AccountSettingsPage() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Profile Tips */}
-              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
                 <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Profile Tips</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">Create a great profile</p>
+                  <h3 className="text-lg font-bold text-foreground mb-2">Profile Tips</h3>
+                  <p className="text-muted-foreground text-sm">Create a great profile</p>
                 </div>
                 <div className="p-6 md:p-8 space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Use a clear photo</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">A good profile picture helps build trust</p>
+                      <h4 className="font-medium text-foreground text-sm">Use a clear photo</h4>
+                      <p className="text-xs text-muted-foreground mt-1">A good profile picture helps build trust</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Choose a unique username</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Make it memorable and easy to find</p>
+                      <h4 className="font-medium text-foreground text-sm">Choose a unique username</h4>
+                      <p className="text-xs text-muted-foreground mt-1">Make it memorable and easy to find</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Keep it professional</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Your profile represents you online</p>
+                      <h4 className="font-medium text-foreground text-sm">Keep it professional</h4>
+                      <p className="text-xs text-muted-foreground mt-1">Your profile represents you online</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <CheckCircle className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Be consistent</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Use the same name across platforms</p>
+                      <h4 className="font-medium text-foreground text-sm">Be consistent</h4>
+                      <p className="text-xs text-muted-foreground mt-1">Use the same name across platforms</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Account Security */}
-              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
                 <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Account Security</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">Keep your account safe</p>
+                  <h3 className="text-lg font-bold text-foreground mb-2">Account Security</h3>
+                  <p className="text-muted-foreground text-sm">Keep your account safe</p>
                 </div>
                 <div className="p-6 md:p-8 space-y-4">
                   <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-4 h-4 text-primary" />
+                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Profile Privacy</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Your username is publicly visible</p>
+                      <h4 className="font-medium text-foreground text-sm">Profile Privacy</h4>
+                      <p className="text-xs text-muted-foreground">Your username is publicly visible</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Key className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Key className="w-4 h-4 text-primary" />
+                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Secure Account</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Use strong passwords and 2FA</p>
+                      <h4 className="font-medium text-foreground text-sm">Secure Account</h4>
+                      <p className="text-xs text-muted-foreground">Use strong passwords and 2FA</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-red-500 dark:text-red-400" />
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
                     <div>
-                      <h4 className="font-medium text-gray-900 dark:text-white text-sm">Regular Updates</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Keep your profile information current</p>
+                      <h4 className="font-medium text-foreground text-sm">Regular Updates</h4>
+                      <p className="text-xs text-muted-foreground">Keep your profile information current</p>
                     </div>
                   </div>
                 </div>
@@ -569,19 +575,19 @@ export default function AccountSettingsPage() {
           </div>
 
           {/* Delete Account Section */}
-          <div className="mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+          <div className="mt-6 bg-red-50 dark:bg-red-900/20 rounded-xl md:rounded-2xl shadow-sm border border-red-200 dark:border-red-700/50 overflow-hidden backdrop-blur-sm">
             <div className="p-6 md:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Account</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+                  <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Delete Account</h3>
+                  <p className="text-sm text-red-700 dark:text-red-200 mt-1">
                     Permanently delete your account and all associated data. This action is irreversible.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsDeleteModalOpen(true)}
-                  className="w-full sm:w-auto bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm flex items-center justify-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Account
@@ -591,17 +597,17 @@ export default function AccountSettingsPage() {
           </div>
 
           {/* Help Section */}
-          <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-lg border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+          <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">Need Help?</h3>
-                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300">
+                <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   Having trouble with your account settings? Our support team is here to help.
                 </p>
               </div>
               <button 
                 onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
-                className="bg-gray-100 dark:bg-red-950/40 hover:bg-gray-200 dark:hover:bg-red-900/50 text-gray-800 dark:text-gray-200 hover:text-black dark:hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-red-900/50 text-xs md:text-sm"
+                className="bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-gray-800 dark:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-300 dark:border-white/20 text-xs md:text-sm"
               >
                 Contact Support
               </button>
