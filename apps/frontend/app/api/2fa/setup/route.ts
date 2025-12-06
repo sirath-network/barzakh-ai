@@ -10,12 +10,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get user from database
-    const [dbUser] = await db.select().from(user).where(eq(user.email, session.user.email));
+    const [dbUser] = await db.select().from(user).where(eq(user.id, session.user.id));
     
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     const secret = authenticator.generateSecret();
 
     // Generate OTPAuth URL
-    const otpauth = authenticator.keyuri(session.user.email, 'Barzakh', secret);
+    // Use email if available, otherwise username, otherwise "User"
+    const accountLabel = dbUser.email || dbUser.username || "User";
+    const otpauth = authenticator.keyuri(accountLabel, 'Barzakh', secret);
 
     // Generate QR code
     const qrCodeUrl = await QRCode.toDataURL(otpauth);

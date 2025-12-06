@@ -13,6 +13,7 @@ import {
   ArchiveIcon,
   Shield,
   BadgeDollarSign,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -30,6 +31,7 @@ const CreditCardAny = CreditCard as any;
 const ArchiveIconAny = ArchiveIcon as any;
 const ShieldAny = Shield as any;
 const BadgeDollarSignAny = BadgeDollarSign as any;
+const WalletAny = Wallet as any;
 
 const SettingsMenuItem = ({ 
   icon, 
@@ -121,7 +123,13 @@ export function SettingsMenu({
           icon={<KeyRoundAny size={18} />}
           onClick={() => handleMenuClick('password')}
         >
-          Change Password
+          Password Settings
+        </SettingsMenuItem>
+        <SettingsMenuItem 
+          icon={<WalletAny size={18} />}
+          onClick={() => handleMenuClick('wallet')}
+        >
+          Wallet Connection
         </SettingsMenuItem>
         <SettingsMenuItem 
           icon={<ShieldAny size={18} />}

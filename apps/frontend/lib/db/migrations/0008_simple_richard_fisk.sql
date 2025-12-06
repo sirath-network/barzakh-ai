@@ -1,0 +1,1 @@
+ALTER TABLE "User" ALTER COLUMN "dailyMessageRemaining" SET DEFAULT 10;

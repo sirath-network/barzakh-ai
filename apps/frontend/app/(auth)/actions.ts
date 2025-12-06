@@ -171,7 +171,8 @@ export const login = async (
 
         // Use a short timeout so a dead/remote AUTH_URL doesn't hang login
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        // Increased timeout to 15s to handle cold starts/compilation in dev
+        const timeout = setTimeout(() => controller.abort(), 15000);
 
         const response = await fetch(`${baseUrl}/api/2fa/temp-login`, {
           method: "POST",

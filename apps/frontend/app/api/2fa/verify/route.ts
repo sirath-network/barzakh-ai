@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user from database
-    const [dbUser] = await db.select().from(user).where(eq(user.email, session.user.email));
+    const [dbUser] = await db.select().from(user).where(eq(user.id, session.user.id));
     
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

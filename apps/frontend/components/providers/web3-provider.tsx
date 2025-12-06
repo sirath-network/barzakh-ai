@@ -69,18 +69,14 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     setMounted(true);
   }, []);
 
-  // Prevent hydration issues - render children immediately but defer Web3 providers
-  // until client-side to avoid indexedDB and other browser API issues
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProviderWrapper>
-          {children}
-        </RainbowKitProviderWrapper>
+        {mounted && (
+          <RainbowKitProviderWrapper>
+            {children}
+          </RainbowKitProviderWrapper>
+        )}
       </QueryClientProvider>
     </WagmiProvider>
   );

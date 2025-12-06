@@ -13,6 +13,9 @@ import type { Application } from '@splinetool/runtime';
 import { register, type RegisterActionState } from "../actions";
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
+import { LogoGoogle } from "@/components/icons";
+import { WalletLoginButton } from "@/components/wallet-login-button";
+import { signIn } from "next-auth/react";
 
 export default function Page() {
   const router = useRouter();
@@ -330,6 +333,30 @@ export default function Page() {
                           </div>
                         )}
                     </div>
+
+                    {!showOTPField && (
+                      <div className="space-y-4 mb-4">
+                        <button
+                          onClick={() => signIn("google", { callbackUrl: "/" })}
+                          className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                          type="button"
+                        >
+                          <LogoGoogle className="mr-2 h-4 w-4" />
+                          Continue with Google
+                        </button>
+                        <WalletLoginButton turnstileToken={turnstileToken} />
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                          </div>
+                          <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                              Or continue with
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <form action={handleFormAction}>
                         <AuthForm

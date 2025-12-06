@@ -13,6 +13,7 @@ import type { Application } from '@splinetool/runtime';
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import { LogoGoogle } from "@/components/icons";
+import { WalletLoginButton } from "@/components/wallet-login-button";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
 import { login, type LoginActionState } from "../actions";
@@ -350,6 +351,7 @@ export default function Page() {
                 <LogoGoogle className="mr-2 h-4 w-4" />
                 Continue with Google
               </button>
+              <WalletLoginButton turnstileToken={turnstileToken} />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />

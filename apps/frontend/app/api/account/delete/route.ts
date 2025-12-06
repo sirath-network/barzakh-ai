@@ -5,12 +5,12 @@ import { deleteUserAndData } from "@/lib/db/queries";
 export async function POST() {
   const session = await auth();
 
-  if (!session?.user?.id || !session?.user?.email) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   try {
-    await deleteUserAndData(session.user.id, session.user.email);
+    await deleteUserAndData(session.user.id, session.user.email || "");
     return NextResponse.json({ message: "Account deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("Failed to delete account:", error);

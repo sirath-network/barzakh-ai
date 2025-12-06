@@ -118,6 +118,50 @@ export async function getUserByUsername(username: string): Promise<Array<User>> 
     throw error;
   }
 }
+
+export async function getUserByWalletAddress(walletAddress: string): Promise<Array<User>> {
+  try {
+    return await db.select().from(user).where(eq(user.walletAddress, walletAddress)).limit(1);
+  } catch (error) {
+    console.error("Failed to get user by wallet address from database:", error);
+    throw error;
+  }
+}
+
+export async function createUserWithWallet(
+  id: string,
+  walletAddress: string,
+  name?: string | null,
+  image?: string | null
+) {
+  try {
+    // Generate random username and name if not provided
+    // Use a random 8-digit number to ensure uniqueness and compliance with username rules
+    // Rules: 3-20 chars, start with letter, lowercase letters and numbers only, no special chars
+    const randomNum = Math.floor(10000000 + Math.random() * 90000000).toString();
+    
+    const finalName = name || `User ${randomNum}`;
+    const finalUsername = `user${randomNum}`;
+
+    const userData: any = {
+      id,
+      walletAddress,
+      name: finalName,
+      username: finalUsername,
+      image: image,
+    };
+
+    const result = await db.insert(user).values(userData).returning();
+    return result;
+  } catch (error) {
+    console.error("Failed to create user with wallet:", {
+      error,
+      walletAddress,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    });
+    throw error;
+  }
+}
 export async function getUserById(id: string): Promise<Array<User>> {
   try {
     return await db.select().from(user).where(eq(user.id, id));
@@ -252,10 +296,39 @@ export async function updateUserEmail(userId: string, newEmail: string) {
         email: newEmail,
         tokenVersion: sql`${user.tokenVersion} + 1`
       })
-      .where(eq(user.id, userId));
+      .where(eq(user.id, userId))
+      .returning();
   } catch (error) {
     console.error("Failed to update user email in database");
     throw error;
+  }
+}
+
+export async function updateUserWalletAddress(userId: string, walletAddress: string) {
+  try {
+    const [updatedUser] = await db
+      .update(user)
+      .set({ walletAddress })
+      .where(eq(user.id, userId))
+      .returning();
+    return updatedUser;
+  } catch (error) {
+    console.error("Failed to update user wallet address:", error);
+    throw new Error("Failed to update wallet address");
+  }
+}
+
+export async function removeUserWalletAddress(userId: string) {
+  try {
+    const [updatedUser] = await db
+      .update(user)
+      .set({ walletAddress: null })
+      .where(eq(user.id, userId))
+      .returning();
+    return updatedUser;
+  } catch (error) {
+    console.error("Failed to remove user wallet address:", error);
+    throw new Error("Failed to remove wallet address");
   }
 }
 
@@ -769,8 +842,11 @@ export async function deleteUserAndData(userId: string, email: string) {
 
       // 6. Delete other associated data
       await tx.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
-      await tx.delete(password_reset_tokens).where(eq(password_reset_tokens.email, email));
-      await tx.delete(otp_tokens).where(eq(otp_tokens.email, email));
+      
+      if (email) {
+        await tx.delete(password_reset_tokens).where(eq(password_reset_tokens.email, email));
+        await tx.delete(otp_tokens).where(eq(otp_tokens.email, email));
+      }
 
       // 7. Finally, delete the user
       await tx.delete(user).where(eq(user.id, userId));

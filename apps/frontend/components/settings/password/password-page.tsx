@@ -4,11 +4,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useView } from "@/context/view-context";
+import { useSidebar } from "@/components/ui/sidebar";
 import { handleLogout } from "@/lib/auth-utils";
 import { Lock, Shield, Eye, EyeOff, CheckCircle, AlertCircle, Key } from "lucide-react";
 
 export default function PasswordSettingsPage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
+  const { setView } = useView();
+  const { setOpenMobile } = useSidebar();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,8 +23,10 @@ export default function PasswordSettingsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
-  // Check if user is a Google OAuth user (no password set)
-  const isGoogleUser = !session?.user?.hasPassword;
+  // Check if user is a Web3 user (has wallet address)
+  const isWeb3User = !session?.user?.hasPassword && !!(session?.user as any)?.walletAddress;
+  // Check if user is a Google OAuth user (no password set and no wallet address)
+  const isGoogleUser = !session?.user?.hasPassword && session?.user?.email && !isWeb3User;
 
   const validatePassword = (password: string) => {
     const errors = [];
@@ -44,8 +50,8 @@ export default function PasswordSettingsPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    // Only require current password for users who have one (not Google OAuth users)
-    if (!isGoogleUser && !currentPassword) {
+    // Only require current password for users who have one (not Google OAuth or Web3 users)
+    if (!isGoogleUser && !isWeb3User && !currentPassword) {
       newErrors.currentPassword = "Current password is required";
     }
     
@@ -53,7 +59,7 @@ export default function PasswordSettingsPage() {
       newErrors.password = "New password is required";
     } else if (validatePassword(password).length > 0) {
       newErrors.password = "Password doesn't meet requirements";
-    } else if (!isGoogleUser && currentPassword && password === currentPassword) {
+    } else if (!isGoogleUser && !isWeb3User && currentPassword && password === currentPassword) {
       newErrors.password = "New password must be different from current password";
     }
     
@@ -81,7 +87,7 @@ export default function PasswordSettingsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          currentPassword: isGoogleUser ? null : currentPassword, 
+          currentPassword: (isGoogleUser || isWeb3User) ? null : currentPassword, 
           password 
         }),
       });
@@ -106,11 +112,44 @@ export default function PasswordSettingsPage() {
         }
         throw new Error(data.error || "Failed to update password.");
       }
-      toast.success("Password updated successfully! Logging out...");
-      setCurrentPassword("");
-      setPassword("");
-      setConfirmPassword("");
-      setTimeout(async () => await handleLogoutClick(), 2000);
+
+      // Special handling for Web3 users setting up their profile
+      // Only skip logout if they are setting password for the first time
+      if (isWeb3User && !session?.user?.hasPassword) {
+        if (!session?.user?.email) {
+          toast.success("Password set successfully!", {
+            description: "Please set an email to secure your account.",
+            action: {
+              label: "Set Email",
+              onClick: () => {
+                setView("email");
+                setOpenMobile(false);
+              },
+            },
+            duration: 5000,
+          });
+        } else {
+          toast.success("Password set successfully!");
+        }
+
+        // Update session to reflect new password without logging out
+        await update({ 
+          user: { 
+            ...session?.user, 
+            hasPassword: true,
+            tokenVersion: data.user.tokenVersion 
+          } 
+        });
+        setCurrentPassword("");
+        setPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.success("Password updated successfully! Logging out...");
+        setCurrentPassword("");
+        setPassword("");
+        setConfirmPassword("");
+        setTimeout(async () => await handleLogoutClick(), 2000);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to update password");
     } finally {
@@ -146,8 +185,8 @@ export default function PasswordSettingsPage() {
               </p>
             </div>
             <div className="p-6 md:p-8 space-y-6">
-              {/* Only show current password field for users who have a password (not Google OAuth users) */}
-              {!isGoogleUser && (
+              {/* Only show current password field for users who have a password (not Google OAuth or Web3 users) */}
+              {!isGoogleUser && !isWeb3User && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Current Password</label>
                   <div className="relative">
@@ -178,6 +217,21 @@ export default function PasswordSettingsPage() {
                 </div>
               )}
 
+              {/* Show info message for Web3 users */}
+              {isWeb3User && (
+                <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-purple-800 dark:text-purple-200">Web3 Account</h3>
+                      <p className="text-xs text-purple-600 dark:text-purple-300 mt-1">
+                        You're signed in with a wallet. Set up a password to enable email/password login as an alternative.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">New Password</label>
                 <div className="relative">
@@ -190,14 +244,14 @@ export default function PasswordSettingsPage() {
                   </button>
                 </div>
 
-                {!isGoogleUser && currentPassword && password && currentPassword === password && (
+                {!isGoogleUser && !isWeb3User && currentPassword && password && currentPassword === password && (
                   <div className="mt-2 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
                     <span className="text-sm text-yellow-600 dark:text-yellow-400">New password must be different</span>
                   </div>
                 )}
 
-                {password && (isGoogleUser || currentPassword !== password) && (
+                {password && (isGoogleUser || isWeb3User || currentPassword !== password) && (
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-gray-500 dark:text-gray-400">Password Strength</span>
@@ -209,7 +263,7 @@ export default function PasswordSettingsPage() {
                   </div>
                 )}
 
-                {password && passwordRequirements.length > 0 && (isGoogleUser || currentPassword !== password) && (
+                {password && passwordRequirements.length > 0 && (isGoogleUser || isWeb3User || currentPassword !== password) && (
                   <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg">
                     <p className="text-xs text-red-700 dark:text-red-300 font-medium mb-2">Password must include:</p>
                     <ul className="space-y-1">
@@ -271,7 +325,7 @@ export default function PasswordSettingsPage() {
             </div>
 
             <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
-              <button type="button" onClick={handleSubmit} disabled={isLoading || (!isGoogleUser && !currentPassword) || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || (!isGoogleUser && currentPassword === password)}
+              <button type="button" onClick={handleSubmit} disabled={isLoading || (!isGoogleUser && !isWeb3User && !currentPassword) || !password || !confirmPassword || password !== confirmPassword || passwordRequirements.length > 0 || (!isGoogleUser && !isWeb3User && currentPassword === password)}
                 className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 {isLoading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Updating...</>) : (<><Lock className="w-4 h-4" />Update Password</>)}
               </button>

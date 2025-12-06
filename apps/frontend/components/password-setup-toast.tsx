@@ -5,37 +5,65 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Shield } from "lucide-react";
 import { useView } from "@/context/view-context";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function PasswordSetupToast() {
   const { data: session, status } = useSession();
   const { setView } = useView();
+  const { setOpen, setOpenMobile, isMobile } = useSidebar();
   const hasShownToast = useRef(false);
 
   useEffect(() => {
-    // Only show toast for authenticated users without password
-    // Add status check to prevent showing toast while session is loading
+    const isWeb3User = !!(session?.user as any)?.walletAddress;
+    const needsPassword = !session?.user?.hasPassword;
+    const needsEmail = isWeb3User && !session?.user?.email;
+
+    // Show toast if user needs password OR needs email (for Web3 users)
     if (
       status === "authenticated" &&
       session?.user && 
-      !session.user.hasPassword && 
+      (needsPassword || needsEmail) && 
       !hasShownToast.current
     ) {
       hasShownToast.current = true;
       
-      toast.info("Set up a password for your account", {
-        description: "You're currently signed in with Google. Set up a password to enable email/password login as an alternative.",
-        duration: 8000,
-        action: {
-          label: "Set Password",
-          onClick: () => {
-            // Navigate to password settings using the view context
-            setView("password");
+      if (needsEmail) {
+        // Web3 users without email (prioritize email setup)
+        toast.warning("Complete Profile!", {
+          description: "Set up your email to secure your account.",
+          duration: 10000,
+          action: {
+            label: "Set Email",
+            onClick: () => {
+              setView("email");
+              setOpen(false);
+              if (isMobile) {
+                setOpenMobile(false);
+              }
+            },
           },
-        },
-        icon: <Shield className="w-4 h-4" />,
-      });
+          icon: <Shield className="w-4 h-4" />,
+        });
+      } else {
+        // Users with email but no password (Google OAuth or Web3 users who set email)
+        toast.info("Complete Profile!", {
+          description: "Set up a password to secure your account.",
+          duration: 8000,
+          action: {
+            label: "Set Password",
+            onClick: () => {
+              setView("password");
+              setOpen(false);
+              if (isMobile) {
+                setOpenMobile(false);
+              }
+            },
+          },
+          icon: <Shield className="w-4 h-4" />,
+        });
+      }
     }
-  }, [status, session?.user?.hasPassword, setView]); // Use status and specific property instead of entire user object
+  }, [status, session?.user?.hasPassword, session?.user?.email, (session?.user as any)?.walletAddress, setView, setOpen, setOpenMobile, isMobile]); // Use status and specific property instead of entire user object
 
   return null; // This component doesn't render anything
 }

@@ -103,7 +103,7 @@ export default function DeleteAccountModal({
           <div className="flex gap-3 justify-end">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-200 dark:border-red-900/30 hover:bg-gray-50 dark:hover:bg-red-900/20 hover:text-gray-900 dark:hover:text-white shadow-sm"
+              className="px-4 py-2 border border-gray-300 dark:border-red-900/30 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-red-900/20 hover:text-gray-900 dark:hover:text-white font-semibold transition-colors text-sm"
               disabled={isDeleting}
             >
               Cancel

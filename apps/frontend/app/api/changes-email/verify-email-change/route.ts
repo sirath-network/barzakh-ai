@@ -35,15 +35,18 @@ export async function POST(req: Request) {
     }
 
     // ✅ Update email user ke newEmail
-    await updateUserEmail(session.user.id, requestData.newEmail);
+    const updatedUsers = await updateUserEmail(session.user.id, requestData.newEmail);
+    const updatedUser = updatedUsers[0];
 
     // ✅ Delete request after success
     await db
       .delete(email_change_requests)
       .where(eq(email_change_requests.userId, session.user.id));
 
-    return NextResponse.json({ message: "Email address updated successfully",
-      forceLogout: true
+    return NextResponse.json({ 
+      message: "Email address updated successfully",
+      forceLogout: true,
+      tokenVersion: updatedUser?.tokenVersion
      });
   } catch (error) {
     console.error("Verify email change error:", error);

@@ -27,7 +27,7 @@ const passwordValidation = z
 export async function GET(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
       .from(user)
       .where(eq(user.username, normalized));
 
-    if (existing.length === 0 || existing[0].email === session.user.email) {
+    if (existing.length === 0 || existing[0].id === session.user.id) {
       return NextResponse.json({ available: true });
     }
 
@@ -70,8 +70,8 @@ export async function POST(req: Request) {
     const session = await auth();
     console.log("API: Current session:", session);
 
-    if (!session?.user?.email) {
-      console.log("API: No session or email found");
+    if (!session?.user?.id) {
+      console.log("API: No session or user ID found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     const [existingUser] = await db
       .select()
       .from(user)
-      .where(eq(user.email, session.user.email));
+      .where(eq(user.id, session.user.id));
 
     console.log("API: Found existing user:", existingUser ? 'Yes' : 'No');
 
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
           .select()
           .from(user)
           .where(eq(user.username, normalized));
-        if (existingSameUsername.length > 0 && existingSameUsername[0].email !== session.user.email) {
+        if (existingSameUsername.length > 0 && existingSameUsername[0].id !== session.user.id) {
           return NextResponse.json({ error: "USERNAME_TAKEN" }, { status: 409 });
         }
         updateData.username = normalized;
@@ -166,13 +166,14 @@ export async function POST(req: Request) {
     const updateResult = await db
       .update(user)
       .set(updateData)
-      .where(eq(user.email, session.user.email))
+      .where(eq(user.id, session.user.id))
       .returning({
         id: user.id,
         name: user.name,
         username: user.username,
         image: user.image,
         email: user.email,
+        tokenVersion: user.tokenVersion,
       });
 
     console.log("API: Update result:", updateResult);
@@ -193,6 +194,7 @@ export async function POST(req: Request) {
         username: updatedUser.username,
         image: updatedUser.image,
         email: updatedUser.email,
+        tokenVersion: updatedUser.tokenVersion,
       },
     });
 
