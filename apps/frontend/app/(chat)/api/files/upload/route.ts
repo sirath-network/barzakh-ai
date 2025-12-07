@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
-import { validateImageFile, checkFileContent, checkImageMetadata } from '@/lib/security';
+import { 
+  validateImageFile, 
+  checkFileContent, 
+  checkImageMetadata,
+  detectPolyglotAttack,
+  scanImageMetadata,
+} from '@/lib/security';
 import { uploadToR2 } from '@/lib/r2-storage';
 
 // Increase body size limit for file uploads
@@ -102,6 +108,48 @@ export async function POST(request: Request) {
           { 
             error: 'Security violation detected in uploaded image',
             details: imageSecurityCheck.threats[0]?.description || 'File validation failed',
+          },
+          { status: 400 }
+        );
+      }
+
+      // =====================================================
+      // POLYGLOT ATTACK DETECTION
+      // Detects files that are valid in multiple formats
+      // (e.g., an image that's also a valid PHP/JS/HTML file)
+      // =====================================================
+      const polyglotCheck = await detectPolyglotAttack(file as File);
+      if (!polyglotCheck.safe) {
+        console.warn(`[AI-SECURITY] Blocked polyglot attack from user ${session.user?.id}:`, {
+          filename: file.name,
+          threats: polyglotCheck.threats.map(t => ({ type: t.type, description: t.description })),
+          riskScore: polyglotCheck.riskScore,
+        });
+        return NextResponse.json(
+          { 
+            error: 'Security violation: File format mismatch detected',
+            details: 'The uploaded file appears to contain embedded code or scripts.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // =====================================================
+      // DEEP METADATA SCAN FOR AI PROMPT INJECTION
+      // Scans EXIF, IPTC, XMP, ICC profiles for hidden payloads
+      // that could manipulate AI behavior
+      // =====================================================
+      const deepMetadataScan = await scanImageMetadata(file as File);
+      if (!deepMetadataScan.safe) {
+        console.warn(`[AI-SECURITY] Blocked metadata injection from user ${session.user?.id}:`, {
+          filename: file.name,
+          threats: deepMetadataScan.threats.map(t => ({ type: t.type, description: t.description })),
+          riskScore: deepMetadataScan.riskScore,
+        });
+        return NextResponse.json(
+          { 
+            error: 'Security violation detected in image metadata',
+            details: 'The image contains suspicious data that could affect AI processing.',
           },
           { status: 400 }
         );

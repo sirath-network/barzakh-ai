@@ -30,6 +30,14 @@ tags:
     description: File upload and image handling
   - name: Webhooks
     description: External service webhooks
+  - name: Security
+    description: |
+      AI security and threat protection. All endpoints are protected against:
+      - Polyglot/Metadata Image attacks
+      - Sponge Attacks (DoS via expensive computation)
+      - Model Extraction & Inversion attempts
+      - Adversarial Input attacks (homoglyphs, invisible chars, RTL)
+      - Prompt Injection (direct and indirect via external content)
 
 paths:
   # ============================================
@@ -736,6 +744,12 @@ paths:
         Uploads a file using multipart/form-data.
         Request body validation is not supported by Cloudflare API Shield.
         Protection is handled via session authentication and server-side validation.
+        
+        **Security Protection:**
+        - Polyglot attack detection (PHP, JS, Shell, ELF, PE, Java embedded in images)
+        - Metadata injection scanning (EXIF, XMP, Comments with malicious content)
+        - LLM token detection in metadata fields
+        - File signature validation
       security:
         - SessionAuth: []
       responses:
@@ -745,6 +759,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileUploadResponse"
+        "400":
+          description: File rejected due to security concerns (polyglot/metadata attack detected)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityBlockResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "413":
@@ -1030,9 +1050,23 @@ paths:
   # ============================================
   /api/chat/completions:
     post:
-      tags: [Chat]
+      tags: [Chat, Security]
       operationId: createChatCompletion
       summary: Create chat completion (OpenAI-compatible)
+      description: |
+        Creates a chat completion with AI security protection.
+        
+        **Security Protection:**
+        - Prompt injection detection (direct attacks in user messages)
+        - Sponge attack detection (token bombing, nested structures, expensive computation)
+        - Model extraction/inversion attempt detection
+        - Adversarial input detection (homoglyphs, invisible characters, RTL override)
+        - Risk score calculation (blocked if >= 50)
+        
+        **External Content Protection:**
+        - Web search results are sanitized for indirect injection
+        - Scraped content is scanned for LLM manipulation tokens
+        - Hidden instructions in HTML comments/metadata are removed
       servers:
         - url: https://staging.barzakh.tech
       security:
@@ -1058,6 +1092,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/RateLimited"
 
@@ -1125,6 +1161,13 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
 
+    Forbidden:
+      description: Request blocked by security protection
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/SecurityBlockResponse"
+
     RateLimited:
       description: Rate limit exceeded
       headers:
@@ -1158,6 +1201,78 @@ components:
           type: array
           items:
             type: object
+
+    SecurityBlockResponse:
+      type: object
+      required: [error]
+      description: Response returned when request is blocked by AI security protection
+      properties:
+        error:
+          type: string
+          example: "Request blocked due to security concerns"
+        code:
+          type: string
+          enum:
+            - AI_SECURITY_BLOCKED
+            - POLYGLOT_DETECTED
+            - SPONGE_ATTACK_DETECTED
+            - MODEL_ATTACK_DETECTED
+            - ADVERSARIAL_INPUT_DETECTED
+            - PROMPT_INJECTION_DETECTED
+            - INDIRECT_INJECTION_DETECTED
+          description: Security threat code
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Calculated risk score (blocked if >= 50)
+        threats:
+          type: array
+          description: List of detected threat types
+          items:
+            $ref: "#/components/schemas/AIThreatType"
+
+    AIThreatType:
+      type: object
+      description: Detected AI security threat
+      properties:
+        type:
+          type: string
+          enum:
+            - polyglot_php
+            - polyglot_script
+            - polyglot_shell
+            - polyglot_elf
+            - polyglot_pe
+            - polyglot_java
+            - metadata_exif_script
+            - metadata_xmp_script
+            - metadata_comment_script
+            - metadata_llm_tokens
+            - sponge_token_bombing
+            - sponge_nested_structure
+            - sponge_expensive_computation
+            - sponge_repetitive_pattern
+            - model_extraction_attempt
+            - model_inversion_attempt
+            - pii_extraction_attempt
+            - training_data_extraction
+            - adversarial_homoglyph
+            - adversarial_invisible_char
+            - adversarial_rtl_override
+            - adversarial_zero_width
+            - prompt_injection_direct
+            - prompt_injection_indirect
+            - jailbreak_attempt
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
 
     SignInRequest:
       type: object

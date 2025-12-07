@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getZerionApiKey } from "@barzakh/shared/lib/utils/utils";
+import { auth } from "@/app/(auth)/auth";
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Require authentication to prevent API key abuse
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const address = searchParams.get("address");
   const currency = searchParams.get("currency") || "usd";

@@ -36,6 +36,22 @@ export {
   TRUSTED_IMAGE_DOMAINS,
 } from './image-security';
 
+// AI-specific vulnerability protection
+export {
+  detectPolyglotAttack,
+  scanImageMetadata,
+  detectSpongeAttack,
+  detectModelAttack,
+  detectAdversarialText,
+  scanExternalContent,
+  performAISecurityCheck,
+  performAIFileSecurityCheck,
+  MAX_PROMPT_LENGTH,
+  MAX_WORD_REPETITION,
+  MAX_NESTING_DEPTH,
+  type AIVulnerabilityCheckOptions,
+} from './ai-vulnerability';
+
 // Re-export from cloudflare
 export {
   getCloudflareHeaders,

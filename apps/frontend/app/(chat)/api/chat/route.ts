@@ -28,6 +28,7 @@ import {
   performSecurityCheck,
   securityBlockResponse,
   validateImageUrl,
+  performAISecurityCheck,
   type SecurityCheckResult,
 } from "@/lib/security";
 
@@ -102,9 +103,22 @@ export async function POST(request: Request) {
     history_for_context_id?: string;
   } = await request.json();
 
+  // Authenticate first - BEFORE accessing any user data
+  const session = await auth();
+  
+  if (!session || !session.user || !session.user.id) {
+    return new Response("Please login to start chatting!", { status: 401 });
+  }
+
   // --- Prepend History Context if ID is provided ---
   if (history_for_context_id) {
     try {
+      // SECURITY: Verify ownership of the context chat before accessing its messages
+      const contextChat = await getChatById({ id: history_for_context_id });
+      if (!contextChat || contextChat.userId !== session.user.id) {
+        return new Response("Unauthorized access to chat context", { status: 403 });
+      }
+
       const dbMessages = await getMessagesByChatId({ id: history_for_context_id });
 
       const contextMessages = dbMessages.map(msg => ({
@@ -125,7 +139,6 @@ export async function POST(request: Request) {
   // --- End History Context Section ---
 
   console.log("search groupe", group);
-  const session = await auth();
   
   // Get group config with error handling
   let tools: any[] = [];
@@ -139,10 +152,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Failed to get group config:", error);
     // Continue with empty tools and system prompt
-  }
-
-  if (!session || !session.user || !session.user.id) {
-    return new Response("Please login to start chatting!", { status: 401 });
   }
   
   console.log("user session ", session.user);
@@ -209,6 +218,49 @@ export async function POST(request: Request) {
       riskScore: securityCheck.riskScore,
     });
     return securityBlockResponse(securityCheck);
+  }
+
+  // ===========================================
+  // AI VULNERABILITY CHECKS
+  // Protects against: Sponge attacks, Model extraction, Adversarial inputs
+  // ===========================================
+  const extractTextFromMessage = (content: unknown): string => {
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      return content
+        .filter((p): p is { type: 'text'; text: string } => p?.type === 'text' && typeof p.text === 'string')
+        .map(p => p.text)
+        .join(' ');
+    }
+    return '';
+  };
+  
+  const userMessageText = extractTextFromMessage(userMessage.content);
+  
+  if (userMessageText) {
+    const aiVulnCheck = performAISecurityCheck(userMessageText, {
+      checkSponge: true,      // Detect DoS via expensive computation
+      checkModelAttack: true, // Detect model extraction/inversion attempts
+      checkAdversarial: true, // Detect unicode exploits & obfuscation
+    });
+
+    if (!aiVulnCheck.safe) {
+      console.warn(`[AI-SECURITY] Blocked AI attack from user ${session.user.id}:`, {
+        threats: aiVulnCheck.threats.map(t => ({ type: t.type, desc: t.description })),
+        riskScore: aiVulnCheck.riskScore,
+      });
+      return new Response(
+        JSON.stringify({
+          error: 'Security Block',
+          message: 'Your message was blocked due to potential security concerns.',
+          code: 'AI_VULNERABILITY_DETECTED',
+          details: process.env.NODE_ENV === 'development' 
+            ? aiVulnCheck.threats[0]?.description 
+            : undefined,
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
   }
 
   // Check image URLs in multimodal content
@@ -385,7 +437,7 @@ export async function POST(request: Request) {
       console.error("DataStream error:", error);
       // Check if the error is a tool execution error and has a toolName
       if (error.name === 'AI_ToolExecutionError' && error.toolName) {
-        return `Error: The ${error.toolName} tool failed to execute. This could be due to an issue with its API key or the external service. Please check your configuration and try again.`;
+        return `Error: The ${error.toolName} tool failed to execute. This could be due to an issue with the external service. Please try again later.`;
       }
       
       // Handle socket termination errors

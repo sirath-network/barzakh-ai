@@ -2,6 +2,8 @@ import { auth } from "@/app/(auth)/auth";
 import { getUserByWalletAddress, updateUserWalletAddress } from "@/lib/db/queries";
 import { NextResponse } from "next/server";
 import { verifyMessage } from "viem";
+import { jwtVerify } from "jose";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +20,45 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // SECURITY: Verify the nonce from cookie (server-issued)
+    const cookieStore = await cookies();
+    const nonceToken = cookieStore.get("wallet-bind-nonce")?.value;
+
+    if (!nonceToken) {
+      return NextResponse.json(
+        { error: "Invalid session. Please refresh and try again." },
+        { status: 400 }
+      );
+    }
+
+    // Verify JWT nonce
+    if (!process.env.AUTH_SECRET) {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+
+    const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
+    try {
+      const { payload } = await jwtVerify(nonceToken, secret);
+      
+      // Verify the nonce is for the correct user
+      if (payload.userId !== session.user.id) {
+        return NextResponse.json({ error: "Invalid session" }, { status: 400 });
+      }
+      
+      // Verify the message contains the nonce
+      if (!message.includes(payload.nonce as string)) {
+        return NextResponse.json({ error: "Invalid message format" }, { status: 400 });
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Session expired. Please refresh and try again." },
+        { status: 400 }
+      );
+    }
+
+    // Clear the nonce cookie after use
+    cookieStore.delete("wallet-bind-nonce");
 
     // Verify signature
     const isValid = await verifyMessage({

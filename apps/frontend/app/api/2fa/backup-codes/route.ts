@@ -3,7 +3,7 @@ import { auth } from "@/app/(auth)/auth";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { generateHashedBackupCodes, checkRateLimit } from "@/lib/security/crypto";
 
 export async function POST() {
   try {
@@ -11,6 +11,14 @@ export async function POST() {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limit: 3 regenerations per hour
+    const rateLimit = checkRateLimit(`backup-codes:${session.user.id}`, 3, 60 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 60000)} minutes` 
+      }, { status: 429 });
     }
 
     // Get user from database
@@ -24,21 +32,18 @@ export async function POST() {
       return NextResponse.json({ error: "2FA not enabled" }, { status: 400 });
     }
 
-    // Generate new backup codes
-    const backupCodes: string[] = [];
-    for (let i = 0; i < 8; i++) {
-      backupCodes.push(nanoid(8).toUpperCase());
-    }
+    // Generate new hashed backup codes
+    const { plainCodes, hashedCodes } = generateHashedBackupCodes(8);
 
-    // Update user with new backup codes
+    // Update user with new hashed backup codes
     await db
       .update(user)
-      .set({ backupCodes: JSON.stringify(backupCodes) })
+      .set({ backupCodes: JSON.stringify(hashedCodes) })
       .where(eq(user.id, dbUser.id));
 
     return NextResponse.json({
       success: true,
-      backupCodes: backupCodes,
+      backupCodes: plainCodes, // Return plain codes to user (one time only!)
     });
   } catch (error) {
     console.error("Backup codes generation error:", error);

@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { tavily } from "@tavily/core";
 import { newsSearch } from "./news-search";
+import { sanitizeExternalContent, scanExternalContent } from "../../security/external-content-scanner";
 
 function sanitizeUrl(url: string): string {
   return url.replace(/\s+/g, "%20");
@@ -127,14 +128,27 @@ export const webSearch = tool({
 
           return {
             query,
-            results: data.results.map((obj: any) => ({
-              url: obj.url,
-              title: obj.title,
-              content: obj.content,
-              raw_content: obj.raw_content,
-              published_date:
-                topics[index] === "news" ? obj.published_date : undefined,
-            })),
+            results: data.results.map((obj: any) => {
+              // Sanitize content to prevent indirect prompt injection
+              const contentScan = scanExternalContent(obj.content || '');
+              const rawContentScan = obj.raw_content ? scanExternalContent(obj.raw_content) : null;
+              
+              if (!contentScan.safe || (rawContentScan && !rawContentScan.safe)) {
+                console.warn(`[WEB-SEARCH-SECURITY] Threats in result from ${obj.url}:`, {
+                  contentThreats: contentScan.threats.slice(0, 2).map(t => t.description),
+                  rawContentThreats: rawContentScan?.threats.slice(0, 2).map(t => t.description),
+                });
+              }
+              
+              return {
+                url: obj.url,
+                title: obj.title,
+                content: sanitizeExternalContent(obj.content || ''),
+                raw_content: obj.raw_content ? sanitizeExternalContent(obj.raw_content) : undefined,
+                published_date:
+                  topics[index] === "news" ? obj.published_date : undefined,
+              };
+            }),
             images: includeImageDescriptions
               ? await Promise.all(
                   data.images.map(

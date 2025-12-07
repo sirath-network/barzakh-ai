@@ -51,7 +51,10 @@ if (process.env.NODE_ENV === 'development' && !isInitialized) {
 }
 
 export function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  // SECURITY: Use cryptographically secure random number generation
+  const randomBytes = require('crypto').randomBytes(4);
+  const randomNumber = randomBytes.readUInt32BE(0);
+  return (100000 + (randomNumber % 900000)).toString();
 }
 
 // Save OTP to database with 10-minute expiry

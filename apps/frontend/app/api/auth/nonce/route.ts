@@ -11,7 +11,10 @@ export async function GET(request: Request) {
   }
 
   const nonce = crypto.randomUUID();
-  const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret");
+  if (!process.env.AUTH_SECRET) {
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  }
+  const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
 
   const token = await new SignJWT({ nonce, address })
     .setProtectedHeader({ alg: "HS256" })

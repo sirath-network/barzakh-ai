@@ -1,4 +1,5 @@
 import FirecrawlApp, { ScrapeResponse } from "@mendable/firecrawl-js";
+import { processExternalContent } from "../security/external-content-scanner";
 
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 const FIRECRAWL_API_ENDPOINT = process.env.FIRECRAWL_API_ENDPOINT;
@@ -29,9 +30,30 @@ export async function scrapeSite(linkToScrape: string) {
 
     console.log("scrapeResult.markdown----------------", scrapeResult.markdown);
     console.log("scrapeResult.links----------------", scrapeResult.links);
+    
+    // =====================================================
+    // SECURITY: Scan and sanitize external content
+    // Protects against indirect prompt injection attacks
+    // where malicious websites embed instructions to manipulate AI
+    // =====================================================
+    const { content: sanitizedContent, scanResult } = processExternalContent(
+      scrapeResult.markdown || '',
+      { sanitize: true, blockOnThreat: false }
+    );
+    
+    if (!scanResult.safe) {
+      console.warn(`[SECURITY] Threats detected in scraped content from ${linkToScrape}:`, {
+        threats: scanResult.threats.slice(0, 5).map(t => t.description),
+        riskScore: scanResult.riskScore,
+      });
+    }
+    
     return {
-      pageContent: scrapeResult.markdown,
+      pageContent: sanitizedContent,
       pageLinks: scrapeResult.links,
+      securityWarning: !scanResult.safe 
+        ? `Content was sanitized due to ${scanResult.threats.length} potential security issues`
+        : undefined,
     };
   } catch (error) {
     console.error("Error in scrapeSite:", error);

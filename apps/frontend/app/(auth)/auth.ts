@@ -39,7 +39,10 @@ export const authOptions: NextAuthConfig = {
         if (sessionToken && sessionToken.trim() !== "") {
           try {
             const { jwtVerify } = await import("jose");
-            const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret");
+            if (!process.env.AUTH_SECRET) {
+              throw new Error("AUTH_SECRET is required");
+            }
+            const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
             
             const { payload } = await jwtVerify(sessionToken, secret);
             
@@ -100,7 +103,10 @@ export const authOptions: NextAuthConfig = {
             return null;
           }
 
-          const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret");
+          if (!process.env.AUTH_SECRET) {
+            throw new Error("AUTH_SECRET is required");
+          }
+          const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
           const { jwtVerify } = await import("jose");
           const { payload } = await jwtVerify(nonceToken, secret);
 
