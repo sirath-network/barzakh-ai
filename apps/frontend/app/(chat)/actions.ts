@@ -9,7 +9,9 @@ import {
   updateChatTitleById,
   archiveChat as archiveChatById,
   restoreChat as restoreChatById,
+  getChatById,
 } from "@/lib/db/queries";
+import { auth } from "@/app/(auth)/auth";
 import { VisibilityType } from "@/components/visibility-selector";
 import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { SearchGroupId } from "@barzakh/shared/lib/utils/utils";
@@ -58,7 +60,21 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
   const [message] = await getMessageById({ id });
+  if (!message) {
+    throw new Error("Message not found");
+  }
+
+  // Verify ownership via the chat
+  const chat = await getChatById({ id: message.chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
 
   await deleteMessagesByChatIdAfterTimestamp({
     chatId: message.chatId,
@@ -73,6 +89,16 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const chat = await getChatById({ id: chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
+
   await updateChatVisiblityById({ chatId, visibility });
 }
 
@@ -83,6 +109,16 @@ export async function updateChatTitle({
   chatId: string;
   title: string;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const chat = await getChatById({ id: chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
+
   // Validate title
   const trimmedTitle = title.trim();
   if (!trimmedTitle) {
@@ -95,10 +131,30 @@ export async function updateChatTitle({
 }
 
 export async function archiveChat({ chatId }: { chatId: string }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const chat = await getChatById({ id: chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
+
   await archiveChatById({ id: chatId });
 }
 
 export async function restoreChat({ chatId }: { chatId: string }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const chat = await getChatById({ id: chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
+
   await restoreChatById({ id: chatId });
 }
  

@@ -7,6 +7,12 @@ import { authenticator } from "otplib";
 import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { 
+  decrypt2FASecret, 
+  isEncrypted, 
+  findBackupCode,
+  checkRateLimit
+} from "@/lib/security/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +23,14 @@ export async function POST(request: NextRequest) {
         { message: "Email and 2FA token are required" },
         { status: 400 }
       );
+    }
+
+    // Rate limit: 5 attempts per 15 minutes per email
+    const rateLimit = checkRateLimit(`forgot-2fa:${email}`, 5, 15 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        message: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds` 
+      }, { status: 429 });
     }
 
     // Get user from database
@@ -37,17 +51,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify 2FA token - only accept current or immediately previous time step
-    // Reject tokens older than ~60 seconds (delta <= -2)
     let isValid = false;
     
     // Try TOTP first
     if (dbUser.twoFactorSecret) {
-      // otplib checkDelta returns the delta (number) or null if invalid
-      const delta = authenticator.checkDelta(twoFactorToken, dbUser.twoFactorSecret);
-      
-      // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
-      // Reject tokens from 2+ steps ago (older than ~60 seconds)
+      // Decrypt the secret if it's encrypted (backward compatible)
+      let decryptedSecret: string;
+      try {
+        decryptedSecret = isEncrypted(dbUser.twoFactorSecret) 
+          ? decrypt2FASecret(dbUser.twoFactorSecret)
+          : dbUser.twoFactorSecret;
+      } catch (error) {
+        console.error("Failed to decrypt 2FA secret:", error);
+        return NextResponse.json(
+          { message: "2FA configuration error" },
+          { status: 500 }
+        );
+      }
+
+      const delta = authenticator.checkDelta(twoFactorToken, decryptedSecret);
       if (delta !== null) {
         isValid = delta >= -1 && delta <= 1;
       }
@@ -56,21 +78,35 @@ export async function POST(request: NextRequest) {
     // If TOTP fails, try backup codes
     if (!isValid && dbUser.backupCodes) {
       try {
-        const backupCodes = JSON.parse(dbUser.backupCodes);
-        const codeIndex = backupCodes.findIndex((code: string) => 
-          code === twoFactorToken.toUpperCase()
-        );
+        const backupCodes = JSON.parse(dbUser.backupCodes) as string[];
         
-        if (codeIndex !== -1) {
-          // Remove used backup code
-          backupCodes.splice(codeIndex, 1);
-          // Update user with remaining backup codes
-          await db
-            .update(user)
-            .set({ backupCodes: JSON.stringify(backupCodes) })
-            .where(eq(user.email, email));
-          
-          isValid = true;
+        // Check if codes are hashed (contain $ from bcrypt) or plain
+        const isHashed = backupCodes.length > 0 && backupCodes[0].startsWith('$');
+        
+        if (isHashed) {
+          // New hashed backup codes
+          const codeIndex = findBackupCode(twoFactorToken, backupCodes);
+          if (codeIndex !== -1) {
+            backupCodes.splice(codeIndex, 1);
+            await db
+              .update(user)
+              .set({ backupCodes: JSON.stringify(backupCodes) })
+              .where(eq(user.email, email));
+            isValid = true;
+          }
+        } else {
+          // Legacy plain backup codes
+          const codeIndex = backupCodes.findIndex((code: string) => 
+            code === twoFactorToken.toUpperCase()
+          );
+          if (codeIndex !== -1) {
+            backupCodes.splice(codeIndex, 1);
+            await db
+              .update(user)
+              .set({ backupCodes: JSON.stringify(backupCodes) })
+              .where(eq(user.email, email));
+            isValid = true;
+          }
         }
       } catch (error) {
         console.error("Error parsing backup codes:", error);

@@ -47,6 +47,10 @@
     {
       "name": "Webhooks",
       "description": "External service webhooks"
+    },
+    {
+      "name": "Security",
+      "description": "AI security and threat protection. All endpoints are protected against:\n- Polyglot/Metadata Image attacks\n- Sponge Attacks (DoS via expensive computation)\n- Model Extraction & Inversion attempts\n- Adversarial Input attacks (homoglyphs, invisible chars, RTL)\n- Prompt Injection (direct and indirect via external content)\n"
     }
   ],
   "paths": {
@@ -731,7 +735,7 @@
         ],
         "operationId": "getWalletSignatureMessage",
         "summary": "Get message to sign for wallet verification",
-        "description": "Generates a unique nonce/message for the user to sign with their wallet. This is used to verify wallet ownership before crypto payments.",
+        "description": "Generates a unique nonce/message for the user to sign with their wallet.\nThis is used to verify wallet ownership before crypto payments.\n",
         "security": [
           {
             "SessionAuth": []
@@ -774,7 +778,7 @@
         ],
         "operationId": "verifyWalletSignature",
         "summary": "Verify wallet signature and link to account",
-        "description": "Verifies the signature from the user's wallet and links the wallet address to the user's account for future crypto payments.",
+        "description": "Verifies the signature from the user's wallet and links the wallet\naddress to the user's account for future crypto payments.\n",
         "security": [
           {
             "SessionAuth": []
@@ -1155,7 +1159,7 @@
         ],
         "operationId": "uploadFile",
         "summary": "Upload a file",
-        "description": "Uploads a file using multipart/form-data.\nRequest body validation is not supported by Cloudflare API Shield.\nProtection is handled via session authentication and server-side validation.\n",
+        "description": "Uploads a file using multipart/form-data.\nRequest body validation is not supported by Cloudflare API Shield.\nProtection is handled via session authentication and server-side validation.\n\n**Security Protection:**\n- Polyglot attack detection (PHP, JS, Shell, ELF, PE, Java embedded in images)\n- Metadata injection scanning (EXIF, XMP, Comments with malicious content)\n- LLM token detection in metadata fields\n- File signature validation\n",
         "security": [
           {
             "SessionAuth": []
@@ -1168,6 +1172,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FileUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "File rejected due to security concerns (polyglot/metadata attack detected)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityBlockResponse"
                 }
               }
             }
@@ -1623,10 +1637,12 @@
     "/api/chat/completions": {
       "post": {
         "tags": [
-          "Chat"
+          "Chat",
+          "Security"
         ],
         "operationId": "createChatCompletion",
         "summary": "Create chat completion (OpenAI-compatible)",
+        "description": "Creates a chat completion with AI security protection.\n\n**Security Protection:**\n- Prompt injection detection (direct attacks in user messages)\n- Sponge attack detection (token bombing, nested structures, expensive computation)\n- Model extraction/inversion attempt detection\n- Adversarial input detection (homoglyphs, invisible characters, RTL override)\n- Risk score calculation (blocked if >= 50)\n\n**External Content Protection:**\n- Web search results are sanitized for indirect injection\n- Scraped content is scanned for LLM manipulation tokens\n- Hidden instructions in HTML comments/metadata are removed\n",
         "servers": [
           {
             "url": "https://staging.barzakh.tech"
@@ -1669,6 +1685,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -1761,6 +1780,16 @@
           }
         }
       },
+      "Forbidden": {
+        "description": "Request blocked by security protection",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SecurityBlockResponse"
+            }
+          }
+        }
+      },
       "RateLimited": {
         "description": "Rate limit exceeded",
         "headers": {
@@ -1812,6 +1841,98 @@
             "items": {
               "type": "object"
             }
+          }
+        }
+      },
+      "SecurityBlockResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "description": "Response returned when request is blocked by AI security protection",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Request blocked due to security concerns"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "AI_SECURITY_BLOCKED",
+              "POLYGLOT_DETECTED",
+              "SPONGE_ATTACK_DETECTED",
+              "MODEL_ATTACK_DETECTED",
+              "ADVERSARIAL_INPUT_DETECTED",
+              "PROMPT_INJECTION_DETECTED",
+              "INDIRECT_INJECTION_DETECTED"
+            ],
+            "description": "Security threat code"
+          },
+          "riskScore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Calculated risk score (blocked if >= 50)"
+          },
+          "threats": {
+            "type": "array",
+            "description": "List of detected threat types",
+            "items": {
+              "$ref": "#/components/schemas/AIThreatType"
+            }
+          }
+        }
+      },
+      "AIThreatType": {
+        "type": "object",
+        "description": "Detected AI security threat",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "polyglot_php",
+              "polyglot_script",
+              "polyglot_shell",
+              "polyglot_elf",
+              "polyglot_pe",
+              "polyglot_java",
+              "metadata_exif_script",
+              "metadata_xmp_script",
+              "metadata_comment_script",
+              "metadata_llm_tokens",
+              "sponge_token_bombing",
+              "sponge_nested_structure",
+              "sponge_expensive_computation",
+              "sponge_repetitive_pattern",
+              "model_extraction_attempt",
+              "model_inversion_attempt",
+              "pii_extraction_attempt",
+              "training_data_extraction",
+              "adversarial_homoglyph",
+              "adversarial_invisible_char",
+              "adversarial_rtl_override",
+              "adversarial_zero_width",
+              "prompt_injection_direct",
+              "prompt_injection_indirect",
+              "jailbreak_attempt"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
           }
         }
       },

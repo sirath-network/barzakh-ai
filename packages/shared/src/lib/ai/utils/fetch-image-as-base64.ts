@@ -96,7 +96,7 @@ export async function fetchImageAsBase64(
       },
       body: JSON.stringify({
         imageUrl: url,
-        internalRequest: true,
+        internalSecret: process.env.INTERNAL_API_SECRET,
       }),
       signal: controller.signal,
     });

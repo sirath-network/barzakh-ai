@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { myProvider } from "@barzakh/shared/src/lib/ai/models";
+import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { generateText } from "ai";
+import { auth } from "@/app/(auth)/auth";
 
 const BASE_SUGGESTIONS = [
   {
@@ -24,6 +25,12 @@ const BASE_SUGGESTIONS = [
 // 1. Add the `request: NextRequest` parameter to the function
 export async function GET(request: NextRequest) {
   try {
+    // SECURITY: Require authentication to prevent AI resource abuse
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // 2. Get headers directly from the request object
     const acceptLanguage = request.headers.get("accept-language");
 

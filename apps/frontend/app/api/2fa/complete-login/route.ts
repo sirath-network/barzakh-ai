@@ -4,8 +4,18 @@ import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { authenticator } from "otplib";
+import { 
+  decrypt2FASecret, 
+  isEncrypted, 
+  findBackupCode,
+  checkRateLimit,
+  resetRateLimit
+} from "@/lib/security/crypto";
 
-const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret");
+if (!process.env.AUTH_SECRET) {
+  throw new Error("AUTH_SECRET environment variable is required");
+}
+const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,8 +38,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token type" }, { status: 401 });
     }
 
+    const userId = payload.userId as string;
+
+    // Rate limit: 5 attempts per 15 minutes per user
+    const rateLimit = checkRateLimit(`2fa-complete:${userId}`, 5, 15 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds` 
+      }, { status: 429 });
+    }
+
     // Get user from database
-    const [dbUser] = await db.select().from(user).where(eq(user.id, payload.userId as string));
+    const [dbUser] = await db.select().from(user).where(eq(user.id, userId));
     
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -39,13 +59,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "2FA not enabled for this user" }, { status: 400 });
     }
 
-    // Verify 2FA token - only accept current or immediately previous time step
-    // Reject tokens older than ~60 seconds (delta <= -2)
-    // otplib checkDelta returns the delta (number) or null if invalid
-    const delta = authenticator.checkDelta(twoFactorToken, dbUser.twoFactorSecret);
+    // Decrypt the secret if it's encrypted (backward compatible)
+    let decryptedSecret: string;
+    try {
+      decryptedSecret = isEncrypted(dbUser.twoFactorSecret) 
+        ? decrypt2FASecret(dbUser.twoFactorSecret)
+        : dbUser.twoFactorSecret;
+    } catch (error) {
+      console.error("Failed to decrypt 2FA secret:", error);
+      return NextResponse.json({ error: "2FA configuration error" }, { status: 500 });
+    }
 
-    // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
-    // Reject tokens from 2+ steps ago (older than ~60 seconds)
+    // Verify 2FA token
+    const delta = authenticator.checkDelta(twoFactorToken, decryptedSecret);
     let verified = false;
     if (delta !== null) {
       verified = delta >= -1 && delta <= 1;
@@ -55,17 +81,32 @@ export async function POST(request: NextRequest) {
     if (!verified && dbUser.backupCodes) {
       try {
         const backupCodes = JSON.parse(dbUser.backupCodes) as string[];
-        const tokenIndex = backupCodes.indexOf(twoFactorToken.toUpperCase());
         
-        if (tokenIndex !== -1) {
-          // Remove the used backup code
-          backupCodes.splice(tokenIndex, 1);
-          await db
-            .update(user)
-            .set({ backupCodes: JSON.stringify(backupCodes) })
-            .where(eq(user.id, dbUser.id));
-          
-          verified = true;
+        // Check if codes are hashed (contain $ from bcrypt) or plain
+        const isHashed = backupCodes.length > 0 && backupCodes[0].startsWith('$');
+        
+        if (isHashed) {
+          // New hashed backup codes
+          const codeIndex = findBackupCode(twoFactorToken, backupCodes);
+          if (codeIndex !== -1) {
+            backupCodes.splice(codeIndex, 1);
+            await db
+              .update(user)
+              .set({ backupCodes: JSON.stringify(backupCodes) })
+              .where(eq(user.id, dbUser.id));
+            verified = true;
+          }
+        } else {
+          // Legacy plain backup codes (backward compatible)
+          const tokenIndex = backupCodes.indexOf(twoFactorToken.toUpperCase());
+          if (tokenIndex !== -1) {
+            backupCodes.splice(tokenIndex, 1);
+            await db
+              .update(user)
+              .set({ backupCodes: JSON.stringify(backupCodes) })
+              .where(eq(user.id, dbUser.id));
+            verified = true;
+          }
         }
       } catch (error) {
         console.error("Error parsing backup codes:", error);
@@ -75,6 +116,9 @@ export async function POST(request: NextRequest) {
     if (!verified) {
       return NextResponse.json({ error: "Invalid 2FA token" }, { status: 400 });
     }
+
+    // Reset rate limit on success
+    resetRateLimit(`2fa-complete:${userId}`);
 
     // Create final JWT token for session
     const sessionToken = await new SignJWT({ 
@@ -87,7 +131,7 @@ export async function POST(request: NextRequest) {
       type: "session" 
     })
       .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("30d") // 30 days
+      .setExpirationTime("30d")
       .setIssuedAt()
       .sign(secret);
 

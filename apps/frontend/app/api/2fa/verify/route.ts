@@ -4,16 +4,13 @@ import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { authenticator } from "otplib";
-import { nanoid } from "nanoid";
-
-// Generate backup codes
-function generateBackupCodes(): string[] {
-  const codes: string[] = [];
-  for (let i = 0; i < 8; i++) {
-    codes.push(nanoid(8).toUpperCase());
-  }
-  return codes;
-}
+import { 
+  decrypt2FASecret, 
+  isEncrypted, 
+  generateHashedBackupCodes,
+  checkRateLimit,
+  resetRateLimit
+} from "@/lib/security/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +18,14 @@ export async function POST(request: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limit: 5 verification attempts per 5 minutes
+    const rateLimit = checkRateLimit(`2fa-verify:${session.user.id}`, 5, 5 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds` 
+      }, { status: 429 });
     }
 
     const { token, action } = await request.json();
@@ -40,13 +45,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "2FA not set up" }, { status: 400 });
     }
 
-    // Verify the token - only accept current or immediately previous time step
-    // Reject tokens older than ~60 seconds (delta <= -2)
-    // otplib checkDelta returns the delta (number) or null if invalid
-    const delta = authenticator.checkDelta(token, dbUser.twoFactorSecret);
+    // Decrypt the secret if it's encrypted (backward compatible)
+    let decryptedSecret: string;
+    try {
+      decryptedSecret = isEncrypted(dbUser.twoFactorSecret) 
+        ? decrypt2FASecret(dbUser.twoFactorSecret)
+        : dbUser.twoFactorSecret;
+    } catch (error) {
+      console.error("Failed to decrypt 2FA secret:", error);
+      return NextResponse.json({ error: "2FA configuration error" }, { status: 500 });
+    }
 
-    // Only accept tokens from current time step (delta === 0) or immediately previous (delta === -1)
-    // Reject tokens from 2+ steps ago (older than ~60 seconds)
+    // Verify the token
+    const delta = authenticator.checkDelta(token, decryptedSecret);
     let verified = false;
     if (delta !== null) {
       verified = delta >= -1 && delta <= 1;
@@ -56,31 +67,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 400 });
     }
 
+    // Reset rate limit on successful verification
+    resetRateLimit(`2fa-verify:${session.user.id}`);
+
     if (action === "enable") {
-      // Enable 2FA and generate backup codes
-      const backupCodes = generateBackupCodes();
+      // Enable 2FA and generate hashed backup codes
+      const { plainCodes, hashedCodes } = generateHashedBackupCodes(8);
       
       await db
         .update(user)
         .set({ 
           twoFactorEnabled: true,
-          backupCodes: JSON.stringify(backupCodes)
+          backupCodes: JSON.stringify(hashedCodes) // Store hashed codes
         })
         .where(eq(user.id, dbUser.id));
 
       return NextResponse.json({
         success: true,
-        backupCodes: backupCodes,
+        backupCodes: plainCodes, // Return plain codes to user (one time only!)
         message: "2FA enabled successfully"
       });
     } else if (action === "verify") {
-      // Just verify the token for login
       return NextResponse.json({
         success: true,
         message: "Token verified successfully"
       });
     } else if (action === "disable") {
-      // Disable 2FA
       await db
         .update(user)
         .set({ 

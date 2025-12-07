@@ -1,12 +1,9 @@
 import { auth } from "@/app/(auth)/auth";
-import { getVotesByChatId, voteMessage } from "@/lib/db/queries";
-import { cookies } from "next/headers";
+import { getChatById, getVotesByChatId, voteMessage } from "@/lib/db/queries";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get("chatId");
-  const userId = (await cookies()).get("userId");
-  // console.log(userId);
 
   if (!chatId) {
     return new Response("chatId is required", { status: 400 });
@@ -16,6 +13,12 @@ export async function GET(request: Request) {
 
   if (!session || !session.user || !session.user.id) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // SECURITY: Verify user owns this chat before exposing votes
+  const chat = await getChatById({ id: chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    return new Response("Forbidden", { status: 403 });
   }
 
   const votes = await getVotesByChatId({ id: chatId });
@@ -39,6 +42,12 @@ export async function PATCH(request: Request) {
 
   if (!session || !session.user || !session.user.id) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // SECURITY: Verify user owns this chat before allowing votes
+  const chat = await getChatById({ id: chatId });
+  if (!chat || chat.userId !== session.user.id) {
+    return new Response("Forbidden", { status: 403 });
   }
 
   await voteMessage({

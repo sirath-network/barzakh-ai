@@ -1,27 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
 
+// Internal request secret for server-to-server communication
+const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageUrl, mobile = false, forceDownload = false, internalRequest = false } = body;
+    const { imageUrl, mobile = false, forceDownload = false, internalSecret } = body;
 
-    // For internal requests (backend-to-backend), skip session auth
+    // Check if this is an internal request (has internalSecret)
+    const isInternalRequest = !!internalSecret;
+
+    // For internal requests (backend-to-backend), verify with secret
     // This allows the createImage tool to fetch images for editing
-    if (!internalRequest) {
+    if (!isInternalRequest) {
       // Check authentication for external requests
       const session = await auth();
       if (!session || !session.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     } else {
-      // Verify internal request is from localhost or same origin
+      // SECURITY: Verify internal request with secret (not spoofable Host header)
+      // Fall back to localhost check only in development if secret not set
+      const isDevelopment = process.env.NODE_ENV === 'development';
       const host = request.headers.get('host');
       const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1');
-      const isVercel = process.env.VERCEL === '1'; // Running on Vercel
       
-      if (!isLocalhost && !isVercel) {
-        return NextResponse.json({ error: 'Forbidden - Internal requests only from same origin' }, { status: 403 });
+      if (INTERNAL_SECRET) {
+        // Production: require matching secret
+        if (internalSecret !== INTERNAL_SECRET) {
+          return NextResponse.json({ error: 'Forbidden - Invalid internal secret' }, { status: 403 });
+        }
+      } else if (!isDevelopment || !isLocalhost) {
+        // No secret configured and not development localhost - deny
+        return NextResponse.json({ error: 'Forbidden - Internal requests require INTERNAL_API_SECRET' }, { status: 403 });
       }
     }
 
@@ -122,24 +135,23 @@ export async function POST(request: NextRequest) {
     const url = new URL(imageUrl);
     const isDataUrl = imageUrl.startsWith('data:');
     
-    // More flexible domain matching
+    // SECURITY: Strict domain matching to prevent SSRF bypass
+    // Only allow exact match or proper subdomain match (e.g., cdn.example.com for example.com)
     const isAllowedDomain = allowedDomains.some(domain => {
       const hostname = url.hostname.toLowerCase();
       const domainLower = domain.toLowerCase();
       
       return (
         hostname === domainLower ||                    // exact match
-        hostname.endsWith('.' + domainLower) ||       // subdomain match
-        hostname.includes(domainLower) ||             // partial match
-        domainLower.includes(hostname)                // reverse partial match
+        hostname.endsWith('.' + domainLower)          // proper subdomain match only
       );
     });
 
-    // Development bypass (remove in production)
+    // Only allow localhost bypass in development mode
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.local');
+    const isLocalhost = (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.local'));
 
-    if (!isDataUrl && !isAllowedDomain && !isDevelopment && !isLocalhost) {
+    if (!isDataUrl && !isAllowedDomain && !(isDevelopment && isLocalhost)) {
       console.warn(`Blocked domain for proxy download: ${url.hostname} (full URL: ${imageUrl})`);
       console.warn('Allowed domains:', allowedDomains);
       

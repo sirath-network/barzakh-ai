@@ -15,7 +15,7 @@ import {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   email: varchar("email", { length: 64 }).unique(),
   walletAddress: varchar("walletAddress", { length: 64 }),
-  password: varchar("password", { length: 64 }),
+  password: varchar("password", { length: 255 }), // Increased from 64 to 255 for bcrypt hash safety
   // ✅ Tambahkan field yang hilang
   name: text("name"),
   username: text("username").unique(),
@@ -26,10 +26,10 @@ import {
   dailyMessageRemaining: integer("dailyMessageRemaining")
     .notNull()
     .default(Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10),
-  // 2FA fields
-  twoFactorSecret: text("twoFactorSecret"),
+  // 2FA fields - twoFactorSecret is AES-256-GCM encrypted, backupCodes are bcrypt hashed
+  twoFactorSecret: text("twoFactorSecret"), // Encrypted with AES-256-GCM
   twoFactorEnabled: boolean("twoFactorEnabled").notNull().default(false),
-  backupCodes: text("backupCodes"), // JSON array of backup codes
+  backupCodes: text("backupCodes"), // JSON array of bcrypt hashed backup codes
   tokenVersion: integer("tokenVersion").notNull().default(0),
   x402CancelAtPeriodEnd: boolean("x402CancelAtPeriodEnd").notNull().default(false),
 });

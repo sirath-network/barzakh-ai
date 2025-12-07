@@ -64,6 +64,13 @@
       "when": 1764945905982,
       "tag": "0008_simple_richard_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1765069909481,
+      "tag": "0009_rare_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

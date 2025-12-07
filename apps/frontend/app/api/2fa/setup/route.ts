@@ -5,6 +5,7 @@ import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
+import { encrypt2FASecret, checkRateLimit } from "@/lib/security/crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,14 @@ export async function POST(request: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limit: 5 setup attempts per 15 minutes
+    const rateLimit = checkRateLimit(`2fa-setup:${session.user.id}`, 5, 15 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds` 
+      }, { status: 429 });
     }
 
     // Get user from database
@@ -32,14 +41,17 @@ export async function POST(request: NextRequest) {
     // Generate QR code
     const qrCodeUrl = await QRCode.toDataURL(otpauth);
 
-    // Update user with the secret (but don't enable 2FA yet)
+    // Encrypt the secret before storing
+    const encryptedSecret = encrypt2FASecret(secret);
+
+    // Update user with the encrypted secret (but don't enable 2FA yet)
     await db
       .update(user)
-      .set({ twoFactorSecret: secret })
+      .set({ twoFactorSecret: encryptedSecret })
       .where(eq(user.id, dbUser.id));
 
     return NextResponse.json({
-      secret: secret,
+      secret: secret, // Return plaintext to user for manual entry
       qrCode: qrCodeUrl,
       manualEntryKey: secret,
     });

@@ -6,7 +6,10 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { SignJWT } from "jose";
 
-const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || "fallback-secret");
+if (!process.env.AUTH_SECRET) {
+  throw new Error("AUTH_SECRET environment variable is required");
+}
+const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
 
 export async function POST(request: NextRequest) {
   try {
