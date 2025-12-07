@@ -3,10 +3,12 @@
 import { useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { Wallet, Shield, CheckCircle, Loader2, AlertCircle, Unplug, RefreshCw, Key, Lock, Globe, Copy } from "lucide-react";
+import { Wallet, Shield, CheckCircle, Loader2, AlertCircle, Unplug, RefreshCw, Key, Lock, Globe, Copy, Mail } from "lucide-react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -26,29 +28,121 @@ export default function WalletSettingsPage() {
   const { signMessageAsync } = useSignMessage();
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
-  const [errorAlert, setErrorAlert] = useState<{title: string, description: ReactNode} | null>(null);
+  const [errorAlert, setErrorAlert] = useState<{ title: string, description: ReactNode } | null>(null);
+
+  // Re-authentication state for wallet unbind
+  const [requiresAuth, setRequiresAuth] = useState(false);
+  const [has2FA, setHas2FA] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [unbindPassword, setUnbindPassword] = useState("");
+  const [unbindTwoFactorToken, setUnbindTwoFactorToken] = useState("");
+  const [unbindEmailOtp, setUnbindEmailOtp] = useState("");
+  const [unbindError, setUnbindError] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Re-authentication state for wallet change
+  const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
+  const [changeRequiresAuth, setChangeRequiresAuth] = useState(false);
+  const [changeHas2FA, setChangeHas2FA] = useState(false);
+  const [changeUserEmail, setChangeUserEmail] = useState<string | null>(null);
+  const [changePassword, setChangePassword] = useState("");
+  const [changeTwoFactorToken, setChangeTwoFactorToken] = useState("");
+  const [changeEmailOtp, setChangeEmailOtp] = useState("");
+  const [changeError, setChangeError] = useState("");
+  const [isSendingChangeOtp, setIsSendingChangeOtp] = useState(false);
+  const [changeOtpSent, setChangeOtpSent] = useState(false);
+  const [changeResendCooldown, setChangeResendCooldown] = useState(0);
+  const [pendingWalletAddress, setPendingWalletAddress] = useState<string | null>(null);
+  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   const currentWallet = (session?.user as any)?.walletAddress;
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Address copied to clipboard");
+  const resetUnbindState = () => {
+    setRequiresAuth(false);
+    setHas2FA(false);
+    setUserEmail(null);
+    setUnbindPassword("");
+    setUnbindTwoFactorToken("");
+    setUnbindEmailOtp("");
+    setUnbindError("");
+    setOtpSent(false);
+    setResendCooldown(0);
+  };
+
+  const handleUnbindModalClose = (open: boolean) => {
+    setIsUnbindModalOpen(open);
+    if (!open) {
+      resetUnbindState();
+    }
+  };
+
+  const sendEmailOtp = async () => {
+    setIsSendingOtp(true);
+    setUnbindError("");
+    try {
+      const res = await fetch("/api/settings/wallet/unbind/send-otp", {
+        method: "POST",
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send verification code");
+      }
+
+      setOtpSent(true);
+      toast.success("Verification code sent to your email");
+
+      // Start cooldown timer (60 seconds)
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (error: any) {
+      setUnbindError(error.message || "Failed to send verification code");
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   const unbindWallet = async () => {
     setIsUnbinding(true);
+    setUnbindError("");
     try {
+      const body: { password?: string; twoFactorToken?: string; emailOtp?: string } = {};
+      if (unbindPassword) body.password = unbindPassword;
+      if (unbindTwoFactorToken) body.twoFactorToken = unbindTwoFactorToken;
+      if (unbindEmailOtp) body.emailOtp = unbindEmailOtp;
+
       const res = await fetch("/api/settings/wallet/unbind", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-      
+
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
+        // Check if re-authentication is required
+        if (data.requiresAuth) {
+          setRequiresAuth(true);
+          setHas2FA(data.has2FA || false);
+          setUserEmail(data.userEmail || null);
+          return;
+        }
         throw new Error(data.error || "Failed to unbind wallet");
       }
 
       toast.success("Wallet disconnected successfully");
-      
+
       // Update session
       await update({
         user: {
@@ -56,16 +150,236 @@ export default function WalletSettingsPage() {
           walletAddress: null
         }
       });
-      
-      setIsUnbindModalOpen(false);
+
+      handleUnbindModalClose(false);
       // Also disconnect from wagmi if it's the same wallet
       if (address === currentWallet) {
         disconnect();
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to unbind wallet");
+      setUnbindError(error.message || "Failed to unbind wallet");
     } finally {
       setIsUnbinding(false);
+    }
+  };
+
+  // Check if form is valid for submission
+  const isUnbindFormValid = () => {
+    if (!requiresAuth) return true;
+    if (!unbindPassword) return false;
+    if (has2FA) {
+      return unbindTwoFactorToken.length === 6;
+    } else {
+      return unbindEmailOtp.length === 6;
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Address copied to clipboard");
+  };
+
+  const resetChangeState = () => {
+    setChangeRequiresAuth(false);
+    setChangeHas2FA(false);
+    setChangeUserEmail(null);
+    setChangePassword("");
+    setChangeTwoFactorToken("");
+    setChangeEmailOtp("");
+    setChangeError("");
+    setChangeOtpSent(false);
+    setChangeResendCooldown(0);
+    setPendingWalletAddress(null);
+    setPendingSignature(null);
+    setPendingMessage(null);
+  };
+
+  const handleChangeModalClose = (open: boolean) => {
+    setIsChangeModalOpen(open);
+    if (!open) {
+      resetChangeState();
+    }
+  };
+
+  const sendChangeEmailOtp = async () => {
+    setIsSendingChangeOtp(true);
+    setChangeError("");
+    try {
+      const res = await fetch("/api/settings/wallet/bind/send-otp", {
+        method: "POST",
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send verification code");
+      }
+
+      setChangeOtpSent(true);
+      toast.success("Verification code sent to your email");
+
+      // Start cooldown timer (60 seconds)
+      setChangeResendCooldown(60);
+      const interval = setInterval(() => {
+        setChangeResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (error: any) {
+      setChangeError(error.message || "Failed to send verification code");
+    } finally {
+      setIsSendingChangeOtp(false);
+    }
+  };
+
+  const isChangeFormValid = () => {
+    if (!changeRequiresAuth) return true;
+    if (!changePassword) return false;
+    if (changeHas2FA) {
+      return changeTwoFactorToken.length === 6;
+    } else {
+      return changeEmailOtp.length === 6;
+    }
+  };
+
+  const initiateWalletChange = async (walletAddress: string) => {
+    // If user already has a wallet, open the change modal first
+    if (currentWallet) {
+      setIsLoading(true);
+      try {
+        // 1. Get Nonce
+        const nonceRes = await fetch("/api/settings/wallet/nonce");
+        if (!nonceRes.ok) throw new Error("Failed to fetch nonce");
+        const { nonce } = await nonceRes.json();
+
+        // 2. Sign Message
+        const message = `Barzakh AI wants you to bind your wallet:\n${walletAddress}\n\nNonce: ${nonce}`;
+        const signature = await signMessageAsync({ message });
+
+        // Store pending data
+        setPendingWalletAddress(walletAddress);
+        setPendingSignature(signature);
+        setPendingMessage(message);
+
+        // 3. Try to bind - will fail with requiresAuth if changing wallet
+        const res = await fetch("/api/settings/wallet/bind", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: walletAddress, signature, message }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (data.requiresAuth) {
+            setChangeRequiresAuth(true);
+            setChangeHas2FA(data.has2FA || false);
+            setChangeUserEmail(data.userEmail || null);
+            setIsChangeModalOpen(true);
+            return;
+          }
+          throw new Error(data.error || "Failed to bind wallet");
+        }
+
+        toast.success("Wallet connected successfully!");
+        await update({
+          user: {
+            ...session?.user,
+            walletAddress: walletAddress
+          }
+        });
+      } catch (error: any) {
+        if (error.name === 'UserRejectedRequestError' ||
+          error.message?.includes('User rejected the request') ||
+          error.code === 4001) {
+          toast.info("Wallet binding cancelled");
+        } else if (error.message === "Wallet address already connected to another account") {
+          setErrorAlert({
+            title: "Wallet Address Already Linked to Another Account",
+            description: (
+              <div className="space-y-3 mt-2">
+                <p>The associated wallet address is tied to another user account. If you are the owner, please sign in to that account and follow the steps below:</p>
+                <div className="flex flex-col gap-1 pl-2 font-medium">
+                  <span>• Settings</span>
+                  <span>• Profile Settings</span>
+                  <span>• Delete Account</span>
+                </div>
+                <p>Once the process is finalized, you can Bind the wallet address to your existing account.</p>
+              </div>
+            )
+          });
+          setTimeout(() => setErrorAlert(null), 30000);
+        } else if (error.message?.includes("You need to set a password") || error.message?.includes("complete your account setup") || error.message?.includes("finalize your account setup")) {
+          // Handle specific validation error without console.error to avoid Next.js overlay
+          toast.error(error.message);
+        } else {
+          console.error(error);
+          toast.error(error.message || "Failed to bind wallet");
+        }
+        disconnect();
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // No existing wallet - proceed with normal bind
+      await bindWallet(walletAddress);
+    }
+  };
+
+  const completeWalletChange = async () => {
+    if (!pendingWalletAddress || !pendingSignature || !pendingMessage) {
+      setChangeError("Missing wallet data. Please try again.");
+      return;
+    }
+
+    setIsLoading(true);
+    setChangeError("");
+    try {
+      const body: {
+        address: string;
+        signature: string;
+        message: string;
+        password?: string;
+        twoFactorToken?: string;
+        emailOtp?: string;
+      } = {
+        address: pendingWalletAddress,
+        signature: pendingSignature,
+        message: pendingMessage,
+      };
+
+      if (changePassword) body.password = changePassword;
+      if (changeTwoFactorToken) body.twoFactorToken = changeTwoFactorToken;
+      if (changeEmailOtp) body.emailOtp = changeEmailOtp;
+
+      const res = await fetch("/api/settings/wallet/bind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to change wallet");
+      }
+
+      toast.success(currentWallet ? "Wallet changed successfully!" : "Wallet connected successfully!");
+      await update({
+        user: {
+          ...session?.user,
+          walletAddress: pendingWalletAddress
+        }
+      });
+
+      handleChangeModalClose(false);
+    } catch (error: any) {
+      setChangeError(error.message || "Failed to change wallet");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,7 +387,7 @@ export default function WalletSettingsPage() {
     setIsLoading(true);
     try {
       // 1. Get Nonce
-      const nonceRes = await fetch(`/api/auth/nonce?address=${walletAddress}`);
+      const nonceRes = await fetch("/api/settings/wallet/nonce");
       if (!nonceRes.ok) throw new Error("Failed to fetch nonce");
       const { nonce } = await nonceRes.json();
 
@@ -91,11 +405,20 @@ export default function WalletSettingsPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401 && data.requiresAuth) {
+          setPendingWalletAddress(walletAddress);
+          setPendingSignature(signature);
+          setPendingMessage(message);
+          setChangeHas2FA(data.has2FA || false);
+          setChangeUserEmail(data.userEmail || null);
+          setIsChangeModalOpen(true);
+          return;
+        }
         throw new Error(data.error || "Failed to bind wallet");
       }
 
       toast.success("Wallet connected successfully!");
-      
+
       // Update session
       await update({
         user: {
@@ -106,9 +429,9 @@ export default function WalletSettingsPage() {
 
     } catch (error: any) {
       // Handle user rejection specifically
-      if (error.name === 'UserRejectedRequestError' || 
-          error.message?.includes('User rejected the request') ||
-          error.code === 4001) {
+      if (error.name === 'UserRejectedRequestError' ||
+        error.message?.includes('User rejected the request') ||
+        error.code === 4001) {
         toast.info("Wallet binding cancelled");
       } else if (error.message === "Wallet address already connected to another account") {
         // Handle specific business logic errors without console.error to avoid Next.js overlay
@@ -127,6 +450,9 @@ export default function WalletSettingsPage() {
           )
         });
         setTimeout(() => setErrorAlert(null), 30000);
+      } else if (error.message?.includes("You need to set a password") || error.message?.includes("complete your account setup") || error.message?.includes("finalize your account setup")) {
+        // Handle specific validation error without console.error to avoid Next.js overlay
+        toast.error(error.message);
       } else {
         console.error(error);
         toast.error(error.message || "Failed to bind wallet");
@@ -161,15 +487,15 @@ export default function WalletSettingsPage() {
                 Connect your wallet to sign in with Web3.
               </p>
             </div>
-            
+
             <div className="p-6 md:p-8 space-y-6">
               {errorAlert && (
-                <div className="bg-destructive/10 rounded-xl p-4 border border-destructive/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="bg-destructive/10 dark:bg-red-500/10 rounded-xl p-4 border border-destructive/20 dark:border-red-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-5 h-5 text-destructive dark:text-red-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h3 className="font-semibold text-destructive mb-1">{errorAlert.title}</h3>
-                      <div className="text-sm text-destructive/90 leading-relaxed">
+                      <h3 className="font-semibold text-destructive dark:text-red-400 mb-1">{errorAlert.title}</h3>
+                      <div className="text-sm text-destructive/90 dark:text-red-400/90 leading-relaxed">
                         {errorAlert.description}
                       </div>
                     </div>
@@ -190,19 +516,19 @@ export default function WalletSettingsPage() {
                           <p className="text-xs text-muted-foreground font-mono truncate flex-1 min-w-0">
                             {currentWallet}
                           </p>
-                          <button 
+                          <button
                             onClick={() => copyToClipboard(currentWallet)}
                             className="text-muted-foreground hover:text-foreground transition-colors shrink-0 p-1.5 hover:bg-muted rounded-md"
                             title="Copy address"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
-                          
+
                           <div className="w-px h-4 bg-border mx-1 shrink-0" />
-                          
-                          <Dialog open={isUnbindModalOpen} onOpenChange={setIsUnbindModalOpen}>
+
+                          <Dialog open={isUnbindModalOpen} onOpenChange={handleUnbindModalClose}>
                             <DialogTrigger asChild>
-                              <button 
+                              <button
                                 className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors shrink-0 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
                               >
                                 <Unplug className="w-3.5 h-3.5" />
@@ -212,17 +538,140 @@ export default function WalletSettingsPage() {
                             </DialogTrigger>
                             <DialogContent>
                               <DialogHeader>
-                                <DialogTitle>Disconnect Wallet</DialogTitle>
+                                <DialogTitle>
+                                  {requiresAuth ? "Verify Your Identity" : "Disconnect Wallet"}
+                                </DialogTitle>
                                 <DialogDescription>
-                                  Are you sure you want to disconnect your wallet? You won't be able to sign in with Web3 until you reconnect it.
+                                  {requiresAuth
+                                    ? "For security, please verify your identity to disconnect your wallet."
+                                    : "Are you sure you want to disconnect your wallet? You won't be able to sign in with Web3 until you reconnect it."
+                                  }
                                 </DialogDescription>
                               </DialogHeader>
+
+                              <div className="space-y-4 py-2">
+                                {unbindError && (
+                                  <div className="p-3 bg-destructive/10 dark:bg-red-500/10 border border-destructive/20 dark:border-red-500/20 rounded-lg">
+                                    <p className="text-sm text-destructive dark:text-red-400">{unbindError}</p>
+                                  </div>
+                                )}
+
+                                {requiresAuth && (
+                                  <div className="space-y-4">
+
+                                    {/* Password field - always required */}
+                                    <div className="space-y-2">
+                                      <Label htmlFor="unbind-password">Password</Label>
+                                      <Input
+                                        id="unbind-password"
+                                        type="password"
+                                        placeholder="Enter your password"
+                                        value={unbindPassword}
+                                        onChange={(e) => setUnbindPassword(e.target.value)}
+                                        autoComplete="current-password"
+                                      />
+                                    </div>
+
+                                    {/* 2FA TOTP - if user has 2FA enabled */}
+                                    {has2FA && (
+                                      <div className="space-y-2">
+                                        <Label htmlFor="unbind-2fa">2FA Code</Label>
+                                        <Input
+                                          id="unbind-2fa"
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                          maxLength={6}
+                                          placeholder="Enter 6-digit code from authenticator"
+                                          value={unbindTwoFactorToken}
+                                          onChange={(e) => setUnbindTwoFactorToken(e.target.value.replace(/\D/g, ""))}
+                                          autoComplete="one-time-code"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Email OTP - if user doesn't have 2FA */}
+                                    {!has2FA && (
+                                      <div className="space-y-2">
+                                        <Label htmlFor="unbind-email-otp">Email Verification Code</Label>
+                                        {!otpSent ? (
+                                          <div className="space-y-2">
+                                            <p className="text-sm text-muted-foreground">
+                                              We'll send a verification code to {userEmail || "your email"}.
+                                            </p>
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              onClick={sendEmailOtp}
+                                              disabled={isSendingOtp}
+                                              className="w-full"
+                                            >
+                                              {isSendingOtp ? (
+                                                <>
+                                                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                  Sending...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Mail className="w-4 h-4 mr-2" />
+                                                  Send Verification Code
+                                                </>
+                                              )}
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            <Input
+                                              id="unbind-email-otp"
+                                              type="text"
+                                              inputMode="numeric"
+                                              pattern="[0-9]*"
+                                              maxLength={6}
+                                              placeholder="Enter 6-digit code from email"
+                                              value={unbindEmailOtp}
+                                              onChange={(e) => setUnbindEmailOtp(e.target.value.replace(/\D/g, ""))}
+                                              autoComplete="one-time-code"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                              Code sent to {userEmail || "your email"}.{" "}
+                                              {resendCooldown > 0 ? (
+                                                <span>Resend in {resendCooldown}s</span>
+                                              ) : (
+                                                <button
+                                                  type="button"
+                                                  onClick={sendEmailOtp}
+                                                  disabled={isSendingOtp}
+                                                  className="text-primary hover:underline"
+                                                >
+                                                  Resend code
+                                                </button>
+                                              )}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                              </div>
+
                               <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsUnbindModalOpen(false)}>Cancel</Button>
-                                <Button variant="destructive" onClick={unbindWallet} disabled={isUnbinding}>
-                                  {isUnbinding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                  Disconnect
-                                </Button>
+                                {unbindError && !requiresAuth ? (
+                                  <Button onClick={() => handleUnbindModalClose(false)}>Understood</Button>
+                                ) : (
+                                  <>
+                                    <Button variant="outline" onClick={() => handleUnbindModalClose(false)}>Cancel</Button>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={unbindWallet}
+                                      disabled={isUnbinding || (requiresAuth && !isUnbindFormValid())}
+                                    >
+                                      {isUnbinding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                      {requiresAuth ? "Verify & Disconnect" : "Disconnect"}
+                                    </Button>
+                                  </>
+                                )}
                               </DialogFooter>
                             </DialogContent>
                           </Dialog>
@@ -234,7 +683,7 @@ export default function WalletSettingsPage() {
                   {/* Change Wallet Section */}
                   <div className="border-t border-border pt-6">
                     <h3 className="text-sm font-medium text-foreground mb-4">Change Wallet</h3>
-                    
+
                     {isConnected && address && address !== currentWallet ? (
                       <div className="p-4 bg-muted/50 border border-border rounded-lg space-y-3">
                         <div className="flex items-start gap-3">
@@ -246,8 +695,8 @@ export default function WalletSettingsPage() {
                             </p>
                           </div>
                         </div>
-                        <Button 
-                          onClick={() => bindWallet(address)} 
+                        <Button
+                          onClick={() => initiateWalletChange(address)}
                           disabled={isLoading}
                           className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm border-0"
                         >
@@ -296,33 +745,33 @@ export default function WalletSettingsPage() {
                   )}
 
                   {isConnected && address ? (
-                     <div className="p-5 bg-muted/50 border border-border rounded-xl space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                                <Wallet className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="min-w-0">
-                                <h3 className="text-sm font-semibold text-foreground">Wallet Detected</h3>
-                                <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{address}</p>
-                            </div>
+                    <div className="p-5 bg-muted/50 border border-border rounded-xl space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                          <Wallet className="w-5 h-5 text-primary" />
                         </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => bindWallet(address)}
-                            disabled={isLoading}
-                            className="flex-1 py-2.5 px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                          >
-                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
-                            Bind This Wallet
-                          </button>
-                          <button
-                            onClick={() => disconnect()}
-                            className="px-4 py-2.5 border border-border rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-sm font-medium transition-colors"
-                          >
-                            Change
-                          </button>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-foreground">Wallet Detected</h3>
+                          <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{address}</p>
                         </div>
-                     </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => bindWallet(address)}
+                          disabled={isLoading}
+                          className="flex-1 py-2.5 px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        >
+                          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
+                          Bind This Wallet
+                        </button>
+                        <button
+                          onClick={() => disconnect()}
+                          className="px-4 py-2.5 border border-border rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground text-sm font-medium transition-colors"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <button
                       onClick={openConnectModal}
@@ -421,6 +870,130 @@ export default function WalletSettingsPage() {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Change Wallet Verification Dialog */}
+      <Dialog open={isChangeModalOpen} onOpenChange={handleChangeModalClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Your Identity</DialogTitle>
+            <DialogDescription>
+              For security, please verify your identity to {currentWallet ? "change" : "connect"} your wallet.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {changeError && (
+              <div className="p-3 bg-destructive/10 dark:bg-red-500/10 border border-destructive/20 dark:border-red-500/20 rounded-lg">
+                <p className="text-sm text-destructive dark:text-red-400">{changeError}</p>
+              </div>
+            )}
+
+            {/* Password field - always required */}
+            <div className="space-y-2">
+              <Label htmlFor="change-password">Password</Label>
+              <Input
+                id="change-password"
+                type="password"
+                placeholder="Enter your password"
+                value={changePassword}
+                onChange={(e) => setChangePassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+
+            {/* 2FA TOTP - if user has 2FA enabled */}
+            {changeHas2FA && (
+              <div className="space-y-2">
+                <Label htmlFor="change-2fa">2FA Code</Label>
+                <Input
+                  id="change-2fa"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="Enter 6-digit code from authenticator"
+                  value={changeTwoFactorToken}
+                  onChange={(e) => setChangeTwoFactorToken(e.target.value.replace(/\D/g, ""))}
+                  autoComplete="one-time-code"
+                />
+              </div>
+            )}
+
+            {/* Email OTP - if user doesn't have 2FA */}
+            {!changeHas2FA && (
+              <div className="space-y-2">
+                <Label htmlFor="change-email-otp">Email Verification Code</Label>
+                {!changeOtpSent ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      We'll send a verification code to {changeUserEmail || "your email"}.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={sendChangeEmailOtp}
+                      disabled={isSendingChangeOtp}
+                      className="w-full"
+                    >
+                      {isSendingChangeOtp ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4 mr-2" />
+                          Send Verification Code
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      id="change-email-otp"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      placeholder="Enter 6-digit code from email"
+                      value={changeEmailOtp}
+                      onChange={(e) => setChangeEmailOtp(e.target.value.replace(/\D/g, ""))}
+                      autoComplete="one-time-code"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Code sent to {changeUserEmail || "your email"}.{" "}
+                      {changeResendCooldown > 0 ? (
+                        <span>Resend in {changeResendCooldown}s</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={sendChangeEmailOtp}
+                          disabled={isSendingChangeOtp}
+                          className="text-primary hover:underline"
+                        >
+                          Resend code
+                        </button>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleChangeModalClose(false)}>Cancel</Button>
+            <Button
+              onClick={completeWalletChange}
+              disabled={isLoading || !isChangeFormValid()}
+            >
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Verify & {currentWallet ? "Change" : "Connect"} Wallet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div >
   );
 }

@@ -1,5 +1,5 @@
 import { auth } from "@/app/(auth)/auth";
-import { removeUserWalletAddress, getUserById } from "@/lib/db/queries";
+import { removeUserWalletAddress, getUserById, getOTP, deleteOTP } from "@/lib/db/queries";
 import { NextResponse } from "next/server";
 import { compare } from "bcrypt-ts";
 import { authenticator } from "otplib";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { password, twoFactorToken } = body;
+    const { password, twoFactorToken, emailOtp } = body;
 
     // Get full user data from DB to verify re-authentication
     const [dbUser] = await getUserById(session.user.id);
@@ -21,55 +21,114 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // SECURITY: Require re-authentication for sensitive wallet unbind operation
-    // User must provide either password OR 2FA token
-    let isAuthenticated = false;
-
-    // Option 1: Verify password if provided and user has a password
-    if (password && dbUser.password) {
-      const passwordsMatch = await compare(password, dbUser.password);
-      if (passwordsMatch) {
-        isAuthenticated = true;
-      }
-    }
-
-    // Option 2: Verify 2FA token if provided and user has 2FA enabled
-    if (!isAuthenticated && twoFactorToken && dbUser.twoFactorEnabled && dbUser.twoFactorSecret) {
-      try {
-        const decryptedSecret = isEncrypted(dbUser.twoFactorSecret) 
-          ? decrypt2FASecret(dbUser.twoFactorSecret)
-          : dbUser.twoFactorSecret;
-        
-        const delta = authenticator.checkDelta(twoFactorToken, decryptedSecret);
-        if (delta !== null && delta >= -1 && delta <= 1) {
-          isAuthenticated = true;
-        }
-      } catch (error) {
-        console.error("2FA verification error during unbind:", error);
-      }
-    }
-
-    // If user has neither password nor 2FA, and wallet is their only auth method, prevent unbind
-    if (!dbUser.password && !dbUser.twoFactorEnabled) {
-      return NextResponse.json({ 
-        error: "Cannot unbind wallet: You have no other authentication method. Please set a password first." 
+    // Check if user has a password set AND (email linked or 2FA enabled)
+    // Required for unbind to prevent getting stuck in verification
+    if (!dbUser.password || (!dbUser.email && !dbUser.twoFactorEnabled)) {
+      return NextResponse.json({
+        error: "Cannot disconnect wallet: Please finalize your account setup by securing both your password and email. This step is required to verify your identity and enable wallet management actions."
       }, { status: 400 });
     }
 
-    // Require re-authentication
-    if (!isAuthenticated) {
-      // Tell frontend what authentication methods are available
-      const availableMethods = [];
-      if (dbUser.password) availableMethods.push("password");
-      if (dbUser.twoFactorEnabled) availableMethods.push("2fa");
-      
-      return NextResponse.json({ 
+    // SECURITY: Require re-authentication for sensitive wallet unbind operation
+    // User must provide password AND (2FA token if 2FA enabled, OR email OTP if no 2FA)
+
+    // Determine what verification is needed
+    const has2FA = dbUser.twoFactorEnabled && dbUser.twoFactorSecret;
+
+    // First call: no credentials provided - tell frontend what's needed
+    if (!password && !twoFactorToken && !emailOtp) {
+      return NextResponse.json({
         error: "Re-authentication required to unbind wallet",
         requiresAuth: true,
-        availableMethods
+        has2FA,
+        userEmail: dbUser.email ? maskEmail(dbUser.email) : null
       }, { status: 401 });
     }
 
+    // Verify password (always required)
+    if (!password) {
+      return NextResponse.json({
+        error: "Password is required"
+      }, { status: 400 });
+    }
+
+    const passwordsMatch = await compare(password, dbUser.password);
+    if (!passwordsMatch) {
+      return NextResponse.json({
+        error: "Invalid password"
+      }, { status: 400 });
+    }
+
+    // Now verify the second factor
+    if (has2FA) {
+      // User has 2FA enabled - require TOTP
+      if (!twoFactorToken) {
+        return NextResponse.json({
+          error: "2FA code is required"
+        }, { status: 400 });
+      }
+
+      try {
+        const decryptedSecret = isEncrypted(dbUser.twoFactorSecret!)
+          ? decrypt2FASecret(dbUser.twoFactorSecret!)
+          : dbUser.twoFactorSecret!;
+
+        const delta = authenticator.checkDelta(twoFactorToken, decryptedSecret);
+        if (delta === null || delta < -1 || delta > 1) {
+          return NextResponse.json({
+            error: "Invalid 2FA code"
+          }, { status: 400 });
+        }
+      } catch (error) {
+        console.error("2FA verification error during unbind:", error);
+        return NextResponse.json({
+          error: "2FA verification failed"
+        }, { status: 400 });
+      }
+    } else {
+      // User doesn't have 2FA - require email OTP
+      if (!emailOtp) {
+        return NextResponse.json({
+          error: "Email verification code is required"
+        }, { status: 400 });
+      }
+
+      if (!dbUser.email) {
+        return NextResponse.json({
+          error: "No email associated with this account"
+        }, { status: 400 });
+      }
+
+      // Verify email OTP
+      const savedOTP = await getOTP(dbUser.email);
+      if (!savedOTP) {
+        return NextResponse.json({
+          error: "No verification code found. Please request a new one."
+        }, { status: 400 });
+      }
+
+      if (savedOTP.otp !== emailOtp) {
+        return NextResponse.json({
+          error: "Invalid verification code"
+        }, { status: 400 });
+      }
+
+      // Check expiry (5 minutes)
+      const now = new Date();
+      const expiryTime = new Date(savedOTP.createdAt.getTime() + 5 * 60 * 1000);
+
+      if (now > expiryTime) {
+        await deleteOTP(dbUser.email);
+        return NextResponse.json({
+          error: "Verification code expired. Please request a new one."
+        }, { status: 400 });
+      }
+
+      // Clean up the used OTP
+      await deleteOTP(dbUser.email);
+    }
+
+    // All verification passed - unbind the wallet
     await removeUserWalletAddress(session.user.id);
 
     return NextResponse.json({ success: true });
@@ -80,4 +139,12 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+function maskEmail(email: string): string {
+  const [localPart, domain] = email.split("@");
+  if (localPart.length <= 2) {
+    return `${localPart[0]}***@${domain}`;
+  }
+  return `${localPart[0]}${localPart[1]}***@${domain}`;
 }

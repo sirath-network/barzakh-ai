@@ -49,12 +49,12 @@ export default function PasswordSettingsPage() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     // Only require current password for users who have one (not Google OAuth or Web3 users)
     if (!isGoogleUser && !isWeb3User && !currentPassword) {
       newErrors.currentPassword = "Current password is required";
     }
-    
+
     if (!password) {
       newErrors.password = "New password is required";
     } else if (validatePassword(password).length > 0) {
@@ -62,13 +62,13 @@ export default function PasswordSettingsPage() {
     } else if (!isGoogleUser && !isWeb3User && currentPassword && password === currentPassword) {
       newErrors.password = "New password must be different from current password";
     }
-    
+
     if (!confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
     } else if (password !== confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -86,9 +86,9 @@ export default function PasswordSettingsPage() {
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          currentPassword: (isGoogleUser || isWeb3User) ? null : currentPassword, 
-          password 
+        body: JSON.stringify({
+          currentPassword: (isGoogleUser || isWeb3User) ? null : currentPassword,
+          password
         }),
       });
       const data = await res.json();
@@ -133,12 +133,12 @@ export default function PasswordSettingsPage() {
         }
 
         // Update session to reflect new password without logging out
-        await update({ 
-          user: { 
-            ...session?.user, 
+        await update({
+          user: {
+            ...session?.user,
             hasPassword: true,
-            tokenVersion: data.user.tokenVersion 
-          } 
+            tokenVersion: data.user.tokenVersion
+          }
         });
         setCurrentPassword("");
         setPassword("");
@@ -198,7 +198,7 @@ export default function PasswordSettingsPage() {
                       {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                  {errors.currentPassword && <p className="mt-2 text-sm text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.currentPassword}</p>}
+                  {errors.currentPassword && <p className="mt-2 text-sm text-destructive dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.currentPassword}</p>}
                 </div>
               )}
 
@@ -264,18 +264,18 @@ export default function PasswordSettingsPage() {
                 )}
 
                 {password && passwordRequirements.length > 0 && (isGoogleUser || isWeb3User || currentPassword !== password) && (
-                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <p className="text-xs text-destructive font-medium mb-2">Password must include:</p>
+                  <div className="mt-3 p-3 bg-destructive/10 dark:bg-red-500/10 border border-destructive/20 dark:border-red-500/20 rounded-lg">
+                    <p className="text-xs text-destructive dark:text-red-400 font-medium mb-2">Password must include:</p>
                     <ul className="space-y-1">
                       {passwordRequirements.map((req, index) => (
-                        <li key={index} className="text-xs text-destructive flex items-center gap-1">
-                          <div className="w-1 h-1 bg-destructive rounded-full"></div>{req}
+                        <li key={index} className="text-xs text-destructive dark:text-red-400 flex items-center gap-1">
+                          <div className="w-1 h-1 bg-destructive dark:bg-red-400 rounded-full"></div>{req}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-                {errors.password && <p className="mt-2 text-sm text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.password}</p>}
+                {errors.password && <p className="mt-2 text-sm text-destructive dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.password}</p>}
               </div>
 
               <div>
@@ -292,18 +292,18 @@ export default function PasswordSettingsPage() {
 
                 {confirmPassword && password && (
                   <div className="mt-2 flex items-center gap-2">
-                    {password === confirmPassword ? (<><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-sm text-emerald-600 dark:text-emerald-400">Passwords match</span></>) : (<><AlertCircle className="w-4 h-4 text-destructive" /><span className="text-sm text-destructive">Passwords not match</span></>)}
+                    {password === confirmPassword ? (<><CheckCircle className="w-4 h-4 text-emerald-500" /><span className="text-sm text-emerald-600 dark:text-emerald-400">Passwords match</span></>) : (<><AlertCircle className="w-4 h-4 text-destructive dark:text-red-400" /><span className="text-sm text-destructive dark:text-red-400">Passwords not match</span></>)}
                   </div>
                 )}
-                {errors.confirmPassword && <p className="mt-2 text-sm text-destructive flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.confirmPassword}</p>}
+                {errors.confirmPassword && <p className="mt-2 text-sm text-destructive dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.confirmPassword}</p>}
 
                 {confirmPassword && passwordRequirements.length > 0 && (
-                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <p className="text-xs text-destructive font-medium mb-2">Password must include:</p>
+                  <div className="mt-3 p-3 bg-destructive/10 dark:bg-red-500/10 border border-destructive/20 dark:border-red-500/20 rounded-lg">
+                    <p className="text-xs text-destructive dark:text-red-400 font-medium mb-2">Password must include:</p>
                     <ul className="space-y-1">
                       {passwordRequirements.map((req, index) => (
-                        <li key={index} className="text-xs text-destructive flex items-center gap-1">
-                          <div className="w-1 h-1 bg-destructive rounded-full"></div>{req}
+                        <li key={index} className="text-xs text-destructive dark:text-red-400 flex items-center gap-1">
+                          <div className="w-1 h-1 bg-destructive dark:bg-red-400 rounded-full"></div>{req}
                         </li>
                       ))}
                     </ul>
