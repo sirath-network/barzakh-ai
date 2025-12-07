@@ -1037,6 +1037,18 @@
                   },
                   "message": {
                     "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Required for re-authentication"
+                  },
+                  "twoFactorToken": {
+                    "type": "string",
+                    "description": "Required if 2FA enabled"
+                  },
+                  "emailOtp": {
+                    "type": "string",
+                    "description": "Required if 2FA not enabled"
                   }
                 }
               }
@@ -1071,6 +1083,30 @@
             "SessionAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "Required for verification"
+                  },
+                  "twoFactorToken": {
+                    "type": "string",
+                    "description": "Required if 2FA enabled"
+                  },
+                  "emailOtp": {
+                    "type": "string",
+                    "description": "Required if 2FA not enabled"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Wallet unbound successfully"

@@ -57,10 +57,10 @@ export function generateOTP(): string {
   return (100000 + (randomNumber % 900000)).toString();
 }
 
-// Save OTP to database with 10-minute expiry
+// Save OTP to database with 5-minute expiry
 export async function saveOTP(email: string, otp: string): Promise<void> {
-  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
-  
+  const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+
   try {
     await db
       .insert(otp_tokens)
@@ -142,7 +142,7 @@ export async function createUserWithWallet(
     // Use a random 8-digit number to ensure uniqueness and compliance with username rules
     // Rules: 3-20 chars, start with letter, lowercase letters and numbers only, no special chars
     const randomNum = Math.floor(10000000 + Math.random() * 90000000).toString();
-    
+
     const finalName = name || `User ${randomNum}`;
     const finalUsername = `user${randomNum}`;
 
@@ -239,7 +239,7 @@ export async function updateUserPassword(email: string, newPassword: string) {
   try {
     return await db
       .update(user)
-      .set({ 
+      .set({
         password: hash,
         tokenVersion: sql`${user.tokenVersion} + 1`
       })
@@ -295,7 +295,7 @@ export async function updateUserEmail(userId: string, newEmail: string) {
   try {
     return await db
       .update(user)
-      .set({ 
+      .set({
         email: newEmail,
         tokenVersion: sql`${user.tokenVersion} + 1`
       })
@@ -845,7 +845,7 @@ export async function deleteUserAndData(userId: string, email: string) {
 
       // 6. Delete other associated data
       await tx.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
-      
+
       if (email) {
         await tx.delete(password_reset_tokens).where(eq(password_reset_tokens.email, email));
         await tx.delete(otp_tokens).where(eq(otp_tokens.email, email));
@@ -875,7 +875,7 @@ export async function updateUserProfile({
 }) {
   try {
     const updateData: any = {};
-    
+
     if (name !== undefined) updateData.name = name;
     if (username !== undefined) updateData.username = username;
     if (image !== undefined) updateData.image = image;
@@ -889,7 +889,7 @@ export async function updateUserProfile({
       .set(updateData)
       .where(eq(user.email, email))
       .returning();
-    
+
     return result[0];
   } catch (error) {
     console.error("Failed to update user profile:", error);
