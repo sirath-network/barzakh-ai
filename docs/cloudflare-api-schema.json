@@ -728,6 +728,131 @@
         }
       }
     },
+    "/api/billing/x402/verify-wallet": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "getPaymentWalletNonce",
+        "summary": "Get nonce for payment wallet verification",
+        "description": "Generates a unique nonce/message for the user to sign with their wallet.\nThis is for payment verification only - does NOT save the wallet address to the account.\nDifferent from /api/settings/wallet/bind which permanently links a wallet.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "Ethereum-compatible wallet address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce message generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Message to sign with wallet"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "description": "Seconds until nonce expires"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "verifyPaymentWallet",
+        "summary": "Verify wallet signature for payment",
+        "description": "Verifies the signature from the user's wallet for payment purposes.\nThis does NOT save the wallet address to the account - it only verifies\nownership for the current payment transaction.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address",
+                  "signature"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{40}$",
+                    "description": "Ethereum-compatible wallet address"
+                  },
+                  "signature": {
+                    "type": "string",
+                    "description": "Signature of the nonce message"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet verified for payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "walletAddress": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Invalid session or nonce mismatch"
+          }
+        }
+      }
+    },
     "/api/wallet/verify-signature": {
       "get": {
         "tags": [
@@ -823,7 +948,8 @@
           "Account"
         ],
         "operationId": "deleteAccount",
-        "summary": "Delete user account",
+        "summary": "Delete user account with re-authentication",
+        "description": "Deletes the user account permanently. Requires re-authentication:\n- Password is always required\n- If 2FA is enabled, twoFactorToken is required\n- If 2FA is not enabled, emailOtp is required (request via /api/account/delete/send-otp)\n",
         "security": [
           {
             "SessionAuth": []
@@ -835,12 +961,27 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "password"
+                ],
                 "properties": {
-                  "confirmation": {
+                  "password": {
                     "type": "string",
-                    "enum": [
-                      "DELETE"
-                    ]
+                    "description": "User's current password (always required)"
+                  },
+                  "twoFactorToken": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^[0-9]{6}$",
+                    "description": "6-digit TOTP code (required if 2FA enabled)"
+                  },
+                  "emailOtp": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^[0-9]{6}$",
+                    "description": "6-digit email OTP code (required if 2FA not enabled)"
                   }
                 }
               }
@@ -849,10 +990,108 @@
         },
         "responses": {
           "200": {
-            "description": "Account deleted"
+            "description": "Account deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "Re-authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "requiresAuth": {
+                      "type": "boolean"
+                    },
+                    "has2FA": {
+                      "type": "boolean"
+                    },
+                    "userEmail": {
+                      "type": "string",
+                      "description": "Masked email for display"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/account/delete/send-otp": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "sendAccountDeleteOTP",
+        "summary": "Send OTP for account deletion verification",
+        "description": "Sends an OTP code to the user's email for account deletion verification.\nOnly available for users without 2FA enabled. Rate limited to 3 requests per 10 minutes.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "maskedEmail": {
+                      "type": "string",
+                      "description": "Masked email address for display"
+                    },
+                    "remaining": {
+                      "type": "integer",
+                      "description": "Remaining OTP requests allowed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "2FA enabled or no email associated"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
           }
         }
       }
