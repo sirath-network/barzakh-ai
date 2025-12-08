@@ -3,8 +3,6 @@
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { UserCircle } from "lucide-react";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -55,24 +53,24 @@ export const Overview = () => {
       const timeoutId = setTimeout(() => {
         update();
       }, 100); // Small delay to prevent immediate re-renders
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [isMounted]); // Remove user dependencies to prevent continuous updates
 
   const greeting = getGreeting();
-  
+
   // MODIFIED: Logic to determine the name to display
-  const displayName = user?.username 
+  const displayName = user?.username
     ? user.username // 1. Prioritize username if exists
-    : user?.name 
-    ? user.name     // 2. If name exists, use name
-    : session 
-    ? "User"         // 3. If logged in but no username/name, show "User"
-    : "Guest";       // 4. If not logged in, show "Guest"
+    : user?.name
+      ? user.name     // 2. If name exists, use name
+      : session
+        ? "User"         // 3. If logged in but no username/name, show "User"
+        : "Guest";       // 4. If not logged in, show "Guest"
 
   const userImage = user?.image;
-  
+
   // MODIFIED: Condition to show avatar
   // Show avatar if user is logged in AND has set up username or name
   const showAvatar = !!(user?.username || user?.name);
@@ -94,19 +92,26 @@ export const Overview = () => {
           {/* Avatar only appears if user is logged in and has username */}
           {showAvatar && (
             <motion.div variants={itemVariants}>
-              {userImage ? (
-                <Image
-                  src={userImage}
-                  alt={displayName}
-                  width={64}
-                  height={64}
-                  className="rounded-full object-cover ring-2 ring-neutral-300 dark:ring-red-500/60"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 ring-2 ring-neutral-300 dark:bg-red-500/20 dark:ring-red-500/60">
-                  <UserCircle className="h-10 w-10 text-neutral-400 dark:text-red-400" />
+              <div className="relative">
+                {userImage ? (
+                  <img
+                    src={userImage}
+                    alt={displayName}
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 rounded-full object-cover ring-2 ring-neutral-300 dark:ring-red-500/60"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-primary/60 ring-2 ring-neutral-300 dark:ring-red-500/60 ${userImage ? 'hidden' : ''}`}>
+                  <span className="text-2xl font-bold text-white">
+                    {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+                  </span>
                 </div>
-              )}
+              </div>
             </motion.div>
           )}
 

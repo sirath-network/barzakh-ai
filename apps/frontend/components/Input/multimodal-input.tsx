@@ -151,11 +151,12 @@ function PureStopButton({
   return (
     <Button
       className={cn(
-        "rounded-xl p-2.5 h-fit w-fit transition-all duration-300",
-        "bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/50",
-        "text-red-600 dark:text-red-400",
-        "border border-red-200/50 dark:border-red-800/50",
-        "hover:shadow-md hover:shadow-red-500/20 hover:-translate-y-0.5 active:translate-y-0"
+        "group rounded-xl p-2.5 h-fit w-fit relative overflow-hidden",
+        "bg-gradient-to-br from-gray-800 to-gray-900 text-white",
+        "dark:from-red-500 dark:to-rose-600",
+        "shadow-lg shadow-gray-800/30 hover:shadow-xl hover:shadow-gray-800/40",
+        "dark:shadow-red-500/30 dark:hover:shadow-xl dark:hover:shadow-red-500/40",
+        "hover:-translate-y-0.5 active:translate-y-0"
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -181,7 +182,7 @@ function PureSendButton({
 }) {
   const isDisabled = input.length === 0 || uploadQueue.length > 0;
   const isUploading = uploadQueue.length > 0;
-  
+
   return (
     <motion.div
       layout
@@ -445,7 +446,7 @@ function PureMultimodalInput({
   // This ensures that when user returns after closing browser, the correct model is displayed
   useEffect(() => {
     const forcedModel = FORCED_MODEL_BY_GROUP[selectedGroup];
-    
+
     if (forcedModel) {
       // If current group requires a forced model but the displayed model is different
       if (selectedModelId !== forcedModel) {
@@ -484,7 +485,7 @@ function PureMultimodalInput({
   };
 
   const submitForm = useCallback(async () => {
-    if (!user || !user.email) {
+    if (!user?.id) {
       toast.error("Please login to continue", { position: "bottom-center" });
       return;
     }
@@ -602,7 +603,7 @@ function PureMultimodalInput({
         try {
           // Try direct fetch first
           let response = await fetch(attachment.url);
-          
+
           // If direct fetch fails (CORS), try via proxy
           if (!response.ok) {
             console.log(`Direct fetch failed for ${attachmentName}, trying proxy...`);
@@ -612,11 +613,11 @@ function PureMultimodalInput({
               body: JSON.stringify({ fileUrl: attachment.url }),
             });
           }
-          
+
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
-          
+
           const content = await response.text();
           return `\n\n${attachmentName}\n\`\`\`${attachmentName.split('.').pop() || 'text'}\n${content}\n\`\`\``;
         } catch (error) {
@@ -624,9 +625,9 @@ function PureMultimodalInput({
           return `\n\n${attachmentName} - Unable to read content (URL: ${attachment.url})`;
         }
       });
-      
+
       const fileContents = await Promise.all(fileContentPromises);
-      
+
       if (Array.isArray(messageContent)) {
         // Add file contents to the text part
         const textPart = messageContent.find(part => part.type === 'text');
@@ -659,7 +660,7 @@ function PureMultimodalInput({
     setInput("");
     setAttachments([]);
     setLocalStorageInput("");
-    
+
     // Clear attachments from localStorage after successful send
     if (typeof window !== 'undefined') {
       try {
@@ -696,7 +697,7 @@ function PureMultimodalInput({
 
   const uploadFile = async (file: File) => {
     console.log("Uploading file:", file.name, "Type:", file.type, "Size:", file.size);
-    
+
     // Client-side size validation (25MB limit for Cloudflare R2)
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
     if (file.size > MAX_FILE_SIZE) {
@@ -704,7 +705,7 @@ function PureMultimodalInput({
       toast.error(`File "${file.name}" is too large (${sizeMB}MB). Maximum size is 25MB.`);
       return null;
     }
-    
+
     const formData = new FormData();
     formData.append("file", file);
     try {
@@ -865,7 +866,7 @@ function PureMultimodalInput({
       if (files.length > 0) {
         event.preventDefault();
         console.log("Pasted files:", files.map(f => f.name));
-        
+
         setUploadQueue(files.map((file) => file.name));
         try {
           const uploadedAttachments = await Promise.all(files.map(uploadFile));
@@ -940,10 +941,10 @@ function PureMultimodalInput({
               aria-label="Scroll to bottom"
             >
               <span className="relative z-10 flex items-center justify-center">
-                  {(() => {
-                    const ArrowDownAny = ArrowDown as any;
-                    return <ArrowDownAny className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />;
-                  })()}
+                {(() => {
+                  const ArrowDownAny = ArrowDown as any;
+                  return <ArrowDownAny className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />;
+                })()}
               </span>
             </button>
           </motion.div>
@@ -967,48 +968,48 @@ function PureMultimodalInput({
           {(() => {
             return (attachments.length > 0 || uploadQueue.length > 0);
           })() && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="flex flex-wrap gap-2 sm:gap-3 px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30"
-            >
-              {attachments.map((attachment, index) => (
-                <motion.div
-                  key={`${attachment.url}-${index}`}
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <PreviewAttachment
-                    attachment={attachment}
-                    onRemove={() => removeAttachment(index)}
-                    size={isMounted && width < 640 ? "small" : "default"}
-                  />
-                </motion.div>
-              ))}
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="flex flex-wrap gap-2 sm:gap-3 px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30"
+              >
+                {attachments.map((attachment, index) => (
+                  <motion.div
+                    key={`${attachment.url}-${index}`}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    <PreviewAttachment
+                      attachment={attachment}
+                      onRemove={() => removeAttachment(index)}
+                      size={isMounted && width < 640 ? "small" : "default"}
+                    />
+                  </motion.div>
+                ))}
 
-              {uploadQueue.map((filename, index) => (
-                <motion.div
-                  key={`uploading-${filename}-${index}`}
-                  layout
-                  initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                  animate={{ opacity: 1, scale: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, x: -20 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <PreviewAttachment
-                    attachment={{ url: "", name: filename, contentType: "" }}
-                    isUploading={true}
-                    size={isMounted && width < 640 ? "small" : "default"}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
+                {uploadQueue.map((filename, index) => (
+                  <motion.div
+                    key={`uploading-${filename}-${index}`}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    <PreviewAttachment
+                      attachment={{ url: "", name: filename, contentType: "" }}
+                      isUploading={true}
+                      size={isMounted && width < 640 ? "small" : "default"}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
         </AnimatePresence>
 
         <div className="relative flex items-end w-full px-2 pt-2 pb-2">
@@ -1031,7 +1032,7 @@ function PureMultimodalInput({
               // On mobile/tablet (width < 768), Enter adds a new line
               // On desktop, Enter sends the message (Shift+Enter for new line)
               const isDesktop = width && width >= 768;
-              
+
               if (event.key === "Enter" && !event.shiftKey && isDesktop) {
                 event.preventDefault();
                 // Only allow sending if no files are uploading

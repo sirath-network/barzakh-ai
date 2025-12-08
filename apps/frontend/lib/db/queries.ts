@@ -21,6 +21,7 @@ import {
   customer,
   subscription,
   billingAddress,
+  x402_transactions,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -182,12 +183,15 @@ export async function createUser(
   image?: string | null
 ) {
   try {
+    // Generate a valid username from name or email
+    const generatedUsername = await generateUsernameFromName(name, email);
 
     const userData: any = {
       id,
       email,
       name: name,
       image: image,
+      username: generatedUsername,
     };
 
     // Only hash and add password if it's provided (not null)
@@ -210,6 +214,78 @@ export async function createUser(
   }
 }
 
+/**
+ * Generate a valid username from name or email.
+ * Rules:
+ * - 3-20 characters
+ * - Must start with a letter
+ * - Lowercase letters and numbers only
+ * - No spaces or special characters
+ */
+async function generateUsernameFromName(name?: string | null, email?: string | null): Promise<string> {
+  let baseUsername = "";
+
+  // Try to use name first, then email prefix
+  if (name && name.trim()) {
+    // Take the name, convert to lowercase, remove special chars
+    baseUsername = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric
+      .trim();
+  } else if (email) {
+    // Use email prefix before @
+    const emailPrefix = email.split('@')[0];
+    baseUsername = emailPrefix
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
+  }
+
+  // Ensure it starts with a letter
+  if (!baseUsername || !/^[a-z]/.test(baseUsername)) {
+    // Prepend 'user' if empty or doesn't start with a letter
+    baseUsername = 'user' + baseUsername;
+  }
+
+  // Ensure minimum length of 3
+  if (baseUsername.length < 3) {
+    baseUsername = baseUsername + 'user';
+  }
+
+  // Truncate to max 16 chars to leave room for random suffix
+  if (baseUsername.length > 16) {
+    baseUsername = baseUsername.slice(0, 16);
+  }
+
+  // Try the base username first, then add random suffix if taken
+  let username = baseUsername;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (attempts < maxAttempts) {
+    // Check if username is already taken
+    const existing = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.username, username))
+      .limit(1);
+
+    if (existing.length === 0) {
+      // Username is available
+      return username;
+    }
+
+    // Add random suffix and try again
+    const suffix = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digit random
+    username = baseUsername.slice(0, 15) + suffix; // Ensure total <= 20 chars
+    attempts++;
+  }
+
+  // Fallback: use 'user' + random UUID portion
+  const fallbackSuffix = Math.floor(10000000 + Math.random() * 90000000).toString();
+  return 'user' + fallbackSuffix;
+}
+
 export async function saveChat({
   id,
   userId,
@@ -220,9 +296,11 @@ export async function saveChat({
   title: string;
 }) {
   try {
+    const now = new Date();
     return await db.insert(chat).values({
       id,
-      createdAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
       userId,
       title,
     });
@@ -407,7 +485,7 @@ export async function getChatsByUserId({ id }: { id: string }) {
       .select()
       .from(chat)
       .where(and(eq(chat.userId, id), eq(chat.isArchived, false)))
-      .orderBy(desc(chat.createdAt));
+      .orderBy(desc(chat.updatedAt));
   } catch (error) {
     console.error("Failed to get chats by user from database");
     throw error;
@@ -420,7 +498,7 @@ export async function getArchivedChatsByUserId({ id }: { id: string }) {
       .select()
       .from(chat)
       .where(and(eq(chat.userId, id), eq(chat.isArchived, true)))
-      .orderBy(desc(chat.createdAt));
+      .orderBy(desc(chat.updatedAt));
   } catch (error) {
     console.error("Failed to get archived chats by user from database");
     throw error;
@@ -443,7 +521,7 @@ export async function restoreChat({ id }: { id: string }) {
   try {
     return await db
       .update(chat)
-      .set({ isArchived: false })
+      .set({ isArchived: false, updatedAt: new Date() })
       .where(eq(chat.id, id));
   } catch (error) {
     console.error("Failed to unarchive conversation in database");
@@ -466,6 +544,18 @@ export async function saveMessages({ messages }: { messages: Array<Message> }) {
     return await db.insert(message).values(messages);
   } catch (error) {
     console.error("Failed to save messages in database", error);
+    throw error;
+  }
+}
+
+export async function updateChatUpdatedAt({ id }: { id: string }) {
+  try {
+    return await db
+      .update(chat)
+      .set({ updatedAt: new Date() })
+      .where(eq(chat.id, id));
+  } catch (error) {
+    console.error("Failed to update chat updatedAt in database");
     throw error;
   }
 }
@@ -711,7 +801,7 @@ export async function updateChatTitleById({
   title: string;
 }) {
   try {
-    return await db.update(chat).set({ title }).where(eq(chat.id, chatId));
+    return await db.update(chat).set({ title, updatedAt: new Date() }).where(eq(chat.id, chatId));
   } catch (error) {
     console.error("Failed to update chat title in database");
     throw error;
@@ -843,7 +933,10 @@ export async function deleteUserAndData(userId: string, email: string) {
         await tx.delete(customer).where(eq(customer.userId, userId));
       }
 
-      // 6. Delete other associated data
+      // 6. Delete X402 transactions
+      await tx.delete(x402_transactions).where(eq(x402_transactions.userId, userId));
+
+      // 7. Delete other associated data
       await tx.delete(email_change_requests).where(eq(email_change_requests.userId, userId));
 
       if (email) {
@@ -851,7 +944,7 @@ export async function deleteUserAndData(userId: string, email: string) {
         await tx.delete(otp_tokens).where(eq(otp_tokens.email, email));
       }
 
-      // 7. Finally, delete the user
+      // 8. Finally, delete the user
       await tx.delete(user).where(eq(user.id, userId));
     });
   } catch (error) {

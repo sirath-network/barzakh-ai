@@ -52,27 +52,27 @@ export default function AccountSettingsPage() {
 
   const validateUsername = (value: string) => {
     const normalized = value.toLowerCase();
-    
+
     if (normalized.length === 0) {
       return { isValid: false, message: "Username is required" };
     }
-    
+
     if (normalized.length < 3) {
       return { isValid: false, message: "Username must be at least 3 characters" };
     }
-    
+
     if (normalized.length > 20) {
       return { isValid: false, message: "Username must be less than 20 characters" };
     }
-    
+
     if (!/^[a-z0-9]+$/.test(normalized)) {
       return { isValid: false, message: "Only lowercase letters and numbers allowed" };
     }
-    
+
     if (!/^[a-z]/.test(normalized)) {
       return { isValid: false, message: "Must start with a letter" };
     }
-    
+
     return { isValid: true, message: "" };
   };
 
@@ -175,14 +175,14 @@ export default function AccountSettingsPage() {
 
       const newAvatarUrl = data.url;
       setAvatar(newAvatarUrl);
-      
+
       const saveRes = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          fullName, 
-          username: username.toLowerCase(), 
-          avatar: newAvatarUrl 
+        body: JSON.stringify({
+          fullName,
+          username: username.toLowerCase(),
+          avatar: newAvatarUrl
         }),
       });
 
@@ -225,7 +225,7 @@ export default function AccountSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validation = validateUsername(username);
     if (!validation.isValid) {
       toast.error(validation.message);
@@ -236,7 +236,7 @@ export default function AccountSettingsPage() {
 
     try {
       const normalizedUsername = username.toLowerCase();
-      
+
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -314,12 +314,22 @@ export default function AccountSettingsPage() {
                     </label>
                     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
                       <div className="relative">
-                        <div className="w-20 h-20 rounded-full border-2 border-gray-200 dark:border-red-900/50 shadow-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                          <img
-                            src={avatar || "https://avatar.vercel.sh/fallback.png"}
-                            alt="Avatar Preview"
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-20 h-20 rounded-full border-2 border-gray-200 dark:border-red-900/50 shadow-lg overflow-hidden bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center">
+                          {avatar ? (
+                            <img
+                              src={avatar}
+                              alt="Avatar Preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Hide broken image and show fallback
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <span className={`text-3xl font-bold text-white ${avatar ? 'hidden' : ''}`}>
+                            {(fullName?.charAt(0) || session?.user?.email?.charAt(0) || 'U').toUpperCase()}
+                          </span>
                         </div>
                         {isUploading && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
@@ -382,15 +392,14 @@ export default function AccountSettingsPage() {
                         type="text"
                         value={username}
                         onChange={(e) => handleUsernameChange(e.target.value)}
-                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${
-                          username && !usernameValidation.isValid 
-                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
+                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${username && !usernameValidation.isValid
+                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                             : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
-                        }`}
+                          }`}
                         placeholder="Choose a username"
                       />
                     </div>
-                    
+
                     {username && (
                       <>
                         {!usernameValidation.isValid ? (
@@ -399,45 +408,40 @@ export default function AccountSettingsPage() {
                           </div>
                         ) : usernameAvailability.status !== "idle" ? (
                           <div
-                            className={`mt-2 text-sm ${
-                              usernameAvailability.status === "available"
+                            className={`mt-2 text-sm ${usernameAvailability.status === "available"
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : usernameAvailability.status === "checking"
-                                ? "text-gray-500 dark:text-gray-400"
-                                : "text-red-600 dark:text-red-400"
-                            }`}
+                                  ? "text-gray-500 dark:text-gray-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
                           >
                             {usernameAvailability.message}
                           </div>
                         ) : null}
                       </>
                     )}
-                    
+
                     <div className="mt-3 p-4 bg-transparent dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
                       <p className="text-xs font-medium text-foreground mb-2">Username Requirements:</p>
                       <ul className="text-xs text-muted-foreground space-y-1">
                         <li className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            username.length >= 3 ? 'bg-emerald-500' : 'bg-muted-foreground/30'
-                          }`}></div>
+                          <div className={`w-1.5 h-1.5 rounded-full ${username.length >= 3 ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                            }`}></div>
                           3-20 characters
                         </li>
                         <li className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            /^[a-z]/.test(username) ? 'bg-emerald-500' : 'bg-muted-foreground/30'
-                          }`}></div>
+                          <div className={`w-1.5 h-1.5 rounded-full ${/^[a-z]/.test(username) ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                            }`}></div>
                           Must start with a letter
                         </li>
                         <li className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            /^[a-z0-9]+$/.test(username) ? 'bg-emerald-500' : 'bg-muted-foreground/30'
-                          }`}></div>
+                          <div className={`w-1.5 h-1.5 rounded-full ${/^[a-z0-9]+$/.test(username) ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                            }`}></div>
                           Lowercase letters and numbers only
                         </li>
                         <li className="flex items-center gap-1">
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            !username.includes(' ') ? 'bg-emerald-500' : 'bg-muted-foreground/30'
-                          }`}></div>
+                          <div className={`w-1.5 h-1.5 rounded-full ${!username.includes(' ') ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                            }`}></div>
                           No spaces or special characters
                         </li>
                       </ul>
@@ -605,7 +609,7 @@ export default function AccountSettingsPage() {
                   Having trouble with your account settings? Our support team is here to help.
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
                 className="bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-gray-800 dark:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-300 dark:border-white/20 text-xs md:text-sm"
               >

@@ -46,7 +46,7 @@ async function getCroUsdPrice(): Promise<number> {
     const response = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=crypto-com-chain&vs_currencies=usd"
     );
-    
+
     if (!response.ok) {
       return cachedCroPrice?.price ?? 0.10;
     }
@@ -141,16 +141,16 @@ export async function POST(request: Request) {
 
     // Verify Native TCRO Transfer
     const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
-    
+
     // Check that the transaction was sent to the receiver address (native transfer)
     if (tx.to?.toLowerCase() !== receiverAddress.toLowerCase()) {
-       return NextResponse.json({ error: "Invalid receiver address" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid receiver address" }, { status: 400 });
     }
 
     // Get USD price for the plan and calculate expected TCRO amount
     const cycle = billingCycle || "monthly";
     const usdPrice = PLAN_PRICES_USD[planId]?.[cycle] ?? 0;
-    
+
     if (usdPrice === 0) {
       return NextResponse.json({ error: "Invalid plan or billing cycle" }, { status: 400 });
     }
@@ -158,16 +158,16 @@ export async function POST(request: Request) {
     // Fetch current CRO/USD price to calculate expected TCRO
     const croUsdPrice = await getCroUsdPrice();
     const expectedTcro = usdPrice / croUsdPrice;
-    
+
     // Convert to wei (18 decimals) - allow 5% slippage for price fluctuations
     const expectedAmount = BigInt(Math.floor(expectedTcro * 0.95 * 10 ** 18));
     const paidAmount = tx.value;
 
     if (paidAmount < expectedAmount) {
-       const paidTcro = Number(paidAmount) / 10 ** 18;
-       return NextResponse.json({ 
-         error: `Insufficient payment. Expected ~${expectedTcro.toFixed(2)} TCRO ($${usdPrice}), got ${paidTcro.toFixed(2)} TCRO` 
-       }, { status: 400 });
+      const paidTcro = Number(paidAmount) / 10 ** 18;
+      return NextResponse.json({
+        error: `Insufficient payment. Expected ~${expectedTcro.toFixed(2)} TCRO ($${usdPrice}), got ${paidTcro.toFixed(2)} TCRO`
+      }, { status: 400 });
     }
 
     // Record transaction
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
     // Update user tier, billing cycle AND reset daily message limit to the new tier's limit
     await db
       .update(user)
-      .set({ 
+      .set({
         tier: planId,
         billingCycle: billingCycle || "monthly",
         dailyMessageRemaining: newDailyLimit,
@@ -213,9 +213,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Payment verification failed:", error);
-    
+
     if (error.message && error.message.includes("could not be found after retries")) {
-        return NextResponse.json({ error: "Block not found yet", code: "BLOCK_NOT_FOUND" }, { status: 409 });
+      return NextResponse.json({ error: "Block not found yet", code: "BLOCK_NOT_FOUND" }, { status: 409 });
     }
 
     return NextResponse.json({ error: "Verification failed" }, { status: 500 });

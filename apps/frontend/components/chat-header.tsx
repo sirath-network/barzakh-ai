@@ -14,8 +14,10 @@ import { SidebarUserNav } from "./sidebar-user-nav";
 import type { Message } from "ai";
 import TextStrip from "./text-strip";
 // Import required icons
-import { MessageCirclePlus, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft } from 'lucide-react';
 import { ArtifactToggle } from "./artifact-toggle";
+
+import { ChatHeaderMenu } from "./chat-header-menu";
 
 // 1. Update interface props to include new optional props
 // and make chat-specific props optional.
@@ -28,6 +30,10 @@ function PureChatHeader({
   selectedVisibilityType,
   title,
   onBackClick,
+  chatTitle,
+  chatVisibility,
+  isArchived,
+  onUnarchive,
 }: {
   chatId: string;
   isReadonly: boolean;
@@ -39,6 +45,11 @@ function PureChatHeader({
   // New props for settings mode
   title?: string;
   onBackClick?: () => void;
+  // New props for Chat Menu
+  chatTitle?: string;
+  chatVisibility?: VisibilityType;
+  isArchived?: boolean;
+  onUnarchive?: () => void;
 }) {
   const router = useRouter();
   const { open: isSidebarOpen } = useSidebar();
@@ -54,80 +65,63 @@ function PureChatHeader({
   const TooltipAny = Tooltip as any;
   const TooltipTriggerAny = TooltipTrigger as any;
   const TooltipContentAny = TooltipContent as any;
-  const MessageCirclePlusAny = MessageCirclePlus as any;
   const ArrowLeftAny = ArrowLeft as any;
-
-  const NewChatButton = () => (
-    <ButtonAny
-      variant="outline"
-      className="px-3"
-      onClick={() => {
-        router.push("/");
-        router.refresh();
-      }}
-    >
-      <MessageCirclePlusAny className="h-5 w-5 md:mr-2" />
-      <span className="hidden md:inline">New Chat</span>
-    </ButtonAny>
-  );
+  const ChevronLeftAny = ChevronLeft as any;
 
   return (
     <div className="flex flex-col sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-      <header className="grid grid-cols-3 items-center w-full h-16 px-2 md:px-4">
+      <header className="flex md:grid md:grid-cols-3 items-center w-full h-16 px-2 md:px-4 relative justify-between">
         {/* === Left Section === */}
-        <div className="flex items-center gap-2 justify-start">
+        <div className="flex items-center gap-2 justify-start min-w-0 z-20">
           <SidebarToggle />
 
           {/* 2. Show back button if onBackClick exists (settings mode) */}
-          {onBackClick && (
-            <ButtonAny variant="ghost" size="icon" onClick={onBackClick} className="md:ml-2">
-              <ArrowLeftAny className="h-5 w-5" />
-            </ButtonAny>
-          )}
-
-          {/* Show "New Chat" button only if NOT in settings mode */}
-          {isClient && !onBackClick && (!isSidebarOpen || !isDesktop) && (
-            isDesktop ? (
-              <TooltipAny>
-                <TooltipTriggerAny asChild>
-                  <ButtonAny variant="ghost" size="icon" onClick={() => router.push('/')}>
-                     <MessageCirclePlusAny className="h-5 w-5"/>
-                  </ButtonAny>
-                </TooltipTriggerAny>
-                <TooltipContentAny>New Chat</TooltipContentAny>
-              </TooltipAny>
-            ) : (
-              <NewChatButton />
-            )
-          )}
+          {onBackClick ? (
+            <div className="hidden md:flex items-center">
+              <div className="w-px h-4 bg-border mx-2" />
+              <ButtonAny
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={onBackClick}
+              >
+                <ChevronLeftAny className="w-4 h-4" />
+                Back
+              </ButtonAny>
+            </div>
+          ) : null}
         </div>
 
         {/* === Center Section (Dynamic Title or Logo) === */}
-        <div className="flex justify-center">
-          {/* 3. Show title if exists, otherwise show logo/link to home */}
-          {title ? (
-            <h1 className="text-lg font-semibold truncate px-2">{title}</h1>
-          ) : (
-            <Link href="/" aria-label="Home">
-            {isClient && !isDesktop}
-          </Link>
-          )}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none md:static md:pointer-events-auto min-w-0">
+          <div className="pointer-events-auto flex justify-center max-w-[60%] md:max-w-none">
+            {/* 3. Show title if exists, otherwise show ChatHeaderMenu or logo */}
+            {title ? (
+              <h1 className="text-lg font-semibold truncate px-2">{title}</h1>
+            ) : chatTitle ? (
+              <ChatHeaderMenu
+                chatId={chatId}
+                currentTitle={chatTitle}
+                visibility={chatVisibility || "private"}
+                isArchived={isArchived}
+                onUnarchive={onUnarchive}
+              />
+            ) : (
+              <Link href="/" aria-label="Home">
+                {isClient && !isDesktop}
+              </Link>
+            )}
+          </div>
         </div>
 
-        {/* === Right Section (User Nav / Login) === */}
-        <div className="flex items-center justify-end text-sm space-x-2">
+        {/* === Right Section === */}
+        <div className="flex items-center justify-end gap-2 z-20">
           {/* Show artifact toggle if not in settings mode */}
           {!title && <ArtifactToggle />}
-          
+
           {user ? (
-            // User is logged in, show nav only if there's no title
-            !title && (
-              <div className="scale-90">
-                <SidebarUserNav user={user} />
-              </div>
-            )
+            <SidebarUserNav user={user} compact={true} />
           ) : (
-            // User is not logged in, show login button
             <ButtonAny
               className="px-3 py-1 text-sm h-auto"
               onClick={() => router.push("/login")}
@@ -158,6 +152,8 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
     prevProps.user === nextProps.user &&
     prevProps.selectedModelId === nextProps.selectedModelId &&
     prevProps.messages.length === nextProps.messages.length &&
-    prevProps.selectedVisibilityType === nextProps.selectedVisibilityType
+    prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
+    prevProps.chatTitle === nextProps.chatTitle &&
+    prevProps.chatVisibility === nextProps.chatVisibility
   );
 });

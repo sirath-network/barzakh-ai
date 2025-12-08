@@ -16,6 +16,7 @@ import {
   getUserById,
   saveChat,
   saveMessages,
+  updateChatUpdatedAt,
 } from "@/lib/db/queries";
 import {
   generateUUID,
@@ -41,19 +42,19 @@ function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
         // Keep only tool invocations that have results or are in 'partial-call' state
         return (invocation as any).result !== undefined || invocation.state === 'partial-call';
       });
-      
+
       // If no valid tool invocations remain, remove the toolInvocations property
       if (validToolInvocations.length === 0) {
         const { toolInvocations, ...messageWithoutTools } = message;
         return messageWithoutTools;
       }
-      
+
       return {
         ...message,
         toolInvocations: validToolInvocations,
       };
     }
-    
+
     return message;
   });
 }
@@ -66,13 +67,13 @@ function filterIncompleteToolCalls(messages: Array<Message>): Array<Message> {
       const hasIncompleteToolCalls = message.toolInvocations.some(
         (invocation) => invocation.state === 'call' && !(invocation as any).result
       );
-      
+
       if (hasIncompleteToolCalls) {
         console.log('Filtering out message with incomplete tool calls:', message.id);
         return false;
       }
     }
-    
+
     return true;
   });
 }
@@ -84,7 +85,7 @@ function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] 
     console.warn('activeTools is not iterable, using empty array:', activeTools);
     return [];
   }
-  
+
   return [...activeTools];
 }
 
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
 
   // Authenticate first - BEFORE accessing any user data
   const session = await auth();
-  
+
   if (!session || !session.user || !session.user.id) {
     return new Response("Please login to start chatting!", { status: 401 });
   }
@@ -139,11 +140,11 @@ export async function POST(request: Request) {
   // --- End History Context Section ---
 
   console.log("search groupe", group);
-  
+
   // Get group config with error handling
   let tools: any[] = [];
   let systemPrompt = "";
-  
+
   try {
     const groupConfig = await getGroupConfig(group);
     tools = [...(groupConfig?.tools || [])] as any[];
@@ -153,7 +154,7 @@ export async function POST(request: Request) {
     console.error("Failed to get group config:", error);
     // Continue with empty tools and system prompt
   }
-  
+
   console.log("user session ", session.user);
   const users = await getUserById(session.user.id!);
   const user_info = users[0];
@@ -187,8 +188,8 @@ export async function POST(request: Request) {
       user_info.tier === "free"
         ? "Upgrade to PRO or ULTIMATE for more usage and other perks!"
         : user_info.tier === "pro"
-        ? "Upgrade to ULTIMATE for higher limits and priority access!"
-        : "Contact support to extend your Ultimate tier limits.";
+          ? "Upgrade to ULTIMATE for higher limits and priority access!"
+          : "Contact support to extend your Ultimate tier limits.";
 
     return new Response(
       `${tierLabel} (${cycleLabel}) tier limit of ${limit} messages per day reached! ${upgradePrompt}`,
@@ -234,9 +235,9 @@ export async function POST(request: Request) {
     }
     return '';
   };
-  
+
   const userMessageText = extractTextFromMessage(userMessage.content);
-  
+
   if (userMessageText) {
     const aiVulnCheck = performAISecurityCheck(userMessageText, {
       checkSponge: true,      // Detect DoS via expensive computation
@@ -254,8 +255,8 @@ export async function POST(request: Request) {
           error: 'Security Block',
           message: 'Your message was blocked due to potential security concerns.',
           code: 'AI_VULNERABILITY_DETECTED',
-          details: process.env.NODE_ENV === 'development' 
-            ? aiVulnCheck.threats[0]?.description 
+          details: process.env.NODE_ENV === 'development'
+            ? aiVulnCheck.threats[0]?.description
             : undefined,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -299,17 +300,17 @@ export async function POST(request: Request) {
   const cleanedUserContent = cleanMessageContentForStorage(userMessage.content);
 
   await saveMessages({
-    messages: [{ 
-      ...userMessage, 
+    messages: [{
+      ...userMessage,
       content: cleanedUserContent, // Use cleaned content with restored URLs
-      createdAt: new Date(), 
-      chatId: id 
+      createdAt: new Date(),
+      chatId: id
     }],
   });
 
   // SOLUTION 1: Clean messages before passing to streamText
   const cleanedMessages = validateAndCleanMessages(messages);
-  
+
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
 
@@ -342,7 +343,7 @@ export async function POST(request: Request) {
                   const messagesToSave = sanitizedResponseMessages.map((message) => {
                     // Clean message content to restore original storage URLs (R2/Blob)
                     const cleanedContent = cleanMessageContentForStorage(message.content);
-                    
+
                     return {
                       id: message.id,
                       chatId: id,
@@ -351,8 +352,9 @@ export async function POST(request: Request) {
                       createdAt: new Date(),
                     };
                   });
-                  
+
                   await saveMessages({ messages: messagesToSave });
+                  await updateChatUpdatedAt({ id });
                   await decrementRemainingMessageCount(session.user.id);
                 }
               } catch (error) {
@@ -374,10 +376,10 @@ export async function POST(request: Request) {
         // If still getting tool invocation error, try with fresh conversation
         if ((error as any).message?.includes("ToolInvocation must have a result")) {
           console.log("Retrying with fresh conversation context...");
-          
+
           // Only keep the latest user message for fresh start
           const freshMessages = [userMessage];
-          
+
           const result = streamText({
             model: myProvider.languageModel(selectedChatModel),
             system: systemPrompt,
@@ -395,14 +397,14 @@ export async function POST(request: Request) {
                     messages: response.messages,
                     reasoning,
                   });
-                  
+
                   // Guard against saving empty messages if AI response fails
                   if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
                     await saveMessages({
                       messages: sanitizedResponseMessages.map((message) => {
                         // Clean message content to restore original storage URLs (R2/Blob)
                         const cleanedContent = cleanMessageContentForStorage(message.content);
-                        
+
                         return {
                           id: message.id,
                           chatId: id,
@@ -412,6 +414,7 @@ export async function POST(request: Request) {
                         };
                       }),
                     });
+                    await updateChatUpdatedAt({ id });
                     await decrementRemainingMessageCount(session.user.id);
                   }
                 } catch (error) {
@@ -439,10 +442,10 @@ export async function POST(request: Request) {
       if (error.name === 'AI_ToolExecutionError' && error.toolName) {
         return `Error: The ${error.toolName} tool failed to execute. This could be due to an issue with the external service. Please try again later.`;
       }
-      
+
       // Handle socket termination errors
       if (error.message === 'terminated' || (error.cause && error.cause.code === 'UND_ERR_SOCKET')) {
-         return "Connection to the AI provider was interrupted. Please try again.";
+        return "Connection to the AI provider was interrupted. Please try again.";
       }
 
       return "Oops, something went wrong! Please try again in a new chat.";

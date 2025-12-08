@@ -6,7 +6,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Archive, ArchiveRestore, RotateCcw, Trash2, MoreHorizontal, ChevronDown, CircleArrowLeft } from "lucide-react";
+import { Archive, ArchiveRestore, RotateCcw, Trash2, MoreHorizontal, ChevronDown, CircleArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useView } from "@/context/view-context";
 
 import {
@@ -66,6 +66,8 @@ const Trash2Any = Trash2 as any;
 const ArchiveAny = Archive as any;
 const ChevronDownAny = ChevronDown as any;
 const CircleArrowLeftAny = CircleArrowLeft as any;
+const ChevronLeftAny = ChevronLeft as any;
+const ChevronRightAny = ChevronRight as any;
 
 const ArchivedChatItem = ({
   chat,
@@ -93,27 +95,24 @@ const ArchivedChatItem = ({
           }}
           className={`
             flex items-center gap-4 flex-1 min-w-0 rounded-lg p-3 transition-all duration-200
-            ${
-              isActive
-                ? "bg-muted text-foreground"
-                : "hover:bg-muted/50"
+            ${isActive
+              ? "bg-muted text-foreground"
+              : "hover:bg-muted/50"
             }
           `}
         >
           <div className={`
             w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border transition-all duration-200
-            ${
-              isActive 
-                ? "bg-background border-border" 
-                : "bg-muted/50 border-border"
+            ${isActive
+              ? "bg-background border-border"
+              : "bg-muted/50 border-border"
             }
           `}>
             <ArchiveRestoreAny className={`w-5 h-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className={`font-semibold text-sm truncate ${
-              isActive ? "text-foreground" : "text-foreground"
-            }`}>
+            <h3 className={`font-semibold text-sm truncate ${isActive ? "text-foreground" : "text-foreground"
+              }`}>
               {chat.title}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
@@ -177,6 +176,8 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'alphabetical'>('newest');
 
   const {
     data: archivedHistory,
@@ -225,8 +226,45 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
     setShowDeleteDialog(false);
   };
 
-  // Filter items based on selected items per page
-  const displayedItems = archivedHistory?.slice(0, itemsPerPage) || [];
+  // Sort and paginate items
+  const { paginatedItems, totalPages, totalItems } = (() => {
+    if (!archivedHistory) return { paginatedItems: [], totalPages: 0, totalItems: 0 };
+
+    let sorted = [...archivedHistory];
+
+    switch (sortBy) {
+      case 'newest':
+        sorted.sort((a, b) => {
+          const dateA = new Date((a as any).updatedAt || a.createdAt).getTime();
+          const dateB = new Date((b as any).updatedAt || b.createdAt).getTime();
+          return dateB - dateA; // Newest first
+        });
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => {
+          const dateA = new Date((a as any).updatedAt || a.createdAt).getTime();
+          const dateB = new Date((b as any).updatedAt || b.createdAt).getTime();
+          return dateA - dateB; // Oldest first
+        });
+        break;
+      case 'alphabetical':
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+    }
+
+    const totalItems = sorted.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedItems = sorted.slice(startIndex, startIndex + itemsPerPage);
+
+    return { paginatedItems, totalPages, totalItems };
+  })();
+
+  // Reset to page 1 when items per page changes
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1);
+  };
 
   if (isLoading) {
     return (
@@ -245,7 +283,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Content skeleton */}
             <div className="p-8">
               <div className="space-y-4">
@@ -296,59 +334,101 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                     {archivedHistory?.length || 0} archived {(archivedHistory?.length || 0) === 1 ? 'conversation' : 'conversations'}
                   </p>
                 </div>
-                
-                {/* Items Per Page Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Show:</span>
-                  <DropdownMenuAny>
-                    <DropdownMenuTriggerAny asChild>
-                      <ButtonAny
-                        variant="outline"
-                        className="h-9 px-3 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
+
+                {/* Sort & Items Per Page Dropdowns */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Sort By */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Sort:</span>
+                    <DropdownMenuAny>
+                      <DropdownMenuTriggerAny asChild>
+                        <ButtonAny
+                          variant="outline"
+                          className="h-9 px-3 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
+                        >
+                          {sortBy === 'newest' ? 'Newest First' : sortBy === 'oldest' ? 'Oldest First' : 'Alphabetical'}
+                          <ChevronDownAny className="ml-2 h-4 w-4" />
+                        </ButtonAny>
+                      </DropdownMenuTriggerAny>
+                      <DropdownMenuContentAny
+                        align="end"
+                        className="w-36 border border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/95 backdrop-blur-sm"
                       >
-                        {itemsPerPage}
-                        <ChevronDownAny className="ml-2 h-4 w-4" />
-                      </ButtonAny>
-                    </DropdownMenuTriggerAny>
-                    <DropdownMenuContentAny 
-                      align="end" 
-                      className="w-20 border border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/95 backdrop-blur-sm"
-                    >
-                      <DropdownMenuItemAny 
-                        onClick={() => setItemsPerPage(10)}
-                        className="cursor-pointer text-sm"
+                        <DropdownMenuItemAny
+                          onClick={() => setSortBy('newest')}
+                          className="cursor-pointer text-sm"
+                        >
+                          Newest First
+                        </DropdownMenuItemAny>
+                        <DropdownMenuItemAny
+                          onClick={() => setSortBy('oldest')}
+                          className="cursor-pointer text-sm"
+                        >
+                          Oldest First
+                        </DropdownMenuItemAny>
+                        <DropdownMenuItemAny
+                          onClick={() => setSortBy('alphabetical')}
+                          className="cursor-pointer text-sm"
+                        >
+                          Alphabetical
+                        </DropdownMenuItemAny>
+                      </DropdownMenuContentAny>
+                    </DropdownMenuAny>
+                  </div>
+
+                  {/* Items Per Page */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Show:</span>
+                    <DropdownMenuAny>
+                      <DropdownMenuTriggerAny asChild>
+                        <ButtonAny
+                          variant="outline"
+                          className="h-9 px-3 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30"
+                        >
+                          {itemsPerPage}
+                          <ChevronDownAny className="ml-2 h-4 w-4" />
+                        </ButtonAny>
+                      </DropdownMenuTriggerAny>
+                      <DropdownMenuContentAny
+                        align="end"
+                        className="w-20 border border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/95 backdrop-blur-sm"
                       >
-                        10
-                      </DropdownMenuItemAny>
-                      <DropdownMenuItemAny 
-                        onClick={() => setItemsPerPage(25)}
-                        className="cursor-pointer text-sm"
-                      >
-                        25
-                      </DropdownMenuItemAny>
-                      <DropdownMenuItemAny 
-                        onClick={() => setItemsPerPage(50)}
-                        className="cursor-pointer text-sm"
-                      >
-                        50
-                      </DropdownMenuItemAny>
-                      <DropdownMenuItemAny 
-                        onClick={() => setItemsPerPage(100)}
-                        className="cursor-pointer text-sm"
-                      >
-                        100
-                      </DropdownMenuItemAny>
-                    </DropdownMenuContentAny>
-                  </DropdownMenuAny>
+                        <DropdownMenuItemAny
+                          onClick={() => handleItemsPerPageChange(10)}
+                          className="cursor-pointer text-sm"
+                        >
+                          10
+                        </DropdownMenuItemAny>
+                        <DropdownMenuItemAny
+                          onClick={() => handleItemsPerPageChange(25)}
+                          className="cursor-pointer text-sm"
+                        >
+                          25
+                        </DropdownMenuItemAny>
+                        <DropdownMenuItemAny
+                          onClick={() => handleItemsPerPageChange(50)}
+                          className="cursor-pointer text-sm"
+                        >
+                          50
+                        </DropdownMenuItemAny>
+                        <DropdownMenuItemAny
+                          onClick={() => handleItemsPerPageChange(100)}
+                          className="cursor-pointer text-sm"
+                        >
+                          100
+                        </DropdownMenuItemAny>
+                      </DropdownMenuContentAny>
+                    </DropdownMenuAny>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Content */}
             <div className="p-6 md:p-8">
-              {displayedItems.length > 0 ? (
+              {paginatedItems.length > 0 ? (
                 <div className="space-y-4">
-                  {displayedItems.map((chat) => (
+                  {paginatedItems.map((chat) => (
                     <ArchivedChatItem
                       key={chat.id}
                       chat={chat}
@@ -362,13 +442,38 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                       setView={setView}
                     />
                   ))}
-                  
-                  {/* Show more indicator */}
-                  {archivedHistory && archivedHistory.length > itemsPerPage && (
-                    <div className="text-center py-4">
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-red-900/30">
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Showing {itemsPerPage} of {archivedHistory.length} conversations
+                        Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
                       </p>
+                      <div className="flex items-center gap-2">
+                        <ButtonAny
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="h-9 px-3 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeftAny className="h-4 w-4 mr-1" />
+                          Previous
+                        </ButtonAny>
+                        <span className="text-sm text-gray-600 dark:text-gray-300 px-2">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <ButtonAny
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="h-9 px-3 border-gray-300 dark:border-red-900/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                          <ChevronRightAny className="h-4 w-4 ml-1" />
+                        </ButtonAny>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -396,8 +501,8 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
               </div>
               <div className="p-6 md:p-8 space-y-3">
-                <ButtonAny 
-                  variant="outline" 
+                <ButtonAny
+                  variant="outline"
                   className="w-full justify-start gap-2 border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/40 text-foreground hover:bg-gray-50 dark:hover:bg-red-900/30"
                   onClick={() => window.location.href = '/'}
                 >

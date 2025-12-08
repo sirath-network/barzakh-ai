@@ -66,7 +66,7 @@ const toolIcons: Record<string, React.ElementType> = {
 const ToolIcon = ({ toolName, size = "small" }: { toolName: string; size?: "small" | "medium" }) => {
   const IconComponent = toolIcons?.[toolName] || FileTextAny;
   const iconSize = size === "small" ? "size-3" : "size-4";
-  
+
   return (
     <IconComponent className={`${iconSize} text-muted-foreground/80`} />
   );
@@ -166,11 +166,11 @@ const PurePreviewMessage = ({
   const completedTools = message.toolInvocations?.filter(
     (tool) => tool.state === "result"
   );
-  
+
   const pendingTools = message.toolInvocations?.filter(
     (tool) => tool.state === "call" || tool.state === "partial-call"
   );
-  
+
   const webSearchResults = completedTools?.filter(
     (tool) => tool.toolName === 'webSearch'
   );
@@ -190,7 +190,7 @@ const PurePreviewMessage = ({
     // Find the previous user message to get the prompt
     const messageIndex = allMessages.findIndex(m => m.id === message.id);
     let userPrompt: string | undefined;
-    
+
     // Look for the most recent user message before this assistant message
     for (let i = messageIndex - 1; i >= 0; i--) {
       if (allMessages[i].role === 'user') {
@@ -227,8 +227,8 @@ const PurePreviewMessage = ({
 
   // Show thinking ONLY before content starts streaming
   // Once content appears, NEVER show thinking again (prevents glitch)
-  const isThinking = 
-    message.role === 'assistant' && 
+  const isThinking =
+    message.role === 'assistant' &&
     isLoading &&
     !hasContentStarted; // Hide thinking once content starts streaming
 
@@ -287,7 +287,7 @@ const PurePreviewMessage = ({
                   <ThinkingAnimationAny statusText={statusText} />
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   key="content"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -303,7 +303,7 @@ const PurePreviewMessage = ({
                   {/* === TOP SECTION: ONLY WEB SEARCH RESULTS === */}
                   {webSearchResults && webSearchResults.length > 0 && (
                     webSearchResults.map(tool => (
-                      <motion.div 
+                      <motion.div
                         key={tool.toolCallId}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -316,7 +316,7 @@ const PurePreviewMessage = ({
 
                   {/* === TOP SECTION: OTHER TOOL RESULTS (PORTFOLIO, TOKEN INFO, etc.) === */}
                   {otherCompletedTools && otherCompletedTools.length > 0 && (
-                    <motion.div 
+                    <motion.div
                       className="flex flex-col items-start gap-2 mb-4"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -325,7 +325,7 @@ const PurePreviewMessage = ({
                       {otherCompletedTools.map((toolInvocation) => {
                         const { toolName, toolCallId, result } = toolInvocation;
                         if (toolInvocation.state !== "result") return null;
-                        
+
                         const toolComponents: Record<string, React.ReactNode> = {
                           searchEvmTokenMarketData: <TokenInfoTableAny result={result} />,
                           searchSolanaTokenMarketData: <TokenInfoTableAny result={result} />,
@@ -333,12 +333,12 @@ const PurePreviewMessage = ({
                           getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
                           getTokenBalances: <PortfolioTableAny result={result} />,
                           createImage: result?.imageUrls ? (
-                            <AIGeneratedImageGridAny 
+                            <AIGeneratedImageGridAny
                               imageUrls={result.imageUrls}
                               alt="AI generated images"
                             />
                           ) : result?.imageUrl ? (
-                            <AIGeneratedImageAny 
+                            <AIGeneratedImageAny
                               imageUrl={result.imageUrl}
                               alt="AI generated image"
                             />
@@ -348,7 +348,7 @@ const PurePreviewMessage = ({
                             </div>
                           ),
                         };
-                        
+
                         return (
                           <div key={toolCallId} className="w-full">
                             {toolComponents?.[toolName] || null}
@@ -376,8 +376,8 @@ const PurePreviewMessage = ({
                             <div className="flex flex-wrap gap-2 justify-end w-full">
                               {/* Render experimental_attachments if available */}
                               {message.experimental_attachments?.map((attachment) => (
-                                <div 
-                                  key={attachment.url} 
+                                <div
+                                  key={attachment.url}
                                   className="bg-muted/30 p-2 border border-border/20 shadow-sm"
                                   style={{ borderRadius: '15px 15px 10px 15px' }}
                                 >
@@ -387,9 +387,9 @@ const PurePreviewMessage = ({
                                   />
                                 </div>
                               ))}
-                              
+
                               {/* Also render images from content array if no experimental_attachments */}
-                              {!message.experimental_attachments && Array.isArray(message.content) && 
+                              {!message.experimental_attachments && Array.isArray(message.content) &&
                                 message.content
                                   .filter(part => part.type === 'image' && typeof part.image === 'string')
                                   .map((part, index) => {
@@ -399,8 +399,8 @@ const PurePreviewMessage = ({
                                       contentType: 'image/*'
                                     };
                                     return (
-                                      <div 
-                                        key={`content-image-${index}`} 
+                                      <div
+                                        key={`content-image-${index}`}
                                         className="bg-muted/30 p-2 border border-border/20 shadow-sm"
                                         style={{ borderRadius: '15px 15px 10px 15px' }}
                                       >
@@ -414,7 +414,7 @@ const PurePreviewMessage = ({
                               }
                             </div>
                           )}
-                          
+
                           {/* Text content as separate message bubble */}
                           {(() => {
                             let textContent = "";
@@ -427,9 +427,9 @@ const PurePreviewMessage = ({
                                 .filter(text => text.trim())
                                 .join('\n');
                             }
-                            
+
                             if (textContent.trim()) {
-                               return (
+                              return (
                                 <div
                                   className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
                                   style={{
@@ -443,8 +443,8 @@ const PurePreviewMessage = ({
                                 >
                                   <MarkdownAny allMessages={allMessages}>{textContent}</MarkdownAny>
                                 </div>
-                               );
-                             }
+                              );
+                            }
                             return null;
                           })()}
                         </div>
@@ -453,39 +453,39 @@ const PurePreviewMessage = ({
                         (() => {
                           // Check if this message has image generation tool results
                           const hasImageGeneration = hasCreateImage;
-                          
+
                           // Determine if we should show the text content
                           let shouldShowTextContent = true;
                           if (hasImageGeneration && typeof message.content === "string") {
                             // Only show the text if it's not a generic "here's your image" message
                             const content = message.content.toLowerCase().trim();
-                            const isGenericImageMessage = 
-                              (content.includes("here's") || content.includes("here are")) && 
+                            const isGenericImageMessage =
+                              (content.includes("here's") || content.includes("here are")) &&
                               (content.includes("image") || content.includes("images")) &&
                               (content.includes("generated") || content.includes("created") || content.includes("for you") || content.includes("based on"));
-                            
+
                             // Also check for text that seems to be describing images that are already shown
-                            const isImageDescription = 
+                            const isImageDescription =
                               (content.includes("image") || content.includes("images")) &&
                               (content.includes("shows") || content.includes("depicts") || content.includes("features") || content.includes("captures")) &&
                               content.length < 200; // Short descriptions are likely redundant
-                            
+
                             // Check for text that contains broken image references or URLs
-                            const hasBrokenImageReferences = 
-                              content.includes("here") && 
+                            const hasBrokenImageReferences =
+                              content.includes("here") &&
                               (content.includes("image") || content.includes("images")) &&
                               content.includes("view");
-                            
+
                             if (isGenericImageMessage || isImageDescription || hasBrokenImageReferences) {
                               shouldShowTextContent = false;
                             }
                           }
-                          
+
                           // If we're suppressing text and there are tool results, don't render the message bubble at all
                           if (!shouldShowTextContent && hasImageGeneration) {
                             return null;
                           }
-                          
+
                           return (
                             <div
                               className="bg-muted/50 text-foreground px-4 py-3 shadow-sm max-w-full"
@@ -565,7 +565,7 @@ const PurePreviewMessage = ({
                       </AnimatePresence>
                     </motion.div>
                   )}
-                  
+
                   {message.content && mode === "edit" && (
                     <div className="flex flex-row gap-2 items-start">
                       <div className="size-8" />
@@ -579,7 +579,7 @@ const PurePreviewMessage = ({
                       />
                     </div>
                   )}
-                  
+
                   {/* === BOTTOM SECTION: MESSAGE ACTIONS & SOURCE === */}
                   {!isReadonly && message.role === "assistant" && (
                     <motion.div
@@ -599,7 +599,7 @@ const PurePreviewMessage = ({
 
                   {/* === BOTTOM SECTION: ALL ICONS & SOURCE LABELS === */}
                   {completedTools && completedTools.length > 0 && message.role === "assistant" && (
-                    <motion.div 
+                    <motion.div
                       className="flex flex-col gap-2 sm:gap-3 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-border/50"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -619,15 +619,15 @@ const PurePreviewMessage = ({
                                 }}
                                 initial={{ scale: 0, opacity: 0, rotate: -10 }}
                                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                                transition={{ 
-                                  duration: 0.3, 
+                                transition={{
+                                  duration: 0.3,
                                   delay: index * 0.08 + 0.4,
                                   type: "spring",
                                   stiffness: 400,
                                   damping: 25
                                 }}
-                                whileHover={{ 
-                                  scale: 1.1, 
+                                whileHover={{
+                                  scale: 1.1,
                                   y: -2,
                                   transition: { duration: 0.2 }
                                 }}
@@ -638,7 +638,7 @@ const PurePreviewMessage = ({
                               </motion.div>
                             ))}
                           </div>
-                          
+
                           {/* Label dengan styling yang lebih baik */}
                           <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0">
                             <motion.div
