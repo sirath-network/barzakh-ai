@@ -11,7 +11,7 @@ import {
   boolean,
   integer,
   serial,
-} from "drizzle-orm/pg-core";export const user = pgTable("User", {
+} from "drizzle-orm/pg-core"; export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   email: varchar("email", { length: 64 }).unique(),
   walletAddress: varchar("walletAddress", { length: 64 }),
@@ -89,6 +89,7 @@ export const email_change_requests = pgTable("EmailChangeRequests", {
 export const chat = pgTable("Chat", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   createdAt: timestamp("createdAt").notNull(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   title: text("title").notNull(),
   userId: uuid("userId")
     .notNull()

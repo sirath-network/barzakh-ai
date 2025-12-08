@@ -75,6 +75,15 @@ export function Chat({
     fetcher
   );
 
+  // Also fetch archived history to find titles for archived chats
+  const { data: archivedHistory } = useSWR<Array<ChatHistory>>(
+    user ? "/api/history/archived" : null,
+    fetcher
+  );
+
+  // Combine both histories for finding chat info
+  const allHistory = [...(history || []), ...(archivedHistory || [])];
+
   const {
     messages,
     setMessages,
@@ -160,16 +169,16 @@ export function Chat({
   // Effect to detect scroll position
   useEffect(() => {
     const el = chatContainerRef.current;
-    
+
     // Throttle scroll handler to prevent excessive state updates
     let scrollTimeout: NodeJS.Timeout | null = null;
     const handleScroll = () => {
       if (!el) return;
-      
+
       if (scrollTimeout) {
         clearTimeout(scrollTimeout);
       }
-      
+
       scrollTimeout = setTimeout(() => {
         const threshold = 10;
         const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
@@ -234,6 +243,9 @@ export function Chat({
               ? `${view.charAt(0).toUpperCase() + view.slice(1)} Settings`
               : undefined
           }
+          // Pass chat specific props - look in both regular and archived history
+          chatTitle={view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.title : undefined}
+          chatVisibility={view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.visibility : undefined}
           onBackClick={view !== "chat" ? (() => {
             // Show settings list in the sidebar and ensure it's visible across devices
             if (setSidebarView) setSidebarView('settings');
@@ -248,88 +260,32 @@ export function Chat({
           selectedVisibilityType={
             view === "chat" ? selectedVisibilityType : undefined
           }
+          isArchived={isCurrentlyArchived}
+          onUnarchive={() => setIsCurrentlyArchived(false)}
           className="text-sm"
         />
 
-      <div className="relative flex-1 overflow-hidden">
-        <div
-          className={`
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            className={`
             absolute top-0 left-0 w-full h-full flex flex-col
             transition-transform duration-300 ease-in-out
             ${view === "chat" ? "translate-x-0" : "-translate-x-full"}
           `}
-        >
-          <InstallPrompt />
-          
-          {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center p-4 md:justify-center md:pb-24 md:overflow-y-auto custom-scrollbar">
-              <div className="flex-1 w-full max-w-3xl flex flex-col items-center justify-center gap-6 md:gap-8 md:flex-none overflow-y-auto md:overflow-visible">
-                <Overview />
-              </div>
-              
-              <div className="w-full max-w-3xl mt-4 md:mt-8 flex-none">
-                <div className="w-full mb-4">
-                  <QuestionSuggestions append={append} history={history} user={user} />
+          >
+            <InstallPrompt />
+
+            {messages.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center p-4 md:justify-center md:pb-24 md:overflow-y-auto custom-scrollbar">
+                <div className="flex-1 w-full max-w-3xl flex flex-col items-center justify-center gap-6 md:gap-8 md:flex-none overflow-y-auto md:overflow-visible">
+                  <Overview />
                 </div>
-                <div className="w-full">
-                  <MultimodalInputAny
-                    chatId={id}
-                    input={input}
-                    setInput={setInput}
-                    handleSubmit={handleSubmit}
-                    isLoading={isLoading}
-                    isReadonly={isReadonly}
-                    selectedModelId={currentModelId}
-                    onModelChange={setCurrentModelId}
-                    stop={stop}
-                    attachments={attachments}
-                    setAttachments={setAttachments}
-                    messages={messages}
-                    setMessages={setMessages}
-                    append={append}
-                    user={user}
-                    selectedGroup={selectedGroup}
-                    setSelectedGroup={setSelectedGroup}
-                    isAtBottom={isAtBottom}
-                    history={history}
-                    onSubmitMessage={scrollToBottom}
-                    disableSuggestions={true}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
-                <MessagesAny
-                  chatId={id}
-                  isLoading={isLoading}
-                  votes={votes}
-                  messages={messages}
-                  setMessages={setMessages}
-                  selectedGroup={selectedGroup}
-                  reload={reload}
-                  isReadonly={isReadonly}
-                />
-              </div>
-              <div className="flex-shrink-0">
-                <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-                  {isCurrentlyArchived ? (
-                    <div className="flex flex-col items-center justify-center py-4 px-6">
-                      <p className="text-sm text-muted-foreground mb-3 text-center">
-                        This conversation is archived. To continue, please unarchive it first.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleUnarchive}
-                        disabled={isUnarchiving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground rounded-full font-medium transition-colors border border-border text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ArchiveRestore className="w-4 h-4" />
-                        {isUnarchiving ? "Restoring..." : "Unarchive"}
-                      </button>
-                    </div>
-                  ) : (
+
+                <div className="w-full max-w-3xl mt-4 md:mt-8 flex-none">
+                  <div className="w-full mb-4">
+                    <QuestionSuggestions append={append} history={history} user={user} />
+                  </div>
+                  <div className="w-full">
                     <MultimodalInputAny
                       chatId={id}
                       input={input}
@@ -351,30 +307,88 @@ export function Chat({
                       isAtBottom={isAtBottom}
                       history={history}
                       onSubmitMessage={scrollToBottom}
+                      disableSuggestions={true}
                     />
-                  )}
-                </form>
+                  </div>
+                </div>
               </div>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
+                  <MessagesAny
+                    chatId={id}
+                    isLoading={isLoading}
+                    votes={votes}
+                    messages={messages}
+                    setMessages={setMessages}
+                    selectedGroup={selectedGroup}
+                    reload={reload}
+                    isReadonly={isReadonly}
+                  />
+                </div>
+                <div className="flex-shrink-0">
+                  <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
+                    {isCurrentlyArchived ? (
+                      <div className="flex flex-col items-center justify-center py-4 px-6">
+                        <p className="text-sm text-muted-foreground mb-3 text-center">
+                          This conversation is archived. To continue, please unarchive it first.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleUnarchive}
+                          disabled={isUnarchiving}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground rounded-full font-medium transition-colors border border-border text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ArchiveRestore className="w-4 h-4" />
+                          {isUnarchiving ? "Restoring..." : "Unarchive"}
+                        </button>
+                      </div>
+                    ) : (
+                      <MultimodalInputAny
+                        chatId={id}
+                        input={input}
+                        setInput={setInput}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        isReadonly={isReadonly}
+                        selectedModelId={currentModelId}
+                        onModelChange={setCurrentModelId}
+                        stop={stop}
+                        attachments={attachments}
+                        setAttachments={setAttachments}
+                        messages={messages}
+                        setMessages={setMessages}
+                        append={append}
+                        user={user}
+                        selectedGroup={selectedGroup}
+                        setSelectedGroup={setSelectedGroup}
+                        isAtBottom={isAtBottom}
+                        history={history}
+                        onSubmitMessage={scrollToBottom}
+                      />
+                    )}
+                  </form>
+                </div>
+              </>
+            )}
+          </div>
 
-        <main
-          className={`
+          <main
+            className={`
             absolute top-0 left-0 w-full h-full flex flex-col
             transition-transform duration-300 ease-in-out
             ${view !== "chat" ? "translate-x-0" : "translate-x-full"}
           `}
-        >
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {settingsViews(user)[view]}
-          </div>
-        </main>
-      </div>
+          >
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {settingsViews(user)[view]}
+            </div>
+          </main>
+        </div>
 
-      {/* Artifact Viewer - Slides in from the right */}
-      <ArtifactViewer />
-    </div>
+        {/* Artifact Viewer - Slides in from the right */}
+        <ArtifactViewer />
+      </div>
     </ArtifactProvider>
   );
 }

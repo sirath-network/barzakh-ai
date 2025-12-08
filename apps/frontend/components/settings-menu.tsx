@@ -33,16 +33,16 @@ const ShieldAny = Shield as any;
 const BadgeDollarSignAny = BadgeDollarSign as any;
 const WalletAny = Wallet as any;
 
-const SettingsMenuItem = ({ 
-  icon, 
-  children, 
-  onClick 
-}: { 
-  icon: React.ReactNode, 
-  children: React.ReactNode, 
-  onClick: () => void 
+const SettingsMenuItem = ({
+  icon,
+  children,
+  onClick
+}: {
+  icon: React.ReactNode,
+  children: React.ReactNode,
+  onClick: () => void
 }) => (
-  <button 
+  <button
     onClick={onClick}
     className="w-full flex items-center text-left p-2 rounded-md hover:bg-muted transition-colors duration-200 text-sm font-medium text-foreground"
   >
@@ -52,10 +52,10 @@ const SettingsMenuItem = ({
   </button>
 );
 
-export function SettingsMenu({ 
-  user 
-}: { 
-  user: User & { username?: string | null } | undefined 
+export function SettingsMenu({
+  user
+}: {
+  user: User & { username?: string | null } | undefined
 }) {
   const { theme, setTheme } = useTheme();
   const { setView } = useView();
@@ -75,15 +75,23 @@ export function SettingsMenu({
   return (
     <div className="flex flex-col h-full p-1 space-y-1">
       <div className="flex items-center p-3 mb-2 space-x-3 sm:space-x-4">
-        {user?.image && (
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-primary/30 to-primary/60 flex-shrink-0 flex items-center justify-center">
+          {user?.image ? (
             <img
               src={user.image}
               alt={user.name ?? "User Avatar"}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // Hide broken image and show fallback initial
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
             />
-          </div>
-        )}
+          ) : null}
+          <span className={`text-2xl font-bold text-white ${user?.image ? 'hidden' : ''}`}>
+            {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+          </span>
+        </div>
         <div className="min-w-0 flex-1">
           <p className="font-bold text-base sm:text-lg uppercase tracking-wider text-foreground truncate">
             {user?.name ?? 'Guest'}
@@ -119,25 +127,25 @@ export function SettingsMenu({
         Security
       </div>
       <div className="flex flex-col space-y-1 px-2">
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<ShieldAny size={18} />}
           onClick={() => handleMenuClick('2fa')}
         >
           2FA Settings
         </SettingsMenuItem>
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<MailAny size={18} />}
           onClick={() => handleMenuClick('email')}
         >
           Email Settings
         </SettingsMenuItem>
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<WalletAny size={18} />}
           onClick={() => handleMenuClick('wallet')}
         >
           Wallet Settings
         </SettingsMenuItem>
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<KeyRoundAny size={18} />}
           onClick={() => handleMenuClick('password')}
         >
@@ -150,13 +158,13 @@ export function SettingsMenu({
         Subscription
       </div>
       <div className="flex flex-col space-y-1 px-2">
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<BadgeDollarSignAny size={18} />}
           onClick={() => handleMenuClick('plans')}
         >
           Plans & Pricing
         </SettingsMenuItem>
-        <SettingsMenuItem 
+        <SettingsMenuItem
           icon={<CreditCardAny size={18} />}
           onClick={() => handleMenuClick('billing')}
         >
@@ -169,26 +177,26 @@ export function SettingsMenu({
         Appearance
       </div>
       <div className="p-2 space-y-2">
-          <div className="flex gap-2">
-            <ButtonAny
-              variant={theme === 'light' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setTheme('light')}
-              className="w-full flex items-center gap-2"
-            >
-              <SunIconAny className="w-4 h-4" />
-              Light
-            </ButtonAny>
-            <ButtonAny
-              variant={theme === 'dark' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setTheme('dark')}
-              className="w-full flex items-center gap-2"
-            >
-              <MoonIconAny className="w-4 h-4" />
-              Dark
-            </ButtonAny>
-          </div>
+        <div className="flex gap-2">
+          <ButtonAny
+            variant={theme === 'light' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setTheme('light')}
+            className="w-full flex items-center gap-2"
+          >
+            <SunIconAny className="w-4 h-4" />
+            Light
+          </ButtonAny>
+          <ButtonAny
+            variant={theme === 'dark' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setTheme('dark')}
+            className="w-full flex items-center gap-2"
+          >
+            <MoonIconAny className="w-4 h-4" />
+            Dark
+          </ButtonAny>
+        </div>
       </div>
     </div>
   );

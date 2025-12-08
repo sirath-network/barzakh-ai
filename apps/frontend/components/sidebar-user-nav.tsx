@@ -1,15 +1,25 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import Image from "next/image";
+import {
+  ChevronDown,
+  CreditCard,
+  LogOut,
+  Settings,
+  BadgeDollarSign,
+  Sun,
+  Moon,
+} from "lucide-react";
 import type { User } from "next-auth";
+import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import { handleLogout } from "@/lib/auth-utils";
+
 
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -19,30 +29,42 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-const SidebarMenuAny = SidebarMenu as any;
-const SidebarMenuItemAny = SidebarMenuItem as any;
-const SidebarMenuButtonAny = SidebarMenuButton as any;
-const DropdownMenuAny = DropdownMenu as any;
-const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
-const DropdownMenuContentAny = DropdownMenuContent as any;
-const DropdownMenuItemAny = DropdownMenuItem as any;
-const DropdownMenuSeparatorAny = DropdownMenuSeparator as any;
+import { useRouter } from "next/navigation";
+import { useView } from "@/context/view-context";
 
 interface SidebarUserNavProps {
-  user: User;
+  user: User & { tier?: string };
+  compact?: boolean;
 }
 
-export function SidebarUserNav({ user }: SidebarUserNavProps) {
+export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
   const { setTheme, theme } = useTheme();
+  const router = useRouter();
+  const { setView } = useView();
   // 1. Get all relevant state from useSidebar context
-  const { 
-    setSidebarView, 
-    state, 
-    toggleSidebar, 
-    isMobile, 
-    openMobile 
+  const {
+    setSidebarView,
+    state,
+    toggleSidebar,
+    isMobile,
+    openMobile,
+    setOpen,
+    setOpenMobile
   } = useSidebar();
+
+  // Define Any types for components to resolve TS errors
+  const DropdownMenuAny = DropdownMenu as any;
+  const DropdownMenuContentAny = DropdownMenuContent as any;
+  const DropdownMenuTriggerAny = DropdownMenuTrigger as any;
+  const DropdownMenuLabelAny = DropdownMenuLabel as any;
+  const DropdownMenuSeparatorAny = DropdownMenuSeparator as any;
+  const DropdownMenuGroupAny = DropdownMenuGroup as any;
+  const DropdownMenuItemAny = DropdownMenuItem as any;
+
+  const SidebarMenuAny = SidebarMenu as any;
+  const SidebarMenuItemAny = SidebarMenuItem as any;
+  const SidebarMenuButtonAny = SidebarMenuButton as any;
+
 
   // 2. Update handleSettingsClick function with mobile logic
   const handleSettingsClick = () => {
@@ -57,94 +79,147 @@ export function SidebarUserNav({ user }: SidebarUserNavProps) {
 
     // Call toggleSidebar if one of the conditions is met
     if ((isDesktopCollapsed || isMobileClosed) && toggleSidebar) {
-        toggleSidebar();
+      toggleSidebar();
     }
   };
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
+  };
+
+  const content = (
+    <DropdownMenuAny>
+      <DropdownMenuTriggerAny asChild>
+        <SidebarMenuButtonAny className={`data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-12 hover:bg-muted/60 transition-all duration-200 rounded-xl ${compact ? "w-auto px-2 bg-transparent border-0 shadow-none hover:bg-transparent" : "w-full px-4 bg-background/80 border border-border/30 shadow-sm hover:shadow-md"}`}>
+          <div className="flex w-full items-center justify-start gap-3">
+            {user?.image ? (
+              <img
+                src={user.image}
+                alt="User Avatar"
+                width={32}
+                height={32}
+                className="rounded-full border-2 border-border/30 shadow-sm w-8 h-8 object-cover"
+                onError={(e: any) => {
+                  // On error, replace with fallback avatar
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={`w-8 h-8 rounded-full border-2 border-border/30 shadow-sm bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center ${user?.image ? 'hidden' : ''}`}>
+              <span className="text-xs font-bold text-white">
+                {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+              </span>
+            </div>
+            <div className={`${compact ? "hidden" : "block"} flex-1 text-left min-w-0`}>
+              <div className="text-sm font-medium text-foreground truncate">
+                {user?.name || "User"}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {user?.email}
+              </div>
+            </div>
+            <ChevronDown className={`${compact ? "hidden" : "block"} h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180`} />
+          </div>
+        </SidebarMenuButtonAny>
+      </DropdownMenuTriggerAny>
+      <DropdownMenuContentAny
+        className={`${compact ? "min-w-56" : "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"} rounded-xl border-border/30 shadow-lg`}
+        side={compact ? "left" : "top"}
+        align={compact ? "end" : "start"}
+        sideOffset={8}
+      >
+        <DropdownMenuLabelAny className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            {user.image && (
+              <img
+                src={user.image}
+                alt={user.name || "User"}
+                width={32}
+                height={32}
+                className="rounded-full w-8 h-8 object-cover border border-border/30"
+              />
+            )}
+            <div className="grid flex-1 text-left leading-tight">
+              <span className="truncate font-semibold">{user.name}</span>
+              <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+            </div>
+          </div>
+        </DropdownMenuLabelAny>
+        <DropdownMenuSeparatorAny />
+        {/* Only show Upgrade Plan if user is not already on pro or ultimate tier */}
+        {(!user.tier || !['pro', 'ultimate'].includes(user.tier.toLowerCase())) && (
+          <>
+            <DropdownMenuGroupAny>
+              <DropdownMenuItemAny onClick={() => {
+                // Navigate to Plans & Pricing page
+                setView('plans');
+                // Close sidebar for cleaner settings view
+                setOpen(false);
+                setOpenMobile(false);
+                if (setSidebarView) {
+                  setSidebarView('history');
+                }
+              }}>
+                <BadgeDollarSign className="mr-2 h-4 w-4" />
+                Upgrade Plan
+              </DropdownMenuItemAny>
+            </DropdownMenuGroupAny>
+          </>
+        )}
+        <DropdownMenuSeparatorAny />
+        <DropdownMenuGroupAny>
+          <DropdownMenuItemAny onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            {theme === 'dark' ? (
+              <Sun className="mr-2 h-4 w-4" />
+            ) : (
+              <Moon className="mr-2 h-4 w-4" />
+            )}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </DropdownMenuItemAny>
+          <DropdownMenuItemAny onClick={() => {
+            if (setSidebarView) setSidebarView('settings');
+            // Ensure sidebar logic handles view switch
+            const isDesktopCollapsed = !isMobile && state === 'collapsed';
+            const isMobileClosed = isMobile && !openMobile;
+            if ((isDesktopCollapsed || isMobileClosed) && toggleSidebar) {
+              toggleSidebar();
+            }
+          }}>
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </DropdownMenuItemAny>
+          <DropdownMenuItemAny onClick={() => {
+            // Set view to billing to open billing settings panel
+            setView('billing');
+            // Close sidebar for cleaner settings view
+            setOpen(false);
+            setOpenMobile(false);
+            if (setSidebarView) {
+              setSidebarView('history');
+            }
+          }}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Billing
+          </DropdownMenuItemAny>
+        </DropdownMenuGroupAny>
+        <DropdownMenuSeparatorAny />
+        <DropdownMenuItemAny onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4 text-red-500" />
+          Log out
+        </DropdownMenuItemAny>
+      </DropdownMenuContentAny>
+    </DropdownMenuAny>
+  );
+
+  if (compact) {
+    return content;
+  }
 
   return (
     <SidebarMenuAny>
       <SidebarMenuItemAny>
-        <DropdownMenuAny>
-          <DropdownMenuTriggerAny asChild>
-            <SidebarMenuButtonAny className="data-[state=open]:bg-sidebar-accent bg-background/80 data-[state=open]:text-sidebar-accent-foreground h-12 hover:bg-muted/60 transition-all duration-200 rounded-xl border border-border/30 shadow-sm hover:shadow-md">
-              <div className="flex w-full items-center justify-start gap-3">
-                {user?.image ? (
-                  <Image
-                    src={user.image}
-                    alt="User Avatar"
-                    width={32}
-                    height={32}
-                    className="rounded-full border-2 border-border/30 shadow-sm"
-                  />
-                ) : (
-                  <Image
-                    src={`https://avatar.vercel.sh/${user.email}`}
-                    alt={user.email ?? "User Avatar"}
-                    width={32}
-                    height={32}
-                    className="rounded-full border-2 border-border/30 shadow-sm"
-                  />
-                )}
-                <div className="flex-1 text-left min-w-0">
-                  <div className="text-sm font-medium text-foreground truncate">
-                    {user?.name || "User"}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {user?.email}
-                  </div>
-                </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </div>
-            </SidebarMenuButtonAny>
-          </DropdownMenuTriggerAny>
-
-          <DropdownMenuContentAny 
-            side="top" 
-            className="w-full min-w-[240px] shadow-xl border-border/50 bg-background/95 backdrop-blur-sm rounded-xl" 
-            sideOffset={8}
-          >
-            <div className="block md:hidden">
-              <DropdownMenuItemAny className="focus:bg-muted/60 rounded-lg mx-1">
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm">{user?.name || "User"}</span>
-                  <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
-                </div>
-              </DropdownMenuItemAny>
-              <DropdownMenuSeparatorAny className="mx-1" />
-            </div>
-
-            <DropdownMenuItemAny
-              className="cursor-pointer focus:bg-muted/60 rounded-lg mx-1 transition-colors duration-200"
-              onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
-                <span className="font-medium">{`Switch to ${theme === "light" ? "dark" : "light"} mode`}</span>
-              </div>
-            </DropdownMenuItemAny>
-
-            <DropdownMenuSeparatorAny className="mx-1" />
-
-            <DropdownMenuItemAny
-              className="cursor-pointer focus:bg-muted/60 rounded-lg mx-1 transition-colors duration-200"
-              onSelect={handleSettingsClick} // Call the updated function
-            >
-              <span className="font-medium">Settings</span>
-            </DropdownMenuItemAny>
-
-            <DropdownMenuSeparatorAny className="mx-1" />
-
-            <DropdownMenuItemAny asChild>
-              <button
-                type="button"
-                className="w-full cursor-pointer focus:bg-destructive/10 focus:text-destructive rounded-lg mx-1 transition-colors duration-200 font-medium"
-                onClick={handleLogout}
-              >
-                Sign out
-              </button>
-            </DropdownMenuItemAny>
-          </DropdownMenuContentAny>
-        </DropdownMenuAny>
+        {content}
       </SidebarMenuItemAny>
     </SidebarMenuAny>
   );

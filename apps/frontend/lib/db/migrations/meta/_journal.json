@@ -71,6 +71,13 @@
       "when": 1765069909481,
       "tag": "0009_rare_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1765214225800,
+      "tag": "0010_add_chat_updated_at",
+      "breakpoints": true
     }
   ]
 }

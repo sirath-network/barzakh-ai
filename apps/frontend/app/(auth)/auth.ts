@@ -43,9 +43,9 @@ export const authOptions: NextAuthConfig = {
               throw new Error("AUTH_SECRET is required");
             }
             const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
-            
+
             const { payload } = await jwtVerify(sessionToken, secret);
-            
+
             if (payload.type === "session" && payload.email) {
               const users = await getUser(payload.email as string);
               if (users.length > 0) {
@@ -58,25 +58,25 @@ export const authOptions: NextAuthConfig = {
           }
           return null;
         }
-        
+
         // Regular password authentication
         if (!email || !password) {
           console.log("Missing email or password for regular auth");
           return null;
         }
-        
+
         const users = await getUser(email);
         if (users.length === 0) {
           console.log("User not found:", email);
           return null;
         }
-        
+
         const passwordsMatch = await compare(password, users[0].password!);
         if (!passwordsMatch) {
           // console.log("Password mismatch for user:", email);
           return null;
         }
-        
+
         return users[0] as any;
       },
     }),
@@ -91,13 +91,13 @@ export const authOptions: NextAuthConfig = {
       async authorize(credentials: any) {
         try {
           const { address, signature, message } = credentials;
-          
+
           if (!address || !signature || !message) return null;
 
           // 1. Verify the nonce from cookie
           const cookieStore = await cookies();
           const nonceToken = cookieStore.get("auth-nonce")?.value;
-          
+
           if (!nonceToken) {
             console.error("No nonce found");
             return null;
@@ -111,14 +111,14 @@ export const authOptions: NextAuthConfig = {
           const { payload } = await jwtVerify(nonceToken, secret);
 
           if (payload.address !== address) {
-             console.error("Address mismatch");
-             return null;
+            console.error("Address mismatch");
+            return null;
           }
-          
+
           // Check if message contains the nonce
           if (!message.includes(payload.nonce as string)) {
-             console.error("Invalid nonce in message");
-             return null;
+            console.error("Invalid nonce in message");
+            return null;
           }
 
           // 2. Verify the signature
@@ -186,11 +186,11 @@ export const authOptions: NextAuthConfig = {
         try {
           const [existingUser] = await getUser(user.email);
           const queryTime = Date.now() - startTime;
-          
+
           if (queryTime > 1000) {
             console.warn(`⚠️ Slow getUser query: ${queryTime}ms for ${user.email}`);
           }
-          
+
           if (existingUser) {
             // User already exists, populate token from DB.
             token.id = existingUser.id;
@@ -213,11 +213,11 @@ export const authOptions: NextAuthConfig = {
               user.image
             );
             const createTime = Date.now() - createStartTime;
-            
+
             if (createTime > 1000) {
               console.warn(`⚠️ Slow createUser operation: ${createTime}ms for ${user.email}`);
             }
-            
+
             token.id = newUser.id;
             token.name = newUser.name;
             token.email = newUser.email;
@@ -232,37 +232,37 @@ export const authOptions: NextAuthConfig = {
           console.error("❌ Error in OAuth callback:", error);
           throw error;
         }
-      } 
+      }
       // Handle initial sign-in for Wallet users (who might not have email)
       else if (user && (user as any).walletAddress) {
-         const dbUser = user as any;
-         token.id = dbUser.id;
-         token.name = dbUser.name;
-         token.email = dbUser.email;
-         token.image = dbUser.image;
-         token.username = dbUser.username;
-         token.tier = dbUser.tier;
-         token.billingCycle = dbUser.billingCycle;
-         token.hasPassword = !!dbUser.password;
-         token.tokenVersion = dbUser.tokenVersion;
-         token.walletAddress = dbUser.walletAddress;
+        const dbUser = user as any;
+        token.id = dbUser.id;
+        token.name = dbUser.name;
+        token.email = dbUser.email;
+        token.image = dbUser.image;
+        token.username = dbUser.username;
+        token.tier = dbUser.tier;
+        token.billingCycle = dbUser.billingCycle;
+        token.hasPassword = !!dbUser.password;
+        token.tokenVersion = dbUser.tokenVersion;
+        token.walletAddress = dbUser.walletAddress;
       }
       // ✅ Optimized: Use caching to prevent excessive DB queries while still keeping data fresh
       else if (token.id) {
         const now = Date.now();
         const cached = userCache.get(token.id as string);
-        
+
         // Use cached data if it's still fresh (less than 5 minutes old)
         if (cached && (now - cached.timestamp) < CACHE_DURATION) {
           const dbUser = cached.user;
-          
+
           // Check token version
           const tokenVer = token.tokenVersion ?? 0;
           const dbVer = dbUser.tokenVersion ?? 0;
-          
+
           if (tokenVer !== dbVer) {
-             console.log(`Token version mismatch (cached) for ${token.id}: token=${tokenVer}, db=${dbVer}`);
-             return null;
+            console.log(`Token version mismatch (cached) for ${token.id}: token=${tokenVer}, db=${dbVer}`);
+            return null;
           }
 
           token.id = dbUser.id;
@@ -281,10 +281,10 @@ export const authOptions: NextAuthConfig = {
             // Check token version
             const tokenVer = token.tokenVersion ?? 0;
             const dbVer = dbUser.tokenVersion ?? 0;
-            
+
             if (tokenVer !== dbVer) {
-               console.log(`Token version mismatch (db) for ${token.id}: token=${tokenVer}, db=${dbVer}`);
-               return null;
+              console.log(`Token version mismatch (db) for ${token.id}: token=${tokenVer}, db=${dbVer}`);
+              return null;
             }
 
             // Update the token with the latest data from the database.
@@ -298,7 +298,7 @@ export const authOptions: NextAuthConfig = {
             token.hasPassword = !!dbUser.password;
             token.tokenVersion = dbUser.tokenVersion;
             token.walletAddress = dbUser.walletAddress;
-            
+
             // Cache the result
             userCache.set(token.id as string, { user: dbUser, timestamp: now });
           } else {

@@ -16,7 +16,7 @@ async function getCroUsdPrice(): Promise<number> {
       "https://api.coingecko.com/api/v3/simple/price?ids=crypto-com-chain&vs_currencies=usd",
       { next: { revalidate: 300 } } // Cache for 5 minutes
     );
-    
+
     if (!response.ok) {
       console.error("Failed to fetch CRO price from CoinGecko");
       return cachedCroPrice?.price ?? 0.10; // Fallback to cached or default
@@ -24,10 +24,10 @@ async function getCroUsdPrice(): Promise<number> {
 
     const data = await response.json();
     const price = data["crypto-com-chain"]?.usd ?? 0.10;
-    
+
     // Update cache
     cachedCroPrice = { price, timestamp: Date.now() };
-    
+
     return price;
   } catch (error) {
     console.error("Error fetching CRO price:", error);
@@ -59,22 +59,22 @@ export async function POST(request: Request) {
 
   // Get USD price for the plan
   const usdPrice = PLAN_PRICES_USD[planId]?.[billingCycle] ?? 0;
-  
+
   if (usdPrice === 0) {
     return NextResponse.json({ error: "Invalid plan or billing cycle" }, { status: 400 });
   }
 
   // Fetch current CRO/USD price
   const croUsdPrice = await getCroUsdPrice();
-  
+
   // Calculate TCRO amount: USD price / CRO price
   const tcroAmount = usdPrice / croUsdPrice;
-  
+
   // Round to 2 decimal places for cleaner display
   const tcroAmountRounded = Math.ceil(tcroAmount * 100) / 100;
 
   // Use a default test address if env var is not set
-  const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535"; 
+  const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
 
   return NextResponse.json(
     {

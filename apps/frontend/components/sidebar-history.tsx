@@ -211,10 +211,9 @@ const PureChatItem = ({
           isActive={isActive}
           className={`
             flex-1 rounded-lg transition-all duration-200 border-0
-            ${
-              isActive
-                ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10"
-                : "hover:bg-muted/60"
+            ${isActive
+              ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10"
+              : "hover:bg-muted/60"
             }
           `}
         >
@@ -437,6 +436,10 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
             return history.filter((h) => h.id !== chatId);
           }
         });
+        // Redirect to new chat if the user is currently viewing the archived chat
+        if (chatId === id) {
+          router.push("/");
+        }
         return "Archived successfully";
       },
       error: "Failed to archive chat",
@@ -476,7 +479,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
             <div className="p-3 rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
               <BarzakhAI size={32} />
             </div>
-            
+
             <div className="space-y-1.5">
               <h3 className="font-semibold text-foreground tracking-tight">
                 Welcome to Barzakh AI
@@ -543,7 +546,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
     return chats.reduce(
       (groups, chat) => {
-        const chatDate = new Date(chat.createdAt);
+        // Use updatedAt for grouping, fallback to createdAt for older chats without updatedAt
+        const chatDate = new Date((chat as any).updatedAt || chat.createdAt);
 
         if (isToday(chatDate)) {
           groups.today.push(chat);
@@ -579,7 +583,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     <>
       {/* Fixed: Add proper height constraints and scrolling */}
       <SidebarGroupAny className="flex-1 min-h-0 h-full">
-        <SidebarGroupContentAny 
+        <SidebarGroupContentAny
           className="h-full min-h-0"
           style={{
             // Force proper height calculation
@@ -589,7 +593,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           }}
         >
           {/* This is the actual scrollable container */}
-          <div 
+          <div
             className="h-full overflow-y-auto overflow-x-hidden"
             style={{
               scrollbarWidth: 'thin',
@@ -714,7 +718,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           </div>
         </SidebarGroupContentAny>
       </SidebarGroupAny>
-      
+
       <AlertDialogAny open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
           <AlertDialogHeaderAny>
@@ -726,12 +730,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
             </AlertDialogDescriptionAny>
           </AlertDialogHeaderAny>
           <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
-            <AlertDialogCancelAny 
+            <AlertDialogCancelAny
               className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200"
             >
               Cancel
             </AlertDialogCancelAny>
-            <AlertDialogActionAny 
+            <AlertDialogActionAny
               onClick={handleDelete}
               className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
             >

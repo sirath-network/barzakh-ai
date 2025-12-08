@@ -3,7 +3,7 @@
 import type { User } from "next-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MessageCirclePlus, ArrowLeft } from 'lucide-react';
+import { SquarePen, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from "@/lib/framer-motion"; // 1. Import framer-motion
 
 import { SidebarHistory } from "@/components/sidebar-history";
@@ -36,13 +36,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const TooltipTriggerAny = TooltipTrigger as any;
   const TooltipContentAny = TooltipContent as any;
   const ButtonAny = Button as any;
-  const MessageCirclePlusAny = MessageCirclePlus as any;
+  const SquarePenAny = SquarePen as any;
   const ArrowLeftAny = ArrowLeft as any;
 
   const handleNewChat = () => {
     setOpenMobile(false);
     if (setSidebarView) {
-      setSidebarView('history'); 
+      setSidebarView('history');
     }
     setView('chat');
     router.push("/");
@@ -55,7 +55,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: "easeInOut" } },
     exit: { opacity: 0, x: 20, transition: { duration: 0.2, ease: "easeInOut" } },
   };
-  
+
   const headerAnimation = {
     initial: { opacity: 0 },
     animate: { opacity: 1, transition: { duration: 0.15 } },
@@ -97,7 +97,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         className="p-2.5 h-auto rounded-lg border border-border/20 shadow-sm hover:border-primary/30 hover:shadow-md hover:bg-primary/10 hover:text-primary"
                         onClick={handleNewChat}
                       >
-                        <MessageCirclePlusAny className="h-4 w-4" />
+                        <SquarePenAny className="h-4 w-4" />
                       </ButtonAny>
                     </TooltipTriggerAny>
                     <TooltipContentAny align="end" className="font-medium hidden sm:block">
@@ -110,20 +110,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   <TooltipAny>
                     <TooltipTriggerAny asChild>
                       <ButtonAny
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9"
-                          onClick={() => setSidebarView && setSidebarView('history')}
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => setSidebarView && setSidebarView('history')}
                       >
                         <ArrowLeftAny className="h-4 w-4" />
                       </ButtonAny>
                     </TooltipTriggerAny>
                     {/* ✅ Add 'hidden sm:block' to hide on mobile */}
-                    <TooltipContentAny 
-                      align="start" 
+                    <TooltipContentAny
+                      align="start"
                       className="font-medium hidden sm:block"
                     >
-                       Back to History
+                      Back to History
                     </TooltipContentAny>
                   </TooltipAny>
                   <span className="text-md font-bold text-foreground">
@@ -139,20 +139,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarContentAny className="px-2 py-4 overflow-hidden">
         {/* 4. Use AnimatePresence for content */}
         <AnimatePresence initial={false} mode="wait">
-            <motion.div
-              key={sidebarView}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              variants={viewAnimation}
-              className="h-full"
-            >
-              {sidebarView === 'history' ? (
-                <SidebarHistory user={user} />
-              ) : (
-                <SettingsMenu user={user} />
-              )}
-            </motion.div>
+          <motion.div
+            key={sidebarView}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={viewAnimation}
+            className="h-full"
+          >
+            {sidebarView === 'history' ? (
+              <SidebarHistory user={user} />
+            ) : (
+              <SettingsMenu user={user} />
+            )}
+          </motion.div>
         </AnimatePresence>
       </SidebarContentAny>
 
