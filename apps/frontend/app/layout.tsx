@@ -81,11 +81,22 @@ const THEME_COLOR_SCRIPT = `\
   updateThemeAssets();
 })();`;
 
+import { headers } from "next/headers";
+import { cookieToInitialState } from "wagmi";
+import { config } from "@/lib/wagmi";
+
+
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialState = cookieToInitialState(
+    config,
+    (await headers()).get("cookie")
+  );
+
   return (
     <html
       lang="en"
@@ -111,7 +122,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Web3Provider>
+            <Web3Provider initialState={initialState}>
               <Toaster position="top-center" />
               {children}
               <SpeedInsights />

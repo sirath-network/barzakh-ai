@@ -21,5 +21,13 @@
     "@tavily/core": "^0.0.3",
     "turbo": "2.4.4",
     "zod": "3.25.76"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tanstack/react-query": "5.90.11"
+    }
+  },
+  "resolutions": {
+    "@tanstack/react-query": "5.90.11"
   }
 }
