@@ -37,9 +37,7 @@ export const TRUSTED_IMAGE_DOMAINS = [
   // Cloudflare R2 Storage (primary)
   'r2.barzakh.tech',
   'r2.cloudflarestorage.com',
-  // Vercel Blob Storage (legacy)
-  'blob.vercel-storage.com',
-  'vercel-storage.com',
+  // Common trusted domains
   'images.unsplash.com',
   'cdn.discordapp.com',
   'i.imgur.com',
@@ -69,7 +67,7 @@ export function validateImageUrl(url: string): SecurityCheckResult {
 
   try {
     const parsedUrl = new URL(url);
-    
+
     // Check for non-HTTPS (except localhost for dev)
     if (parsedUrl.protocol !== 'https:' && parsedUrl.hostname !== 'localhost') {
       threats.push({
@@ -82,7 +80,7 @@ export function validateImageUrl(url: string): SecurityCheckResult {
     }
 
     // Check if domain is trusted
-    const isTrusted = TRUSTED_IMAGE_DOMAINS.some(domain => 
+    const isTrusted = TRUSTED_IMAGE_DOMAINS.some(domain =>
       parsedUrl.hostname === domain || parsedUrl.hostname.endsWith(`.${domain}`)
     );
 
@@ -93,14 +91,14 @@ export function validateImageUrl(url: string): SecurityCheckResult {
 
     // Check file extension
     const pathname = parsedUrl.pathname.toLowerCase();
-    const hasValidExtension = ALLOWED_IMAGE_EXTENSIONS.some(ext => 
+    const hasValidExtension = ALLOWED_IMAGE_EXTENSIONS.some(ext =>
       pathname.endsWith(`.${ext}`)
     );
 
     // Allow URLs without extensions (CDN URLs often don't have them)
     // But flag suspicious extensions
     const suspiciousExtensions = ['.html', '.htm', '.php', '.asp', '.jsp', '.exe'];
-    const hasSuspiciousExtension = suspiciousExtensions.some(ext => 
+    const hasSuspiciousExtension = suspiciousExtensions.some(ext =>
       pathname.endsWith(ext)
     );
 
@@ -442,7 +440,7 @@ async function checkMagicBytesMatch(file: File | Blob): Promise<{ valid: boolean
 
   // Check if detected type matches declared type
   const declaredType = file.type.toLowerCase();
-  const valid = detectedType === declaredType || 
+  const valid = detectedType === declaredType ||
     // Allow jpeg/jpg variations
     (detectedType === 'image/jpeg' && (declaredType === 'image/jpeg' || declaredType === 'image/jpg'));
 
@@ -469,29 +467,29 @@ const ADVANCED_IMAGE_INJECTION_PATTERNS = [
   { pattern: /bypass\s+(the\s+)?filter/i, severity: 'high' as const, description: 'Filter bypass attempt' },
   // Encoded payloads
   { pattern: /base64|eval\(|exec\(/i, severity: 'medium' as const, description: 'Code execution reference' },
-  
+
   // Advanced image injection techniques
   { pattern: /\[system\]|\[INST\]|<<SYS>>/i, severity: 'critical' as const, description: 'LLM control tokens in image' },
   { pattern: /assistant:\s*(?:sure|ok|yes)/i, severity: 'high' as const, description: 'Fake assistant response in image' },
   { pattern: /human:\s*(?:ignore|forget)/i, severity: 'high' as const, description: 'Fake human instruction in image' },
   { pattern: /end\s+of\s+(?:system|prompt)/i, severity: 'high' as const, description: 'Context boundary manipulation in image' },
   { pattern: /---+\s*(?:new|system|admin)/i, severity: 'high' as const, description: 'Delimiter attack in image' },
-  
+
   // Steganographic hints
   { pattern: /hidden\s+(?:message|instruction|command)/i, severity: 'high' as const, description: 'Reference to hidden content' },
   { pattern: /decode\s+(?:this|the\s+)?(?:image|message)/i, severity: 'medium' as const, description: 'Decode instruction reference' },
   { pattern: /steganograph/i, severity: 'high' as const, description: 'Steganography reference' },
   { pattern: /secret\s+(?:message|instruction|command)/i, severity: 'high' as const, description: 'Secret instruction reference' },
-  
+
   // Multi-language image attacks
   { pattern: /(?:忽略|忘记).*(?:指令|规则)/i, severity: 'high' as const, description: 'Chinese injection in image' },
   { pattern: /(?:ignorar|olvidar).*(?:instrucciones)/i, severity: 'high' as const, description: 'Spanish injection in image' },
   { pattern: /(?:игнорир|забудь).*(?:инструкц)/i, severity: 'high' as const, description: 'Russian injection in image' },
-  
+
   // QR code / barcode instructions
   { pattern: /scan\s+(?:this\s+)?(?:qr|code|barcode)/i, severity: 'medium' as const, description: 'QR/Barcode scan instruction' },
   { pattern: /follow\s+(?:the\s+)?(?:link|url|qr)/i, severity: 'medium' as const, description: 'URL follow instruction in image' },
-  
+
   // Metadata poisoning references
   { pattern: /exif|metadata|iptc/i, severity: 'medium' as const, description: 'Metadata manipulation reference' },
   { pattern: /read\s+(?:the\s+)?(?:exif|metadata|hidden)/i, severity: 'high' as const, description: 'Hidden data reading instruction' },

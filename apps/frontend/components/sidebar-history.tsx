@@ -1,6 +1,5 @@
 "use client";
 
-import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import type { User } from "next-auth";
@@ -107,14 +106,6 @@ const AlertDialogActionAny = AlertDialogAction as any;
 const ButtonAny = Button as any;
 const InputAny = Input as any;
 
-type GroupedChats = {
-  today: Chat[];
-  yesterday: Chat[];
-  lastWeek: Chat[];
-  lastMonth: Chat[];
-  older: Chat[];
-};
-
 const PureChatItem = ({
   chat,
   isActive,
@@ -181,7 +172,6 @@ const PureChatItem = ({
       await updateChatTitle({ chatId: chat.id, title: trimmedTitle });
       onTitleUpdate(chat.id, trimmedTitle);
       setIsEditModalOpen(false);
-      toast.success("Title name updated");
     } catch (error) {
       console.error("Failed to update chat title:", error);
       toast.error("Failed to update chat name");
@@ -265,8 +255,7 @@ const PureChatItem = ({
           >
             <DropdownMenuItemAny
               className="cursor-pointer"
-              onSelect={(e: any) => {
-                e.preventDefault();
+              onSelect={() => {
                 handleOpenEditModal();
               }}
             >
@@ -418,9 +407,16 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const handleTitleUpdate = (chatId: string, newTitle: string) => {
     mutate((history) => {
       if (history) {
-        return history.map((chat) =>
-          chat.id === chatId ? { ...chat, title: newTitle } : chat
-        );
+        const updatedChat = history.find((chat) => chat.id === chatId);
+        if (updatedChat) {
+          // Move the updated chat to the top with new title and updatedAt
+          const otherChats = history.filter((chat) => chat.id !== chatId);
+          return [
+            { ...updatedChat, title: newTitle, updatedAt: new Date() },
+            ...otherChats,
+          ];
+        }
+        return history;
       }
       return history;
     }, false);
@@ -497,11 +493,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   if (isLoading) {
     return (
       <SidebarGroupAny className="h-full">
-        <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-          Today
-        </div>
         <SidebarGroupContentAny className="h-full">
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2 px-1 pt-2">
             {[64, 48, 56, 72, 40].map((width, index) => (
               <div
                 key={index}
@@ -539,46 +532,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     );
   }
 
-  const groupChatsByDate = (chats: Chat[]): GroupedChats => {
-    const now = new Date();
-    const oneWeekAgo = subWeeks(now, 1);
-    const oneMonthAgo = subMonths(now, 1);
-
-    return chats.reduce(
-      (groups, chat) => {
-        // Use updatedAt for grouping, fallback to createdAt for older chats without updatedAt
-        const chatDate = new Date((chat as any).updatedAt || chat.createdAt);
-
-        if (isToday(chatDate)) {
-          groups.today.push(chat);
-        } else if (isYesterday(chatDate)) {
-          groups.yesterday.push(chat);
-        } else if (chatDate > oneWeekAgo) {
-          groups.lastWeek.push(chat);
-        } else if (chatDate > oneMonthAgo) {
-          groups.lastMonth.push(chat);
-        } else {
-          groups.older.push(chat);
-        }
-
-        return groups;
-      },
-      {
-        today: [],
-        yesterday: [],
-        lastWeek: [],
-        lastMonth: [],
-        older: [],
-      } as GroupedChats
-    );
-  };
-
-  const DateGroupHeader = ({ children }: { children: React.ReactNode }) => (
-    <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider border-b border-border/10 bg-muted/20 rounded-lg mx-1 mb-2 mt-4 first:mt-0">
-      {children}
-    </div>
-  );
-
   return (
     <>
       {/* Fixed: Add proper height constraints and scrolling */}
@@ -600,120 +553,26 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               scrollbarColor: 'hsl(var(--muted-foreground) / 0.3) transparent',
             }}
           >
+            {/* Chats section header */}
+            <div className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+              Chats
+            </div>
             <SidebarMenuAny className="space-y-0.5 pb-4 px-1">
-              {history &&
-                (() => {
-                  const groupedChats = groupChatsByDate(history);
-
-                  return (
-                    <div className="space-y-2">
-                      {groupedChats.today.length > 0 && (
-                        <div>
-                          <DateGroupHeader>Today</DateGroupHeader>
-                          {groupedChats.today.map((chat) => (
-                            <ChatItemAny
-                              key={chat.id}
-                              chat={chat}
-                              isActive={chat.id === id}
-                              onDelete={(chatId: string) => {
-                                setDeleteId(chatId);
-                                setShowDeleteDialog(true);
-                              }}
-                              onArchive={handleArchive}
-                              setOpenMobile={setOpenMobile}
-                              onChatClick={handleChatClick}
-                              onTitleUpdate={handleTitleUpdate}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {groupedChats.yesterday.length > 0 && (
-                        <div>
-                          <DateGroupHeader>Yesterday</DateGroupHeader>
-                          {groupedChats.yesterday.map((chat) => (
-                            <ChatItemAny
-                              key={chat.id}
-                              chat={chat}
-                              isActive={chat.id === id}
-                              onDelete={(chatId: string) => {
-                                setDeleteId(chatId);
-                                setShowDeleteDialog(true);
-                              }}
-                              onArchive={handleArchive}
-                              setOpenMobile={setOpenMobile}
-                              onChatClick={handleChatClick}
-                              onTitleUpdate={handleTitleUpdate}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {groupedChats.lastWeek.length > 0 && (
-                        <div>
-                          <DateGroupHeader>Last 7 days</DateGroupHeader>
-                          {groupedChats.lastWeek.map((chat) => (
-                            <ChatItemAny
-                              key={chat.id}
-                              chat={chat}
-                              isActive={chat.id === id}
-                              onDelete={(chatId: string) => {
-                                setDeleteId(chatId);
-                                setShowDeleteDialog(true);
-                              }}
-                              onArchive={handleArchive}
-                              setOpenMobile={setOpenMobile}
-                              onChatClick={handleChatClick}
-                              onTitleUpdate={handleTitleUpdate}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {groupedChats.lastMonth.length > 0 && (
-                        <div>
-                          <DateGroupHeader>Last 30 days</DateGroupHeader>
-                          {groupedChats.lastMonth.map((chat) => (
-                            <ChatItemAny
-                              key={chat.id}
-                              chat={chat}
-                              isActive={chat.id === id}
-                              onDelete={(chatId: string) => {
-                                setDeleteId(chatId);
-                                setShowDeleteDialog(true);
-                              }}
-                              onArchive={handleArchive}
-                              setOpenMobile={setOpenMobile}
-                              onChatClick={handleChatClick}
-                              onTitleUpdate={handleTitleUpdate}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {groupedChats.older.length > 0 && (
-                        <div>
-                          <DateGroupHeader>Older</DateGroupHeader>
-                          {groupedChats.older.map((chat) => (
-                            <ChatItemAny
-                              key={chat.id}
-                              chat={chat}
-                              isActive={chat.id === id}
-                              onDelete={(chatId: string) => {
-                                setDeleteId(chatId);
-                                setShowDeleteDialog(true);
-                              }}
-                              onArchive={handleArchive}
-                              setOpenMobile={setOpenMobile}
-                              onChatClick={handleChatClick}
-                              onTitleUpdate={handleTitleUpdate}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+              {history?.map((chat) => (
+                <ChatItemAny
+                  key={chat.id}
+                  chat={chat}
+                  isActive={chat.id === id}
+                  onDelete={(chatId: string) => {
+                    setDeleteId(chatId);
+                    setShowDeleteDialog(true);
+                  }}
+                  onArchive={handleArchive}
+                  setOpenMobile={setOpenMobile}
+                  onChatClick={handleChatClick}
+                  onTitleUpdate={handleTitleUpdate}
+                />
+              ))}
             </SidebarMenuAny>
           </div>
         </SidebarGroupContentAny>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ChevronDown,
   CreditCard,
@@ -12,7 +13,8 @@ import {
 import type { User } from "next-auth";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-
+import useSWR from "swr";
+import { fetcher } from "@barzakh/shared/lib/utils/utils";
 
 import {
   DropdownMenu,
@@ -37,10 +39,38 @@ interface SidebarUserNavProps {
   compact?: boolean;
 }
 
+interface SubscriptionResponse {
+  subscription?: {
+    status: string;
+    metadata?: {
+      tier?: string;
+    };
+  } | null;
+}
+
 export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
   const { setView } = useView();
+
+  // Fetch subscription status in real-time for immediate updates after subscription
+  const { data: subscriptionData } = useSWR<SubscriptionResponse>(
+    user ? "/api/billing/subscription" : null,
+    fetcher,
+    { refreshInterval: 30000 } // Refresh every 30 seconds
+  );
+
+  // Determine if user has active paid subscription (real-time check)
+  const subscriptionTier = subscriptionData?.subscription?.metadata?.tier?.toLowerCase();
+  const isActiveSubscription = subscriptionData?.subscription &&
+    ['active', 'trialing'].includes(subscriptionData.subscription.status);
+  const hasPaidTier = isActiveSubscription &&
+    (subscriptionTier === 'pro' || subscriptionTier === 'ultimate');
+
+  // Use either session tier OR live subscription data
+  const isPaidUser = hasPaidTier ||
+    (user.tier && ['pro', 'ultimate'].includes(user.tier.toLowerCase()));
+
   // 1. Get all relevant state from useSidebar context
   const {
     setSidebarView,
@@ -87,10 +117,18 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
     await signOut({ callbackUrl: "/login" });
   };
 
+  // Track dropdown open state for compact mode
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const content = (
-    <DropdownMenuAny>
+    <DropdownMenuAny open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTriggerAny asChild>
-        <SidebarMenuButtonAny className={`data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-12 hover:bg-muted/60 transition-all duration-200 rounded-xl ${compact ? "w-auto px-2 bg-transparent border-0 shadow-none hover:bg-transparent" : "w-full px-4 bg-background/80 border border-border/30 shadow-sm hover:shadow-md"}`}>
+        <SidebarMenuButtonAny
+          className={`data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground transition-all duration-200 rounded-xl focus:outline-none focus-visible:ring-0 ${compact
+            ? `w-auto h-auto p-0 bg-transparent border-0 shadow-none hover:bg-transparent ${isDropdownOpen ? 'invisible' : 'visible'}`
+            : "h-12 w-full px-4 bg-background/80 border border-border/30 shadow-sm hover:shadow-md hover:bg-muted/60"
+            }`}
+        >
           <div className="flex w-full items-center justify-start gap-3">
             {user?.image ? (
               <img
@@ -98,15 +136,20 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
                 alt="User Avatar"
                 width={32}
                 height={32}
-                className="rounded-full border-2 border-border/30 shadow-sm w-8 h-8 object-cover"
+                className={`rounded-full shadow-sm object-cover transition-all duration-200 ${compact
+                  ? 'w-8 h-8 cursor-pointer'
+                  : 'w-8 h-8 border-2 border-border/30'
+                  }`}
                 onError={(e: any) => {
-                  // On error, replace with fallback avatar
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
               />
             ) : null}
-            <div className={`w-8 h-8 rounded-full border-2 border-border/30 shadow-sm bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center ${user?.image ? 'hidden' : ''}`}>
+            <div className={`rounded-full shadow-sm bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center transition-all duration-200 ${user?.image ? 'hidden' : ''} ${compact
+              ? 'w-8 h-8 cursor-pointer'
+              : 'w-8 h-8 border-2 border-border/30'
+              }`}>
               <span className="text-xs font-bold text-white">
                 {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
               </span>
@@ -124,10 +167,10 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
         </SidebarMenuButtonAny>
       </DropdownMenuTriggerAny>
       <DropdownMenuContentAny
-        className={`${compact ? "min-w-56" : "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"} rounded-xl border-border/30 shadow-lg`}
-        side={compact ? "left" : "top"}
-        align={compact ? "end" : "start"}
-        sideOffset={8}
+        className={`${compact ? "min-w-56" : "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"} rounded-xl border-border/30 shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-200`}
+        side={compact ? "bottom" : "top"}
+        align="end"
+        sideOffset={compact ? -36 : 8}
       >
         <DropdownMenuLabelAny className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
@@ -147,8 +190,8 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
           </div>
         </DropdownMenuLabelAny>
         <DropdownMenuSeparatorAny />
-        {/* Only show Upgrade Plan if user is not already on pro or ultimate tier */}
-        {(!user.tier || !['pro', 'ultimate'].includes(user.tier.toLowerCase())) && (
+        {/* Only show Upgrade Plan if user is not already on pro or ultimate tier (real-time check) */}
+        {!isPaidUser && (
           <>
             <DropdownMenuGroupAny>
               <DropdownMenuItemAny onClick={() => {
@@ -165,9 +208,9 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
                 Upgrade Plan
               </DropdownMenuItemAny>
             </DropdownMenuGroupAny>
+            <DropdownMenuSeparatorAny />
           </>
         )}
-        <DropdownMenuSeparatorAny />
         <DropdownMenuGroupAny>
           <DropdownMenuItemAny onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (

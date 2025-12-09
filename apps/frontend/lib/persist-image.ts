@@ -17,25 +17,19 @@ export async function persistImageToBlob(
       console.log('✅ Image already in R2 Storage:', imageUrl);
       return imageUrl;
     }
-    
-    // Also check for legacy Cloudflare R2 Storage URL
-    if (imageUrl.includes('blob.vercel-storage.com')) {
-      console.log('✅ Image in Vercel Blob Storage (legacy):', imageUrl);
-      return imageUrl;
-    }
 
     console.log('📥 Downloading temporary image for persistence:', imageUrl);
-    
+
     // Download the image
     const response = await fetch(imageUrl);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
     }
 
     const imageBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/png';
-    
+
     // Determine file extension from content type
     const extensionMap: Record<string, string> = {
       'image/jpeg': 'jpg',
@@ -45,14 +39,14 @@ export async function persistImageToBlob(
       'image/webp': 'webp',
       'image/svg+xml': 'svg',
     };
-    
+
     const extension = extensionMap[contentType] || 'png';
-    
+
     // Generate a unique filename if not provided
     const finalFilename = filename || `ai-generated-${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
-    
+
     console.log(`📤 Uploading to Cloudflare R2 Storage: ${finalFilename}`);
-    
+
     // Upload to Cloudflare R2 Storage
     const result = await uploadToR2(finalFilename, imageBuffer, {
       contentType: contentType,
@@ -61,7 +55,7 @@ export async function persistImageToBlob(
     });
 
     console.log('✅ Successfully persisted image to R2:', result.url);
-    
+
     return result.url;
   } catch (error) {
     console.error('❌ Failed to persist image to R2:', error);
@@ -78,9 +72,9 @@ export async function persistImageToBlob(
  */
 export async function persistImagesToBlob(imageUrls: string[]): Promise<string[]> {
   console.log(`🔄 Persisting ${imageUrls.length} images to Cloudflare R2 Storage...`);
-  
+
   const results = await Promise.allSettled(
-    imageUrls.map((url, index) => 
+    imageUrls.map((url, index) =>
       persistImageToBlob(url, `ai-generated-${Date.now()}-${index}.png`)
     )
   );
