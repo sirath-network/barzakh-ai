@@ -300,77 +300,6 @@ function PureMultimodalInput({
 
   const showSuggestions = messages.length === 0 && !input && !disableSuggestions;
 
-  // Dynamic rotating placeholders with typewriter effect
-  const placeholders = useMemo(() => [
-    // Web Search - Advanced
-    "Research MEV strategies on Ethereum",
-    "Find alpha on upcoming token unlocks",
-    // On-chain Analytics - Advanced
-    "Trace smart money accumulation patterns",
-    "Detect unusual DEX volume spikes",
-    // Imagine (AI Image Generation)
-    "Generate cyberpunk wallet interface",
-    "Design tokenomics infographic",
-    // Sei Blockchain - Advanced
-    "Analyze Sei parallel execution metrics",
-    // Wormhole Cross-chain - Advanced
-    "Compare Wormhole vs LayerZero flows",
-    // Coding & Smart Contracts - Advanced
-    "Audit this flash loan contract",
-    "Optimize gas in my ERC-4337 code",
-    // Research & Analysis - Advanced
-    "Model impermanent loss scenarios",
-    "Backtest this trading strategy",
-  ], []);
-
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [displayedText, setDisplayedText] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
-
-  useEffect(() => {
-    // Only animate when there are no messages, input is empty, and not focused
-    if (messages.length > 0 || input || isFocused) {
-      if (messages.length > 0) {
-        setDisplayedText("Reply Barzakh");
-      }
-      return;
-    }
-
-    const currentText = placeholders[placeholderIndex];
-    let timeout: NodeJS.Timeout;
-
-    if (isTyping) {
-      // Typing effect
-      if (displayedText.length < currentText.length) {
-        timeout = setTimeout(() => {
-          setDisplayedText(currentText.slice(0, displayedText.length + 1));
-        }, 50); // Typing speed
-      } else {
-        // Finished typing, wait then start deleting
-        timeout = setTimeout(() => {
-          setIsTyping(false);
-        }, 2000); // Pause before deleting
-      }
-    } else {
-      // Deleting effect
-      if (displayedText.length > 0) {
-        timeout = setTimeout(() => {
-          setDisplayedText(displayedText.slice(0, -1));
-        }, 30); // Deleting speed (faster than typing)
-      } else {
-        // Finished deleting, move to next placeholder
-        setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-        setIsTyping(true);
-      }
-    }
-
-    return () => clearTimeout(timeout);
-  }, [messages.length, input, isFocused, placeholders, placeholderIndex, displayedText, isTyping]);
-
-  const currentPlaceholder = messages.length > 0
-    ? "Reply Barzakh"
-    : displayedText || placeholders[0].charAt(0);
-
   const imageInlineCacheRef = useRef<Record<string, string>>({});
   const imageInlinePromisesRef = useRef<
     Record<string, Promise<string | null> | undefined>
@@ -1024,10 +953,12 @@ function PureMultimodalInput({
 
       <div
         className={cn(
-          "relative w-full flex flex-col rounded-2xl transition-all duration-300",
+          "relative w-full flex flex-col rounded-3xl transition-all duration-300",
           "bg-gradient-to-b from-white to-neutral-50/80 dark:from-neutral-900 dark:to-neutral-950/80",
-          "backdrop-blur-xl border-1 shadow-lg",
-          "border-neutral-200/80 dark:border-neutral-800/80",
+          "backdrop-blur-xl border-2 shadow-lg",
+          isFocused
+            ? "border-primary/50 shadow-[0_0_0_4px_rgba(239,68,68,0.1)] dark:shadow-[0_0_0_4px_rgba(239,68,68,0.15)] shadow-xl"
+            : "border-neutral-200/80 dark:border-neutral-800/80 hover:border-neutral-300 dark:hover:border-neutral-700",
           "overflow-hidden"
         )}
         onFocus={() => setIsFocused(true)}
@@ -1082,15 +1013,11 @@ function PureMultimodalInput({
         </AnimatePresence>
 
         <div className="relative flex items-end w-full px-2 pt-2 pb-2">
-          {/* Custom animated placeholder - only when not focused */}
-          {!input && messages.length === 0 && !isFocused && (
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center text-neutral-400 dark:text-neutral-500 text-base">
-              <span>{displayedText}</span>
-            </div>
-          )}
           <Textarea
             ref={textareaRef}
-            placeholder={messages.length > 0 ? "Reply Barzakh" : (isFocused ? "Ask Barzakh" : "")}
+            placeholder={
+              messages.length > 0 ? "Reply Barzakh..." : "Ask Barzakh"
+            }
             value={input}
             onChange={handleInput}
             className={cn(

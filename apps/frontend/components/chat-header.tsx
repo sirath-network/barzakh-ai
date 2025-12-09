@@ -77,16 +77,16 @@ function PureChatHeader({
 
           {/* 2. Show back button if onBackClick exists (settings mode) */}
           {onBackClick ? (
-            <div className="flex items-center">
-              <div className="hidden md:block w-px h-4 bg-border mx-2" />
+            <div className="hidden md:flex items-center">
+              <div className="w-px h-4 bg-border mx-2" />
               <ButtonAny
                 variant="ghost"
                 size="sm"
-                className="gap-1 md:gap-2 text-muted-foreground px-2 md:px-3"
+                className="gap-2 text-muted-foreground"
                 onClick={onBackClick}
               >
                 <ChevronLeftAny className="w-4 h-4" />
-                <span className="hidden sm:inline">Back</span>
+                Back
               </ButtonAny>
             </div>
           ) : null}

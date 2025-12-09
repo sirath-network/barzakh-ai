@@ -211,10 +211,10 @@ export function ChatHeaderMenu({
                 <DropdownMenuTriggerAny asChild>
                     <ButtonAny
                         variant="ghost"
-                        className={`flex items-center gap-1 h-8 px-2 text-sm md:text-base font-medium w-auto max-w-full ${className}`}
+                        className={`flex items-center gap-1.5 h-9 px-2 text-lg font-semibold w-auto max-w-full ${className}`}
                     >
-                        <span className="truncate max-w-[120px] xs:max-w-[160px] sm:max-w-[220px] md:max-w-[300px] lg:max-w-[400px] xl:max-w-[500px]">{currentTitle}</span>
-                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-50 flex-shrink-0" />
+                        <span className="truncate">{currentTitle}</span>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground opacity-50" />
                     </ButtonAny>
                 </DropdownMenuTriggerAny>
                 <DropdownMenuContentAny align="center" className="w-56">
@@ -226,29 +226,33 @@ export function ChatHeaderMenu({
                         </DropdownMenuItemAny>
                     )}
 
-                    {/* Share options - show inline for better mobile support */}
+                    {/* Only show Share for non-archived chats */}
                     {!isArchived && (
                         <>
-                            <DropdownMenuSeparatorAny />
-                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                                Share
-                            </div>
-                            <DropdownMenuItemAny onClick={() => handleVisibilityChange("public")}>
-                                <Globe className="w-4 h-4 mr-2" />
-                                Public
-                                {visibility === "public" && <Check className="w-4 h-4 ml-auto text-primary" />}
-                            </DropdownMenuItemAny>
-                            <DropdownMenuItemAny onClick={() => handleVisibilityChange("private")}>
-                                <Lock className="w-4 h-4 mr-2" />
-                                Private
-                                {visibility === "private" && <Check className="w-4 h-4 ml-auto text-primary" />}
-                            </DropdownMenuItemAny>
-                            {visibility === "public" && (
-                                <DropdownMenuItemAny onClick={copyLink}>
+                            <DropdownMenuSubAny>
+                                <DropdownMenuSubTriggerAny>
                                     <Share className="w-4 h-4 mr-2" />
-                                    Copy Link
-                                </DropdownMenuItemAny>
-                            )}
+                                    Share
+                                </DropdownMenuSubTriggerAny>
+                                <DropdownMenuPortalAny>
+                                    <DropdownMenuSubContentAny>
+                                        <DropdownMenuItemAny onClick={() => handleVisibilityChange("public")}>
+                                            <Globe className="w-4 h-4 mr-2" />
+                                            Public
+                                            {visibility === "public" && <Check className="w-4 h-4 ml-auto" />}
+                                        </DropdownMenuItemAny>
+                                        <DropdownMenuItemAny onClick={() => handleVisibilityChange("private")}>
+                                            <Lock className="w-4 h-4 mr-2" />
+                                            Private
+                                            {visibility === "private" && <Check className="w-4 h-4 ml-auto" />}
+                                        </DropdownMenuItemAny>
+                                        <DropdownMenuSeparatorAny />
+                                        <DropdownMenuItemAny onClick={copyLink} disabled={visibility !== "public"}>
+                                            Copy Link
+                                        </DropdownMenuItemAny>
+                                    </DropdownMenuSubContentAny>
+                                </DropdownMenuPortalAny>
+                            </DropdownMenuSubAny>
                             <DropdownMenuSeparatorAny />
                         </>
                     )}

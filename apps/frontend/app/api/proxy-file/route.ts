@@ -27,13 +27,15 @@ export async function POST(request: NextRequest) {
       // Cloudflare R2 Storage (primary)
       'r2.barzakh.tech',
       'r2.cloudflarestorage.com',
+      // Vercel Blob Storage (legacy)
+      'blob.vercel-storage.com',
       // Development
       'localhost',
       '127.0.0.1',
     ];
 
     const url = new URL(fileUrl);
-    const isAllowedDomain = allowedDomains.some(domain =>
+    const isAllowedDomain = allowedDomains.some(domain => 
       url.hostname === domain || url.hostname.endsWith(`.${domain}`)
     );
 
