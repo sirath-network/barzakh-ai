@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       const isDevelopment = process.env.NODE_ENV === 'development';
       const host = request.headers.get('host');
       const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1');
-      
+
       if (INTERNAL_SECRET) {
         // Production: require matching secret
         if (internalSecret !== INTERNAL_SECRET) {
@@ -55,77 +55,74 @@ export async function POST(request: NextRequest) {
       'r2.barzakh.tech',
       'r2.cloudflarestorage.com',
       'pub-', // R2 public bucket subdomain pattern
-      
-      // Vercel Blob Storage (legacy)
-      'blob.vercel-storage.com',
-      
+
       // Firebase Storage
       'firebasestorage.googleapis.com',
-      
+
       // OpenAI Services
       'oaidalleapiprodscus.blob.core.windows.net',
       'cdn.openai.com',
       'openai.com',
-      
+
       // Stability AI
       'api.stability.ai',
       'stability.ai',
-      
+
       // Midjourney (if using their API)
       'cdn.midjourney.com',
       'midjourney.com',
-      
+
       // Replicate
       'replicate.delivery',
       'pbxt.replicate.delivery',
       'tjzk.replicate.delivery',
-      
+
       // Hugging Face
       'huggingface.co',
       'hf.co',
-      
+
       // Anthropic Claude (if they have image generation)
       'anthropic.com',
       'claude.ai',
-      
+
       // Google AI
       'googleapis.com',
       'googleusercontent.com',
       'generative-ai-image-store.googleapis.com',
       'generativelanguage.googleapis.com',
       'storage.googleapis.com',
-      
+
       // Azure AI Services
       'cognitiveservices.azure.com',
       'azure.com',
-      
+
       // AWS AI Services
       'amazonaws.com',
       's3.amazonaws.com',
-      
+
       // EPAM Services
       'r2.src.epam.com',
       'epam.com',
-      
+
       // GSW Services
       'r2.gsw.io',
       'gsw.io',
-      
+
       // Whatz AI Services
       'r2.src.whatz.ai',
       'whatz.ai',
-      
+
       // Common CDNs and image hosts
       'cloudflare.com',
       'cloudinary.com',
       'imgur.com',
       'images.unsplash.com',
       'picsum.photos',
-      
+
       // Development/Testing
       'localhost',
       '127.0.0.1',
-      
+
       // Ngrok tunnels (for mobile testing)
       'ngrok.io',
       'ngrok-free.app',
@@ -134,13 +131,13 @@ export async function POST(request: NextRequest) {
 
     const url = new URL(imageUrl);
     const isDataUrl = imageUrl.startsWith('data:');
-    
+
     // SECURITY: Strict domain matching to prevent SSRF bypass
     // Only allow exact match or proper subdomain match (e.g., cdn.example.com for example.com)
     const isAllowedDomain = allowedDomains.some(domain => {
       const hostname = url.hostname.toLowerCase();
       const domainLower = domain.toLowerCase();
-      
+
       return (
         hostname === domainLower ||                    // exact match
         hostname.endsWith('.' + domainLower)          // proper subdomain match only
@@ -154,9 +151,9 @@ export async function POST(request: NextRequest) {
     if (!isDataUrl && !isAllowedDomain && !(isDevelopment && isLocalhost)) {
       console.warn(`Blocked domain for proxy download: ${url.hostname} (full URL: ${imageUrl})`);
       console.warn('Allowed domains:', allowedDomains);
-      
-      return NextResponse.json({ 
-        error: `Domain not allowed for proxy download: ${url.hostname}. Please contact support to whitelist this domain.` 
+
+      return NextResponse.json({
+        error: `Domain not allowed for proxy download: ${url.hostname}. Please contact support to whitelist this domain.`
       }, { status: 403 });
     }
 
@@ -165,9 +162,9 @@ export async function POST(request: NextRequest) {
       const [header, data] = imageUrl.split(',');
       const mimeMatch = header.match(/data:([^;]+)/);
       const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
-      
+
       const buffer = Buffer.from(data, 'base64');
-      
+
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': mimeType,
@@ -179,7 +176,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch the image from external URL with mobile-optimized headers
     const fetchHeaders: Record<string, string> = {
-      'User-Agent': mobile 
+      'User-Agent': mobile
         ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
         : 'Mozilla/5.0 (compatible; ImageProxy/1.0)',
       'Accept': 'image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
@@ -203,17 +200,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (!imageResponse.ok) {
-      return NextResponse.json({ 
-        error: `Failed to fetch image: ${imageResponse.status}` 
+      return NextResponse.json({
+        error: `Failed to fetch image: ${imageResponse.status}`
       }, { status: 502 });
     }
 
     const contentType = imageResponse.headers.get('content-type') || 'image/png';
-    
+
     // Validate it's actually an image
     if (!contentType.startsWith('image/')) {
-      return NextResponse.json({ 
-        error: 'URL does not point to an image' 
+      return NextResponse.json({
+        error: 'URL does not point to an image'
       }, { status: 400 });
     }
 
@@ -251,8 +248,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Proxy image error:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error' 
+    return NextResponse.json({
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }
