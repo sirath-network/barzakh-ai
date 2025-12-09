@@ -16,22 +16,22 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
   const { resolvedTheme } = useTheme();
 
   const theme = useMemo(() => {
-    const baseTheme = resolvedTheme === 'dark' 
+    const baseTheme = resolvedTheme === 'dark'
       ? darkTheme({
-          accentColor: '#ef4444', // Red accent to match app theme
-          accentColorForeground: 'white',
-          borderRadius: 'medium',
-          fontStack: 'system',
-          overlayBlur: 'small',
-        })
+        accentColor: '#ef4444', // Red accent to match app theme
+        accentColorForeground: 'white',
+        borderRadius: 'medium',
+        fontStack: 'system',
+        overlayBlur: 'small',
+      })
       : lightTheme({
-          accentColor: '#ef4444',
-          accentColorForeground: 'white',
-          borderRadius: 'medium',
-          fontStack: 'system',
-          overlayBlur: 'small',
-        });
-    
+        accentColor: '#ef4444',
+        accentColorForeground: 'white',
+        borderRadius: 'medium',
+        fontStack: 'system',
+        overlayBlur: 'small',
+      });
+
     return baseTheme;
   }, [resolvedTheme]);
 
@@ -52,7 +52,7 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
 
 export function Web3Provider({ children }: Web3ProviderProps) {
   const [mounted, setMounted] = useState(false);
-  
+
   // Create query client inside component to avoid SSR issues
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -69,13 +69,19 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     setMounted(true);
   }, []);
 
+  // Render children immediately with WagmiProvider/QueryClient
+  // Only wrap with RainbowKitProvider after mount to prevent hydration issues
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        {mounted && (
+        {mounted ? (
           <RainbowKitProviderWrapper>
             {children}
           </RainbowKitProviderWrapper>
+        ) : (
+          // Render children without RainbowKit on SSR to prevent hydration mismatch
+          // Wagmi hooks will still work
+          children
         )}
       </QueryClientProvider>
     </WagmiProvider>
