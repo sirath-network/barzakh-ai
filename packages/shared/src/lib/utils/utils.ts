@@ -120,8 +120,8 @@ export function sanitizeResponseMessages({
       content.type === "tool-call"
         ? toolResultIds.includes(content.toolCallId)
         : content.type === "text"
-        ? content.text.length > 0
-        : true
+          ? content.text.length > 0
+          : true
     );
 
     if (reasoning) {
@@ -266,7 +266,7 @@ export const searchGroups = [
     name: "Flow",
     description: "Everything Flow. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/flow-logo.png",
+    img: "/images/icon/flow/flow-logo.png",
   },
   {
     id: "zeta",
@@ -283,18 +283,18 @@ export const searchGroups = [
     img: "/images/icon/aptos/aptos-logo.png",
   }
   // {
-    // id: "monad",
-    // name: "Monad",
-    // description: "Everything Monad. Search, transactions and more.",
-    // icon: Network,
-    // img: "/images/icon/monad/monad-logo.jpg",
+  // id: "monad",
+  // name: "Monad",
+  // description: "Everything Monad. Search, transactions and more.",
+  // icon: Network,
+  // img: "/images/icon/monad/monad-logo.jpg",
   // },
   // {
-    // id: "solana",
-    // name: "Solana",
-    // description: "Everything Solana. Search, transactions and more.",
-    // icon: Network,
-    // img: "/images/icon/solana/solana.png",
+  // id: "solana",
+  // name: "Solana",
+  // description: "Everything Solana. Search, transactions and more.",
+  // icon: Network,
+  // img: "/images/icon/solana/solana.png",
   // },
 ] as const;
 
@@ -325,17 +325,17 @@ export const getZerionApiKey = () => {
   const apiKey = process.env.ZERION_DEV_API_KEY;
   const password = "";
   if (!apiKey) throw new Error("Api key not found");
-  
+
   // Use Buffer in Node.js environment
   if (typeof Buffer !== 'undefined') {
     return Buffer.from(`${apiKey}:${password}`).toString('base64');
   }
-  
+
   // Use btoa in Browser environment
   if (typeof btoa !== 'undefined') {
     return btoa(`${apiKey}:${password}`);
   }
-  
+
   throw new Error("Base64 encoding not supported in this environment");
 };
 
@@ -446,21 +446,21 @@ export const transformBirdeyeToTokenSearchResponse = (
       external_links: [
         ...(token.extensions?.website
           ? [
-              {
-                type: "website",
-                name: "Website",
-                url: token.extensions.website,
-              },
-            ]
+            {
+              type: "website",
+              name: "Website",
+              url: token.extensions.website,
+            },
+          ]
           : []),
         ...(token.extensions?.twitter
           ? [
-              {
-                type: "twitter",
-                name: "Twitter",
-                url: token.extensions.twitter,
-              },
-            ]
+            {
+              type: "twitter",
+              name: "Twitter",
+              url: token.extensions.twitter,
+            },
+          ]
           : []),
       ],
       implementations: [

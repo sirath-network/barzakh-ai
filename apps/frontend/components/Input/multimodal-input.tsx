@@ -1179,6 +1179,11 @@ function PureMultimodalInput({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Disclaimer - hidden on mobile/tablet */}
+        <p className="hidden md:block text-center text-xs text-muted-foreground/60 pb-2">
+          Barzakh can make mistakes, so double-check it
+        </p>
       </div>
     </motion.div>
   );
