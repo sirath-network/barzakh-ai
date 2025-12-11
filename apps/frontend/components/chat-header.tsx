@@ -14,7 +14,7 @@ import { SidebarUserNav } from "./sidebar-user-nav";
 import type { Message } from "ai";
 import TextStrip from "./text-strip";
 // Import required icons
-import { ArrowLeft, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, PenSquare } from 'lucide-react';
 import { ArtifactToggle } from "./artifact-toggle";
 
 import { ChatHeaderMenu } from "./chat-header-menu";
@@ -73,7 +73,28 @@ function PureChatHeader({
       <header className="flex md:grid md:grid-cols-3 items-center w-full h-16 px-2 md:px-4 relative justify-between">
         {/* === Left Section === */}
         <div className="flex items-center gap-2 justify-start min-w-0 z-20">
-          <SidebarToggle />
+          {/* Sidebar toggle - only show when sidebar is closed on desktop or always on mobile */}
+          {isClient && (!isSidebarOpen || !isDesktop) && <SidebarToggle />}
+
+          {/* New Chat button - visible when sidebar is hidden on desktop or always on mobile */}
+          {isClient && (!isSidebarOpen || !isDesktop) && !title && (
+            <TooltipAny>
+              <TooltipTriggerAny asChild>
+                <ButtonAny
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3 hover:bg-transparent transition-all duration-200"
+                  onClick={() => router.push("/")}
+                  aria-label="New Chat"
+                >
+                  <span className="text-neutral-600 dark:text-neutral-400 hover:text-primary transition-colors duration-200">
+                    <PenSquare size={16} />
+                  </span>
+                </ButtonAny>
+              </TooltipTriggerAny>
+              <TooltipContentAny side="bottom" className="font-medium">New Chat</TooltipContentAny>
+            </TooltipAny>
+          )}
 
           {/* 2. Show back button if onBackClick exists (settings mode) */}
           {onBackClick ? (

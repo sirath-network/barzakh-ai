@@ -106,9 +106,9 @@ const ModelOptionList = ({
             ? "text-neutral-100/90 hover:bg-neutral-800/80 focus:bg-neutral-800/80"
             : "text-neutral-900 hover:bg-neutral-50 focus:bg-neutral-50",
           isSelected &&
-            (isDarkTheme
-              ? "bg-neutral-800 text-foreground"
-              : "bg-white text-neutral-900 ring-1 ring-neutral-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)]")
+          (isDarkTheme
+            ? "bg-neutral-800 text-foreground"
+            : "bg-white text-neutral-900 ring-1 ring-neutral-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)]")
         );
 
         const content = (
@@ -243,13 +243,13 @@ export function ModelSelector({
   // Optimized select handler dengan debouncing dan error handling
   const handleSelect = useCallback(async (model: ChatModel) => {
     if (disabled || isUpdating || model.id === selectedModelId) return;
-    
+
     try {
       setIsUpdating(true);
-      
+
       // Close UI immediately for better UX
       setIsExpanded(false);
-      
+
       // Clear search with delay
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -271,7 +271,7 @@ export function ModelSelector({
         },
         body: JSON.stringify({ model: model.id }),
       });
-      
+
     } catch (error) {
       console.error("Failed to save model selection:", error);
       // Optionally show error toast here
@@ -284,7 +284,7 @@ export function ModelSelector({
   const handleDropdownOpenChange = useCallback((open: boolean) => {
     if (!isDesktop || disabled) return;
     setIsExpanded(open);
-    
+
     if (!open) {
       // Clear search when closing
       setTimeout(() => setSearchQuery(""), 150);
@@ -294,13 +294,13 @@ export function ModelSelector({
   // Fixed mobile button handler - prevent conflicts with dropdown trigger
   const handleMobileToggle = useCallback((e: React.MouseEvent) => {
     if (disabled || buttonProps.disabled || isUpdating) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Only handle mobile interactions
     if (!isClient || isDesktop) return;
-    
+
     setIsExpanded(prev => !prev);
   }, [disabled, isClient, isDesktop, isUpdating]);
 
@@ -345,8 +345,8 @@ export function ModelSelector({
 
   return (
     <div className={cn("relative mr-0 sm:mr-1 mt-1", className)}>
-      <DropdownMenuAny 
-        open={isDesktop && isExpanded} 
+      <DropdownMenuAny
+        open={isDesktop && isExpanded}
         onOpenChange={handleDropdownOpenChange}
       >
         <DropdownMenuTriggerAny asChild>
@@ -422,7 +422,7 @@ export function ModelSelector({
             className={cn(
               "max-h-80 overflow-y-auto custom-scrollbar px-3 pb-4 pt-2",
               !isDarkTheme &&
-                "bg-gradient-to-b from-white/75 via-white/30 to-transparent"
+              "bg-gradient-to-b from-white/75 via-white/30 to-transparent"
             )}
           >
             <ModelOptionList

@@ -27,11 +27,11 @@ export function SidebarToggle({
           size="sm"
           className="h-9 px-3 hover:bg-transparent transition-all duration-200"
         >
-          <span className="text-muted-foreground hover:text-primary transition-colors duration-200"><SidebarLeftIcon size={16} /></span>
+          <span className="text-neutral-600 dark:text-neutral-400 hover:text-primary transition-colors duration-200"><SidebarLeftIcon size={16} /></span>
         </ButtonAny>
       </TooltipTriggerAny>
       <TooltipContentAny align="start" className="font-medium">
-        Toggle Sidebar
+        Open sidebar
       </TooltipContentAny>
     </TooltipAny>
   );

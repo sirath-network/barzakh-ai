@@ -9,6 +9,8 @@ import {
   BadgeDollarSign,
   Sun,
   Moon,
+  Monitor,
+  Check,
 } from "lucide-react";
 import type { User } from "next-auth";
 import { signOut } from "next-auth/react";
@@ -174,15 +176,24 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
       >
         <DropdownMenuLabelAny className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-            {user.image && (
+            {user.image ? (
               <img
                 src={user.image}
                 alt={user.name || "User"}
                 width={32}
                 height={32}
                 className="rounded-full w-8 h-8 object-cover border border-border/30"
+                onError={(e: any) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
               />
-            )}
+            ) : null}
+            <div className={`rounded-full w-8 h-8 bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center border border-border/30 ${user.image ? 'hidden' : ''}`}>
+              <span className="text-xs font-bold text-white">
+                {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
+              </span>
+            </div>
             <div className="grid flex-1 text-left leading-tight">
               <span className="truncate font-semibold">{user.name}</span>
               <span className="truncate text-xs text-muted-foreground">{user.email}</span>
@@ -212,26 +223,24 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
           </>
         )}
         <DropdownMenuGroupAny>
-          <DropdownMenuItemAny onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-            {theme === 'dark' ? (
-              <Sun className="mr-2 h-4 w-4" />
-            ) : (
-              <Moon className="mr-2 h-4 w-4" />
-            )}
-            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          <DropdownMenuItemAny onClick={() => setTheme('light')}>
+            <Sun className="mr-2 h-4 w-4" />
+            Light
+            {theme === 'light' && <Check className="ml-auto h-4 w-4" />}
           </DropdownMenuItemAny>
-          <DropdownMenuItemAny onClick={() => {
-            if (setSidebarView) setSidebarView('settings');
-            // Ensure sidebar logic handles view switch
-            const isDesktopCollapsed = !isMobile && state === 'collapsed';
-            const isMobileClosed = isMobile && !openMobile;
-            if ((isDesktopCollapsed || isMobileClosed) && toggleSidebar) {
-              toggleSidebar();
-            }
-          }}>
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
+          <DropdownMenuItemAny onClick={() => setTheme('dark')}>
+            <Moon className="mr-2 h-4 w-4" />
+            Dark
+            {theme === 'dark' && <Check className="ml-auto h-4 w-4" />}
           </DropdownMenuItemAny>
+          <DropdownMenuItemAny onClick={() => setTheme('system')}>
+            <Monitor className="mr-2 h-4 w-4" />
+            System
+            {theme === 'system' && <Check className="ml-auto h-4 w-4" />}
+          </DropdownMenuItemAny>
+        </DropdownMenuGroupAny>
+        <DropdownMenuSeparatorAny />
+        <DropdownMenuGroupAny>
           <DropdownMenuItemAny onClick={() => {
             // Set view to billing to open billing settings panel
             setView('billing');
@@ -244,6 +253,18 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
           }}>
             <CreditCard className="mr-2 h-4 w-4" />
             Billing
+          </DropdownMenuItemAny>
+          <DropdownMenuItemAny onClick={() => {
+            if (setSidebarView) setSidebarView('settings');
+            // Ensure sidebar logic handles view switch
+            const isDesktopCollapsed = !isMobile && state === 'collapsed';
+            const isMobileClosed = isMobile && !openMobile;
+            if ((isDesktopCollapsed || isMobileClosed) && toggleSidebar) {
+              toggleSidebar();
+            }
+          }}>
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
           </DropdownMenuItemAny>
         </DropdownMenuGroupAny>
         <DropdownMenuSeparatorAny />

@@ -21,17 +21,17 @@ const Textarea = React.forwardRef<
 
         // === Border & Focus State ===
         'border border-neutral-200 dark:border-neutral-700',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900',
-        
+        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-500',
+
         // === Transitions ===
         'transition-colors duration-200',
-        
+
         // === Scrollbar & Disabled State ===
         'overflow-y-auto custom-scrollbar',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        
+
         // === ClassName from props (untuk override) ===
-        className, 
+        className,
       )}
       ref={ref}
       {...props}

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { Attachment, ChatRequestOptions, CreateMessage, Message } from "ai";
 import type React from "react";
 import {
@@ -15,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { sanitizeUIMessages } from "@barzakh/shared/lib/utils/utils";
-import { PaperclipIcon, StopIcon } from "../icons";
+import { StopIcon } from "../icons";
 import { PreviewAttachment } from "../preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -26,6 +27,7 @@ import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
 import {
   ArrowDown,
+  Plus,
 } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 import { QuestionSuggestions } from "./question-suggestions";
@@ -135,7 +137,7 @@ function PureAttachmentsButton({
       variant="ghost"
       aria-label="Attach files"
     >
-      <PaperclipIcon size={18} />
+      <Plus size={18} />
     </Button>
   );
 }
@@ -185,11 +187,14 @@ function PureSendButton({
 
   return (
     <motion.div
-      layout
-      initial={{ scale: 0.8, opacity: 0, y: 5 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      exit={{ scale: 0.8, opacity: 0, y: 5 }}
-      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      key="send-button"
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.85, opacity: 0 }}
+      transition={{
+        duration: 0.15,
+        ease: [0.4, 0, 0.2, 1] // Smooth ease-out curve
+      }}
     >
       <Button
         className={cn(
@@ -966,8 +971,6 @@ function PureMultimodalInput({
 
   return (
     <motion.div
-      layout
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className={cn(
         "relative w-full flex flex-col gap-2 transition-all duration-300 !font-sans",
         className
@@ -1084,7 +1087,7 @@ function PureMultimodalInput({
         <div className="relative flex items-end w-full px-2 pt-2 pb-2">
           {/* Custom animated placeholder - only when not focused */}
           {!input && messages.length === 0 && !isFocused && (
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center text-neutral-400 dark:text-neutral-500 text-base">
+            <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center text-neutral-500 dark:text-neutral-500 text-base">
               <span>{displayedText}</span>
             </div>
           )}
@@ -1096,7 +1099,7 @@ function PureMultimodalInput({
             className={cn(
               "pl-4 pr-14 py-3.5 text-base",
               "bg-transparent border-0 focus:ring-0 focus-visible:ring-0",
-              "placeholder:text-neutral-400 dark:placeholder:text-neutral-500",
+              "placeholder:text-neutral-500 dark:placeholder:text-neutral-500",
               "resize-none"
             )}
             style={{ maxHeight: `${MAX_HEIGHT}px` }}
@@ -1180,11 +1183,28 @@ function PureMultimodalInput({
           )}
         </AnimatePresence>
 
-        {/* Disclaimer - hidden on mobile/tablet */}
-        <p className="hidden md:block text-center text-xs text-muted-foreground/60 pb-2">
-          Barzakh can make mistakes, so double-check it
-        </p>
+
       </div>
+
+      <p className="hidden md:block text-center text-xs text-neutral-500 dark:text-neutral-500 py-2">
+        Barzakh can make mistakes, so double-check it
+      </p>
+
+      {messages.length === 0 && input.length === 0 && (
+        <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
+          <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
+            <span>By sending a message to Barzakh, you agree to our </span>
+            <Link href="/terms" className="underline hover:text-accent-foreground transition-colors">
+              Terms of Service
+            </Link>
+            <span> and have read our </span>
+            <Link href="/privacy" className="underline hover:text-accent-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            .
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
