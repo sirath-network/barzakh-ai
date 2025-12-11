@@ -1,4 +1,4 @@
-import { LegalPageLayout } from "@/components/legal-page-layout";
+import { LegalPageShell } from "@/components/legal-page-shell";
 
 const TERMS_TOC = [
     { title: "1. Acceptance of Terms", id: "acceptance" },
@@ -19,7 +19,7 @@ const TERMS_TOC = [
 
 export default function TermsPage() {
     return (
-        <LegalPageLayout title="Terms of Service" lastUpdated="11 Dec 2025" toc={TERMS_TOC}>
+        <LegalPageShell title="Terms of Service" lastUpdated="11 Dec 2025" toc={TERMS_TOC}>
             <p className="lead text-lg">
                 Welcome to Barzakh, an AI-powered blockchain intelligence platform operated by Sirath Network ("Company," "we," "us," or "our"). These Terms of Service ("Terms") govern your access to and use of our website, applications, APIs, and related services (collectively, the "Services"). By accessing or using our Services, you agree to be bound by these Terms.
             </p>
@@ -225,6 +225,6 @@ export default function TermsPage() {
                     We aim to respond to all inquiries within 48 business hours.
                 </p>
             </section>
-        </LegalPageLayout>
+        </LegalPageShell>
     );
 }

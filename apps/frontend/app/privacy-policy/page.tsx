@@ -1,4 +1,4 @@
-import { LegalPageLayout } from "@/components/legal-page-layout";
+import { LegalPageShell } from "@/components/legal-page-shell";
 
 const PRIVACY_TOC = [
     { title: "1. Introduction", id: "introduction" },
@@ -19,7 +19,7 @@ const PRIVACY_TOC = [
 
 export default function PrivacyPage() {
     return (
-        <LegalPageLayout title="Privacy Policy" lastUpdated="11 Dec 2025" toc={PRIVACY_TOC}>
+        <LegalPageShell title="Privacy Policy" lastUpdated="11 Dec 2025" toc={PRIVACY_TOC}>
             <section>
                 <h2 id="introduction">1. Introduction</h2>
                 <p>
@@ -250,6 +250,6 @@ export default function PrivacyPage() {
                     For privacy-related inquiries, please include "Privacy Request" in your subject line. We aim to respond to all inquiries within 30 days.
                 </p>
             </section>
-        </LegalPageLayout>
+        </LegalPageShell>
     );
 }
