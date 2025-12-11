@@ -1194,11 +1194,11 @@ function PureMultimodalInput({
         <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
           <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
             <span>By sending a message to Barzakh, you agree to our </span>
-            <Link href="/terms" className="underline hover:text-accent-foreground transition-colors">
+            <Link href="/terms-of-service" className="underline hover:text-accent-foreground transition-colors">
               Terms of Service
             </Link>
             <span> and have read our </span>
-            <Link href="/privacy" className="underline hover:text-accent-foreground transition-colors">
+            <Link href="/privacy-policy" className="underline hover:text-accent-foreground transition-colors">
               Privacy Policy
             </Link>
             .

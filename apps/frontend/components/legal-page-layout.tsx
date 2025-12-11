@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { motion } from "framer-motion";
+
 import { useEffect, useState, useRef } from "react";
 
 interface TOCItem {
@@ -215,10 +215,7 @@ export function LegalPageLayout({ title, lastUpdated, children, toc }: LegalPage
                             </p>
                         </div>
 
-                        <motion.article
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, ease: "easeOut" }}
+                        <article
                             className="prose prose-neutral dark:prose-invert max-w-none
                 prose-headings:font-semibold prose-headings:tracking-tight
                 prose-h2:text-xl prose-h2:mt-12 prose-h2:mb-4 prose-h2:scroll-mt-32
@@ -230,7 +227,7 @@ export function LegalPageLayout({ title, lastUpdated, children, toc }: LegalPage
               "
                         >
                             {children}
-                        </motion.article>
+                        </article>
                     </main>
                 </div>
             </div>
@@ -239,8 +236,8 @@ export function LegalPageLayout({ title, lastUpdated, children, toc }: LegalPage
                 <div className="container max-w-5xl mx-auto px-6 flex justify-between items-center text-xs text-neutral-500">
                     <span>&copy; {new Date().getFullYear()} Barzakh AI</span>
                     <div className="flex gap-4">
-                        <Link href="/privacy" className="hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors">Privacy</Link>
-                        <Link href="/terms" className="hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors">Terms</Link>
+                        <Link href="/privacy-policy" className="hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors">Privacy Policy</Link>
+                        <Link href="/terms-of-service" className="hover:text-neutral-900 dark:hover:text-neutral-300 transition-colors">Terms of Service</Link>
                     </div>
                 </div>
             </footer>
