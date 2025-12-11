@@ -14,6 +14,7 @@ import {
   Shield,
   BadgeDollarSign,
   Wallet,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -32,6 +33,7 @@ const ArchiveIconAny = ArchiveIcon as any;
 const ShieldAny = Shield as any;
 const BadgeDollarSignAny = BadgeDollarSign as any;
 const WalletAny = Wallet as any;
+const MonitorAny = Monitor as any;
 
 const SettingsMenuItem = ({
   icon,
@@ -177,24 +179,33 @@ export function SettingsMenu({
         Appearance
       </div>
       <div className="p-2 space-y-2">
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <ButtonAny
             variant={theme === 'light' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setTheme('light')}
-            className="w-full flex items-center gap-2"
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5"
           >
-            <SunIconAny className="w-4 h-4" />
-            Light
+            <SunIconAny className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Light</span>
           </ButtonAny>
           <ButtonAny
             variant={theme === 'dark' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setTheme('dark')}
-            className="w-full flex items-center gap-2"
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5"
           >
-            <MoonIconAny className="w-4 h-4" />
-            Dark
+            <MoonIconAny className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Dark</span>
+          </ButtonAny>
+          <ButtonAny
+            variant={theme === 'system' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setTheme('system')}
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5"
+          >
+            <MonitorAny className="w-3.5 h-3.5" />
+            <span className="text-[11px]">System</span>
           </ButtonAny>
         </div>
       </div>

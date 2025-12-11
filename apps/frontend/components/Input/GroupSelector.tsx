@@ -194,7 +194,7 @@ export const GroupSelector = ({
 }: GroupSelectorProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Client-side hydration fix
   const [isClient, setIsClient] = useState(false);
   const { width } = useWindowSize();
@@ -236,12 +236,12 @@ export const GroupSelector = ({
   // Fixed mobile button handler - prevent event bubbling and ensure proper state management
   const handleMobileToggle = useCallback((e: React.MouseEvent) => {
     if (disabled) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isClient || isDesktop) return;
-    
+
     setIsExpanded(prev => !prev);
   }, [disabled, isClient, isDesktop]);
 
@@ -266,7 +266,7 @@ export const GroupSelector = ({
         setIsExpanded(false);
       }
     };
-    
+
     if (isExpanded) {
       document.addEventListener("keydown", handleEscape);
       return () => document.removeEventListener("keydown", handleEscape);
@@ -297,8 +297,8 @@ export const GroupSelector = ({
 
   return (
     <div className={cn("relative flex items-center gap-1", className)}>
-      <DropdownMenuAny 
-        open={isDesktop && isExpanded} 
+      <DropdownMenuAny
+        open={isDesktop && isExpanded}
         onOpenChange={handleDropdownOpenChange}
       >
         <DropdownMenuTriggerAny asChild>
@@ -315,7 +315,7 @@ export const GroupSelector = ({
             )}
           >
             <div className="flex items-center gap-2">
-              <Settings2  className="size-5" />
+              <Settings2 className="size-5" />
               {isDefault && (
                 <span className="font-medium truncate text-sm">
                   Tools
@@ -365,26 +365,26 @@ export const GroupSelector = ({
 
       {!isDefault && selectedGroup && (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full border border-border/50 animate-in fade-in slide-in-from-left-2">
-            <div className="flex-shrink-0">
-                {selectedGroup.img ? (
-                  <Image
-                    src={selectedGroup.img}
-                    alt="Selected group icon"
-                    width={20}
-                    height={20}
-                    className="bg-white rounded-full object-contain"
-                  />
-                ) : (
-                  SelectedIcon && <SelectedIcon className="size-4" />
-                )}
-            </div>
-            <span className="text-sm font-medium max-w-[100px] truncate">{selectedGroup.name}</span>
-            <button 
-              onClick={handleReset}
-              className="ml-1 p-0.5 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="size-3" />
-            </button>
+          <div className="flex-shrink-0">
+            {selectedGroup.img ? (
+              <Image
+                src={selectedGroup.img}
+                alt="Selected group icon"
+                width={20}
+                height={20}
+                className="bg-white rounded-full object-contain"
+              />
+            ) : (
+              SelectedIcon && <SelectedIcon className="size-4" />
+            )}
+          </div>
+          <span className="text-sm font-medium max-w-[100px] truncate">{selectedGroup.name}</span>
+          <button
+            onClick={handleReset}
+            className="ml-1 p-0.5 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="size-3" />
+          </button>
         </div>
       )}
 
