@@ -3,7 +3,7 @@ import {
   getAllPathsAndDesc,
   loadOpenAPI,
   loadOpenAPIFromJson,
-} from  "../../utils/openapi";
+} from "../../utils/openapi";
 import { generateObject, tool } from "ai";
 import { z } from "zod";
 import { myProvider } from "../models";

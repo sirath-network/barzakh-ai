@@ -8,7 +8,7 @@ const cometai = createOpenAI({
   apiKey: process.env.COMETAPI_API_KEY,
 });
 
-export const DEFAULT_CHAT_MODEL: string = "chat-model-small";
+export const DEFAULT_CHAT_MODEL: string = "chat-model-grok";
 
 export const myProvider: any = customProvider({
   languageModels: {

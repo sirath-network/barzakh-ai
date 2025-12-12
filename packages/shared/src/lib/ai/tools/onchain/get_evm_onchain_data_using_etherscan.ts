@@ -42,7 +42,7 @@ export const getEvmOnchainDataUsingEtherscan = tool({
     console.log("using etherscan ...");
     try {
       console.log("User query:", userQuery);
-      
+
       const apiKey = process.env.ETHERSCAN_API_KEY;
       if (!apiKey) {
         throw new Error("Etherscan API key not found");
@@ -54,10 +54,10 @@ export const getEvmOnchainDataUsingEtherscan = tool({
 
       // Smart chain detection from query if not explicitly provided
       let detectedChainId = chainId;
-      
+
       if (!detectedChainId && userQuery) {
         const query = userQuery.toLowerCase();
-        
+
         // Chain detection patterns
         if (query.includes('polygon') || query.includes('matic')) {
           detectedChainId = 137;
@@ -203,11 +203,11 @@ export const getEvmOnchainDataUsingEtherscan = tool({
                 .replace(/&lt;/g, '<')
                 .replace(/&gt;/g, '>')
                 .replace(/&quot;/g, '"');
-              
+
               if (path !== decodedPath) {
                 console.log("Decoded HTML entities in path:", decodedPath);
               }
-              
+
               const etherscanPathsDetails = await getPathDetails(
                 etherscanOpenapidata,
                 decodedPath
@@ -228,17 +228,17 @@ export const getEvmOnchainDataUsingEtherscan = tool({
                   .replace(/&lt;/g, '<')
                   .replace(/&gt;/g, '>')
                   .replace(/&quot;/g, '"');
-                
+
                 if (url !== apiUrl) {
                   console.log("Decoded HTML entities in URL");
                 }
-                
+
                 // Fix V1 to V2 URL format (critical fix!)
                 if (apiUrl.includes('api.etherscan.io/api?') && !apiUrl.includes('/v2/')) {
                   apiUrl = apiUrl.replace('api.etherscan.io/api?', 'api.etherscan.io/v2/api?');
                   console.log("⚠️ Corrected V1 URL to V2 format");
                 }
-                
+
                 // Ensure chainid parameter is present (required for Etherscan API V2)
                 if (!apiUrl.includes('chainid=')) {
                   // Add chainid if missing
@@ -246,7 +246,7 @@ export const getEvmOnchainDataUsingEtherscan = tool({
                   apiUrl = `${apiUrl}${separator}chainid=${activeChainId}`;
                   console.log(`Added missing chainid parameter: ${activeChainId}`);
                 }
-                
+
                 const options = {
                   method: "GET",
                   headers: {
@@ -261,27 +261,27 @@ export const getEvmOnchainDataUsingEtherscan = tool({
                     `API call failed with status ${response.status}`
                   );
                 const json = await response.json();
-                
+
                 // Check for API Pro requirement error
-                if (json.status === '0' && json.result && 
-                    (json.result.includes('API Pro') || json.result.includes('upgrade to API Pro'))) {
+                if (json.status === '0' && json.result &&
+                  (json.result.includes('API Pro') || json.result.includes('upgrade to API Pro'))) {
                   console.error("⚠️ Etherscan API Pro subscription required for this endpoint");
-                  return { 
+                  return {
                     error: "This Etherscan endpoint requires an API Pro subscription ($149/month). For token holdings queries, consider using the Zerion API instead, which is free and provides better data.",
                     details: json.result,
                     suggestion: "Use Zerion API for token holdings data (free and more detailed)"
                   };
                 }
-                
+
                 // Check for V2 migration error
                 if (json.status === '0' && json.result && json.result.includes('deprecated')) {
                   console.error("Etherscan API V1 deprecated error detected");
-                  return { 
+                  return {
                     error: "Etherscan API V1 is deprecated. Please ensure chainid parameter is included.",
-                    details: json.result 
+                    details: json.result
                   };
                 }
-                
+
                 return json; // Return parsed JSON data for further processing
               } catch (error) {
                 console.error("Error fetching API data:", error);

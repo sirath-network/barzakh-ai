@@ -230,7 +230,7 @@ export const getEvmOnchainDataUsingZerion = tool({
             }),
             execute: async ({ path }) => {
               console.log("Fetching parameters for path:", path);
-              
+
               // Special handling for /positions/ endpoint - NOT in OpenAPI spec
               if (path.includes('/positions/')) {
                 return {
@@ -240,7 +240,7 @@ export const getEvmOnchainDataUsingZerion = tool({
                   template: "Just call makeApiCall with the URL above (replace {address} with actual address)"
                 };
               }
-              
+
               const zerionPathsDetails = await getPathDetails(
                 zerionOpenapidata,
                 path
@@ -261,11 +261,11 @@ export const getEvmOnchainDataUsingZerion = tool({
                   .replace(/&lt;/g, '<')
                   .replace(/&gt;/g, '>')
                   .replace(/&quot;/g, '"');
-                
+
                 if (url !== cleanUrl) {
                   console.log("⚠️ Decoded HTML entities in URL");
                 }
-                
+
                 console.log("fetching --- ", cleanUrl);
                 const options = {
                   method: "GET",
@@ -275,7 +275,7 @@ export const getEvmOnchainDataUsingZerion = tool({
                   },
                 };
                 const response = await fetch(cleanUrl, options);
-                
+
                 if (!response.ok) {
                   // Try to get error details from response body
                   let errorDetails = "";
@@ -285,21 +285,21 @@ export const getEvmOnchainDataUsingZerion = tool({
                   } catch (e) {
                     errorDetails = await response.text();
                   }
-                  
+
                   console.error(`❌ Zerion API Error ${response.status}:`, errorDetails);
                   throw new Error(
                     `API call failed with status ${response.status}. Details: ${errorDetails}`
                   );
                 }
-                
+
                 const json = await response.json();
                 console.log("✅ Fetched API response successfully");
                 return json; // Return parsed JSON data for further processing
               } catch (error: any) {
                 console.error("Error fetching API data:", error);
-                return { 
-                  error: "Failed to fetch data from the API.", 
-                  details: error.message 
+                return {
+                  error: "Failed to fetch data from the API.",
+                  details: error.message
                 };
               }
             },
