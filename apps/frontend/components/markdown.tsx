@@ -29,16 +29,16 @@ const SimpleImage = ({ src, alt }: { src: string; alt: string }) => {
 const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
   code: (props: any) => {
     const { className, children, node, ...rest } = props;
-    
+
     // Check if this is inline code (no language class) or a code block
     // Inline code: `code` - no className or className without language-
     // Block code: ```language\ncode``` - has className with language-
     const isInlineCode = !className || !className.includes('language-');
-    
+
     if (isInlineCode) {
       // Render inline code as a simple styled <code> element
       return (
-        <code 
+        <code
           className="px-1.5 py-0.5 mx-0.5 text-sm font-mono bg-muted/50 rounded border border-border/30 break-words"
           {...rest}
         >
@@ -46,7 +46,7 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
         </code>
       );
     }
-    
+
     // For block code, use CodeBlockCompact or CodeBlock
     const Component = USE_COMPACT_CODE_BLOCKS ? CodeBlockCompact : CodeBlock;
     return <Component className={className} {...rest} allCodeBlocks={allWebFiles}>{children}</Component>;
@@ -66,11 +66,11 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
 
   span: ({ children }) => {
     const text = typeof children === 'string' ? children : '';
-    
+
     // Check if this span contains a raw image URL
     const imageUrlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?[^\s]*)?)/gi;
     const match = text.match(imageUrlRegex);
-    
+
     if (match) {
       const parts = text.split(imageUrlRegex);
       return (
@@ -79,8 +79,8 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
             if (imageUrlRegex.test(part)) {
               return (
                 <div key={index} className="my-4 max-w-full">
-                  <SimpleImage 
-                    src={part} 
+                  <SimpleImage
+                    src={part}
                     alt="Generated image"
                   />
                 </div>
@@ -91,7 +91,7 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
         </div>
       );
     }
-    
+
     return <span className="break-long-words">{children}</span>;
   },
 
@@ -100,12 +100,12 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
     const checkForBlockElements = (elements: React.ReactNode): boolean => {
       return React.Children.toArray(elements).some((child: any) => {
         if (!child || typeof child !== 'object') return false;
-        
+
         // Check for code elements with language classes (these become CodeBlockCompact = div)
         if (child?.props?.className?.includes('language-')) {
           return true;
         }
-        
+
         // Check the node property (HAST node) for code with className
         if (child?.props?.node?.properties?.className) {
           const classNames = child.props.node.properties.className;
@@ -113,49 +113,49 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
             return true;
           }
         }
-        
+
         // Check for CodeBlock or CodeBlockCompact components
         if (child?.type?.name === 'CodeBlock' || child?.type?.name === 'CodeBlockCompact') {
           return true;
         }
-        
+
         // Check for pre elements (preformatted text blocks)
         if (child?.type === 'pre') {
           return true;
         }
-        
+
         // Check for image containers
-        if (child?.props?.className?.includes('my-4 max-w-full') || 
-            child?.props?.className?.includes('block my-4 max-w-full')) {
+        if (child?.props?.className?.includes('my-4 max-w-full') ||
+          child?.props?.className?.includes('block my-4 max-w-full')) {
           return true;
         }
-        
+
         // Check for any div elements
         if (child?.type === 'div') {
           return true;
         }
-        
+
         // Check for block spans
         if (child?.type === 'span' && child?.props?.className?.includes('block')) {
           return true;
         }
-        
+
         // Recursively check nested children
         if (child?.props?.children) {
           return checkForBlockElements(child.props.children);
         }
-        
+
         return false;
       });
     };
-    
+
     const hasBlockElements = checkForBlockElements(children);
-    
+
     // Use div for block elements to avoid <p> nesting issues
     if (hasBlockElements) {
       return <div className="break-long-words my-3 leading-relaxed">{children}</div>;
     }
-    
+
     return <p className="break-long-words my-3 leading-relaxed">{children}</p>;
   },
 
@@ -246,8 +246,8 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
     if (isImageUrl) {
       return (
         <span className="block my-4 max-w-full">
-          <SimpleImage 
-            src={href} 
+          <SimpleImage
+            src={href}
             alt={typeof children === 'string' ? children : 'Generated image'}
           />
         </span>
@@ -403,6 +403,11 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
       />
     );
   },
+  // Strip strikethrough formatting - AI sometimes uses ~~text~~ to "correct" itself
+  // which looks messy. Render strikethrough content as normal text instead.
+  del: ({ node, children, ...props }) => {
+    return <span className="break-long-words">{children}</span>;
+  },
 });
 
 const remarkPlugins = [remarkGfm];
@@ -412,7 +417,7 @@ const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string;
   // This ensures we get the latest version of each file across multiple messages
   const allWebFiles = useMemo(() => {
     const filesMap = new Map<string, WebFile>();
-    
+
     // Process all assistant messages in chronological order
     // Later messages will overwrite earlier versions of the same file
     allMessages
@@ -424,58 +429,58 @@ const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string;
         } else if (Array.isArray(msg.content)) {
           content = (msg.content as any[]).map((p: any) => p.type === 'text' ? p.text : '').join('\n');
         }
-        
+
         const files = extractWebFilesFromMarkdown(content);
         files.forEach(file => {
           // Use filename as key to keep only the latest version
           filesMap.set(file.fileName, file);
         });
       });
-    
+
     return Array.from(filesMap.values());
   }, [allMessages]);
-  
+
   let filteredChildren = children.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
-  
+
   // Filter out standalone image URLs from text (but preserve them in markdown links and images)
   // This regex matches image URLs that appear as plain text (not in markdown syntax)
   filteredChildren = filteredChildren.replace(
     /(^|\s)(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?[^\s]*)?)(\s|$)/gi,
     '$1$5' // Replace with just the surrounding whitespace
   );
-  
+
   // Filter out broken image references that might contain "here" or other broken text
   // This handles cases where the AI generates text like "here" as broken image placeholders
   filteredChildren = filteredChildren.replace(
     /(^|\s)(here)(\s|$)/gi,
     '$1$3' // Remove standalone "here" words that might be broken image references
   );
-  
+
   // Filter out any remaining broken image references or placeholders
   filteredChildren = filteredChildren.replace(
     /(^|\s)(image\s+here|here\s+image|view\s+here|here\s+view)(\s|$)/gi,
     '$1$3' // Remove broken image reference patterns
   );
-  
+
   // Filter out stray punctuation and conjunctions between code blocks
   // This removes fragments like ", and", ",", "and", etc. that appear between code blocks
   filteredChildren = filteredChildren.replace(
     /```([a-z]*)\n([\s\S]*?)```\s*[,;]\s*(and|or)?\s*```/gi,
     '```$1\n$2```\n\n```'
   );
-  
+
   // Remove standalone commas, semicolons, and conjunctions that appear on their own lines
   filteredChildren = filteredChildren.replace(
     /^\s*[,;]\s*(and|or)?\s*$/gm,
     ''
   );
-  
+
   // Clean up multiple consecutive blank lines (leave max 2)
   filteredChildren = filteredChildren.replace(/\n{3,}/g, '\n\n');
-  
+
   // Create components with access to all web files
   const components = useMemo(() => createComponents(allWebFiles), [allWebFiles]);
-  
+
   return (
     <div className="markdown-body max-w-full min-w-0">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
@@ -487,7 +492,7 @@ const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string;
 
 export const Markdown = memo(
   NonMemoizedMarkdown,
-  (prevProps, nextProps) => 
-    prevProps.children === nextProps.children && 
+  (prevProps, nextProps) =>
+    prevProps.children === nextProps.children &&
     prevProps.allMessages === nextProps.allMessages
 );

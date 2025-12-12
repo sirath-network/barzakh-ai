@@ -29,33 +29,33 @@ function sanitizeApiEndpoint(endpoint: string): string | null {
   try {
     // Remove any base URL if present
     let path = endpoint;
-    
+
     // If it's a full URL, extract just the path and query
     if (endpoint.includes('://')) {
       const url = new URL(endpoint);
       path = url.pathname + url.search;
     }
-    
+
     // Decode common HTML entities that might appear in the path
     path = path.replace(/&amp;/g, '&');
-    
+
     // Ensure path starts with /
     if (!path.startsWith('/')) {
       path = '/' + path;
     }
-    
+
     // Validate that it's a proper API path
     if (!path.startsWith('/api/')) {
       console.warn(`Invalid API path detected: ${path}`);
       return null;
     }
-    
+
     // Check for any suspicious patterns that might indicate malformed URLs
     if (path.includes('X-API-KEY') || path.includes('YOUR_API_KEY')) {
       console.error(`Malformed URL detected: ${path}`);
       return null;
     }
-    
+
     return path;
   } catch (error) {
     console.error(`Error sanitizing endpoint: ${endpoint}`, error);
@@ -89,28 +89,28 @@ export const getSeiApiData = tool({
       if (match) {
         const foundAddress = match[0];
         console.log(`Found address in query: ${foundAddress}`);
-        
-        try {
-            const assocUrl = `https://seitrace.com/insights/api/v2/addresses?chain_id=pacific-1&address=${foundAddress}`;
-            console.log(`Making association request to: ${assocUrl}`);
-            const assocResponseStr = await makeSeiTraceApiRequest(assocUrl);
-            const assocResponse = JSON.parse(assocResponseStr);
 
-            if (assocResponse.association) {
-                evmAddress = assocResponse.association.evm_hash;
-                seiAddress = assocResponse.association.sei_hash;
-                console.log(`Associated addresses found: EVM: ${evmAddress}, SEI: ${seiAddress}`);
-            }
+        try {
+          const assocUrl = `https://seitrace.com/insights/api/v2/addresses?chain_id=pacific-1&address=${foundAddress}`;
+          console.log(`Making association request to: ${assocUrl}`);
+          const assocResponseStr = await makeSeiTraceApiRequest(assocUrl);
+          const assocResponse = JSON.parse(assocResponseStr);
+
+          if (assocResponse.association) {
+            evmAddress = assocResponse.association.evm_hash;
+            seiAddress = assocResponse.association.sei_hash;
+            console.log(`Associated addresses found: EVM: ${evmAddress}, SEI: ${seiAddress}`);
+          }
         } catch (e) {
-            console.error("Could not fetch associated address. Proceeding with original address.", e);
+          console.error("Could not fetch associated address. Proceeding with original address.", e);
         }
 
         if (!evmAddress && !seiAddress) {
-            if (foundAddress.startsWith('0x')) {
-                evmAddress = foundAddress;
-            } else {
-                seiAddress = foundAddress;
-            }
+          if (foundAddress.startsWith('0x')) {
+            evmAddress = foundAddress;
+          } else {
+            seiAddress = foundAddress;
+          }
         }
       }
 
@@ -169,9 +169,9 @@ export const getSeiApiData = tool({
         try {
           const fullUrl = `https://seitrace.com/insights${endpoint}`;
           console.log(`Making request to: ${fullUrl}`);
-          
+
           const response = await makeSeiTraceApiRequest(fullUrl);
-          
+
           let responseObject;
           try {
             responseObject = JSON.parse(response);
@@ -183,14 +183,14 @@ export const getSeiApiData = tool({
           if (responseObject && responseObject.items && Array.isArray(responseObject.items)) {
             responseObject.items = responseObject.items.slice(0, limit);
           }
-          
+
           return JSON.stringify(responseObject);
         } catch (error: any) {
           console.error(`Error processing endpoint ${endpoint}:`, error);
-          return JSON.stringify({ 
-            error: `Failed to fetch data from ${endpoint}`, 
+          return JSON.stringify({
+            error: `Failed to fetch data from ${endpoint}`,
             message: error.message,
-            items: [] 
+            items: []
           });
         }
       });

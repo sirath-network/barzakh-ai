@@ -30,7 +30,7 @@ export const getMonadApiData = tool({
       console.log("user prompt is -- ", userQuery);
       const openapidata = await loadOpenAPIFromJson(monadJson);
       const allPaths = await getAllPathDetails(openapidata);
-      
+
       const { object: apiEndpointsArray } = await generateObject({
         model: myProvider.languageModel("chat-model-large"),
         output: "array",
@@ -47,7 +47,7 @@ export const getMonadApiData = tool({
           )} and user Query is ${userQuery}`
         ),
       });
-      
+
       const limitedApiEndpointsArray = apiEndpointsArray.slice(0, 5);
 
       console.log(`AI selected the api endpoints as `, limitedApiEndpointsArray);
@@ -55,13 +55,13 @@ export const getMonadApiData = tool({
       const requests = limitedApiEndpointsArray.map(async (endpoint) => {
         // Ensure the endpoint starts with a slash
         const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        
+
         // Remove any base URL if it was included in the endpoint
         const cleanEndpoint = formattedEndpoint.replace(/^https?:\/\/api\.blockvision\.org/i, '');
-        
+
         // Create the full URL
         const fullUrl = `https://api.blockvision.org${cleanEndpoint}`;
-        
+
         console.log("Making request to:", fullUrl);
         return await makeBlockVisionApiRequest(fullUrl);
       });

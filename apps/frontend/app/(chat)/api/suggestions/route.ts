@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     if (mainLang === "en") {
       return NextResponse.json(BASE_SUGGESTIONS);
     }
-    
+
     const result = await generateText({
       model: myProvider.languageModel("chat-model-large"),
       prompt: `
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       `,
     });
     const responseText = result.text;
-    
+
     // Clean AI response from markdown format if exists
     const cleanedJsonText = responseText.replace(/```json\n|```/g, "").trim();
     const translatedSuggestions = JSON.parse(cleanedJsonText);
