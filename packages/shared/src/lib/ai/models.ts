@@ -8,16 +8,16 @@ const cometai = createOpenAI({
   apiKey: process.env.COMETAPI_API_KEY,
 });
 
-export const DEFAULT_CHAT_MODEL: string = "chat-model-grok";
+export const DEFAULT_CHAT_MODEL: string = "chat-model-glm";
 
 export const myProvider: any = customProvider({
   languageModels: {
     "chat-model-small": openai("gpt-4o"),
     "chat-model-large": openai("gpt-4.1-2025-04-14"),
+    "chat-model-gigantic": cometai("gpt-5.1"),
+    "chat-model-colossal": cometai("gpt-5.2"),
     "chat-model-claude": cometai("claude-opus-4-5-20251101-thinking"),
-    "chat-model-grok": cometai("grok-4-1-fast-non-reasoning"),
     "chat-model-glm": cometai("glm-4.6"),
-    "chat-model-gigantic": cometai("gpt-5"),
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
@@ -43,18 +43,18 @@ export const chatModels: Array<ChatModel> = [
   },
   {
     id: "chat-model-gigantic",
-    name: "GPT 5",
+    name: "GPT 5.1",
     description: "Gigantic model for experimental tasks",
+  },
+  {
+    id: "chat-model-colossal",
+    name: "GPT 5.2",
+    description: "Colossal model for experimental tasks",
   },
   {
     id: "chat-model-glm",
     name: "GLM 4.6",
     description: "GLM-4.6 model for experimental tasks",
-  },
-  {
-    id: "chat-model-grok",
-    name: "Grok 4.1 Fast",
-    description: "Grok model for experimental tasks",
   },
   {
     id: "chat-model-claude",
