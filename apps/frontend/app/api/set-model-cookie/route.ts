@@ -7,7 +7,7 @@ const VALID_MODELS = [
   "chat-model-small",
   "chat-model-large",
   "chat-model-claude",
-  "chat-model-grok",
+  "chat-model-colossal",
   "chat-model-glm",
   "chat-model-gigantic",
   "title-model",

@@ -282,6 +282,9 @@ function PureMultimodalInput({
   onSubmitMessage?: () => void;
   disableSuggestions?: boolean;
 }) {
+  // Defensive fallback for messages to handle ai SDK v5 useChat hook behavior
+  const safeMessages = messages ?? [];
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const [isMounted, setIsMounted] = useState(false);
