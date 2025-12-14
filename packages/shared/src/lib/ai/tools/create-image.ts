@@ -2,7 +2,6 @@ import { tool } from "ai";
 import { z } from "zod";
 import { imagineModels } from "../models";
 import { fetchImageAsBase64 } from "../utils/fetch-image-as-base64";
-import { put } from "@vercel/blob";
 
 function getFrontendUrl(): string {
   if (process.env.FRONTEND_URL) {
@@ -51,28 +50,49 @@ const extensionMap: Record<string, string> = {
   "image/svg+xml": "svg",
 };
 
+/**
+ * Persist a data URL image to R2 storage via the persist-image API endpoint
+ * This replaces the previous Vercel Blob implementation
+ */
 async function persistDataUrlToBlob(
   dataUrl: string,
   index: number
 ): Promise<string> {
-  const [header, data] = dataUrl.split(",");
-  if (!header || !data) {
-    throw new Error("Invalid data URL");
+  const frontendUrl = getFrontendUrl();
+
+  try {
+    // Use the persist-image API which handles R2 uploads
+    const response = await fetch(`${frontendUrl}/api/persist-image`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        imageUrls: [dataUrl],
+        internalRequest: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`persist-image API failed (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    const persistedUrls: string[] = Array.isArray(data?.persistedUrls)
+      ? data.persistedUrls
+      : [];
+
+    if (persistedUrls.length > 0 && persistedUrls[0]) {
+      return persistedUrls[0];
+    }
+
+    throw new Error("persist-image API returned no URLs");
+  } catch (error) {
+    console.error("Failed to persist data URL via persist-image API:", error);
+    // Return original data URL as fallback
+    return dataUrl;
   }
-
-  const mimeMatch = header.match(/data:([^;]+)/);
-  const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
-  const extension = extensionMap[mimeType] || "png";
-  const buffer = Buffer.from(data, "base64");
-
-  const filename = `ai-generated-${Date.now()}-${index}.${extension}`;
-  const blob = await put(filename, buffer, {
-    access: "public",
-    contentType: mimeType,
-    cacheControlMaxAge: 31536000,
-  });
-
-  return blob.url;
 }
 
 // Function to persist generated images to permanent storage
@@ -177,8 +197,8 @@ function validateImageUrls(urls: string[]): { validUrls: string[]; warnings: str
   const warnings: string[] = [];
   const r2Urls = urls.filter(url => url.includes('r2.barzakh.tech'));
   const vercelBlobUrls = urls.filter(url => url.includes('blob.vercel-storage.com'));
-  const googleAUrls = urls.filter(url => 
-    url.includes('generativelanguage.googleapis.com') || 
+  const googleAUrls = urls.filter(url =>
+    url.includes('generativelanguage.googleapis.com') ||
     url.includes('generative-ai-image-store.googleapis.com')
   );
   const gswUrls = urls.filter(url => url.includes('r2.gsw.io'));
@@ -280,19 +300,19 @@ async function generateGeminiImage(
   const sanitizedPrompt = sanitizePrompt(prompt);
   const parts: Array<
     | {
-        text: string;
-      }
+      text: string;
+    }
     | {
-        inline_data: {
-          mime_type: string;
-          data: string;
-        };
-      }
+      inline_data: {
+        mime_type: string;
+        data: string;
+      };
+    }
   > = [
-    {
-      text: sanitizedPrompt,
-    },
-  ];
+      {
+        text: sanitizedPrompt,
+      },
+    ];
 
   if (input_image_urls && input_image_urls.length > 0) {
     const base64Images = await Promise.all(
