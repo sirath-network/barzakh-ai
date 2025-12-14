@@ -36,6 +36,7 @@ import { QuestionSuggestions } from "./question-suggestions";
 // START OF MODIFIED CODE
 // =====================================================================
 
+// Chain-specific groups - these do NOT force a model, user can choose any
 const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
   "on_chain",
   "wormhole",
@@ -49,25 +50,17 @@ const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
   "solana",
 ] as const;
 
+// Only coding and imagine force a specific model
+// Chain-specific tools use the user's selected model
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
   coding: "chat-model-claude",
   imagine: "chat-model-large",
-  on_chain: "chat-model-large",
-  wormhole: "chat-model-large",
-  sei: "chat-model-large",
-  creditcoin: "chat-model-large",
-  vana: "chat-model-large",
-  flow: "chat-model-large",
-  zeta: "chat-model-large",
-  aptos: "chat-model-large",
-  monad: "chat-model-large",
-  solana: "chat-model-large",
 };
 
+// Only lock model selector for coding and imagine
 const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([
   "coding",
   "imagine",
-  ...CHAIN_FORCED_GROUPS,
 ]);
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {

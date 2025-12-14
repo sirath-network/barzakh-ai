@@ -7,6 +7,7 @@ import {
 import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
+import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import {
   decrementRemainingMessageCount,
   deleteChatById,
@@ -95,12 +96,14 @@ export async function POST(request: Request) {
     messages,
     selectedChatModel,
     group,
+    autoRoute = false, // Enable intelligent intent-based routing
     history_for_context_id,
   }: {
     id: string;
     messages: Array<Message>;
     selectedChatModel: string;
     group: any;
+    autoRoute?: boolean;
     history_for_context_id?: string;
   } = await request.json();
 
@@ -140,20 +143,6 @@ export async function POST(request: Request) {
   // --- End History Context Section ---
 
   console.log("search groupe", group);
-
-  // Get group config with error handling
-  let tools: any[] = [];
-  let systemPrompt = "";
-
-  try {
-    const groupConfig = await getGroupConfig(group);
-    tools = [...(groupConfig?.tools || [])] as any[];
-    systemPrompt = groupConfig?.systemPrompt || "";
-    console.log("Group config loaded:", { tools: tools?.length, hasSystemPrompt: !!systemPrompt });
-  } catch (error) {
-    console.error("Failed to get group config:", error);
-    // Continue with empty tools and system prompt
-  }
 
   console.log("user session ", session.user);
   const users = await getUserById(session.user.id!);
@@ -289,6 +278,81 @@ export async function POST(request: Request) {
   }
   // ===========================================
 
+  // ============================================
+  // INTENT-BASED AUTO-ROUTING (UNIVERSAL)
+  // Always classifies user prompts and overrides group for high-priority intents
+  // e.g., if user is on 'sei' but types an image generation prompt -> route to 'imagine'
+  // ============================================
+  let effectiveGroup = group;
+  let classificationResult: IntentClassification | null = null;
+
+  // High-priority intents that should ALWAYS override the current group (with forced models)
+  const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
+
+  if (userMessageText && userMessageText.length > 0) {
+    try {
+      classificationResult = await classifyIntent(userMessageText, {
+        fallbackToLLM: true,
+        confidenceThreshold: 0.6,
+      });
+
+      const detectedIntent = classificationResult.primaryIntent;
+      const isHighPriority = HIGH_PRIORITY_INTENTS.includes(detectedIntent as typeof HIGH_PRIORITY_INTENTS[number]);
+      const isDefaultGroup = !group || group === 'search';
+
+      // Override if:
+      // 1. High confidence AND (user is on default group OR detected intent is high-priority)
+      // This ensures image/coding prompts ALWAYS route correctly, even from chain-specific tools
+      if (classificationResult.confidence >= 0.6 && (isDefaultGroup || isHighPriority)) {
+        effectiveGroup = detectedIntent;
+        console.log(`[INTENT-ROUTER] Auto-routed to: ${effectiveGroup} (confidence: ${classificationResult.confidence.toFixed(2)}, method: ${classificationResult.classificationMethod})`);
+        console.log(`[INTENT-ROUTER] Indicators: ${classificationResult.indicators.join(', ')}`);
+        if (!isDefaultGroup && isHighPriority) {
+          console.log(`[INTENT-ROUTER] High-priority override: ${group} -> ${effectiveGroup}`);
+        }
+      } else if (classificationResult.confidence >= 0.6) {
+        // Not overriding because user explicitly selected a non-default group
+        // and the detected intent is not high-priority
+        console.log(`[INTENT-ROUTER] Detected ${detectedIntent} but keeping user-selected group: ${group}`);
+      } else {
+        console.log(`[INTENT-ROUTER] Low confidence (${classificationResult.confidence.toFixed(2)}), keeping group: ${group || 'search'}`);
+      }
+    } catch (classifyError) {
+      console.error("[INTENT-ROUTER] Classification failed, using original group:", classifyError);
+      // Continue with original group on classification failure
+    }
+  }
+
+  // Get group config with error handling
+  let tools: any[] = [];
+  let systemPrompt = "";
+
+  try {
+    const groupConfig = await getGroupConfig(effectiveGroup);
+    tools = [...(groupConfig?.tools || [])] as any[];
+    systemPrompt = groupConfig?.systemPrompt || "";
+    console.log("Group config loaded:", {
+      originalGroup: group,
+      effectiveGroup,
+      autoRouted: effectiveGroup !== group,
+      tools: tools?.length,
+      hasSystemPrompt: !!systemPrompt
+    });
+  } catch (error) {
+    console.error("Failed to get group config:", error);
+    // Continue with empty tools and system prompt
+  }
+
+  // Select appropriate model based on routed group
+  // When auto-routing, use the model configured for that group
+  const effectiveModel = (effectiveGroup !== group && FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP])
+    ? FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP]!
+    : selectedChatModel;
+
+  if (effectiveModel !== selectedChatModel) {
+    console.log(`[INTENT-ROUTER] Model switched: ${selectedChatModel} → ${effectiveModel} (for ${effectiveGroup})`);
+  }
+
   const chat = await getChatById({ id });
 
   if (!chat) {
@@ -321,7 +385,7 @@ export async function POST(request: Request) {
     execute: (dataStream) => {
       try {
         const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
+          model: myProvider.languageModel(effectiveModel),
           system: systemPrompt,
           messages: cleanedMessages, // Use cleaned messages
           maxSteps: 5,
@@ -381,7 +445,7 @@ export async function POST(request: Request) {
           const freshMessages = [userMessage];
 
           const result = streamText({
-            model: myProvider.languageModel(selectedChatModel),
+            model: myProvider.languageModel(effectiveModel),
             system: systemPrompt,
             messages: freshMessages,
             maxSteps: 5,

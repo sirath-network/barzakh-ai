@@ -2,8 +2,8 @@ import { uploadToR2, isR2Url } from './r2-storage';
 
 /**
  * Downloads an image from a temporary URL and uploads it to Cloudflare R2 Storage
- * for permanent persistence
- * @param imageUrl - The temporary image URL to persist
+ * for permanent persistence. Also handles data URLs (base64 encoded images).
+ * @param imageUrl - The temporary image URL or data URL to persist
  * @param filename - Optional custom filename
  * @returns The permanent R2 URL
  */
@@ -18,17 +18,41 @@ export async function persistImageToBlob(
       return imageUrl;
     }
 
-    console.log('📥 Downloading temporary image for persistence:', imageUrl);
+    let imageBuffer: ArrayBuffer;
+    let contentType: string;
 
-    // Download the image
-    const response = await fetch(imageUrl);
+    // Handle data URLs (base64 encoded images)
+    if (imageUrl.startsWith('data:')) {
+      console.log('📥 Processing data URL for persistence...');
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      const [header, data] = imageUrl.split(',');
+      if (!header || !data) {
+        throw new Error('Invalid data URL format');
+      }
+
+      const mimeMatch = header.match(/data:([^;]+)/);
+      contentType = mimeMatch ? mimeMatch[1] : 'image/png';
+
+      // Convert base64 to buffer
+      const binaryString = atob(data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      imageBuffer = bytes.buffer;
+    } else {
+      // Handle HTTP URLs
+      console.log('📥 Downloading temporary image for persistence:', imageUrl);
+
+      const response = await fetch(imageUrl);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+
+      imageBuffer = await response.arrayBuffer();
+      contentType = response.headers.get('content-type') || 'image/png';
     }
-
-    const imageBuffer = await response.arrayBuffer();
-    const contentType = response.headers.get('content-type') || 'image/png';
 
     // Determine file extension from content type
     const extensionMap: Record<string, string> = {
