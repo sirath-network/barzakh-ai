@@ -111,7 +111,7 @@ export function Chat({
   });
 
   const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
+    user && messages.length > 0 ? `/api/vote?chatId=${id}` : null,
     fetcher
   );
   // Persist attachments in localStorage to survive page refreshes
