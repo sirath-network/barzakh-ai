@@ -157,9 +157,8 @@ const ResultCard = ({ result }: { result: SearchResult }) => (
       <div className="flex items-center gap-2.5 mb-3">
         <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center overflow-hidden flex-shrink-0">
           <img
-            src={`https://www.google.com/s2/favicons?sz=128&domain=${
-              new URL(result.url).hostname
-            }`}
+            src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(result.url).hostname
+              }`}
             alt={`${new URL(result.url).hostname} favicon`}
             className="w-6 h-6 object-contain"
             onError={(e) => {
@@ -283,11 +282,27 @@ const MultiSearch: React.FC<{
 }> = ({ result, args }) => {
   const [showAll, setShowAll] = React.useState(false);
   const [showAllTweets, setShowAllTweets] = React.useState(false);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [isMounted, setIsMounted] = React.useState(false);
+  const isDesktopQuery = useMediaQuery("(min-width: 768px)");
   const containerRef = React.useRef<HTMLDivElement>(null);
   const xContainerRef = React.useRef<HTMLDivElement>(null);
 
+  // Handle hydration - use consistent value during SSR and initial render
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Use desktop count (3) as default during SSR to prevent layout shift
+  // This works because the grid CSS already handles responsive behavior
+  const isDesktop = isMounted ? isDesktopQuery : true;
   const PREVIEW_RESULT_COUNT = isDesktop ? 3 : 2;
+
+  // Track if results are pre-loaded (result is available on first render)
+  const isPreloadedRef = React.useRef<boolean | null>(null);
+  if (isPreloadedRef.current === null) {
+    isPreloadedRef.current = result !== null;
+  }
+  const isPreloaded = isPreloadedRef.current;
 
   if (!result) {
     return (
@@ -300,7 +315,7 @@ const MultiSearch: React.FC<{
 
   const allImages = result.web.reduce<SearchImage[]>((acc, search) => [...acc, ...search.images], []);
   const allResults = result.web.flatMap(search => search.results);
-  
+
   const allTweets = result.x?.flatMap((search: any) => {
     if (search?.error) {
       console.warn("X Search Error:", search.error);
@@ -308,10 +323,10 @@ const MultiSearch: React.FC<{
     }
     return search.tweets || [];
   }) || [];
-  
+
   const displayResults = showAll ? allResults : allResults.slice(0, PREVIEW_RESULT_COUNT);
   const hasMoreResults = allResults.length > PREVIEW_RESULT_COUNT;
-  
+
   const displayTweets = showAllTweets ? allTweets : allTweets.slice(0, PREVIEW_RESULT_COUNT);
   const hasMoreTweets = allTweets.length > PREVIEW_RESULT_COUNT;
 
@@ -323,7 +338,7 @@ const MultiSearch: React.FC<{
     }
     setShowAll(!showAll);
   };
-  
+
   const handleToggleShowAllTweets = () => {
     if (showAllTweets) {
       xContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -332,10 +347,10 @@ const MultiSearch: React.FC<{
   };
 
   return (
-    <div ref={containerRef} className="w-full space-y-4 scroll-mt-20">
+    <div ref={containerRef} className="w-full space-y-4 pr-1.5 scroll-mt-20">
       <Accordion type="single" collapsible defaultValue="search" className="w-full">
         <AccordionItem value="search" className="border-none">
-          <AccordionTrigger className="p-0 mb-2 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
+          <AccordionTrigger className="p-0 hover:no-underline data-[state=open]:mb-2 data-[state=closed]:mb-2">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
                 <GlobeAny className="h-4 w-4 text-neutral-500" />
@@ -353,20 +368,19 @@ const MultiSearch: React.FC<{
                 </Badge>
               ))}
             </div>
-            
-            <div 
-              className={`grid gap-3 ${
-                allResults.length === 1
-                  ? 'grid-cols-1'
-                  : 'grid-cols-2 md:grid-cols-3'
-              }`}
+
+            <div
+              className={`grid gap-3 ${allResults.length === 1
+                ? 'grid-cols-1'
+                : 'grid-cols-2 md:grid-cols-3'
+                }`}
             >
               {displayResults.map((res, index) => (
                 <motion.div
                   key={`${res.url}-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={isPreloaded ? false : { opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : index * 0.05 }}
                   className="h-full"
                 >
                   <ResultCard result={res} />
@@ -395,14 +409,14 @@ const MultiSearch: React.FC<{
       </Accordion>
 
       {(allTweets.length > 0 || xSearchFailed) && (
-        <div ref={xContainerRef} className="w-full space-y-4 scroll-mt-20">
+        <div ref={xContainerRef} className="w-full space-y-4 pr-1.5 scroll-mt-20">
           <Accordion type="single" collapsible defaultValue="x-search" className="w-full">
             <AccordionItem value="x-search" className="border-none">
               <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4 data-[state=closed]:mb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" className="h-4 w-4 text-neutral-500">
-                      <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z"/>
+                      <path d="M12.6.75h2.454l-5.36 6.142L16 15.25h-4.937l-3.867-5.07-4.425 5.07H.316l5.733-6.57L0 .75h5.063l3.495 4.633L12.601.75Zm-.86 13.028h1.36L4.323 2.145H2.865z" />
                     </svg>
                   </div>
                   <h2 className="font-medium text-left">
@@ -418,20 +432,19 @@ const MultiSearch: React.FC<{
                     </p>
                   </div>
                 )}
-                
+
                 {allTweets.length > 0 && (
-                  <div className={`grid gap-3 pt-4 ${
-                      allTweets.length === 1
-                        ? 'grid-cols-1'
-                        : 'grid-cols-2 md:grid-cols-3'
+                  <div className={`grid gap-3 pt-4 ${allTweets.length === 1
+                    ? 'grid-cols-1'
+                    : 'grid-cols-2 md:grid-cols-3'
                     }`}
                   >
                     {displayTweets.map((tweet: any, index: number) => (
                       <motion.div
                         key={index}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={isPreloaded ? false : { opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : index * 0.05 }}
                         className="h-full"
                       >
                         <TweetCard tweet={tweet} />

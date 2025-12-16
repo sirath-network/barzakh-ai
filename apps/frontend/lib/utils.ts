@@ -44,7 +44,7 @@ export function convertToUIMessages(
     } else if (Array.isArray(message.content)) {
       // Check if the message contains images
       hasImages = message.content.some((content: any) => content.type === "image");
-      
+
       if (hasImages) {
         // If message contains images, extract text content AND tool invocations
         const textParts: string[] = [];
@@ -70,15 +70,15 @@ export function convertToUIMessages(
             reasoning = content.reasoning;
           }
         }
-        
+
         // Join text parts intelligently - avoid creating split responses
         if (textParts.length > 1) {
           const combinedText = textParts.join(" ");
-          const isLikelySplitResponse = 
+          const isLikelySplitResponse =
             combinedText.toLowerCase().includes("image") &&
             (combinedText.toLowerCase().includes("here") || combinedText.toLowerCase().includes("view")) &&
             combinedText.length < 500;
-          
+
           if (isLikelySplitResponse) {
             textContent = "";
           } else {
@@ -116,19 +116,19 @@ export function convertToUIMessages(
 
     // CORE FIX: For user messages with images, preserve the full content array
     // For other messages (especially assistant), use extracted text content
-    const shouldPreserveContent = 
-      message.role === "user" && 
-      hasImages && 
+    const shouldPreserveContent =
+      message.role === "user" &&
+      hasImages &&
       Array.isArray(message.content);
-    
+
     const uiMessage: Message = {
       id: message.id,
       role: message.role as Message["role"],
-      content: (shouldPreserveContent 
-        ? (message.content as any[]).filter((part: any) => 
-            // Keep image and text parts, exclude metadata
-            (part.type === 'image' || (part.type === 'text' && !part.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING')))
-          )
+      content: (shouldPreserveContent
+        ? (message.content as any[]).filter((part: any) =>
+          // Keep image and text parts, exclude metadata
+          (part.type === 'image' || (part.type === 'text' && !part.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING')))
+        )
         : textContent) as any, // For assistant/other messages, use extracted text
       reasoning,
       toolInvocations,
@@ -138,57 +138,89 @@ export function convertToUIMessages(
 
     return chatMessages;
   }, []);
-  
+
   // Post-process: Merge consecutive assistant messages with tool invocations
   // This fixes the issue where after page refresh, sources are displayed separately
   const mergedMessages: Array<Message> = [];
-  
+
   for (let i = 0; i < uiMessages.length; i++) {
     const currentMessage = uiMessages[i];
-    
-    // If this is an assistant message with tool invocations
+    const prevMessage = mergedMessages[mergedMessages.length - 1];
+
+    // Check if we should merge this message with the previous one
     if (
-      currentMessage.role === "assistant" && 
-      currentMessage.toolInvocations && 
-      currentMessage.toolInvocations.length > 0
+      currentMessage.role === "assistant" &&
+      prevMessage &&
+      prevMessage.role === "assistant"
     ) {
-      // Check if the previous message in mergedMessages is also an assistant with tools
-      const prevMessage = mergedMessages[mergedMessages.length - 1];
-      
-      if (
-        prevMessage && 
-        prevMessage.role === "assistant" && 
-        prevMessage.toolInvocations && 
-        prevMessage.toolInvocations.length > 0
-      ) {
-        // Merge tool invocations into the previous message
-        prevMessage.toolInvocations = [
-          ...prevMessage.toolInvocations,
-          ...currentMessage.toolInvocations,
-        ];
-        
+      // Case 1: Both have tool invocations - merge them
+      // Case 2: Previous has tool invocations, current has content but no tools - merge content into previous
+      // Case 3: Previous has no tools but current has tools - merge tools into previous
+
+      const prevHasTools = prevMessage.toolInvocations && prevMessage.toolInvocations.length > 0;
+      const currentHasTools = currentMessage.toolInvocations && currentMessage.toolInvocations.length > 0;
+      const prevHasContent = prevMessage.content && (typeof prevMessage.content === "string" ? prevMessage.content.trim() : true);
+      const currentHasContent = currentMessage.content && (typeof currentMessage.content === "string" ? currentMessage.content.trim() : true);
+
+      // Merge if: prev has tools and current is just content, OR both have tools
+      if ((prevHasTools && !currentHasTools && currentHasContent) || (prevHasTools && currentHasTools)) {
+        // Merge tool invocations if current has them
+        if (currentHasTools) {
+          prevMessage.toolInvocations = [
+            ...prevMessage.toolInvocations!,
+            ...currentMessage.toolInvocations!,
+          ];
+        }
+
         // Append content if the current message has meaningful content
-        if (currentMessage.content && typeof currentMessage.content === "string" && currentMessage.content.trim()) {
-          if (typeof prevMessage.content === "string") {
-            prevMessage.content = prevMessage.content + "\n\n" + currentMessage.content;
-          } else {
-            prevMessage.content = currentMessage.content;
+        if (currentHasContent) {
+          if (typeof currentMessage.content === "string" && currentMessage.content.trim()) {
+            if (typeof prevMessage.content === "string" && prevMessage.content.trim()) {
+              // Both have content - combine them
+              prevMessage.content = prevMessage.content + "\n\n" + currentMessage.content;
+            } else {
+              // Only current has content - use it
+              prevMessage.content = currentMessage.content;
+            }
           }
         }
-        
+
         // Keep the reasoning from the latest message if available
         if (currentMessage.reasoning) {
           prevMessage.reasoning = currentMessage.reasoning;
         }
-        
+
+        // Don't push the current message as it's been merged
+        continue;
+      }
+
+      // Case 3: Current has tools, previous doesn't - merge current into previous
+      if (currentHasTools && !prevHasTools && prevHasContent) {
+        // Add the tool invocations to the previous message
+        prevMessage.toolInvocations = currentMessage.toolInvocations;
+
+        // Append content if current has it
+        if (currentHasContent) {
+          if (typeof currentMessage.content === "string" && currentMessage.content.trim()) {
+            if (typeof prevMessage.content === "string") {
+              prevMessage.content = prevMessage.content + "\n\n" + currentMessage.content;
+            }
+          }
+        }
+
+        // Keep the reasoning from the latest message if available
+        if (currentMessage.reasoning) {
+          prevMessage.reasoning = currentMessage.reasoning;
+        }
+
         // Don't push the current message as it's been merged
         continue;
       }
     }
-    
+
     // If not mergeable, add the message as is
     mergedMessages.push(currentMessage);
   }
-  
+
   return mergedMessages;
 }

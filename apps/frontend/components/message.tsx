@@ -13,6 +13,7 @@ import { PreviewAttachment } from "./preview-attachment";
 import equal from "fast-deep-equal";
 import { cn, SearchGroupId } from "@barzakh/shared/lib/utils/utils";
 import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageEditor } from "./message-editor";
 import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
@@ -121,6 +122,20 @@ const PurePreviewMessage = ({
   const [isCopied, setIsCopied] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
   const [hasContentStarted, setHasContentStarted] = useState(false);
+
+  // Track if this message was pre-loaded (already had content on mount)
+  // Pre-loaded messages should skip animations to prevent layout shifts
+  const isPreloadedRef = useRef<boolean | null>(null);
+  if (isPreloadedRef.current === null) {
+    // On first render, check if message already has content (pre-loaded from DB)
+    const hasContent = message.role === 'assistant' && (
+      (typeof message.content === 'string' && message.content.length > 0) ||
+      (Array.isArray(message.content) && message.content.length > 0) ||
+      (message.toolInvocations && message.toolInvocations.length > 0)
+    );
+    isPreloadedRef.current = hasContent && !isLoading;
+  }
+  const isPreloaded = isPreloadedRef.current;
 
   // Smooth streaming logic
   const contentString = typeof message.content === 'string' ? message.content : '';
@@ -248,16 +263,16 @@ const PurePreviewMessage = ({
   }, [isThinking]);
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="sync">
       <motion.div
         className={cn(
           "w-full max-w-full mx-auto md:max-w-3xl px-3 group/message min-w-0",
           message.role === "user" && "mb-4"
         )}
-        initial={{ y: 10, opacity: 0 }}
+        initial={isPreloaded ? false : { y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: -5, opacity: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        exit={isPreloaded ? { opacity: 0 } : { y: -5, opacity: 0 }}
+        transition={{ duration: isPreloaded ? 0 : 0.3, ease: "easeOut" }}
         data-role={message.role}
       >
         <div
@@ -281,7 +296,7 @@ const PurePreviewMessage = ({
             "flex flex-col gap-1 min-w-0 max-w-full",
             message.role === 'user' ? "w-full" : "w-full"
           )}>
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               {showThinking ? (
                 <motion.div key="thinking">
                   <ThinkingAnimationAny statusText={statusText} />
@@ -289,9 +304,9 @@ const PurePreviewMessage = ({
               ) : (
                 <motion.div
                   key="content"
-                  initial={{ opacity: 0 }}
+                  initial={isPreloaded ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: isPreloaded ? 0 : 0.3 }}
                 >
                   {message.reasoning && (
                     <MessageReasoningAny
@@ -305,9 +320,9 @@ const PurePreviewMessage = ({
                     webSearchResults.map(tool => (
                       <motion.div
                         key={tool.toolCallId}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={isPreloaded ? false : { opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
+                        transition={{ duration: isPreloaded ? 0 : 0.3 }}
                       >
                         <MultiSearchAny result={tool.result} args={tool.args} />
                       </motion.div>
@@ -315,58 +330,76 @@ const PurePreviewMessage = ({
                   )}
 
                   {/* === TOP SECTION: OTHER TOOL RESULTS (PORTFOLIO, TOKEN INFO, etc.) === */}
-                  {otherCompletedTools && otherCompletedTools.length > 0 && (
-                    <motion.div
-                      className="flex flex-col items-start gap-2 mb-4"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.1 }}
-                    >
-                      {otherCompletedTools.map((toolInvocation) => {
-                        const { toolName, toolCallId, result } = toolInvocation;
-                        if (toolInvocation.state !== "result") return null;
+                  {(() => {
+                    // List of tools that have UI components
+                    const renderableToolNames = [
+                      'searchEvmTokenMarketData',
+                      'searchSolanaTokenMarketData',
+                      'getSolanaChainWalletPortfolio',
+                      'getEvmMultiChainWalletPortfolio',
+                      'getTokenBalances',
+                      'createImage'
+                    ];
 
-                        const toolComponents: Record<string, React.ReactNode> = {
-                          searchEvmTokenMarketData: <TokenInfoTableAny result={result} />,
-                          searchSolanaTokenMarketData: <TokenInfoTableAny result={result} />,
-                          getSolanaChainWalletPortfolio: <PortfolioTableAny result={result} />,
-                          getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
-                          getTokenBalances: <PortfolioTableAny result={result} />,
-                          createImage: result?.imageUrls ? (
-                            <AIGeneratedImageGridAny
-                              imageUrls={result.imageUrls}
-                              alt="AI generated images"
-                            />
-                          ) : result?.imageUrl ? (
-                            <AIGeneratedImageAny
-                              imageUrl={result.imageUrl}
-                              alt="AI generated image"
-                            />
-                          ) : (
-                            <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
-                              No image generated
+                    // Filter to only tools that have renderable components
+                    const renderableTools = otherCompletedTools?.filter(
+                      tool => tool.state === 'result' && renderableToolNames.includes(tool.toolName)
+                    ) || [];
+
+                    if (renderableTools.length === 0) return null;
+
+                    return (
+                      <motion.div
+                        className="flex flex-col items-start gap-2 mb-4"
+                        initial={isPreloaded ? false : { opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.1 }}
+                      >
+                        {renderableTools.map((toolInvocation) => {
+                          const { toolName, toolCallId, result } = toolInvocation;
+
+                          const toolComponents: Record<string, React.ReactNode> = {
+                            searchEvmTokenMarketData: <TokenInfoTableAny result={result} />,
+                            searchSolanaTokenMarketData: <TokenInfoTableAny result={result} />,
+                            getSolanaChainWalletPortfolio: <PortfolioTableAny result={result} />,
+                            getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
+                            getTokenBalances: <PortfolioTableAny result={result} />,
+                            createImage: result?.imageUrls ? (
+                              <AIGeneratedImageGridAny
+                                imageUrls={result.imageUrls}
+                                alt="AI generated images"
+                              />
+                            ) : result?.imageUrl ? (
+                              <AIGeneratedImageAny
+                                imageUrl={result.imageUrl}
+                                alt="AI generated image"
+                              />
+                            ) : (
+                              <div className="text-muted-foreground p-4 bg-muted/50 rounded-lg border border-border/20">
+                                No image generated
+                              </div>
+                            ),
+                          };
+
+                          return (
+                            <div key={toolCallId} className="w-full">
+                              {toolComponents[toolName]}
                             </div>
-                          ),
-                        };
-
-                        return (
-                          <div key={toolCallId} className="w-full">
-                            {toolComponents?.[toolName] || null}
-                          </div>
-                        );
-                      })}
-                    </motion.div>
-                  )}
+                          );
+                        })}
+                      </motion.div>
+                    );
+                  })()}
 
                   {/* === MIDDLE SECTION: MAIN MESSAGE CONTENT (MARKDOWN) === */}
                   {(message.content) && mode === "view" && (
                     <motion.div
-                      className={cn("flex flex-col w-full", {
+                      className={cn("flex flex-col pr-1.5 w-full", {
                         "items-end": message.role === "user",
                       })}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={isPreloaded ? false : { opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.2 }}
+                      transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.2 }}
                     >
                       {/* USER MESSAGE: Separate attachments and text */}
                       {message.role === "user" ? (
@@ -486,9 +519,45 @@ const PurePreviewMessage = ({
                             return null;
                           }
 
+                          // Check if assistant used any tools
+                          const hasTools = completedTools && completedTools.length > 0;
+
+                          // Only show styled container when assistant uses tools
+                          if (hasTools) {
+                            return (
+                              <div
+                                className="bg-muted/50 text-foreground px-4 py-2 shadow-sm max-w-full"
+                                style={{
+                                  borderRadius: '15px 15px 15px 15px'
+                                }}
+                              >
+                                <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
+                                  <div className="flex-1 min-w-0 max-w-full">
+                                    {typeof message.content === "string" ? (
+                                      <MarkdownAny allMessages={allMessages}>{smoothContent}</MarkdownAny>
+                                    ) : (
+                                      <div className="flex flex-col gap-2">
+                                        {(message.content as any[]).map((part, index) => {
+                                          if (part.type === "text") {
+                                            return <MarkdownAny key={index} allMessages={allMessages}>{part.text}</MarkdownAny>;
+                                          }
+                                          if (part.type === "image" && typeof part.image === 'string') {
+                                            return <MarkdownAny key={index} allMessages={allMessages}>{part.image}</MarkdownAny>;
+                                          }
+                                          return null;
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // No tools - render content with same styled container
                           return (
                             <div
-                              className="bg-muted/50 text-foreground px-4 py-3 shadow-sm max-w-full"
+                              className="bg-muted/50 text-foreground px-4 py-1 shadow-sm max-w-full"
                               style={{
                                 borderRadius: '0px 15px 15px 15px'
                               }}
@@ -504,8 +573,6 @@ const PurePreviewMessage = ({
                                           return <MarkdownAny key={index} allMessages={allMessages}>{part.text}</MarkdownAny>;
                                         }
                                         if (part.type === "image" && typeof part.image === 'string') {
-                                          // Include image URLs in text content so they can be rendered inline by Markdown
-                                          // This allows the Markdown component to detect and render AI-generated images properly
                                           return <MarkdownAny key={index} allMessages={allMessages}>{part.image}</MarkdownAny>;
                                         }
                                         return null;
@@ -580,139 +647,148 @@ const PurePreviewMessage = ({
                     </div>
                   )}
 
-                  {/* === BOTTOM SECTION: MESSAGE ACTIONS & SOURCE === */}
-                  {!isReadonly && message.role === "assistant" && (
+                  {/* === BOTTOM SECTION: MESSAGE ACTIONS & SOURCE BADGES === */}
+                  {message.role === "assistant" && (
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.3 }}
-                    >
-                      <MessageActionsAny
-                        key={`action-${message.id}`}
-                        chatId={chatId}
-                        message={message}
-                        vote={vote}
-                        isLoading={isLoading}
-                      />
-                    </motion.div>
-                  )}
-
-                  {/* === BOTTOM SECTION: ALL ICONS & SOURCE LABELS === */}
-                  {completedTools && completedTools.length > 0 && message.role === "assistant" && (
-                    <motion.div
-                      className="flex flex-col gap-2 sm:gap-3 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-border/50"
-                      initial={{ opacity: 0, y: 10 }}
+                      className="flex flex-col mt-2"
+                      initial={isPreloaded ? false : { opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.4 }}
+                      transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.4 }}
                     >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-0 sm:justify-between">
-                        {/* Container kiri: Icons dengan background dan shadow yang lebih baik */}
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-x-auto w-full sm:w-auto">
-                          <div className="relative flex items-center h-5 sm:h-6 flex-shrink-0">
-                            {completedTools.map((tool, index) => (
-                              <motion.div
-                                key={tool.toolCallId}
-                                className="absolute"
-                                style={{
-                                  left: `${index * 14}px`,
-                                  zIndex: completedTools.length - index,
-                                }}
-                                initial={{ scale: 0, opacity: 0, rotate: -10 }}
-                                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                                transition={{
-                                  duration: 0.3,
-                                  delay: index * 0.08 + 0.4,
-                                  type: "spring",
-                                  stiffness: 400,
-                                  damping: 25
-                                }}
-                                whileHover={{
-                                  scale: 1.1,
-                                  y: -2,
-                                  transition: { duration: 0.2 }
-                                }}
-                              >
-                                <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-background/80 backdrop-blur-sm rounded-full border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
-                                  <ToolIcon toolName={tool.toolName} />
-                                </div>
-                              </motion.div>
-                            ))}
-                          </div>
+                      <div className="flex flex-row items-center justify-between pr-1.5 gap-2 sm:gap-4">
+                        {/* Left side: Vote buttons (like/unlike) */}
+                        {!isReadonly && (
+                          <motion.div
+                            initial={isPreloaded ? false : { opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.3 }}
+                            className="flex-shrink-0"
+                          >
+                            <MessageActionsAny
+                              key={`action-${message.id}`}
+                              chatId={chatId}
+                              message={message}
+                              vote={vote}
+                              isLoading={isLoading}
+                            />
+                          </motion.div>
+                        )}
 
-                          {/* Label dengan styling yang lebih baik */}
-                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap min-w-0">
-                            <motion.div
-                              className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 bg-muted/50 rounded-full border border-border/40 flex-shrink-0"
-                              style={{
-                                marginLeft: `${Math.max(0, (completedTools.length - 1) * 14 + 14)}px`,
-                              }}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: 0.6 }}
-                            >
-                              <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
-                              <span className="text-[10px] sm:text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                {completedTools.length} source
-                                {completedTools.length > 1 ? "s" : ""}
-                              </span>
-                            </motion.div>
+                        {/* Right side: Tool icons and source badges */}
+                        {completedTools && completedTools.length > 0 && (
+                          <div className="flex items-center gap-1.5 sm:gap-3">
 
-                            {/* separator */}
-                            <div className="text-border/60 hidden sm:block">|</div>
-
-                            <motion.div
-                              className="flex flex-wrap gap-1 sm:gap-1.5 min-w-0"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ duration: 0.3, delay: 0.9 }}
-                            >
-                              {completedTools.slice(0, 3).map((tool, index) => {
-                                const toolNames: Record<string, string> = {
-                                  webSearch: "Web Search",
-                                  searchEvmTokenMarketData: "EVM Token Data",
-                                  searchSolanaTokenMarketData: "Solana Token Data",
-                                  getSolanaChainWalletPortfolio: "Solana Portfolio",
-                                  getEvmMultiChainWalletPortfolio: "EVM Portfolio",
-                                  getTokenBalances: "Token Balances",
-                                  getCreditcoinApiData: "Creditcoin API",
-                                  getVanaApiData: "Vana API",
-                                  getEvmOnchainDataUsingZerion: "Zerion Data",
-                                  getEvmOnchainDataUsingEtherscan: "Etherscan Data",
-                                  ensToAddress: "ENS Resolver",
-                                  aptosNames: "Aptos Names",
-                                  translateTransactions: "Transaction Parser",
-                                  createImage: "Image Generation",
-                                };
-
-                                return (
-                                  <motion.span
-                                    key={tool.toolCallId}
-                                    className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-accent/50 text-accent-foreground rounded-md border border-accent/20 hover:bg-accent/70 transition-colors cursor-default whitespace-nowrap"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.2, delay: 0.9 + index * 0.05 }}
-                                    whileHover={{ scale: 1.02 }}
-                                  >
-                                    <ToolIcon toolName={tool.toolName} />
-                                    <span className="hidden sm:inline">{toolNames[tool.toolName] || tool.toolName}</span>
-                                    <span className="inline sm:hidden">{(toolNames[tool.toolName] || tool.toolName).split(' ')[0]}</span>
-                                  </motion.span>
-                                );
-                              })}
-                              {completedTools.length > 3 && (
-                                <motion.span
-                                  className="inline-flex items-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-muted text-muted-foreground rounded-md border border-border/40 whitespace-nowrap"
-                                  initial={{ opacity: 0, scale: 0.8 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ duration: 0.2, delay: 1.1 }}
+                            <div className="relative flex items-center h-5 sm:h-6 flex-shrink-0">
+                              {completedTools.map((tool, index) => (
+                                <motion.div
+                                  key={tool.toolCallId}
+                                  className="absolute"
+                                  style={{
+                                    left: `${index * 14}px`,
+                                    zIndex: completedTools.length - index,
+                                  }}
+                                  initial={isPreloaded ? false : { scale: 0, opacity: 0, rotate: -10 }}
+                                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                                  transition={{
+                                    duration: isPreloaded ? 0 : 0.3,
+                                    delay: isPreloaded ? 0 : index * 0.08 + 0.4,
+                                    type: isPreloaded ? "tween" : "spring",
+                                    stiffness: 400,
+                                    damping: 25
+                                  }}
+                                  whileHover={{
+                                    scale: 1.1,
+                                    y: -2,
+                                    transition: { duration: 0.2 }
+                                  }}
                                 >
-                                  +{completedTools.length - 3} more
-                                </motion.span>
-                              )}
-                            </motion.div>
-                          </div>
+                                  <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 bg-background backdrop-blur-sm rounded-full border border-border shadow-sm hover:shadow-md hover:border-border transition-all duration-200">
+                                    <ToolIcon toolName={tool.toolName} />
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
 
-                        </div>
+                            {/* Source count and tool name badges */}
+                            <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+                              <motion.div
+                                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-0.5 sm:py-1 bg-muted rounded-full border border-border flex-shrink-0"
+                                style={{
+                                  marginLeft: `${Math.max(0, (completedTools.length - 1) * 14 + 22)}px`,
+                                }}
+                                initial={isPreloaded ? false : { opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.6 }}
+                              >
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                <span className="text-[10px] sm:text-xs font-medium text-foreground/70 whitespace-nowrap">
+                                  {completedTools.length} source
+                                  {completedTools.length > 1 ? "s" : ""}
+                                </span>
+                              </motion.div>
+
+                              {/* separator - only show on desktop */}
+                              <div className="text-border/60 hidden sm:block">|</div>
+
+                              {/* Tool name badges - hidden on mobile, shown on desktop */}
+                              <motion.div
+                                className="hidden sm:flex gap-1 sm:gap-1.5 min-w-0"
+                                initial={isPreloaded ? false : { opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.9 }}
+                              >
+                                {completedTools.slice(0, 3).map((tool, index) => {
+                                  const toolNames: Record<string, string> = {
+                                    webSearch: "Web Search",
+                                    searchEvmTokenMarketData: "EVM Token Data",
+                                    searchSolanaTokenMarketData: "Solana Token Data",
+                                    getSolanaChainWalletPortfolio: "Solana Portfolio",
+                                    getEvmMultiChainWalletPortfolio: "EVM Portfolio",
+                                    getTokenBalances: "Token Balances",
+                                    getCreditcoinApiData: "Creditcoin API",
+                                    getVanaApiData: "Vana API",
+                                    getEvmOnchainDataUsingZerion: "Zerion Data",
+                                    getEvmOnchainDataUsingEtherscan: "Etherscan Data",
+                                    ensToAddress: "ENS Resolver",
+                                    aptosNames: "Aptos Names",
+                                    translateTransactions: "Transaction Parser",
+                                    createImage: "Image Generation",
+                                  };
+
+                                  return (
+                                    <Tooltip key={tool.toolCallId}>
+                                      <TooltipTrigger asChild>
+                                        <motion.span
+                                          className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[9px] sm:text-xs font-medium bg-accent text-accent-foreground rounded-md sm:rounded-lg border border-border hover:bg-accent/80 transition-colors cursor-default whitespace-nowrap"
+                                          initial={isPreloaded ? false : { opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ duration: isPreloaded ? 0 : 0.2, delay: isPreloaded ? 0 : 0.9 + index * 0.05 }}
+                                          whileHover={{ scale: 1.02 }}
+                                        >
+                                          <ToolIcon toolName={tool.toolName} />
+                                          <span className="hidden sm:inline">{toolNames[tool.toolName] || tool.toolName}</span>
+                                        </motion.span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="sm:hidden">
+                                        <p>{toolNames[tool.toolName] || tool.toolName}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  );
+                                })}
+                                {completedTools.length > 3 && (
+                                  <motion.span
+                                    className="inline-flex items-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-muted text-foreground/70 rounded-md border border-border whitespace-nowrap"
+                                    initial={isPreloaded ? false : { opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: isPreloaded ? 0 : 0.2, delay: isPreloaded ? 0 : 1.1 }}
+                                  >
+                                    +{completedTools.length - 3} more
+                                  </motion.span>
+                                )}
+                              </motion.div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}

@@ -23,8 +23,8 @@ interface AIGeneratedImageGridProps {
   className?: string;
 }
 
-export function AIGeneratedImage({ 
-  imageUrl, 
+export function AIGeneratedImage({
+  imageUrl,
   alt = "AI generated image",
   className,
   allImages,
@@ -34,19 +34,19 @@ export function AIGeneratedImage({
   const [imageError, setImageError] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isExpiredUrl, setIsExpiredUrl] = useState(false);
-  
+
   // Navigation state for multiple images
   const [currentImageIndex, setCurrentImageIndex] = useState(currentIndex);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
-  
+
   // Get current image for display
-  const currentImage = allImages && allImages.length > 1 
-    ? allImages[currentImageIndex] 
+  const currentImage = allImages && allImages.length > 1
+    ? allImages[currentImageIndex]
     : imageUrl;
-  
+
   const isMobile = useIsMobile();
-  
+
   // Check if URL is expired on component mount
   useEffect(() => {
     // Only check expiration for URLs that have signed URL parameters
@@ -58,36 +58,36 @@ export function AIGeneratedImage({
       }
     }
   }, [imageUrl]);
-  
+
   // Fallback mobile detection for cases where useIsMobile might not work
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const isSmallScreen = window.innerWidth < 768;
-      
+
       const mobile = isMobileUA || (isTouchDevice && isSmallScreen);
       setIsMobileDevice(mobile);
-      
+
       // Optional: Debug logging (remove in production)
       // console.log('Mobile Detection:', { isMobile, isMobileUA, isTouchDevice, isSmallScreen, mobile });
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, [isMobile]);
-  
+
   // Use either hook result or fallback detection
   const shouldShowMobileUI = isMobile || isMobileDevice;
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsDownloading(true);
-    
+
     try {
       // Generate filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -113,7 +113,7 @@ export function AIGeneratedImage({
       // Detect mobile device
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      
+
       // Check if it's a data URL (base64)
       if (currentImage.startsWith('data:')) {
         if (isMobile) {
@@ -143,11 +143,11 @@ export function AIGeneratedImage({
             mode: 'cors',
             credentials: 'omit'
           });
-          
+
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
+
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
@@ -159,17 +159,17 @@ export function AIGeneratedImage({
           window.URL.revokeObjectURL(url);
         } catch (fetchError) {
           console.warn('Direct fetch failed, trying server proxy:', fetchError);
-          
+
           // Fallback: Try server-side proxy
           await downloadViaProxy(currentImage, filename);
         }
       }
     } catch (error) {
       console.error('Failed to download image:', error);
-      
+
       // Show error message to user
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
+
       // Provide helpful messages for common issues
       if (errorMessage.includes('Domain not allowed')) {
         setDownloadError('Image domain not whitelisted. Opening in new tab instead...');
@@ -180,10 +180,10 @@ export function AIGeneratedImage({
       } else {
         setDownloadError(`Download failed: ${errorMessage}. Try long-pressing the image to save.`);
       }
-      
+
       // Clear error after 7 seconds for mobile users to read
       setTimeout(() => setDownloadError(null), 7000);
-      
+
       // Final fallback: Open in new tab
       const link = document.createElement('a');
       link.href = currentImage;
@@ -205,10 +205,10 @@ export function AIGeneratedImage({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           imageUrl,
           mobile: true, // Flag for mobile optimization
-          forceDownload: true 
+          forceDownload: true
         }),
       });
 
@@ -217,13 +217,13 @@ export function AIGeneratedImage({
       }
 
       const blob = await response.blob();
-      
+
       // Method 2: Use the most compatible mobile download approach
       await downloadBlobOnMobile(blob, filename, isIOS);
-      
+
     } catch (proxyError) {
       console.warn('Proxy download failed on mobile:', proxyError);
-      
+
       try {
         // Method 3: Direct fetch as fallback
         const response = await fetch(imageUrl, {
@@ -242,10 +242,10 @@ export function AIGeneratedImage({
 
         const blob = await response.blob();
         await downloadBlobOnMobile(blob, filename, isIOS);
-        
+
       } catch (fetchError) {
         console.warn('All download methods failed on mobile:', fetchError);
-        
+
         // Method 4: Open image directly for mobile download
         await openImageForMobileDownload(imageUrl, filename);
       }
@@ -278,17 +278,17 @@ export function AIGeneratedImage({
       link.href = blobUrl;
       link.download = filename;
       link.style.display = 'none';
-      
+
       // Add to DOM, click, and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Clean up blob URL after a delay
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      
+
       console.log('📱 Downloaded via blob URL method');
-      
+
     } catch (error) {
       console.error('Mobile blob download failed:', error);
       // Fallback: Open image directly
@@ -304,14 +304,14 @@ export function AIGeneratedImage({
       link.download = filename;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      
+
       // Add to DOM temporarily
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       console.log('📱 Opened download link for mobile:', imageUrl);
-      
+
     } catch (error) {
       console.warn('Download link failed, opening in new tab:', error);
       // Final fallback: Open in new tab
@@ -324,20 +324,20 @@ export function AIGeneratedImage({
       // Convert data URL to blob
       const response = await fetch(dataUrl);
       const blob = await response.blob();
-      
+
       // Skip Web Share API to avoid unwanted share popup on mobile
-      
+
       // Fallback: Create download link
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
       link.target = '_blank';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     } catch (error) {
       console.error('Mobile data URL download failed:', error);
@@ -362,7 +362,7 @@ export function AIGeneratedImage({
       }
 
       const blob = await response.blob();
-      
+
       // Verify we got a valid blob
       if (!blob || blob.size === 0) {
         throw new Error('Received empty response from proxy');
@@ -422,7 +422,7 @@ export function AIGeneratedImage({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isPreviewOpen || !allImages || allImages.length <= 1) return;
-      
+
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         goToPreviousImage();
@@ -466,24 +466,24 @@ export function AIGeneratedImage({
               <div className="space-y-2">
                 <p className="text-gray-300 text-sm">💡 What you can do:</p>
                 <div className="text-xs text-gray-400 leading-relaxed">
-                  • Generate a new image with the same prompt<br/>
-                  • Download images immediately after generation<br/>
+                  • Generate a new image with the same prompt<br />
+                  • Download images immediately after generation<br />
                   • Save important images right away
                 </div>
               </div>
             </>
           ) : (
             <>
-          {(() => { const EyeAny = Eye as any; return <EyeAny className="w-8 h-8 mx-auto mb-2 opacity-50" />; })()}
-          <p className="text-sm">Failed to load generated image</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
+              {(() => { const EyeAny = Eye as any; return <EyeAny className="w-8 h-8 mx-auto mb-2 opacity-50" />; })()}
+              <p className="text-sm">Failed to load generated image</p>
+              <Button
+                variant="outline"
+                size="sm"
                 className="mt-2 border-red-600/50 text-red-300 hover:bg-red-950/30"
-            onClick={() => window.open(imageUrl, '_blank')}
-          >
-            Open in new tab
-          </Button>
+                onClick={() => window.open(imageUrl, '_blank')}
+              >
+                Open in new tab
+              </Button>
             </>
           )}
         </div>
@@ -493,7 +493,7 @@ export function AIGeneratedImage({
 
   return (
     <div className={cn("w-full group flex flex-col justify-start", className)}>
-      <div 
+      <div
         className={cn(
           "relative rounded-3xl overflow-hidden border border-border/20 shadow-lg w-full max-w-full group/image",
           shouldShowMobileUI ? "bg-transparent" : "bg-gradient-to-br from-muted/40 to-muted/20"
@@ -505,7 +505,7 @@ export function AIGeneratedImage({
             src={imageUrl}
             alt={alt}
             className="block w-full h-auto object-contain"
-            style={{ 
+            style={{
               maxWidth: '100%',
               width: '100%',
               height: 'auto',
@@ -517,7 +517,7 @@ export function AIGeneratedImage({
         </div>
 
         {/* Click to open preview */}
-        <div 
+        <div
           className="absolute inset-0 cursor-pointer"
           onClick={handlePreviewOpen}
         />
@@ -550,7 +550,7 @@ export function AIGeneratedImage({
                 }
               }}
             />
-            
+
             {/* Navigation for multiple images */}
             {allImages && allImages.length > 1 && (
               <>
@@ -558,7 +558,7 @@ export function AIGeneratedImage({
                 <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
                   {currentImageIndex + 1} / {allImages.length}
                 </div>
-                
+
                 {/* Previous button */}
                 <Button
                   variant="ghost"
@@ -568,7 +568,7 @@ export function AIGeneratedImage({
                 >
                   {(() => { const ChevronLeftAny = ChevronLeft as any; return <ChevronLeftAny className="h-5 w-5" />; })()}
                 </Button>
-                
+
                 {/* Next button */}
                 <Button
                   variant="ghost"
@@ -580,7 +580,7 @@ export function AIGeneratedImage({
                 </Button>
               </>
             )}
-            
+
             {/* Preview Actions */}
             <div className="absolute bottom-4 right-4 flex gap-2">
               <Button
@@ -627,39 +627,39 @@ export function AIGeneratedImage({
 }
 
 // Simplified version for smaller contexts
-export function AIGeneratedImageCompact({ 
-  imageUrl, 
+export function AIGeneratedImageCompact({
+  imageUrl,
   alt = "AI generated image",
-  className 
+  className
 }: AIGeneratedImageProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const isMobile = useIsMobile();
-  
+
   // Fallback mobile detection
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const isSmallScreen = window.innerWidth < 768;
-      
+
       const mobile = isMobileUA || (isTouchDevice && isSmallScreen);
       setIsMobileDevice(mobile);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   const shouldShowMobileUI = isMobile || isMobileDevice;
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsDownloading(true);
-    
+
     try {
       // Generate filename with timestamp  
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -692,7 +692,7 @@ export function AIGeneratedImageCompact({
           // Mobile: Skip Web Share API to avoid unwanted share popup
           console.log('📱 Mobile detected - skipping Web Share API');
         }
-        
+
         // Fallback for data URLs
         const link = document.createElement('a');
         link.href = imageUrl;
@@ -713,10 +713,10 @@ export function AIGeneratedImageCompact({
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               imageUrl,
               mobile: true,
-              forceDownload: true 
+              forceDownload: true
             }),
           });
 
@@ -725,7 +725,7 @@ export function AIGeneratedImageCompact({
           }
 
           const blob = await response.blob();
-          
+
           // Try Web Share API for iOS first
           if (isIOS && navigator.share && navigator.canShare) {
             try {
@@ -743,7 +743,7 @@ export function AIGeneratedImageCompact({
               console.warn('Web Share API failed:', shareError);
             }
           }
-          
+
           // Fallback: Create download link
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
@@ -755,10 +755,10 @@ export function AIGeneratedImageCompact({
           link.click();
           document.body.removeChild(link);
           setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-          
+
         } catch (mobileError) {
           console.warn('Mobile download failed:', mobileError);
-          
+
           // Final mobile fallback: Create download link with original URL
           const link = document.createElement('a');
           link.href = imageUrl;
@@ -770,40 +770,14 @@ export function AIGeneratedImageCompact({
         }
       } else {
         // Desktop download strategy
-      try {
-        const response = await fetch(imageUrl, {
-          mode: 'cors',
-          credentials: 'omit'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (fetchError) {
-        console.warn('Direct fetch failed, trying server proxy:', fetchError);
-        
-        // Fallback: Try server-side proxy
         try {
-          const response = await fetch('/api/proxy-image', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ imageUrl }),
+          const response = await fetch(imageUrl, {
+            mode: 'cors',
+            credentials: 'omit'
           });
 
           if (!response.ok) {
-            throw new Error(`Proxy request failed: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
 
           const blob = await response.blob();
@@ -815,23 +789,49 @@ export function AIGeneratedImageCompact({
           link.click();
           document.body.removeChild(link);
           window.URL.revokeObjectURL(url);
-        } catch (proxyError) {
-          console.warn('Proxy download failed:', proxyError);
-          
-          // Final fallback: Open in new tab
-          const link = document.createElement('a');
-          link.href = imageUrl;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+        } catch (fetchError) {
+          console.warn('Direct fetch failed, trying server proxy:', fetchError);
+
+          // Fallback: Try server-side proxy
+          try {
+            const response = await fetch('/api/proxy-image', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ imageUrl }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Proxy request failed: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          } catch (proxyError) {
+            console.warn('Proxy download failed:', proxyError);
+
+            // Final fallback: Open in new tab
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
           }
         }
       }
     } catch (error) {
       console.error('Failed to download image:', error);
-      
+
       // Final fallback: Open in new tab
       const link = document.createElement('a');
       link.href = imageUrl;
@@ -852,7 +852,7 @@ export function AIGeneratedImageCompact({
         <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
         <span>AI Generated Image</span>
       </div>
-      
+
       <div className="relative group border border-border/20 rounded-3xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/20 shadow-lg hover:shadow-xl transition-all duration-300 w-full"
       >
         <img
@@ -862,7 +862,7 @@ export function AIGeneratedImageCompact({
           style={{ maxHeight: 'min(400px, 60vh)', maxWidth: '100%' }}
           loading="lazy"
         />
-        
+
         {/* Mobile: Always visible download button */}
         {shouldShowMobileUI ? (
           <>
@@ -902,20 +902,20 @@ export function AIGeneratedImageCompact({
 }
 
 // New component for displaying multiple images in a grid
-export function AIGeneratedImageGrid({ 
-  imageUrls, 
+export function AIGeneratedImageGrid({
+  imageUrls,
   alt = "AI generated images",
-  className 
+  className
 }: AIGeneratedImageGridProps) {
   const isMobile = useIsMobile();
-  
+
   // Responsive grid layout
   const gridCols = isMobile ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2";
   const gap = isMobile ? "gap-3" : "gap-6";
-  
+
   return (
-    <div className={cn("w-full my-4", className)}>
-      
+    <div className={cn("w-full pr-1.5", className)}>
+
       <div className={cn("grid", gridCols, gap, "auto-rows-max")}>
         {imageUrls.map((imageUrl, index) => (
           <AIGeneratedImage

@@ -74,7 +74,7 @@ export function PureMessageActions({
     });
   };
 
-  if (isLoading || message.role === 'user' || (message.toolInvocations && message.toolInvocations.length > 0)) {
+  if (isLoading || message.role === 'user') {
     return null;
   }
 
@@ -87,7 +87,7 @@ export function PureMessageActions({
             <ButtonAny
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-neutral-500 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+              className="h-8 w-8 text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
               onClick={async () => {
                 await copyToClipboard(message.content);
                 toast.success('Copied to clipboard!');
@@ -104,7 +104,7 @@ export function PureMessageActions({
             <ButtonAny
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-neutral-500 transition-colors hover:text-blue-500 dark:text-neutral-400 dark:hover:text-blue-500"
+              className="h-8 w-8 text-neutral-600 transition-colors hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-500"
               disabled={vote?.isUpvoted}
               onClick={() => handleVote('up')}
             >
@@ -125,7 +125,7 @@ export function PureMessageActions({
             <ButtonAny
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-neutral-500 transition-colors hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-500"
+              className="h-8 w-8 text-neutral-600 transition-colors hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-500"
               disabled={vote && !vote.isUpvoted}
               onClick={() => handleVote('down')}
             >
