@@ -201,6 +201,16 @@ export function Chat({
     };
   }, []); // Empty dependencies so it only runs once on mount
 
+  // Update document title dynamically when chat title changes (client-side)
+  const chatTitle = view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.title : undefined;
+  useEffect(() => {
+    if (chatTitle) {
+      document.title = chatTitle;
+    } else if (view === "chat") {
+      document.title = "Barzakh AI";
+    }
+  }, [chatTitle, view]);
+
   const { setOpen, setOpenMobile, setSidebarView, isMobile } = useSidebar();
 
   const [isUnarchiving, setIsUnarchiving] = useState(false);
@@ -244,7 +254,7 @@ export function Chat({
               : undefined
           }
           // Pass chat specific props - look in both regular and archived history
-          chatTitle={view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.title : undefined}
+          chatTitle={chatTitle}
           chatVisibility={view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.visibility : undefined}
           onBackClick={view !== "chat" ? (() => {
             // Show settings list in the sidebar and ensure it's visible across devices

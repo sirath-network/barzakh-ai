@@ -114,8 +114,8 @@ function PureChatHeader({
         </div>
 
         {/* === Center Section (Dynamic Title or Logo) === */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none md:static md:pointer-events-auto min-w-0">
-          <div className="pointer-events-auto flex justify-center max-w-[60%] md:max-w-none">
+        <div className="absolute left-20 right-12 top-0 bottom-0 flex items-center justify-center pointer-events-none md:static md:pointer-events-auto md:left-auto md:right-auto min-w-0">
+          <div className="pointer-events-auto flex justify-center max-w-full md:max-w-none">
             {/* 3. Show title if exists, otherwise show ChatHeaderMenu or logo */}
             {title ? (
               <h1 className="text-lg font-semibold truncate px-2">{title}</h1>
