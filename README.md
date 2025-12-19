@@ -15,31 +15,58 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Next.js-15.4-black?logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black" alt="React">
   <img src="https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white" alt="Node.js">
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/pnpm-8.6-F69220?logo=pnpm&logoColor=white" alt="pnpm">
+  <img src="https://img.shields.io/badge/Turborepo-2.4-EF4444?logo=turborepo&logoColor=white" alt="Turborepo">
   <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
 </p>
 
 ---
 
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [AI Models & Orchestration](#ai-models--orchestration)
+- [Blockchain Tools](#blockchain-tools)
+- [x402 Crypto Payment Protocol](#x402-crypto-payment-protocol)
+- [Security](#security)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [API Documentation](#api-documentation)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
 ## Overview
 
-Barzakh AI is a full-stack blockchain analytics platform combining real-time on-chain data with multi-model AI orchestration. Built as a monorepo with Turborepo, it provides intelligent wallet analysis, DeFi insights, and automated blockchain workflows.
+Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that combines real-time on-chain data with multi-model AI orchestration. Built as a **Turborepo monorepo** with pnpm workspaces, it provides intelligent wallet analysis, DeFi insights, automated blockchain workflows, and gasless crypto payments.
 
-### Key Capabilities
+### ✨ Key Capabilities
 
-- **Multi-Model AI** — GPT-4o, Claude Opus, Grok 4.1, GLM 4.6
-- **45+ Blockchain Tools** — Chain-specific analyzers for Cronos, EVM, Aptos, Solana, Flow, SEI
-- **x402 Crypto Payments** — Native on-chain payment protocol
-- **Enterprise Security** — 2FA, wallet auth, Cloudflare API Shield
+| Feature | Description |
+|---------|-------------|
+| **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.5, Grok 4.1, GLM 4.6 with intelligent routing |
+| **50+ Blockchain Tools** | Chain-specific analyzers for Cronos, EVM, Aptos, Solana, Flow, SEI, Zeta, Monad |
+| **x402 Gasless Payments** | EIP-3009/EIP-712 gasless USDC payments on Cronos |
+| **VVS DEX Integration** | Swap quotes, liquidity pools, and token lists from VVS Finance |
+| **Enterprise Security** | 2FA (TOTP), wallet signature auth, Cloudflare API Shield |
+| **Real-time Streaming** | Token-by-token SSE output with Vercel AI SDK |
+| **Subscription Management** | Stripe + x402 crypto payments with automatic expiration handling |
+
+---
 
 ## Architecture
 
-> **Monorepo Architecture** built with Turborepo for optimal DX and build performance
+> **Turborepo Monorepo** with pnpm workspaces for optimal DX and build performance
 
 ### High-Level System Design
 
@@ -58,9 +85,9 @@ Barzakh AI is a full-stack blockchain analytics platform combining real-time on-
 ┌───────────────────────────────────────────────────────────────────────────────────────┐
 │                              APPLICATION LAYER (Vercel)                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                         Next.js 15 (App Router)                                 │  │
+│  │                         Next.js 15.4 (App Router + RSC)                         │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │  │
-│  │  │   React 19  │  │   Server    │  │  API Routes │  │    Middleware Chain     │ │  │
+│  │  │  React 19   │  │   Server    │  │  API Routes │  │    Middleware Chain     │ │  │
 │  │  │     RSC     │  │  Components │  │   (Edge)    │  │  Auth → Rate → Validate │ │  │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────────┘ │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
@@ -71,7 +98,8 @@ Barzakh AI is a full-stack blockchain analytics platform combining real-time on-
 │                                   CORE SERVICES                                     │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
 │  │  Chat Engine    │  │ AI Orchestrator │  │  Tool Executor  │  │ Stream Processor│ │
-│  │  Vercel AI SDK  │  │  Multi-Model    │  │   45+ Tools     │  │   SSE/Chunks    │ │
+│  │  Vercel AI SDK  │  │  Multi-Model    │  │   50+ Tools     │  │   SSE/Chunks    │ │
+│  │    v4.1.17      │  │  Intent Router  │  │   12 Chains     │  │  Transfer-Enc   │ │
 │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘ │
 └───────────┼────────────────────┼────────────────────┼────────────────────┼──────────┘
             │                    │                    │                    │
@@ -84,14 +112,13 @@ Barzakh AI is a full-stack blockchain analytics platform combining real-time on-
 │  │                           LLM Provider Abstraction                            │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │  │
 │  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   CometAPI       │ │  │
-│  │  │ GPT-4o   │  │  Claude  │  │  Grok 2  │  │ GLM-4.6  │  │  (Aggregator)    │ │  │
-│  │  │ o1/o3    │  │ Sonnet   │  │          │  │          │  │                  │ │  │
-│  │  │          │  │ 4/4.5    │  │          │  │          │  │                  │ │  │
+│  │  │ GPT-4o/5 │  │ Claude   │  │  Grok 2  │  │ GLM-4.6  │  │  (Aggregator)    │ │  │
+│  │  │ o1/o3    │  │ Opus 4.5 │  │   4.1    │  │  Plus    │  │  Multi-Provider  │ │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │  │
 │  └───────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────────┐  │
 │  │ Prompt Engineer │  │ Input Sanitizer │  │        Response Streamer            │  │
-│  │  System Prompts │  │ Injection Guard │  │    Token-by-Token SSE Output        │  │
+│  │  58KB+ System   │  │ Injection Guard │  │    Token-by-Token SSE Output        │  │
 │  └─────────────────┘  └─────────────────┘  └─────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────────┘
                                           │
@@ -102,8 +129,13 @@ Barzakh AI is a full-stack blockchain analytics platform combining real-time on-
 │  │                         Chain-Specific Tool Modules                             │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
 │  │  │  Cronos  │  │   EVM    │  │  Aptos   │  │   Flow   │  │       SEI        │   │  │
-│  │  │ zkEVM +  │  │ Ethereum │  │   Sui    │  │ Cadence  │  │  Cosmos SDK      │   │  │
-│  │  │  EVM     │  │ Polygon  │  │  Move    │  │  FCL     │  │  IBC Transfers   │   │  │
+│  │  │ VVS DEX  │  │ Ethereum │  │   Move   │  │ Cadence  │  │  Cosmos SDK      │   │  │
+│  │  │ Explorer │  │ Polygon  │  │  Names   │  │  NFTs    │  │  IBC Protocol    │   │  │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
+│  │  │  Solana  │  │   Zeta   │  │  Monad   │  │ Wormhole │  │    Vana/CC       │   │  │
+│  │  │   RPC    │  │  ZetaVM  │  │   Next   │  │  Bridge  │  │  Data Networks   │   │  │
+│  │  │  DeFi    │  │  Testnet │  │   Gen    │  │  X-Chain │  │    Protocol      │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
@@ -111,7 +143,7 @@ Barzakh AI is a full-stack blockchain analytics platform combining real-time on-
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
 │  │  │DeFi Llama│  │Web Search│  │  News    │  │ X/Twitter│  │  Image Gen       │   │  │
 │  │  │   TVL    │  │  Tavily  │  │  Search  │  │  Search  │  │  Gemini 2.5      │   │  │
-│  │  │   API    │  │  Search  │  │   API    │  │   API    │  │   Flash/Pro      │   │  │
+│  │  │   API    │  │  Search  │  │   API    │  │   API    │  │   Imagen 3       │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────────────────────────────────────────┘
@@ -122,6 +154,7 @@ Barzakh AI is a full-stack blockchain analytics platform combining real-time on-
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
 │  │   PostgreSQL    │  │  Cloudflare R2  │  │   Drizzle ORM   │  │   Connection    │  │
 │  │   (Neon/Turso)  │  │  Object Storage │  │   Type-Safe     │  │    Pooling      │  │
+│  │    v0.34.1      │  │   File Upload   │  │   Migrations    │  │   Prepared      │  │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -153,6 +186,9 @@ sequenceDiagram
     DB-->>Auth: User Context + Subscription Tier
     Auth-->>MW: Authenticated User
     
+    Note over MW: x402 Subscription Expiry Check
+    MW->>DB: Check x402PeriodEnd
+    
     MW->>API: Process Chat Request
     API->>Orchestrator: Initialize Chat Stream
     
@@ -176,7 +212,266 @@ sequenceDiagram
     API->>DB: Persist Chat Message (async)
 ```
 
-### Authentication & Security Architecture
+---
+
+## Tech Stack
+
+### Core Framework
+
+| Layer | Technology | Version | Purpose |
+|-------|------------|---------|---------|
+| **Runtime** | Node.js | 18+ | Server runtime |
+| **Package Manager** | pnpm | 8.6.12 | Fast, disk-efficient |
+| **Monorepo** | Turborepo | 2.4.4 | Build orchestration |
+| **Framework** | Next.js | 15.4.10 | Full-stack React framework |
+| **UI Library** | React | 19.0.1 | UI components (RSC enabled) |
+| **Language** | TypeScript | 5.6.3 | Type safety |
+
+### Frontend Stack
+
+| Category | Technologies |
+|----------|-------------|
+| **Styling** | TailwindCSS 3.4, CSS Variables, Tailwind Merge |
+| **Components** | Radix UI primitives, Lucide React icons, Framer Motion |
+| **State** | React hooks, useSWR, TanStack Query 5.90 |
+| **Forms** | Zod 3.25 validation, React Hook Form patterns |
+| **Editor** | Prosemirror, CodeMirror 6 |
+| **Animations** | Framer Motion 11.3, Lottie React |
+
+### Backend Stack
+
+| Category | Technologies |
+|----------|-------------|
+| **API** | Next.js API Routes (Edge + Node), Vercel Functions |
+| **AI SDK** | Vercel AI SDK 4.1.17 |
+| **Database** | PostgreSQL 15, Drizzle ORM 0.34.1 |
+| **Auth** | NextAuth.js 5.0.0-beta.30 |
+| **Payments** | Stripe 18.5, x402 Protocol (EIP-3009) |
+| **Email** | Nodemailer 6.10 |
+
+### Web3 Stack
+
+| Category | Technologies |
+|----------|-------------|
+| **Wallet** | Wagmi 2.19, RainbowKit 2.2.9 |
+| **Ethereum** | Viem 2.41, ethers.js v6 |
+| **Chains** | Cronos, Ethereum, Polygon, Aptos, Solana, Flow, SEI |
+| **Protocols** | EIP-3009 (TransferWithAuthorization), EIP-712, EIP-191 |
+
+### Infrastructure
+
+| Category | Technologies |
+|----------|-------------|
+| **Hosting** | Vercel (Frontend), Cloudflare (Edge) |
+| **Database** | Neon PostgreSQL (Serverless) |
+| **Storage** | Cloudflare R2 (S3-compatible) |
+| **CDN** | Vercel Edge Network, Cloudflare |
+| **Monitoring** | Sentry 9.11, Vercel Analytics |
+
+---
+
+## AI Models & Orchestration
+
+### Supported Models
+
+| Model ID | Display Name | Provider | Backend Model | Use Case |
+|----------|--------------|----------|---------------|----------|
+| `chat-model-small` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
+| `chat-model-large` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
+| `chat-model-gigantic` | **GPT 5.1** | CometAPI | `gpt-5.1` | Experimental, next-gen |
+| `chat-model-colossal` | **GPT 5.2** | CometAPI | `gpt-5.2` | Experimental, advanced |
+| `chat-model-glm` | **GLM 4.6** ⭐ | CometAPI | `glm-4.6` | Default model, multilingual |
+| `chat-model-claude` | **Claude Opus 4.5 Thinking** | CometAPI | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
+
+> ⭐ **Default Model:** GLM 4.6 (`chat-model-glm`)
+
+### Image Generation
+
+| Model ID | Display Name | Provider | Description |
+|----------|--------------|----------|-------------|
+| `gemini-2.5-flash-image` | **Gemini 2.5 Flash Image** | CometAPI | Fast, high-fidelity image generation |
+
+
+### Intent Classification & Routing
+
+```mermaid
+flowchart LR
+    subgraph Input["📥 User Input"]
+        Query["User Query"]
+        Context["Chat Context"]
+        ChainMention["Chain Mentions"]
+    end
+
+    subgraph Classifier["🔀 Intent Classifier"]
+        Pattern["Pattern Matching"]
+        ChainContext["Chain Context Extraction"]
+        LLMFallback["LLM Fallback"]
+    end
+
+    subgraph Routes["🎯 Route Categories"]
+        Cronos["Cronos Tools"]
+        EVM["EVM Generic"]
+        Aptos["Aptos/Move"]
+        Solana["Solana DeFi"]
+        SEI["SEI Cosmos"]
+        General["General Chat"]
+    end
+
+    Query --> Pattern
+    Context --> ChainContext
+    ChainMention --> ChainContext
+    
+    Pattern --> |"cronos, cro, vvs"| Cronos
+    Pattern --> |"eth, erc, ens"| EVM
+    Pattern --> |"apt, move"| Aptos
+    Pattern --> |"sol, spl"| Solana
+    Pattern --> |"sei, ibc"| SEI
+    
+    ChainContext --> |"Preserve context"| Routes
+    LLMFallback --> |"Ambiguous"| General
+```
+
+---
+
+## Blockchain Tools
+
+### Tool Inventory by Chain
+
+| Chain | Tools | Key Capabilities |
+|-------|-------|------------------|
+| **Cronos** | 8 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info |
+| **EVM (Generic)** | 6 | Etherscan, Zerion portfolio, ENS resolution, multi-chain wallet |
+| **Aptos** | 10 | Coin balance, resources, modules, ANS names, transactions |
+| **Solana** | 4 | Token balances, portfolio, market data |
+| **Flow** | 3 | Cadence scripts, NFT collections |
+| **SEI** | 4 | Cosmos queries, IBC transfers |
+| **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
+| **Monad** | 3 | Next-gen EVM (testnet) |
+| **Wormhole** | 2 | Cross-chain bridge, guardian verification |
+| **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
+
+### VVS Finance DEX Integration
+
+```typescript
+// Available VVS Tools
+const vvsTools = {
+  getVVSSwapQuote,    // Swap quotes between tokens
+  getVVSTokenList,    // Available tokens
+  getVVSPoolInfo,     // Liquidity pool info
+};
+
+// Example: Swap Quote
+{
+  inputToken: "CRO",
+  outputToken: "USDC",
+  inputAmount: 100,
+  // Returns: expectedOutput, priceImpact, route
+}
+```
+
+### Multi-Chain Integration Matrix
+
+| Chain | SDK | Network | RPC Provider | Capabilities |
+|-------|-----|---------|--------------|--------------| 
+| **Cronos** | `viem` + `ethers.js v6` | Mainnet + Testnet | Cronos RPC | EVM tx, CRC-20, VVS DEX |
+| **Ethereum** | `viem` + `ethers.js v6` | Mainnet | Infura/Alchemy | ENS, ERC-20/721/1155 |
+| **Polygon** | `viem` | PoS Mainnet | QuickNode | Low-cost tx, NFTs |
+| **Aptos** | `@aptos-labs/ts-sdk` | Mainnet | Aptos Fullnode | Move, ANS names |
+| **Flow** | `@onflow/fcl` | Mainnet | Flow Access Node | Cadence, NFTs |
+| **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
+| **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
+
+---
+
+## x402 Crypto Payment Protocol
+
+### Gasless Payment Flow (EIP-3009)
+
+The x402 implementation uses **EIP-3009 TransferWithAuthorization** for gasless USDC payments:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as 👤 User
+    participant Frontend as 🖥️ Frontend
+    participant API as 📡 Backend API
+    participant Wallet as 🔐 Wallet
+    participant Facilitator as ⚡ Cronos Facilitator
+    participant Chain as ⛓️ Blockchain
+
+    Note over User,Chain: Step 1: Wallet Verification
+    User->>Frontend: Connect Wallet
+    Frontend->>API: GET /api/billing/x402/verify-wallet?address=0x...
+    API-->>Frontend: Nonce Message (EIP-191)
+    
+    Frontend->>Wallet: Sign Message Request
+    User->>Wallet: Approve Signature
+    Wallet-->>Frontend: Signature (65 bytes)
+    
+    Frontend->>API: POST /api/billing/x402/verify-wallet
+    Note over API: ecrecover(hash, sig) == address
+    API-->>Frontend: Wallet Verified ✓
+
+    Note over User,Chain: Step 2: Payment Initialization
+    Frontend->>API: POST /api/billing/x402/subscribe
+    API-->>Frontend: 402 Payment Required<br/>{amount, recipient, paymentRequirements}
+
+    Note over User,Chain: Step 3: EIP-712 Signature (Gasless)
+    Frontend->>Frontend: Build EIP-712 TypedData<br/>(TransferWithAuthorization)
+    Frontend->>Wallet: signTypedData_v4
+    User->>Wallet: Approve Signature
+    Wallet-->>Frontend: EIP-712 Signature
+
+    Note over User,Chain: Step 4: Settlement
+    Frontend->>API: POST /api/billing/x402/settle<br/>{paymentHeader, paymentRequirements}
+    API->>Facilitator: Verify + Submit Transaction
+    Facilitator->>Chain: transferWithAuthorization()
+    Chain-->>Facilitator: TX Receipt
+    Facilitator-->>API: {txHash, blockNumber}
+    
+    API->>API: Activate Subscription<br/>Set x402PeriodEnd
+    API-->>Frontend: 200 OK - Subscription Active
+```
+
+### EIP-712 Domain & Types
+
+```typescript
+// EIP-712 Domain for USDC.e on Cronos
+const domain = {
+  name: "Bridged USDC (Stargate)",
+  version: "1",
+  chainId: 338, // Cronos Testnet
+  verifyingContract: "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
+};
+
+// EIP-3009 TransferWithAuthorization Types
+const types = {
+  TransferWithAuthorization: [
+    { name: "from", type: "address" },
+    { name: "to", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "validAfter", type: "uint256" },
+    { name: "validBefore", type: "uint256" },
+    { name: "nonce", type: "bytes32" },
+  ],
+};
+```
+
+### Subscription Management
+
+| Event | Action |
+|-------|--------|
+| **Payment Success** | Set `tier`, `x402PeriodEnd`, reset `dailyMessageRemaining` |
+| **Real-time Check** | Chat route checks `x402PeriodEnd` on every request |
+| **Cron Job** | Every 6 hours, downgrade expired subscriptions |
+| **Cancel at Period End** | Set `x402CancelAtPeriodEnd = true`, keep benefits until expiry |
+| **Cancel Immediately** | Downgrade to `free` tier instantly |
+
+---
+
+## Security
+
+### Authentication Architecture
 
 ```mermaid
 flowchart TB
@@ -227,24 +522,12 @@ flowchart TB
     style SensitiveOps fill:#ff8787
 ```
 
-### Multi-Chain Integration Matrix
-
-| Chain | SDK | Network | RPC Provider | Capabilities |
-|-------|-----|---------|--------------|--------------|
-| **Cronos** | `ethers.js v6` | Cronos Mainnet | Cronos RPC | EVM transactions, CRC-20 tokens, DeFi protocols |
-| **Ethereum** | `ethers.js v6` | Mainnet | Infura/Alchemy | ENS resolution, ERC-20/721/1155, Uniswap |
-| **Polygon** | `ethers.js v6` | PoS Mainnet | QuickNode | Low-cost transactions, NFT marketplaces |
-| **Aptos** | `@aptos-labs/ts-sdk` | Mainnet | Aptos Fullnode | Move resources, coin balances, modules |
-| **Flow** | `@onflow/fcl` | Mainnet | Flow Access Node | Cadence scripts, NFT collections |
-| **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK queries, IBC transfers |
-| **Wormhole** | Custom | Multi-chain | Guardian Network | Cross-chain message verification |
-
-### AI Security & Threat Protection
+### AI Security Defense Layers
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
 │                           AI SECURITY DEFENSE LAYERS                                 │
-├───────────────────────────────────────────────────────────────────────────────────── ┤
+├──────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                      │
 │  ┌──────────────────────────────────────────────────────────────────────────────┐    │
 │  │  LAYER 1: INPUT SANITIZATION                                                 │    │
@@ -277,28 +560,18 @@ flowchart TB
 │                                       │                                              │
 │                                       ▼                                              │
 │  ┌──────────────────────────────────────────────────────────────────────────────┐    │
-│  │  LAYER 4: MODEL PROTECTION                                                   │    │
+│  │  LAYER 4: RUNTIME MONITORING                                                 │    │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────────────┐    │    │
-│  │  │ Sponge      │ │ Model       │ │ Model       │ │ Output               │    │    │
-│  │  │ Attack      │ │ Extraction  │ │ Inversion   │ │ Filtering            │    │    │
-│  │  │ Prevention  │ │ Defense     │ │ Guard       │ │ (PII, Secrets)       │    │    │
-│  │  └─────────────┘ └─────────────┘ └─────────────┘ └──────────────────────┘    │    │
-│  └──────────────────────────────────────────────────────────────────────────────┘    │
-│                                       │                                              │
-│                                       ▼                                              │
-│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
-│  │  LAYER 5: RUNTIME MONITORING                                                 │    │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────────────┐    │    │
-│  │  │ Rate        │ │ Anomaly     │ │ Behavioral  │ │ Audit                │    │    │
-│  │  │ Limiting    │ │ Detection   │ │ Analysis    │ │ Logging              │    │    │
-│  │  │ (Token/IP)  │ │ (Pattern)   │ │ (Usage)     │ │ (Compliance)         │    │    │
+│  │  │ Rate        │ │ Anomaly     │ │ x402 Expiry │ │ Audit                │    │    │
+│  │  │ Limiting    │ │ Detection   │ │ Check       │ │ Logging              │    │    │
+│  │  │ (Tier-based)│ │ (Pattern)   │ │ (Real-time) │ │ (Compliance)         │    │    │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └──────────────────────┘    │    │
 │  └──────────────────────────────────────────────────────────────────────────────┘    │
 │                                                                                      │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### Threat Protection Matrix
+### Threat Protection Matrix
 
 | Threat Category | Attack Vector | Defense Mechanism |
 |-----------------|---------------|-------------------|
@@ -307,160 +580,9 @@ flowchart TB
 | **Jailbreak Attempts** | Role manipulation, DAN prompts | System prompt hardening, output monitoring |
 | **Homoglyph Attacks** | Lookalike Unicode characters | Character normalization, visual similarity detection |
 | **Invisible Characters** | Zero-width chars (U+200B, U+FEFF) | Whitespace stripping, control char removal |
-| **RTL Override** | Bidirectional text manipulation | Unicode Bidi control removal |
 | **Polyglot Files** | Images containing executable code | Magic byte validation, metadata stripping |
-| **Steganography** | Hidden data in image pixels | Re-encoding, EXIF removal |
 | **Sponge Attacks** | DoS via expensive computations | Token limits, complexity analysis, timeouts |
-| **Model Extraction** | Query-based model stealing | Rate limiting, query pattern analysis |
-| **Model Inversion** | Training data reconstruction | Output perturbation, access controls |
 | **Data Exfiltration** | PII/secrets in AI outputs | Output filtering, regex-based redaction |
-
-### AI Model Configuration
-
-```mermaid
-flowchart LR
-    subgraph Input["📥 Input Layer"]
-        UserMsg["User Message"]
-        History["Chat History<br/>(Context Window)"]
-        SystemPrompt["System Prompt<br/>(58KB+ optimized)"]
-    end
-
-    subgraph Sanitization["🛡️ Security Layer"]
-        Homoglyph["Homoglyph<br/>Detection"]
-        RTL["RTL Override<br/>Removal"]
-        Injection["Prompt Injection<br/>Pattern Matching"]
-        Unicode["Unicode<br/>Normalization"]
-    end
-
-    subgraph Router["🔀 Model Router"]
-        Selector{"Model<br/>Selector"}
-    end
-
-    subgraph Models["🤖 LLM Providers"]
-        GPT4o["<b>GPT-4o</b><br/>Fast responses<br/>128K context"]
-        GPT41["<b>GPT-4.1</b><br/>Complex reasoning<br/>1M context"]
-        GPT5["<b>GPT-5</b><br/>Experimental<br/>Next-gen"]
-        Claude["<b>Claude Opus 4.5</b><br/>Deep analysis<br/>Thinking mode"]
-        Grok["<b>Grok 4.1</b><br/>Real-time data<br/>Non-reasoning"]
-        GLM["<b>GLM 4.6</b><br/>Multilingual<br/>Chinese optimized"]
-    end
-
-    subgraph Output["📤 Output Layer"]
-        Stream["SSE Stream<br/>(Token-by-token)"]
-        ToolCall["Tool Invocation<br/>(Function calling)"]
-    end
-
-    UserMsg --> Homoglyph
-    History --> Sanitization
-    SystemPrompt --> Sanitization
-    
-    Homoglyph --> RTL --> Injection --> Unicode
-    Unicode --> Selector
-    
-    Selector -->|"speed"| GPT4o
-    Selector -->|"complex"| GPT41
-    Selector -->|"experimental"| GPT5
-    Selector -->|"analysis"| Claude
-    Selector -->|"real-time"| Grok
-    Selector -->|"multilingual"| GLM
-    
-    GPT4o & GPT41 & GPT5 & Claude & Grok & GLM --> Stream
-    GPT4o & GPT41 & GPT5 & Claude & Grok & GLM --> ToolCall
-```
-
-### x402 Crypto Payment Protocol
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant User as 👤 User
-    participant Frontend as 🖥️ Frontend
-    participant API as 📡 Backend API
-    participant Wallet as 🔐 Wallet
-    participant Chain as ⛓️ Blockchain
-
-    User->>Frontend: Select Crypto Payment
-    Frontend->>API: GET /api/billing/x402/verify-wallet?address=0x...
-    API-->>Frontend: Nonce Message (EIP-191)
-    
-    Frontend->>Wallet: Sign Message Request
-    Wallet->>User: Approve Signature
-    User->>Wallet: Confirm
-    Wallet-->>Frontend: Signature (65 bytes)
-    
-    Frontend->>API: POST /api/billing/x402/verify-wallet
-    Note over API: Verify signature = ecrecover(hash, sig)
-    API-->>Frontend: Wallet Verified ✓
-    
-    Frontend->>API: POST /api/billing/x402/subscribe
-    API-->>Frontend: 402 Payment Required<br/>{amount, recipient, chainId}
-    
-    Frontend->>Wallet: Send Transaction
-    Wallet->>Chain: Submit TX
-    Chain-->>Wallet: TX Hash
-    Wallet-->>Frontend: TX Hash
-    
-    Frontend->>API: POST /api/billing/x402/verify {txHash}
-    
-    loop Poll for Confirmation
-        API->>Chain: eth_getTransactionReceipt
-        Chain-->>API: Receipt (or null)
-    end
-    
-    API->>API: Validate: amount, recipient, block
-    API->>API: Activate Subscription
-    API-->>Frontend: 200 OK - Subscription Active
-```
-
-### Infrastructure Topology
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLOUDFLARE EDGE                                │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  WAF │ DDoS Protection │ API Shield │ Rate Limiting │ Bot Management   │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │                         Cloudflare R2                                  │ │
-│  │              (Object Storage - Images, Files, Attachments)             │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              VERCEL PLATFORM                                │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  │
-│  │   Edge Functions    │  │  Serverless Fns     │  │    Static Assets    │  │
-│  │   (Middleware)      │  │  (API Routes)       │  │    (CDN Cached)     │  │
-│  │   < 1ms cold start  │  │  Node.js Runtime    │  │    Global Edge      │  │
-│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                    ┌────────────────┴────────────────┐
-                    ▼                                 ▼
-┌─────────────────────────────┐      ┌─────────────────────────────┐
-│      POSTGRESQL (Neon)      │      │     EXTERNAL SERVICES       │
-│  ┌───────────────────────┐  │      │  ┌───────────────────────┐  │
-│  │   Connection Pooling  │  │      │  │   Zerion Portfolio    │  │
-│  │   Drizzle ORM         │  │      │  │   DeFi Llama TVL      │  │
-│  │   Prepared Statements │  │      │  │   CometAPI (LLM)      │  │
-│  │   Automatic Backups   │  │      │  │   OpenAI / Anthropic  │  │
-│  └───────────────────────┘  │      │  └───────────────────────┘  │
-└─────────────────────────────┘      └─────────────────────────────┘
-```
-
----
-
-## Tech Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | Next.js 15, React 18, TypeScript, TailwindCSS, Radix UI |
-| **Backend** | Next.js API Routes, Vercel AI SDK, PostgreSQL (Drizzle ORM) |
-| **AI** | OpenAI, Anthropic Claude, xAI Grok, Zhipu GLM |
-| **Auth** | NextAuth.js, TOTP 2FA, Wallet Connect, OAuth |
-| **Payments** | Stripe, x402 Protocol (on-chain) |
-| **Infra** | Vercel, Cloudflare, Turso/PlanetScale |
 
 ---
 
@@ -469,47 +591,71 @@ sequenceDiagram
 ```
 barzakh-ai/
 ├── apps/
-│   ├── frontend/                 # Next.js 15 application
+│   ├── frontend/                     # Next.js 15.4 Application
 │   │   ├── app/
-│   │   │   ├── (auth)/           # Auth pages (login, register, 2FA)
-│   │   │   ├── (chat)/           # Chat interface
-│   │   │   └── api/              # API routes
-│   │   │       ├── 2fa/          # Two-factor auth
-│   │   │       ├── auth/         # NextAuth handlers
-│   │   │       ├── billing/      # Stripe + x402
-│   │   │       ├── settings/     # User preferences
-│   │   │       └── webhooks/     # External integrations
-│   │   ├── components/           # React components
-│   │   │   ├── Input/            # Chat input system
-│   │   │   ├── settings/         # Settings UI
-│   │   │   └── ui/               # Radix UI primitives
+│   │   │   ├── (auth)/               # Auth pages (login, register, 2FA)
+│   │   │   ├── (chat)/               # Chat interface + API routes
+│   │   │   │   └── api/              # Protected API endpoints
+│   │   │   │       └── chat/         # AI chat with tool execution
+│   │   │   └── api/                  # Public API routes
+│   │   │       ├── 2fa/              # TOTP setup & verification
+│   │   │       ├── auth/             # NextAuth handlers
+│   │   │       ├── billing/          # Stripe + x402 payments
+│   │   │       │   └── x402/         # Crypto payment endpoints
+│   │   │       │       ├── subscribe/   # Get payment requirements
+│   │   │       │       ├── settle/      # Execute settlement
+│   │   │       │       ├── verify/      # Verify transaction
+│   │   │       │       └── verify-wallet/  # Wallet signature verification
+│   │   │       ├── cron/             # Scheduled jobs
+│   │   │       │   └── check-subscriptions/  # x402 expiry check (every 6h)
+│   │   │       └── settings/         # User preferences
+│   │   ├── components/
+│   │   │   ├── message.tsx           # Chat message component
+│   │   │   ├── settings/             # Settings UI
+│   │   │   │   └── plans/
+│   │   │   │       └── x402-payment-modal.tsx  # Crypto payment modal
+│   │   │   └── ui/                   # Radix UI primitives
 │   │   └── lib/
-│   │       └── db/               # Drizzle ORM schema
+│   │       ├── db/                   # Drizzle ORM
+│   │       │   ├── schema.ts         # Database schema
+│   │       │   └── migrations/       # SQL migrations
+│   │       ├── stripe.ts             # Stripe configuration
+│   │       └── wagmi.ts              # Web3 configuration
 │   │
-│   └── backend/                  # Supplementary backend services
+│   └── backend/                      # Supplementary backend services
 │
 ├── packages/
-│   └── shared/                   # Shared utilities
+│   └── shared/                       # Shared utilities (@barzakh/shared)
 │       └── src/lib/
 │           ├── ai/
-│           │   ├── models.ts     # Model configurations
-│           │   ├── prompts.ts    # System prompts
-│           │   └── tools/        # 45+ blockchain tools
-│           │       ├── aptos/    # Aptos-specific
-│           │       ├── solana/   # Solana-specific
-│           │       ├── evm/      # EVM chains
-│           │       ├── flow/     # Flow blockchain
-│           │       ├── sei/      # SEI chain
-│           │       └── onchain/  # Cross-chain utils
-│           └── security/         # Input sanitization
+│           │   ├── models.ts         # Model configurations
+│           │   ├── prompts.ts        # System prompts (58KB+)
+│           │   ├── intent-classifier.ts  # Chain-aware routing
+│           │   └── tools/            # 50+ blockchain tools
+│           │       ├── cronos/       # Cronos Explorer + VVS DEX
+│           │       │   ├── cronos-explorer.ts
+│           │       │   └── vvs-swap.ts
+│           │       ├── aptos/        # Aptos-specific
+│           │       ├── solana/       # Solana-specific
+│           │       ├── evm/          # EVM chains
+│           │       ├── flow/         # Flow blockchain
+│           │       ├── sei/          # SEI chain
+│           │       ├── zeta/         # Zeta chain
+│           │       ├── monad/        # Monad (testnet)
+│           │       ├── wormhole/     # Cross-chain bridge
+│           │       └── onchain/      # Cross-chain utilities
+│           ├── payments/
+│           │   └── x402-facilitator.ts  # x402 protocol implementation
+│           ├── security/             # Input sanitization
+│           └── utils/                # Shared utilities
 │
 ├── docs/
-│   ├── cloudflare-api-schema.yaml  # OpenAPI spec
-│   └── cloudflare-api-schema.json
+│   ├── cloudflare-api-schema.yaml    # OpenAPI 3.0 spec (source)
+│   └── cloudflare-api-schema.json    # OpenAPI 3.0 spec (generated)
 │
-├── turbo.json                    # Turborepo config
-├── pnpm-workspace.yaml
-└── package.json
+├── turbo.json                        # Turborepo configuration
+├── pnpm-workspace.yaml               # pnpm workspace config
+└── package.json                      # Root package.json
 ```
 
 ---
@@ -518,13 +664,19 @@ barzakh-ai/
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm 8+
-- PostgreSQL 15+
+| Requirement | Version |
+|-------------|---------|
+| Node.js | 18+ |
+| pnpm | 8.6+ |
+| PostgreSQL | 15+ |
 
 ### Quick Start
 
 ```bash
+# Clone repository
+git clone https://github.com/sirath-network/barzakh-ai.git
+cd barzakh-ai
+
 # Install dependencies
 pnpm install
 
@@ -542,22 +694,39 @@ pnpm dev
 
 ```env
 # Database
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
 
 # Auth
-NEXTAUTH_SECRET=...
+NEXTAUTH_SECRET=your-secret-key
 NEXTAUTH_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
 
 # AI Providers
-OPENAI_API_KEY=...
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 COMETAPI_API_KEY=...
+GOOGLE_GENERATIVE_AI_API_KEY=...
 
 # Payments
-STRIPE_SECRET_KEY=...
-STRIPE_WEBHOOK_SECRET=...
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# x402 Crypto Payments
+CRONOS_FACILITATOR_PRIVATE_KEY=...
+CRONOS_RPC_URL=https://evm.cronos.org
 
 # External APIs
 ZERION_API_KEY=...
+TAVILY_API_KEY=...
+
+# Storage
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+
+# Security
+CRON_SECRET=your-cron-secret
 ```
 
 ### Commands
@@ -565,17 +734,19 @@ ZERION_API_KEY=...
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Start all apps in dev mode |
+| `pnpm dev:frontend` | Run frontend only |
 | `pnpm build` | Build all apps |
 | `pnpm lint` | Lint all packages |
-| `pnpm --filter frontend dev` | Run frontend only |
-| `pnpm --filter frontend db:push` | Push schema changes |
+| `pnpm --filter frontend db:generate` | Generate migration files |
+| `pnpm --filter frontend db:migrate` | Run migrations |
 | `pnpm --filter frontend db:studio` | Open Drizzle Studio |
+| `pnpm --filter frontend db:push` | Push schema changes (dev) |
 
 ---
 
 ## API Documentation
 
-Full OpenAPI 3.0 specification available in `/docs/`:
+Full OpenAPI 3.0 specification available in `/docs/cloudflare-api-schema.yaml`.
 
 ### Key Endpoints
 
@@ -584,30 +755,22 @@ Full OpenAPI 3.0 specification available in `/docs/`:
 | `/api/auth/*` | * | NextAuth handlers |
 | `/api/2fa/*` | POST | Two-factor authentication |
 | `/api/billing/subscription` | GET | Subscription status |
-| `/api/billing/x402/*` | * | Crypto payments |
+| `/api/billing/x402/subscribe` | POST | Initiate x402 payment |
+| `/api/billing/x402/verify-wallet` | GET/POST | Wallet signature verification |
+| `/api/billing/x402/settle` | POST | Settle x402 payment |
+| `/api/billing/x402/verify` | POST | Verify transaction |
 | `/api/settings` | GET/PATCH | User settings |
 | `/api/settings/wallet/*` | * | Wallet binding |
+| `/api/cron/check-subscriptions` | GET | x402 expiry check (cron) |
 
----
+### Rate Limits
 
-## Security
-
-### Authentication Layers
-- Session-based auth (NextAuth.js)
-- OAuth providers (Google)
-- Wallet signature verification
-- TOTP-based 2FA
-
-### API Protection
-- Cloudflare API Shield with OpenAPI schema validation
-- Rate limiting per endpoint category
-- Input sanitization (prompt injection defense)
-
-### Sensitive Operations
-- Re-authentication required for:
-  - Account deletion
-  - Wallet binding/unbinding
-  - Email change
+| Endpoint Category | Limit | Window |
+|-------------------|-------|--------|
+| Authentication | 10 requests | 1 minute |
+| Chat API | Tier-based | Daily |
+| Billing | 20 requests | 1 minute |
+| Settings | 30 requests | 1 minute |
 
 ---
 
@@ -623,12 +786,48 @@ npm i -g vercel
 vercel --prod
 ```
 
+### vercel.json Configuration
+
+```json
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm run build --filter=barzakh",
+  "crons": [
+    {
+      "path": "/api/messagelimitcron",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/check-subscriptions",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}
+```
+
 ### Environment Configuration
 
 | Environment | URL | Branch |
 |-------------|-----|--------|
 | Production | chat.barzakh.tech | main |
-| API Production | staging.barzakh.tech | main |
+| API | staging.barzakh.tech | main |
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+
+- TypeScript strict mode
+- Biome for linting and formatting
+- ESLint + Prettier integration
+- Conventional Commits
 
 ---
 
@@ -640,4 +839,8 @@ MIT License - see [LICENSE](LICENSE)
 
 <p align="center">
   <strong>Built by <a href="https://github.com/sirath-network">Sirath Network</a></strong>
+</p>
+
+<p align="center">
+  <sub>🚀 Powered by AI | ⛓️ Built on Blockchain | 🔒 Security First</sub>
 </p>

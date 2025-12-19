@@ -236,7 +236,7 @@ export const searchGroups = [
   {
     id: "cronos",
     name: "Cronos",
-    description: "Everything Cronos. Market data, swaps, and more",
+    description: "Everything Cronos. Search, transactions and more",
     icon: Network,
     img: "/images/icon/cronos/cronos-logo.png",
   },
