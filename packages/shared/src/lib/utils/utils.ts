@@ -8,7 +8,7 @@ import type {
 } from "ai";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Globe, Network, CodeXml, ImageIcon } from "lucide-react";
+import { Globe, Network, CodeXml, ImageIcon, type LucideIcon } from "lucide-react";
 import { PortfolioData, TokenItem } from "../../types/wallet-actions-response";
 import {
   BirdeyeTokenSearchResponse,
@@ -204,30 +204,39 @@ export type SearchGroupId =
   | "aptos"
   | "cronos";
 
-export const searchGroups = [
+// Explicit type for search groups to avoid portable type inference issues with LucideIcon
+interface SearchGroupItem {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly icon: LucideIcon;
+  readonly img: string;
+}
+
+export const searchGroups: readonly SearchGroupItem[] = [
   {
-    id: "search" as const,
+    id: "search",
     name: "Web",
     description: "Search across the entire internet and blockchains",
     icon: Globe,
     img: "",
   },
   {
-    id: "imagine" as const,
+    id: "imagine",
     name: "Imagine",
     description: "Create images with AI",
     icon: ImageIcon,
     img: "",
   },
   {
-    id: "on_chain" as const,
+    id: "on_chain",
     name: "On Chain",
     description: "In-depth analysis of real-time on-chain activity",
     icon: Network,
     img: "",
   },
   {
-    id: "coding" as const,
+    id: "coding",
     name: "Coding",
     description: "Write, debug, and optimize code with Barzakh",
     icon: CodeXml,
@@ -248,7 +257,7 @@ export const searchGroups = [
     img: "/images/icon/sei/sei-logo.png",
   },
   {
-    id: "wormhole" as const,
+    id: "wormhole",
     name: "Wormhole",
     description:
       "Everything Wormhole. Search, transactions and more",
@@ -256,21 +265,21 @@ export const searchGroups = [
     img: "/images/icon/wormhole/wormhole-logo.png",
   },
   {
-    id: "creditcoin" as const,
+    id: "creditcoin",
     name: "Creditcoin",
     description: "Everything Creditcoin. Search, transactions and more",
     icon: Network,
     img: "/images/icon/creditcoin/creditcoin-white.png",
   },
   {
-    id: "vana" as const,
+    id: "vana",
     name: "Vana",
     description: "Everything Vana. Search, transactions and more",
     icon: Network,
     img: "/images/icon/vana/vana-icon-black.png",
   },
   {
-    id: "flow" as const,
+    id: "flow",
     name: "Flow",
     description: "Everything Flow. Search, transactions and more",
     icon: Network,
@@ -304,7 +313,7 @@ export const searchGroups = [
   // icon: Network,
   // img: "/images/icon/solana/solana.png",
   // },
-] as const;
+];
 
 export type SearchGroup = (typeof searchGroups)[number];
 

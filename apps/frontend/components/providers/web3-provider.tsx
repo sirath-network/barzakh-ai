@@ -70,13 +70,19 @@ export function Web3Provider({ children, initialState }: Web3ProviderProps) {
     setMounted(true);
   }, []);
 
+  // Always render children inside WagmiProvider so hooks work during SSR
+  // Only wrap with RainbowKitProvider after hydration to avoid SSR issues with wallet UI
   return (
     <WagmiProvider config={config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
-        {mounted && (
+        {mounted ? (
           <RainbowKitProviderWrapper>
             {children}
           </RainbowKitProviderWrapper>
+        ) : (
+          // During SSR/hydration, render children directly without RainbowKit wrapper
+          // This allows wagmi hooks to work, just without RainbowKit UI
+          children
         )}
       </QueryClientProvider>
     </WagmiProvider>

@@ -348,7 +348,7 @@ export async function POST(request: Request) {
       const content = typeof msg.content === 'string'
         ? msg.content
         : Array.isArray(msg.content)
-          ? msg.content.map(c => typeof c === 'string' ? c : (c as any).text || '').join(' ')
+          ? (msg.content as Array<{ type: string; text?: string }>).map((c) => typeof c === 'string' ? c : c.text || '').join(' ')
           : JSON.stringify(msg.content);
 
       for (const [chain, patterns] of Object.entries(chainPatterns)) {
