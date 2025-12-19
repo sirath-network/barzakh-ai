@@ -37,7 +37,7 @@ function formatSubscription(
   const legacyCurrentPeriodEnd =
     "current_period_end" in subscription
       ? (subscription as Stripe.Subscription & { current_period_end?: number })
-          .current_period_end ?? null
+        .current_period_end ?? null
       : null;
   const expandedCurrentPeriod =
     (subscription as Stripe.Subscription & {
@@ -50,8 +50,8 @@ function formatSubscription(
     subscription.cancel_at_period_end && subscription.cancel_at
       ? new Date(subscription.cancel_at * 1000)
       : currentPeriodEndUnix
-      ? new Date(currentPeriodEndUnix * 1000)
-      : null;
+        ? new Date(currentPeriodEndUnix * 1000)
+        : null;
 
   return {
     id: subscription.id,
@@ -87,9 +87,9 @@ function formatSubscription(
       typeof customer.invoice_settings?.default_payment_method === "string"
         ? customer.invoice_settings.default_payment_method
         : (customer.invoice_settings?.default_payment_method as
-            | Stripe.PaymentMethod
-            | null
-            | undefined)?.id ?? null,
+          | Stripe.PaymentMethod
+          | null
+          | undefined)?.id ?? null,
     metadata: subscription.metadata ?? {},
   };
 }
@@ -108,9 +108,9 @@ export async function GET(request: Request) {
     );
     const defaultPaymentMethod =
       typeof stripeCustomer.invoice_settings?.default_payment_method ===
-      "object"
+        "object"
         ? (stripeCustomer.invoice_settings
-            .default_payment_method as Stripe.PaymentMethod)
+          .default_payment_method as Stripe.PaymentMethod)
         : null;
     const latestBillingAddress =
       defaultPaymentMethod?.billing_details?.address ??
@@ -133,13 +133,13 @@ export async function GET(request: Request) {
         billingAddress: normalizeAddress(latestBillingAddress),
         defaultPaymentMethod: defaultPaymentMethod
           ? {
-              id: defaultPaymentMethod.id,
-              brand: defaultPaymentMethod.card?.brand ?? null,
-              last4: defaultPaymentMethod.card?.last4 ?? null,
-              billingAddress: normalizeAddress(
-                defaultPaymentMethod.billing_details?.address,
-              ),
-            }
+            id: defaultPaymentMethod.id,
+            brand: defaultPaymentMethod.card?.brand ?? null,
+            last4: defaultPaymentMethod.card?.last4 ?? null,
+            billingAddress: normalizeAddress(
+              defaultPaymentMethod.billing_details?.address,
+            ),
+          }
           : null,
       });
     }
@@ -160,7 +160,7 @@ export async function GET(request: Request) {
         .orderBy(desc(x402_transactions.createdAt))
         .limit(1);
 
-      const billingCycle = latestTx?.billingCycle || "monthly";
+      const billingCycle = dbUser.billingCycle || latestTx?.billingCycle || "monthly";
       let intervalCount = 1;
       let interval = "month";
 
@@ -170,26 +170,47 @@ export async function GET(request: Request) {
         interval = "year";
       }
 
-      // Construct mock subscription object
-      const createdAt = latestTx?.createdAt ? new Date(latestTx.createdAt) : new Date();
-      const currentPeriodEnd = new Date(createdAt);
-      
-      if (interval === "year") {
-        currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
-      } else if (interval === "month") {
-        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + intervalCount);
+      // Use x402PeriodEnd from user table, fallback to calculating from transaction
+      let currentPeriodEnd: Date;
+      let shouldPersistPeriodEnd = false;
+
+      if (dbUser.x402PeriodEnd) {
+        currentPeriodEnd = new Date(dbUser.x402PeriodEnd);
+      } else {
+        // Fallback for users who paid before x402PeriodEnd was added
+        // Calculate and persist it so future checks are faster
+        const createdAt = latestTx?.createdAt ? new Date(latestTx.createdAt) : new Date();
+        currentPeriodEnd = new Date(createdAt);
+        if (interval === "year") {
+          currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+        } else if (interval === "month") {
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + intervalCount);
+        }
+        shouldPersistPeriodEnd = true; // Mark for persistence
+      }
+
+      // Persist x402PeriodEnd for legacy users who don't have it
+      if (shouldPersistPeriodEnd && latestTx) {
+        await db.update(user).set({
+          x402PeriodEnd: currentPeriodEnd,
+        }).where(eq(user.id, session.user.id));
+        console.log(`[Subscription] Persisted x402PeriodEnd for legacy user ${session.user.id}: ${currentPeriodEnd.toISOString()}`);
       }
 
       // Check if expired
       if (currentPeriodEnd < new Date()) {
-         // Downgrade user
-         await db.update(user).set({ tier: "free", x402CancelAtPeriodEnd: false }).where(eq(user.id, session.user.id));
-         
-         return NextResponse.json({
-            subscription: null,
-            billingAddress: normalizeAddress(latestBillingAddress),
-            defaultPaymentMethod: null,
-         });
+        // Downgrade user
+        await db.update(user).set({
+          tier: "free",
+          x402CancelAtPeriodEnd: false,
+          x402PeriodEnd: null,
+        }).where(eq(user.id, session.user.id));
+
+        return NextResponse.json({
+          subscription: null,
+          billingAddress: normalizeAddress(latestBillingAddress),
+          defaultPaymentMethod: null,
+        });
       }
 
       // Fixed USD prices for plans in cents
@@ -224,7 +245,7 @@ export async function GET(request: Request) {
         interval: interval,
         intervalCount: intervalCount,
         defaultPaymentMethodId: null,
-        metadata: { 
+        metadata: {
           tier: dbUser.tier,
           paidWithTcro: true,
         },
@@ -242,13 +263,13 @@ export async function GET(request: Request) {
       billingAddress: normalizeAddress(latestBillingAddress),
       defaultPaymentMethod: defaultPaymentMethod
         ? {
-            id: defaultPaymentMethod.id,
-            brand: defaultPaymentMethod.card?.brand ?? null,
-            last4: defaultPaymentMethod.card?.last4 ?? null,
-            billingAddress: normalizeAddress(
-              defaultPaymentMethod.billing_details?.address,
-            ),
-          }
+          id: defaultPaymentMethod.id,
+          brand: defaultPaymentMethod.card?.brand ?? null,
+          last4: defaultPaymentMethod.card?.last4 ?? null,
+          billingAddress: normalizeAddress(
+            defaultPaymentMethod.billing_details?.address,
+          ),
+        }
         : null,
     });
   } catch (error) {

@@ -146,7 +146,42 @@ export async function POST(request: Request) {
 
   console.log("user session ", session.user);
   const users = await getUserById(session.user.id!);
-  const user_info = users[0];
+  let user_info = users[0];
+
+  // ==================================================
+  // REAL-TIME x402 SUBSCRIPTION EXPIRY CHECK
+  // Immediately downgrade expired x402 subscribers
+  // ==================================================
+  if (user_info.tier !== "free" && user_info.x402PeriodEnd) {
+    const periodEnd = new Date(user_info.x402PeriodEnd);
+    const now = new Date();
+
+    if (periodEnd < now) {
+      console.log(`[X402] User ${user_info.id} subscription expired, downgrading now`);
+      const freeLimit = Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10;
+
+      // Import db and user schema for the update
+      const { db } = await import("@/lib/db/db");
+      const { user } = await import("@/lib/db/schema");
+      const { eq } = await import("drizzle-orm");
+
+      await db.update(user).set({
+        tier: "free",
+        billingCycle: "monthly",
+        dailyMessageRemaining: freeLimit,
+        x402CancelAtPeriodEnd: false,
+        x402PeriodEnd: null,
+      }).where(eq(user.id, session.user.id!));
+
+      // Refresh user_info with downgraded values
+      user_info = {
+        ...user_info,
+        tier: "free",
+        billingCycle: "monthly",
+        dailyMessageRemaining: freeLimit,
+      };
+    }
+  }
 
   // Get message limit based on tier and billing cycle
   const getMessageLimit = (tier: string, cycle: string): number => {
@@ -289,11 +324,52 @@ export async function POST(request: Request) {
   // High-priority intents that should ALWAYS override the current group (with forced models)
   const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
 
+  // Chain-specific groups that support context persistence
+  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad'] as const;
+
+  // Extract chain context from chat history for follow-up message routing
+  function extractChainContext(msgs: Array<Message>): string | null {
+    const chainPatterns: Record<string, RegExp[]> = {
+      cronos: [/\bcronos\b/i, /\bcro\s+(token|coin|balance|wallet)/i, /\bvvs\s+(finance|swap)/i, /\bcrypto\.com\s+(chain|defi)/i],
+      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i],
+      sei: [/\bsei\b(?!\s*$)/i, /\bseitrace\b/i],
+      solana: [/\bsolana\b/i, /\bsol\s+(token|coin|balance)/i, /\bphantom\b/i],
+      zeta: [/\bzetachain\b/i, /\bzeta\s+(network|chain)/i],
+      creditcoin: [/\bcreditcoin\b/i, /\bctc\s+token/i],
+      vana: [/\bvana\b/i],
+      flow: [/\bflow\s+(blockchain|network|chain)/i],
+      wormhole: [/\bwormhole\b/i],
+      monad: [/\bmonad\b/i],
+    };
+
+    // Look at last 10 messages (excluding current) for chain mentions
+    const recentMessages = msgs.slice(-11, -1); // Get up to 10 messages before the current one
+    for (const msg of recentMessages.reverse()) {
+      const content = typeof msg.content === 'string'
+        ? msg.content
+        : Array.isArray(msg.content)
+          ? msg.content.map(c => typeof c === 'string' ? c : (c as any).text || '').join(' ')
+          : JSON.stringify(msg.content);
+
+      for (const [chain, patterns] of Object.entries(chainPatterns)) {
+        if (patterns.some(p => p.test(content))) {
+          console.log(`[CONTEXT] Found chain context "${chain}" in previous message`);
+          return chain;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Get chain context from chat history
+  const chatContext = extractChainContext(messages);
+
   if (userMessageText && userMessageText.length > 0) {
     try {
       classificationResult = await classifyIntent(userMessageText, {
         fallbackToLLM: true,
         confidenceThreshold: 0.6,
+        chatContext, // Pass the chain context for follow-up routing
       });
 
       const detectedIntent = classificationResult.primaryIntent;

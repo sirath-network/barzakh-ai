@@ -32,6 +32,7 @@ import {
   backupCodes: text("backupCodes"), // JSON array of bcrypt hashed backup codes
   tokenVersion: integer("tokenVersion").notNull().default(0),
   x402CancelAtPeriodEnd: boolean("x402CancelAtPeriodEnd").notNull().default(false),
+  x402PeriodEnd: timestamp("x402PeriodEnd"), // When x402 subscription expires
 });
 
 export const customer = pgTable("Customer", {

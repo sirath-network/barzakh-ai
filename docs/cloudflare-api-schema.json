@@ -853,6 +853,65 @@
         }
       }
     },
+    "/api/billing/x402/settle": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "x402Settle",
+        "summary": "Settle x402 crypto payment on-chain",
+        "description": "Settles a signed x402 payment on-chain via the Cronos Facilitator.\nThis verifies the payment signature and executes the transfer.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/X402SettleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment settled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "txHash": {
+                      "type": "string",
+                      "description": "Transaction hash of the settlement"
+                    },
+                    "blockNumber": {
+                      "type": "integer",
+                      "description": "Block number of the settlement"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "description": "Settlement failed"
+          }
+        }
+      }
+    },
     "/api/wallet/verify-signature": {
       "get": {
         "tags": [
@@ -1839,6 +1898,57 @@
         }
       }
     },
+    "/api/cron/check-subscriptions": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "operationId": "checkSubscriptionsCron",
+        "summary": "Check and downgrade expired x402 subscriptions",
+        "description": "Cron job that runs every 6 hours to check for expired x402 subscriptions\nand downgrade users to the free tier. Requires CRON_SECRET authorization.\n",
+        "security": [
+          {
+            "CronAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription check completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "checked": {
+                      "type": "integer",
+                      "description": "Number of expired subscriptions found"
+                    },
+                    "downgraded": {
+                      "type": "integer",
+                      "description": "Number of users downgraded"
+                    },
+                    "errors": {
+                      "type": "integer",
+                      "description": "Number of errors during processing"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/reset-limit": {
       "post": {
         "tags": [
@@ -2684,6 +2794,63 @@
           "transactionHash": {
             "type": "string",
             "pattern": "^0x[a-fA-F0-9]{64}$"
+          },
+          "planId": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "ultimate"
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "yearly"
+            ],
+            "default": "monthly"
+          }
+        }
+      },
+      "X402SettleRequest": {
+        "type": "object",
+        "required": [
+          "paymentHeader",
+          "paymentRequirements",
+          "planId"
+        ],
+        "properties": {
+          "paymentHeader": {
+            "type": "string",
+            "description": "Base64-encoded x402 payment header with signature"
+          },
+          "paymentRequirements": {
+            "type": "object",
+            "description": "Payment requirements from the subscribe response",
+            "properties": {
+              "scheme": {
+                "type": "string"
+              },
+              "network": {
+                "type": "string"
+              },
+              "maxAmountRequired": {
+                "type": "string"
+              },
+              "asset": {
+                "type": "string"
+              },
+              "receiver": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
           },
           "planId": {
             "type": "string",

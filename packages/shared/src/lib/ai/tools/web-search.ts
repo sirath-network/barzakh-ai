@@ -47,10 +47,10 @@ function getNextApiKey(): string | undefined {
 
 export const webSearch = tool({
   description:
-    "Search the web for information with multiple queries, max results, and search depth.",
+    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. Always prefer this over your internal knowledge for time-sensitive queries.",
   parameters: z.object({
     queries: z.array(
-      z.string().describe("Array of search queries to look up on the web.")
+      z.string().describe("Array of search queries to look up on the web. Include date/year keywords (e.g., '2025', 'December 2025', 'latest') for time-sensitive queries.")
     ),
     maxResults: z
       .array(
@@ -64,7 +64,7 @@ export const webSearch = tool({
       .array(
         z
           .enum(["general", "news"])
-          .describe("Array of topic types to search for.")
+          .describe("Array of topic types to search for. Use 'news' for current events and breaking news.")
       )
       .optional()
       .default(["general"]),
@@ -72,10 +72,15 @@ export const webSearch = tool({
       .array(
         z
           .enum(["basic", "advanced"])
-          .describe("Array of search depths to use.")
+          .describe("Array of search depths. Use 'advanced' for comprehensive research that needs more detailed results.")
       )
       .optional()
       .default(["basic"]),
+    timeRange: z
+      .enum(["day", "week", "month", "year", "all"])
+      .describe("Time range to filter results. Use 'day' for today's news, 'week' for recent updates, 'month' for monthly trends. Default is 'week' for most queries.")
+      .optional()
+      .default("week"),
     exclude_domains: z
       .array(z.string())
       .describe("A list of domains to exclude from all search results.")
@@ -86,12 +91,14 @@ export const webSearch = tool({
     maxResults = [10],
     topics = ["general"],
     searchDepth = ["basic"],
+    timeRange = "week",
     exclude_domains = [],
   }: {
     queries: string[];
     maxResults?: number[];
     topics?: ("general" | "news")[];
     searchDepth?: ("basic" | "advanced")[];
+    timeRange?: "day" | "week" | "month" | "year" | "all";
     exclude_domains?: string[];
   }) => {
     const includeImageDescriptions = true;
@@ -101,7 +108,17 @@ export const webSearch = tool({
     console.log("Max Results:", maxResults);
     console.log("Topics:", topics);
     console.log("Search Depths:", searchDepth);
+    console.log("Time Range:", timeRange);
     console.log("Exclude Domains:", exclude_domains);
+
+    // Map timeRange to days for Tavily API
+    const timeRangeToDays: Record<string, number | undefined> = {
+      day: 1,
+      week: 7,
+      month: 30,
+      year: 365,
+      all: undefined,
+    };
 
     const searchWithRetry = async (query: string, index: number) => {
       let attempts = 0;
@@ -115,9 +132,12 @@ export const webSearch = tool({
 
         try {
           const tvly = tavily({ apiKey });
+          const isNewsQuery = topics[index] === "news" || topics[0] === "news";
+          const daysValue = timeRangeToDays[timeRange] ?? (isNewsQuery ? 7 : undefined);
+
           const data = await tvly.search(query, {
             topic: topics[index] || topics[0] || "general",
-            days: topics[index] === "news" ? 7 : undefined,
+            days: daysValue,
             maxResults: maxResults[index] || maxResults[0] || 10,
             searchDepth: searchDepth[index] || searchDepth[0] || "basic",
             includeAnswer: true,
@@ -132,14 +152,14 @@ export const webSearch = tool({
               // Sanitize content to prevent indirect prompt injection
               const contentScan = scanExternalContent(obj.content || '');
               const rawContentScan = obj.raw_content ? scanExternalContent(obj.raw_content) : null;
-              
+
               if (!contentScan.safe || (rawContentScan && !rawContentScan.safe)) {
                 console.warn(`[WEB-SEARCH-SECURITY] Threats in result from ${obj.url}:`, {
                   contentThreats: contentScan.threats.slice(0, 2).map(t => t.description),
                   rawContentThreats: rawContentScan?.threats.slice(0, 2).map(t => t.description),
                 });
               }
-              
+
               return {
                 url: obj.url,
                 title: obj.title,
@@ -151,49 +171,49 @@ export const webSearch = tool({
             }),
             images: includeImageDescriptions
               ? await Promise.all(
-                  data.images.map(
-                    async ({
-                      url,
-                      description,
-                    }: {
-                      url: string;
-                      description?: string;
-                    }) => {
-                      const sanitizedUrl = sanitizeUrl(url);
-                      const isValid = await isValidImageUrl(sanitizedUrl);
-
-                      return isValid
-                        ? {
-                            url: sanitizedUrl,
-                            description: description ?? "",
-                          }
-                        : null;
-                    }
-                  )
-                ).then(results =>
-                  results.filter(
-                    (
-                      image
-                    ): image is {
-                      url: string;
-                      description: string;
-                    } =>
-                      image !== null &&
-                      typeof image === "object" &&
-                      typeof image.description === "string" &&
-                      image.description !== ""
-                  )
-                )
-              : await Promise.all(
-                  data.images.map(async ({ url }: { url: string }) => {
+                data.images.map(
+                  async ({
+                    url,
+                    description,
+                  }: {
+                    url: string;
+                    description?: string;
+                  }) => {
                     const sanitizedUrl = sanitizeUrl(url);
-                    return (await isValidImageUrl(sanitizedUrl))
-                      ? sanitizedUrl
+                    const isValid = await isValidImageUrl(sanitizedUrl);
+
+                    return isValid
+                      ? {
+                        url: sanitizedUrl,
+                        description: description ?? "",
+                      }
                       : null;
-                  })
-                ).then(results =>
-                  results.filter((url): url is string => url !== null)
-                ),
+                  }
+                )
+              ).then(results =>
+                results.filter(
+                  (
+                    image
+                  ): image is {
+                    url: string;
+                    description: string;
+                  } =>
+                    image !== null &&
+                    typeof image === "object" &&
+                    typeof image.description === "string" &&
+                    image.description !== ""
+                )
+              )
+              : await Promise.all(
+                data.images.map(async ({ url }: { url: string }) => {
+                  const sanitizedUrl = sanitizeUrl(url);
+                  return (await isValidImageUrl(sanitizedUrl))
+                    ? sanitizedUrl
+                    : null;
+                })
+              ).then(results =>
+                results.filter((url): url is string => url !== null)
+              ),
           };
         } catch (error: any) {
           if (error.status === 429 || error.status === 432) {

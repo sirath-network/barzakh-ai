@@ -1,0 +1,1 @@
+ALTER TABLE "User" ADD COLUMN "x402PeriodEnd" timestamp;

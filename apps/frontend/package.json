@@ -34,6 +34,7 @@
     "@codemirror/state": "^6.5.0",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.35.3",
+    "@crypto.com/ai-agent-client": "^1.0.2",
     "@ensdomains/ensjs": "^4.0.2",
     "@google-cloud/storage": "^7.16.0",
     "@google/genai": "^1.12.0",
