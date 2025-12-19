@@ -423,47 +423,62 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   };
 
   const handleArchive = async (chatId: string) => {
-    const archivePromise = archiveChat({ chatId });
-    toast.promise(archivePromise, {
-      loading: "Archiving chat...",
-      success: () => {
-        mutate((history) => {
-          if (history) {
-            return history.filter((h) => h.id !== chatId);
-          }
-        });
-        // Redirect to new chat if the user is currently viewing the archived chat
-        if (chatId === id) {
-          router.push("/");
+    // Check if user is viewing the chat being archived using pathname
+    const currentPath = window.location.pathname;
+    const shouldRedirect = currentPath === `/c/${chatId}`;
+
+    try {
+      await archiveChat({ chatId });
+
+      mutate((history) => {
+        if (history) {
+          return history.filter((h) => h.id !== chatId);
         }
-        return "Archived successfully";
-      },
-      error: "Failed to archive chat",
-    });
+      });
+
+      toast.success("Archived successfully");
+
+      // Redirect to new chat if the user is currently viewing the archived chat
+      if (shouldRedirect) {
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Failed to archive chat:", error);
+      toast.error("Failed to archive chat");
+    }
   };
 
   const handleDelete = async () => {
-    const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
-      method: "DELETE",
-    });
-
-    toast.promise(deletePromise, {
-      loading: "Deleting chat...",
-      success: () => {
-        mutate((history) => {
-          if (history) {
-            return history.filter((h) => h.id !== deleteId);
-          }
-        });
-        return "Chat deleted successfully";
-      },
-      error: "Failed to delete chat",
-    });
-
     setShowDeleteDialog(false);
 
-    if (deleteId === id) {
-      router.push("/");
+    // Check if user is viewing the chat being deleted using pathname
+    const currentPath = window.location.pathname;
+    const shouldRedirect = currentPath === `/c/${deleteId}`;
+
+    try {
+      const response = await fetch(`/api/chat?id=${deleteId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete chat");
+      }
+
+      mutate((history) => {
+        if (history) {
+          return history.filter((h) => h.id !== deleteId);
+        }
+      });
+
+      toast.success("Chat deleted successfully");
+
+      // Redirect after successful deletion if viewing the deleted chat
+      if (shouldRedirect) {
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+      toast.error("Failed to delete chat");
     }
   };
 
