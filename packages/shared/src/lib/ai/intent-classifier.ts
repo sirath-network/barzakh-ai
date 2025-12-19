@@ -41,6 +41,7 @@ export interface ClassificationOptions {
     fallbackToLLM?: boolean;
     confidenceThreshold?: number;
     enableMultiIntent?: boolean;
+    chatContext?: string | null; // Chain context from chat history for follow-up messages
 }
 
 interface IntentPattern {
@@ -280,6 +281,35 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
+    // Cronos-specific
+    {
+        intent: "cronos",
+        patterns: [
+            /\bcronos\b/i,
+            /\bcro\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bcrypto\.com\s+(chain|defi)\b/i,
+            /\bvvs\s+(finance|swap|dex)\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\\b.*\bcronos\b/i,
+            /\bcronos\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\b(on|at|for)\s+cronos\b/i,
+        ],
+        keywords: [
+            "cronos",
+            "cro token",
+            "crypto.com chain",
+            "crypto.com defi",
+            "vvs finance",
+            "vvs swap",
+            "cronos wallet",
+            "cronos portfolio",
+            "on cronos",
+            "at cronos",
+            "cronos network",
+            "cronos chain",
+        ],
+        priority: 95,
+    },
+
     // =========================================================================
     // GENERIC ON-CHAIN (Priority 90 - lower than chain-specific)
     // Only used when no specific chain is mentioned
@@ -443,13 +473,14 @@ function classifyByPatterns(message: string): IntentClassification | null {
 // LLM-Based Classification (Fallback)
 // ============================================================================
 
-async function classifyByLLM(message: string): Promise<IntentClassification> {
+async function classifyByLLM(message: string, chatContext?: string | null): Promise<IntentClassification> {
     const intentCategories = `
 - "imagine": Image generation requests (create, draw, generate images)
 - "on_chain": Blockchain/crypto queries (wallets, portfolios, tokens, transactions, DeFi)
 - "aptos": Aptos blockchain specific queries
 - "sei": Sei network specific queries
 - "solana": Solana blockchain specific queries
+- "cronos": Cronos blockchain specific queries (CRO, VVS Finance, crypto.com chain)
 - "coding": Code writing, debugging, programming help
 - "zeta": ZetaChain specific queries
 - "creditcoin": Creditcoin specific queries
@@ -461,6 +492,11 @@ async function classifyByLLM(message: string): Promise<IntentClassification> {
 - "search": General web search, questions, information lookup
 `;
 
+    // Add context hint if we have a chain-specific context
+    const contextHint = chatContext
+        ? `\n\nIMPORTANT CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation. Unless the user explicitly mentions a DIFFERENT blockchain or changes topic entirely, you should classify this as "${chatContext}". Only classify as a different chain if the user explicitly names it.`
+        : '';
+
     try {
         const { object } = await generateObject({
             model: myProvider.languageModel("chat-model-small"),
@@ -471,6 +507,7 @@ async function classifyByLLM(message: string): Promise<IntentClassification> {
                     "aptos",
                     "sei",
                     "solana",
+                    "cronos",
                     "coding",
                     "zeta",
                     "creditcoin",
@@ -485,7 +522,7 @@ async function classifyByLLM(message: string): Promise<IntentClassification> {
                 reasoning: z.string(),
             }),
             prompt: `Classify this user message into one of these intent categories:
-${intentCategories}
+${intentCategories}${contextHint}
 
 User message: "${message}"
 
@@ -502,6 +539,16 @@ Respond with the most appropriate intent category and your confidence level (0-1
         };
     } catch (error) {
         console.error("[INTENT] LLM classification failed:", error);
+        // If we have chat context and LLM failed, use the context as fallback
+        if (chatContext) {
+            return {
+                primaryIntent: chatContext as IntentType,
+                confidence: 0.65,
+                indicators: [`context_fallback:continuing_${chatContext}_conversation`],
+                requiresMultiTool: false,
+                classificationMethod: "fallback",
+            };
+        }
         // Return default search intent on LLM failure
         return {
             primaryIntent: "search",
@@ -517,22 +564,26 @@ Respond with the most appropriate intent category and your confidence level (0-1
 // Main Classification Function
 // ============================================================================
 
+// Chain-specific groups that support context persistence
+const CHAIN_SPECIFIC_GROUPS: IntentType[] = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad'];
+
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
  *
  * Uses a hybrid approach:
  * 1. Fast pattern matching for high-confidence cases
- * 2. LLM fallback for ambiguous prompts (if enabled)
+ * 2. Context-based routing for follow-up messages in chain-specific chats
+ * 3. LLM fallback for ambiguous prompts (if enabled)
  *
  * @param message - The user's message to classify
- * @param options - Classification options
+ * @param options - Classification options including chatContext for follow-ups
  * @returns Promise<IntentClassification> - Classification result with confidence
  */
 export async function classifyIntent(
     message: string,
     options: ClassificationOptions = {}
 ): Promise<IntentClassification> {
-    const { fallbackToLLM = true, confidenceThreshold = 0.6 } = options;
+    const { fallbackToLLM = true, confidenceThreshold = 0.6, chatContext } = options;
 
     // Skip classification for empty messages
     if (!message || message.trim().length === 0) {
@@ -557,17 +608,42 @@ export async function classifyIntent(
         return patternResult;
     }
 
-    // Step 2: Use LLM for low-confidence or no pattern match
+    // Step 2: Context-based routing for follow-up messages
+    // If we have a valid chain context and pattern matching didn't find a clear different chain,
+    // use the context to route the message
+    if (chatContext && CHAIN_SPECIFIC_GROUPS.includes(chatContext as IntentType)) {
+        // Check if the pattern matched a DIFFERENT chain with reasonable confidence
+        const patternMatchedDifferentChain = patternResult &&
+            CHAIN_SPECIFIC_GROUPS.includes(patternResult.primaryIntent as IntentType) &&
+            patternResult.primaryIntent !== chatContext &&
+            patternResult.confidence > 0.5;
+
+        // If pattern didn't match a different chain, use context
+        if (!patternMatchedDifferentChain) {
+            console.log(
+                `[INTENT] Using chat context: ${chatContext} (continuing conversation) in ${Date.now() - startTime}ms`
+            );
+            return {
+                primaryIntent: chatContext as IntentType,
+                confidence: 0.75, // High confidence for context-based routing
+                indicators: [`context:continuing_${chatContext}_conversation`],
+                requiresMultiTool: false,
+                classificationMethod: "pattern", // Treat as pattern since it's deterministic
+            };
+        }
+    }
+
+    // Step 3: Use LLM for low-confidence or no pattern match
     if (fallbackToLLM) {
         console.log("[INTENT] Pattern confidence low, using LLM fallback...");
-        const llmResult = await classifyByLLM(message);
+        const llmResult = await classifyByLLM(message, chatContext);
         console.log(
             `[INTENT] LLM result: ${llmResult.primaryIntent} (${llmResult.confidence.toFixed(2)}) in ${Date.now() - startTime}ms`
         );
         return llmResult;
     }
 
-    // Step 3: Return pattern result even if low confidence, or default to search
+    // Step 4: Return pattern result even if low confidence, or default to search
     if (patternResult) {
         return patternResult;
     }

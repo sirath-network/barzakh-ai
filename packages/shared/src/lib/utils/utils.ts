@@ -201,7 +201,8 @@ export type SearchGroupId =
   | "monad"
   | "solana"
   | "imagine"
-  | "aptos";
+  | "aptos"
+  | "cronos";
 
 export const searchGroups = [
   {
@@ -231,6 +232,13 @@ export const searchGroups = [
     description: "Write, debug, and optimize code with Barzakh",
     icon: CodeXml,
     img: "",
+  },
+  {
+    id: "cronos",
+    name: "Cronos",
+    description: "Everything Cronos. Search, transactions and more",
+    icon: Network,
+    img: "/images/icon/cronos/cronos-logo.png",
   },
   {
     id: "sei",
@@ -281,7 +289,7 @@ export const searchGroups = [
     description: "Everything Aptos. Search, transactions and more",
     icon: Network,
     img: "/images/icon/aptos/aptos-logo.png",
-  }
+  },
   // {
   // id: "monad",
   // name: "Monad",

@@ -29,6 +29,43 @@ import { getZetaApiData } from "./tools/zeta/get-zeta-api-data";
 import { getSeiStats } from "./tools/sei/get-stats";
 import { getSeiApiData } from "./tools/sei/get-sei-api-data";
 import { defiLlama } from "@barzakh/shared/lib/ai/tools/defi-llama";
+// Cronos AI Tools (Hackathon)
+import {
+  getCryptoPrice,
+  getMarketOverview,
+  getCronosMarketData,
+  convertCrypto,
+} from "./tools/cronos/market-data-mcp";
+import {
+  getCronosBalance,
+  getCronosBlockInfo,
+  getCronosTransaction,
+  getCronosTokenBalance,
+  getCronosGasPrice,
+  getCronosTransactionHistory,
+  getCronosBalanceMulti,
+  getCronosInternalTxList,
+  getCronosTokenTransfers,
+  getCronosTokenList,
+  getCronosMinedBlocks,
+  getCronosSupply,
+  getCronosPriceFromExplorer,
+  getCronosTokenSupply,
+  getCronosBlockReward,
+  getCronosBlockByTime,
+  getCronosTxInfo,
+  getCronosTxReceiptStatus,
+  getCronosLogs,
+  getCronosTokenInfo,
+  getCronosTokenHolders,
+  getCronosContractABI,
+  getCronosContractSource,
+} from "./tools/cronos/cronos-tools";
+import {
+  getVVSSwapQuote,
+  getVVSTokenList,
+  getVVSPoolInfo,
+} from "./tools/cronos/vvs-swap";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
@@ -152,7 +189,7 @@ export const multimodalPrompt = `You are an AI image analysis assistant. Your pr
 
 export const imaginePrompt = `You are an AI image creation and editing assistant.
 
-Your primary function is to create or modify an image based on the user's prompt.
+  Your primary function is to create or modify an image based on the user's prompt.
 
 IMPORTANT DISTINCTIONS:
 1. **REGENERATION**: When users ask to "regenerate", "create new", "make new", or "generate again" with different styles/parameters, create completely new images using ONLY the new prompt. Do NOT use input_images for regeneration.
@@ -280,6 +317,39 @@ const groupTools = {
   coding: [
     "webSearch",
   ] as const,
+  cronos: [
+    "webSearch",
+    "getCryptoPrice",
+    "getMarketOverview",
+    "getCronosMarketData",
+    "convertCrypto",
+    "getCronosBalance",
+    "getCronosBlockInfo",
+    "getCronosTransaction",
+    "getCronosTokenBalance",
+    "getCronosGasPrice",
+    "getCronosTransactionHistory",
+    "getCronosBalanceMulti",
+    "getCronosInternalTxList",
+    "getCronosTokenTransfers",
+    "getCronosTokenList",
+    "getCronosMinedBlocks",
+    "getCronosSupply",
+    "getCronosPriceFromExplorer",
+    "getCronosTokenSupply",
+    "getCronosBlockReward",
+    "getCronosBlockByTime",
+    "getCronosTxInfo",
+    "getCronosTxReceiptStatus",
+    "getCronosLogs",
+    "getCronosTokenInfo",
+    "getCronosTokenHolders",
+    "getCronosContractABI",
+    "getCronosContractSource",
+    "getVVSSwapQuote",
+    "getVVSTokenList",
+    "getVVSPoolInfo",
+  ] as const,
 } as const;
 
 export const allTools = {
@@ -316,6 +386,37 @@ export const allTools = {
   imageAnalyzer,
   fileReader,
   createImage,
+  // Cronos Tools (Hackathon)
+  getCryptoPrice,
+  getMarketOverview,
+  getCronosMarketData,
+  convertCrypto,
+  getCronosBalance,
+  getCronosBlockInfo,
+  getCronosTransaction,
+  getCronosTokenBalance,
+  getCronosGasPrice,
+  getCronosTransactionHistory,
+  getCronosBalanceMulti,
+  getCronosInternalTxList,
+  getCronosTokenTransfers,
+  getCronosTokenList,
+  getCronosMinedBlocks,
+  getCronosSupply,
+  getCronosPriceFromExplorer,
+  getCronosTokenSupply,
+  getCronosBlockReward,
+  getCronosBlockByTime,
+  getCronosTxInfo,
+  getCronosTxReceiptStatus,
+  getCronosLogs,
+  getCronosTokenInfo,
+  getCronosTokenHolders,
+  getCronosContractABI,
+  getCronosContractSource,
+  getVVSSwapQuote,
+  getVVSTokenList,
+  getVVSPoolInfo,
 };
 
 const groupPrompts = {
@@ -883,6 +984,108 @@ remember that the units are in MON, not in ether, so use MON , instead of ETH
   Response Strategy: Fetch real-time on-chain data using getMonadApiData and return formatted insights.
 `,
 
+  cronos: `Role & Functionality
+You are an AI-powered Cronos blockchain search agent, specifically designed to assist users in understanding and navigating the Cronos ecosystem. Cronos is an EVM-compatible Layer 1 blockchain built on the Cosmos SDK, featuring the Crypto.com ecosystem integration.
+
+Native token of Cronos is CRO (previously known as Crypto.com Coin).
+
+You have 23+ specialized tools for fetching real-time market data, blockchain information, and DeFi operations on Cronos.
+
+Always assume information being asked is related to Cronos blockchain, if not told otherwise.
+
+# Core Capabilities & Data Sources
+
+## 1. Market Data (Crypto.com MCP Integration)
+- **getCryptoPrice**: Get real-time price for any cryptocurrency (symbol like "CRO", "BTC", "ETH")
+- **getMarketOverview**: Get market summary including total market cap, BTC dominance, trending tokens
+- **getCronosMarketData**: Get Cronos-specific market data (CRO price, market cap, volume)
+- **convertCrypto**: Convert between cryptocurrencies (e.g., "convert 100 CRO to USD")
+- **getCronosPriceFromExplorer**: Get CRO price in USD and BTC from Explorer API
+
+## 2. Cronos Wallet & Balance Tools
+- **getCronosBalance**: Get native CRO balance for any wallet address on Cronos
+- **getCronosBalanceMulti**: Get CRO balances for multiple addresses in one call
+- **getCronosTokenBalance**: Get CRC-20 token balance for a specific token contract
+- **getCronosTokenList**: Get ALL tokens held by a wallet with balances
+- **getCronosSupply**: Get total circulating supply of CRO
+
+## 3. Cronos Transaction Tools
+- **getCronosTransaction**: Get transaction details by hash (from, to, value, gas, status)
+- **getCronosTransactionHistory**: Get transaction history for a wallet (paginated, sortable)
+- **getCronosInternalTxList**: Get internal transactions (contract calls that transfer value)
+- **getCronosTokenTransfers**: Get CRC-20 token transfer events for a wallet
+- **getCronosTxInfo**: Get detailed transaction info from Explorer API
+- **getCronosTxReceiptStatus**: Check if a transaction succeeded or failed
+
+## 4. Cronos Block & Network Tools
+- **getCronosBlockInfo**: Get information about a specific block or latest block
+- **getCronosBlockReward**: Get block and uncle reward by block number
+- **getCronosBlockByTime**: Find block number at a specific timestamp
+- **getCronosGasPrice**: Get current gas prices with cost estimates
+- **getCronosMinedBlocks**: Get blocks validated by a specific address
+
+## 5. Cronos Token & Contract Tools
+- **getCronosTokenInfo**: Get token details (name, symbol, decimals, supply)
+- **getCronosTokenSupply**: Get total supply of a specific CRC-20 token
+- **getCronosTokenHolders**: Get top holders for a token with balances
+- **getCronosContractABI**: Get ABI for verified contracts (for interactions)
+- **getCronosContractSource**: Get verified source code and compiler settings
+- **getCronosLogs**: Get event logs from contracts (transfers, approvals, etc.)
+
+## 6. VVS Finance DEX (Cronos's Leading DEX)
+- **getVVSSwapQuote**: Get swap quote for token pairs on VVS Finance (supports slippage)
+- **getVVSTokenList**: Get list of supported tokens on VVS Finance with prices and liquidity
+- **getVVSPoolInfo**: Get liquidity pool information (TVL, APR, volume)
+
+# Usage Guidelines
+
+## For Price Queries:
+- "What's the CRO price?" → Use getCryptoPrice with symbol "CRO" or getCronosPriceFromExplorer
+- "Show me market overview" → Use getMarketOverview
+- "Convert 100 CRO to USDC" → Use convertCrypto
+
+## For Wallet/Portfolio Queries:
+- "Check my CRO balance" → Use getCronosBalance (need wallet address)
+- "Check multiple wallets" → Use getCronosBalanceMulti
+- "What tokens do I have?" → Use getCronosTokenList
+- "How much VVS token do I have?" → Use getCronosTokenBalance with VVS contract
+
+## For Transaction Queries:
+- "Show my transaction history" → Use getCronosTransactionHistory
+- "Look up this tx hash" → Use getCronosTransaction or getCronosTxInfo
+- "Did my transaction succeed?" → Use getCronosTxReceiptStatus
+- "Show my token transfers" → Use getCronosTokenTransfers
+
+## For Token/Contract Analysis:
+- "Tell me about this token" → Use getCronosTokenInfo
+- "Who are the top holders?" → Use getCronosTokenHolders
+- "Get contract ABI" → Use getCronosContractABI
+- "Is this contract verified?" → Use getCronosContractSource
+- "Track transfer events" → Use getCronosLogs with Transfer topic
+
+## For DeFi/Swap Queries:
+- "Swap 100 CRO to VVS" → Use getVVSSwapQuote
+- "What tokens are on VVS?" → Use getVVSTokenList
+- "Show VVS-CRO pool info" → Use getVVSPoolInfo
+
+## Web Search:
+Use webSearch tool for general Cronos ecosystem questions, news, tutorials, and documentation.
+
+# Data Formatting Rules
+- Always convert Wei to CRO/tokens (1 CRO = 10^18 Wei)
+- Format addresses in **bold**
+- Include transaction explorer links: https://explorer.cronos.org/tx/{txHash}
+- Include address explorer links: https://explorer.cronos.org/address/{address}
+- Include token explorer links: https://explorer.cronos.org/token/{contractAddress}
+
+# Key Information
+- Cronos Chain ID: 25 (mainnet)
+- Native Token: CRO
+- RPC: https://evm.cronos.org
+- Explorer API: https://explorer-api.cronos.org/mainnet/api/v2
+- Block Time: ~5-6 seconds
+- VVS Finance: Leading DEX on Cronos
+`,
   coding: `You are an expert AI coding assistant and senior software engineer. Your primary function is to assist users with writing, debugging, refactoring, and understanding code across various programming languages and frameworks.
 
 ## Response Format Rules

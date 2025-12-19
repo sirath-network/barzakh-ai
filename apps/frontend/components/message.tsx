@@ -61,6 +61,18 @@ const toolIcons: Record<string, React.ElementType> = {
   aptosNames: FileTextAny,
   translateTransactions: FileTextAny,
   createImage: FileImageAny,
+  // Cronos Tools
+  getCronosBalance: WalletAny,
+  getCronosTokenBalance: WalletAny,
+  getCronosTransaction: FileTextAny,
+  getCronosTransactionHistory: FileTextAny,
+  getCronosGasPrice: BarChart3Any,
+  getCronosMarketData: BarChart3Any,
+  getMarketOverview: BarChart3Any,
+  getCryptoPrice: BarChart3Any,
+  getVVSSwapQuote: BarChart3Any,
+  getVVSTokenList: BarChart3Any,
+  getVVSPoolInfo: BarChart3Any,
 };
 
 // HELPER: Small component to render each tool icon
@@ -727,17 +739,17 @@ const PurePreviewMessage = ({
                                 </span>
                               </motion.div>
 
-                              {/* separator - only show on desktop */}
-                              <div className="text-border/60 hidden sm:block">|</div>
+                              {/* separator - hidden for now */}
+                              {/* <div className="text-border/60 hidden sm:block">|</div> */}
 
-                              {/* Tool name badges - hidden on mobile, shown on desktop */}
+                              {/* Tool name badges - HIDDEN to prevent UI overflow issues */}
                               <motion.div
-                                className="hidden sm:flex gap-1 sm:gap-1.5 min-w-0"
+                                className="hidden"
                                 initial={isPreloaded ? false : { opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.9 }}
                               >
-                                {completedTools.slice(0, 3).map((tool, index) => {
+                                {completedTools.slice(0, 2).map((tool, index) => {
                                   const toolNames: Record<string, string> = {
                                     webSearch: "Web Search",
                                     searchEvmTokenMarketData: "EVM Token Data",
@@ -753,6 +765,18 @@ const PurePreviewMessage = ({
                                     aptosNames: "Aptos Names",
                                     translateTransactions: "Transaction Parser",
                                     createImage: "Image Generation",
+                                    // Cronos Tools
+                                    getCronosBalance: "Cronos Balance",
+                                    getCronosTokenBalance: "Token Balance",
+                                    getCronosTransaction: "Transaction",
+                                    getCronosTransactionHistory: "History",
+                                    getCronosGasPrice: "Gas Price",
+                                    getCronosMarketData: "Market Data",
+                                    getMarketOverview: "Market Overview",
+                                    getCryptoPrice: "Crypto Price",
+                                    getVVSSwapQuote: "VVS Quote",
+                                    getVVSTokenList: "VVS Tokens",
+                                    getVVSPoolInfo: "VVS Pool",
                                   };
 
                                   return (
@@ -775,14 +799,14 @@ const PurePreviewMessage = ({
                                     </Tooltip>
                                   );
                                 })}
-                                {completedTools.length > 3 && (
+                                {completedTools.length > 2 && (
                                   <motion.span
                                     className="inline-flex items-center px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium bg-muted text-foreground/70 rounded-md border border-border whitespace-nowrap"
                                     initial={isPreloaded ? false : { opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: isPreloaded ? 0 : 0.2, delay: isPreloaded ? 0 : 1.1 }}
                                   >
-                                    +{completedTools.length - 3} more
+                                    +{completedTools.length - 2} more
                                   </motion.span>
                                 )}
                               </motion.div>

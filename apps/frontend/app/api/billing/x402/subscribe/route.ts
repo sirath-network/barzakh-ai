@@ -1,39 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-
-// Cache CRO price for 5 minutes to avoid excessive API calls
-let cachedCroPrice: { price: number; timestamp: number } | null = null;
-const CRO_PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-async function getCroUsdPrice(): Promise<number> {
-  // Check cache first
-  if (cachedCroPrice && Date.now() - cachedCroPrice.timestamp < CRO_PRICE_CACHE_TTL) {
-    return cachedCroPrice.price;
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=crypto-com-chain&vs_currencies=usd",
-      { next: { revalidate: 300 } } // Cache for 5 minutes
-    );
-
-    if (!response.ok) {
-      console.error("Failed to fetch CRO price from CoinGecko");
-      return cachedCroPrice?.price ?? 0.10; // Fallback to cached or default
-    }
-
-    const data = await response.json();
-    const price = data["crypto-com-chain"]?.usd ?? 0.10;
-
-    // Update cache
-    cachedCroPrice = { price, timestamp: Date.now() };
-
-    return price;
-  } catch (error) {
-    console.error("Error fetching CRO price:", error);
-    return cachedCroPrice?.price ?? 0.10; // Fallback to cached or default $0.10
-  }
-}
+import {
+  createPaymentRequirements,
+  CRONOS_NETWORKS,
+  usdToUsdcUnits,
+} from "@barzakh/shared/lib/payments/x402-facilitator";
 
 // USD prices for each plan and billing cycle
 const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
@@ -49,13 +20,19 @@ const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
   },
 };
 
+/**
+ * POST /api/billing/x402/subscribe
+ * 
+ * Returns HTTP 402 Payment Required with x402-compliant payment requirements.
+ * Client should sign an EIP-3009 authorization and submit via /verify and /settle.
+ */
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { planId, billingCycle } = await request.json();
+  const { planId, billingCycle, useMainnet = false } = await request.json();
 
   // Get USD price for the plan
   const usdPrice = PLAN_PRICES_USD[planId]?.[billingCycle] ?? 0;
@@ -64,32 +41,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid plan or billing cycle" }, { status: 400 });
   }
 
-  // Fetch current CRO/USD price
-  const croUsdPrice = await getCroUsdPrice();
+  // Use mainnet or testnet based on request (default: testnet for hackathon)
+  const network = useMainnet ? "mainnet" : "testnet";
+  const config = CRONOS_NETWORKS[network];
 
-  // Calculate TCRO amount: USD price / CRO price
-  const tcroAmount = usdPrice / croUsdPrice;
+  // Get receiver address from env or use default test address
+  const receiverAddress =
+    process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS ||
+    "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
 
-  // Round to 2 decimal places for cleaner display
-  const tcroAmountRounded = Math.ceil(tcroAmount * 100) / 100;
+  // Create x402-compliant payment requirements with description
+  const description = `Barzakh AI ${planId.toUpperCase()} Plan - ${billingCycle} subscription`;
+  const paymentRequirements = createPaymentRequirements(
+    receiverAddress,
+    usdPrice,
+    network,
+    300, // 5 minutes timeout
+    description,
+    "application/json"
+  );
 
-  // Use a default test address if env var is not set
-  const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
-
+  // Return 402 Payment Required with x402 format
   return NextResponse.json(
     {
       error: "Payment Required",
-      paymentDetails: {
-        chainId: 338, // Cronos EVM Testnet
-        chainName: "Cronos Testnet",
+      x402Version: 1,
+      paymentRequirements,
+      // Additional display info for the UI
+      displayInfo: {
+        usdPrice,
+        usdcAmount: (usdPrice).toFixed(2),
+        usdcSymbol: config.usdcSymbol,
+        chainName: network === "mainnet" ? "Cronos Mainnet" : "Cronos Testnet",
+        chainId: config.chainId,
         receiver: receiverAddress,
-        amount: tcroAmountRounded.toString(),
-        currency: "TCRO",
-        token: null, // Native token, no contract address
-        isNativeToken: true,
-        // Include USD info for display
-        usdPrice: usdPrice,
-        croUsdPrice: croUsdPrice,
+        tokenAddress: config.usdcAddress,
+        decimals: config.usdcDecimals,
+        // Gasless info
+        isGasless: true,
+        note: "This payment is gasless - you don't need CRO for gas fees!",
       },
     },
     { status: 402 }

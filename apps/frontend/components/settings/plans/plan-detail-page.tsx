@@ -294,10 +294,9 @@ export default function PlanDetailPage() {
                 onClick={() => setBillingCycle(cycle)}
                 className={`
                   px-3 sm:px-4 md:px-6 py-2 rounded-md text-xs sm:text-sm font-semibold uppercase transition-all
-                  ${
-                    billingCycle === cycle
-                      ? "bg-black/60 dark:bg-black/80 text-white dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-transparent"
+                  ${billingCycle === cycle
+                    ? "bg-black/60 dark:bg-black/80 text-white dark:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-transparent"
                   }
                 `}
               >
@@ -317,8 +316,9 @@ export default function PlanDetailPage() {
             const isExactCurrentPlan = isSameTier && currentBillingCycle === billingCycle;
             const isProcessingPlan = processingPlanId === plan.id;
             const isFree = plan.id === "free";
+            // Only show cancellation scheduled if on current tier AND billing cycle
             const isCancellationScheduled =
-              isSameTier && subscription?.cancelAtPeriodEnd;
+              isExactCurrentPlan && subscription?.cancelAtPeriodEnd;
 
             return (
               <div
@@ -383,10 +383,9 @@ export default function PlanDetailPage() {
                       disabled={isExactCurrentPlan}
                       className={`
                         w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
-                        ${
-                          isExactCurrentPlan
-                            ? "bg-gray-100 dark:bg-red-950/50 border-2 border-gray-400 dark:border-red-500 text-gray-600 dark:text-red-300 cursor-default shadow-[0_0_10px_rgba(156,163,175,0.5)] dark:shadow-none"
-                            : "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white"
+                        ${isExactCurrentPlan
+                          ? "bg-gray-100 dark:bg-red-950/50 border-2 border-gray-400 dark:border-red-500 text-gray-600 dark:text-red-300 cursor-default shadow-[0_0_10px_rgba(156,163,175,0.5)] dark:shadow-none"
+                          : "bg-gray-800 dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-white"
                         }
                       `}
                     >

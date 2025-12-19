@@ -3,14 +3,11 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, ChevronDown, ChevronUp, LogOut, AlertTriangle } from "lucide-react";
-import { parseEther, formatEther } from "viem";
-import { useAccount, useBalance, useSendTransaction, useWaitForTransactionReceipt, useSwitchChain, useSignMessage } from "wagmi";
+import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, LogOut, AlertTriangle, Sparkles, ShieldCheck } from "lucide-react";
+import { formatUnits } from "viem";
+import { useAccount, useBalance, useSwitchChain, useSignTypedData, useSignMessage } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { PenLine } from "lucide-react";
 import { cronosTestnet } from "@/lib/wagmi";
 
 interface X402PaymentModalProps {
@@ -23,14 +20,16 @@ interface X402PaymentModalProps {
   currentBillingCycle?: string | null;
 }
 
+// USDC.e contract on Cronos Testnet
+const USDC_TESTNET_ADDRESS = "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0";
+
+// Type aliases for React 19 compatibility
 const DialogAny = Dialog as any;
 const DialogContentAny = DialogContent as any;
 const DialogHeaderAny = DialogHeader as any;
 const DialogTitleAny = DialogTitle as any;
 const DialogDescriptionAny = DialogDescription as any;
 const ButtonAny = Button as any;
-const InputAny = Input as any;
-const LabelAny = Label as any;
 
 export function X402PaymentModal({
   isOpen,
@@ -41,47 +40,37 @@ export function X402PaymentModal({
   currentTier,
   currentBillingCycle,
 }: X402PaymentModalProps) {
-  const [step, setStep] = useState<"init" | "signature" | "payment" | "verifying">("init");
-  const [paymentDetails, setPaymentDetails] = useState<any>(null);
-  const [txHash, setTxHash] = useState("");
+  // Added "verify" step for wallet ownership verification
+  const [step, setStep] = useState<"init" | "verify" | "payment" | "signing" | "settling">("init");
+  const [paymentData, setPaymentData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showManualEntry, setShowManualEntry] = useState(false);
   const [confirmPlanChange, setConfirmPlanChange] = useState(false);
-  const [isWalletVerified, setIsWalletVerified] = useState(false);
-  const [signatureMessage, setSignatureMessage] = useState<string | null>(null);
-  const [isVerifyingSignature, setIsVerifyingSignature] = useState(false);
+  const [walletVerified, setWalletVerified] = useState(false);
 
   // RainbowKit/Wagmi hooks
   const { address, isConnected, chain } = useAccount();
-  const { data: balanceData } = useBalance({
+
+  // USDC.e balance on Cronos Testnet
+  const { data: usdcBalance } = useBalance({
     address: address,
+    token: USDC_TESTNET_ADDRESS,
     chainId: cronosTestnet.id,
   });
+
   const { switchChain } = useSwitchChain();
 
   const {
-    sendTransactionAsync,
-    data: sendTxHash,
-    isPending: isSending,
-    isError: sendError,
-    reset: resetSendTransaction
-  } = useSendTransaction();
+    signTypedDataAsync,
+    isPending: isSigningTypedData,
+    reset: resetSignTypedData,
+  } = useSignTypedData();
 
+  // For wallet ownership verification
   const {
     signMessageAsync,
-    data: signatureData,
     isPending: isSigningMessage,
-    isError: signError,
-    reset: resetSignMessage,
   } = useSignMessage();
-
-  const {
-    isLoading: isConfirming,
-    isSuccess: isConfirmed
-  } = useWaitForTransactionReceipt({
-    hash: sendTxHash,
-  });
 
   // Check if user is changing plans
   const hasPaidSubscription = currentTier && currentTier !== "free";
@@ -100,125 +89,97 @@ export function X402PaymentModal({
   );
 
   const isOnCorrectChain = chain?.id === cronosTestnet.id;
-  const userBalance = balanceData ? formatEther(balanceData.value) : null;
-  const hasInsufficientBalance = userBalance && paymentDetails &&
-    parseFloat(userBalance) < parseFloat(paymentDetails.amount);
+
+  // Parse USDC balance (6 decimals)
+  const userUsdcBalance = usdcBalance ? formatUnits(usdcBalance.value, 6) : "0";
+  const requiredAmount = paymentData?.displayInfo?.usdPrice || 0;
+  const hasInsufficientBalance = parseFloat(userUsdcBalance) < requiredAmount;
 
   // Reset modal state when opened
   useEffect(() => {
     if (isOpen) {
       setStep("init");
-      setPaymentDetails(null);
-      setTxHash("");
+      setPaymentData(null);
       setIsLoading(false);
       setCopied(false);
-      setShowManualEntry(false);
       setConfirmPlanChange(false);
-      setIsWalletVerified(false);
-      setSignatureMessage(null);
-      setIsVerifyingSignature(false);
-      resetSendTransaction?.();
-      resetSignMessage?.();
+      setWalletVerified(false);
+      resetSignTypedData?.();
     }
-  }, [isOpen, planId, billingCycle, resetSendTransaction, resetSignMessage]);
+  }, [isOpen, planId, billingCycle, resetSignTypedData]);
 
-  // Reset wallet verification when address changes
+  // Reset wallet verification when wallet changes
   useEffect(() => {
-    setIsWalletVerified(false);
-    setSignatureMessage(null);
-    setIsVerifyingSignature(false);
-    resetSignMessage?.();
-  }, [address, resetSignMessage]);
+    setWalletVerified(false);
+  }, [address]);
 
-  // Handle transaction confirmation
-  useEffect(() => {
-    if (isConfirmed && sendTxHash) {
-      setStep("verifying");
-      verifyWithRetry(sendTxHash);
-    }
-  }, [isConfirmed, sendTxHash]);
-
-  // Handle send error
-  useEffect(() => {
-    if (sendError) {
-      toast.error("Transaction failed. Please try again.");
-    }
-  }, [sendError]);
-
-  // Effects for handling signature success/error removed in favor of async/await handling
-
-
-  // Request signature message from server (for payment verification only)
-  const requestSignatureMessage = async () => {
-    if (!address) {
+  // Step 1: Verify wallet ownership before payment
+  const verifyWalletOwnership = async () => {
+    if (!isConnected || !address) {
       toast.error("Please connect your wallet first");
       return;
     }
 
-    try {
-      setIsVerifyingSignature(true);
-      // Use the payment-specific endpoint that does NOT save wallet address
-      const res = await fetch(`/api/billing/x402/verify-wallet?address=${address}`);
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to get signature message");
+    if (!isOnCorrectChain) {
+      try {
+        switchChain({ chainId: cronosTestnet.id });
+      } catch (error) {
+        toast.error("Please switch to Cronos Testnet");
       }
-
-      const data = await res.json();
-      setSignatureMessage(data.message);
-
-      // Trigger signature request
-      const signature = await signMessageAsync({ message: data.message });
-      if (signature) {
-        verifyWalletSignature(signature);
-      }
-    } catch (error: any) {
-      // Handle user rejection specifically
-      if (error.name === 'UserRejectedRequestError' ||
-        error.message?.includes('User rejected the request') ||
-        error.code === 4001) {
-        toast.info("Signature request cancelled");
-      } else if (error.message?.includes('Failed to connect to MetaMask') ||
-        error.message?.includes('Resource unavailable')) {
-        toast.error("Connection to wallet failed. Please try again.");
-      } else {
-        console.error("Error requesting signature:", error);
-        toast.error(error.message || "Failed to request signature");
-      }
-
-      setIsVerifyingSignature(false);
+      return;
     }
-  };
 
-  // Verify the signature with the server (for payment only - does NOT save wallet)
-  const verifyWalletSignature = async (signature: string) => {
     try {
-      // Use the payment-specific endpoint that does NOT save wallet address
-      const res = await fetch("/api/billing/x402/verify-wallet", {
+      setStep("verify");
+      setIsLoading(true);
+
+      // 1. Get nonce from server
+      const nonceRes = await fetch(`/api/billing/x402/verify-wallet?address=${address}`);
+      if (!nonceRes.ok) {
+        throw new Error("Failed to get verification nonce");
+      }
+      const { message } = await nonceRes.json();
+
+      // 2. Sign the message to prove ownership
+      const signature = await signMessageAsync({ message });
+
+      // 3. Verify signature with server
+      const verifyRes = await fetch("/api/billing/x402/verify-wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, signature }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Signature verification failed");
+      if (!verifyRes.ok) {
+        const data = await verifyRes.json();
+        throw new Error(data.error || "Wallet verification failed");
       }
 
-      setIsWalletVerified(true);
-      setIsVerifyingSignature(false);
-      toast.success("Wallet verified successfully!");
+      // Success - wallet is verified
+      setWalletVerified(true);
+      toast.success("Wallet ownership verified!");
+
+      // Now proceed to init payment
+      await initPayment();
     } catch (error: any) {
-      console.error("Signature verification error:", error);
-      toast.error(error.message || "Signature verification failed");
-      setIsVerifyingSignature(false);
-      resetSignMessage?.();
-      setSignatureMessage(null);
+      // Handle user rejection
+      if (error.code === 4001 ||
+        error.name === 'UserRejectedRequestError' ||
+        error.message?.includes('User rejected')) {
+        toast.info("Signature cancelled");
+        setStep("init");
+        return;
+      }
+
+      console.error("Wallet verification error:", error);
+      toast.error(error.message || "Wallet verification failed");
+      setStep("init");
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Initialize payment - get x402 requirements from server
   const initPayment = async () => {
     try {
       setIsLoading(true);
@@ -230,7 +191,7 @@ export function X402PaymentModal({
 
       if (res.status === 402) {
         const data = await res.json();
-        setPaymentDetails(data.paymentDetails);
+        setPaymentData(data);
         setStep("payment");
       } else {
         toast.error("Failed to initiate payment");
@@ -243,58 +204,9 @@ export function X402PaymentModal({
     }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const verifyWithRetry = async (hash: string, maxRetries = 5) => {
-    let retries = maxRetries;
-    const toastId = toast.loading("Verifying payment...");
-
-    while (retries > 0) {
-      try {
-        const res = await fetch("/api/billing/x402/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transactionHash: hash, planId, billingCycle }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-          toast.dismiss(toastId);
-          toast.success("Payment verified! Subscription active.");
-          onSuccess();
-          onClose();
-          return true;
-        } else if (res.status === 409 && data.code === "BLOCK_NOT_FOUND") {
-          console.log(`Block not found, retrying verification... (${retries} left)`);
-          toast.loading(`Verifying... Block confirmation pending (${retries} retries left)`, { id: toastId });
-          retries--;
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          continue;
-        } else {
-          toast.dismiss(toastId);
-          toast.error(data.error || "Verification failed");
-          setStep("payment");
-          return false;
-        }
-      } catch (error) {
-        console.error(error);
-        retries--;
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-    }
-    toast.dismiss(toastId);
-    toast.error("Verification timed out. Please try again manually.");
-    setStep("payment");
-    return false;
-  };
-
+  // Generate EIP-3009 authorization and sign with wallet
   const handlePayment = async () => {
-    if (!isConnected || !address) {
+    if (!isConnected || !address || !paymentData) {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -310,52 +222,126 @@ export function X402PaymentModal({
 
     if (hasInsufficientBalance) {
       toast.error(
-        `Insufficient TCRO balance. You have ${parseFloat(userBalance || "0").toFixed(4)} TCRO but need ${paymentDetails.amount} TCRO.`
+        `Insufficient USDC.e balance. You have ${parseFloat(userUsdcBalance).toFixed(2)} but need ${requiredAmount} USDC.e.`
       );
       return;
     }
 
     try {
-      const amount = parseEther(paymentDetails.amount);
-      await sendTransactionAsync({
-        to: paymentDetails.receiver as `0x${string}`,
-        value: amount,
+      setStep("signing");
+
+      // Generate nonce
+      const nonceArray = new Uint8Array(32);
+      window.crypto.getRandomValues(nonceArray);
+      const nonce = "0x" + Array.from(nonceArray).map(b => b.toString(16).padStart(2, "0")).join("");
+
+      const now = Math.floor(Date.now() / 1000);
+      const validBefore = (now + 300).toString(); // 5 minutes validity
+      const value = (requiredAmount * 1_000_000).toString(); // Convert to 6 decimals
+
+      // EIP-712 domain for USDC.e
+      const domain = {
+        name: "Bridged USDC (Stargate)",
+        version: "1",
+        chainId: cronosTestnet.id,
+        verifyingContract: USDC_TESTNET_ADDRESS as `0x${string}`,
+      };
+
+      // EIP-3009 TransferWithAuthorization types
+      const types = {
+        TransferWithAuthorization: [
+          { name: "from", type: "address" },
+          { name: "to", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "validAfter", type: "uint256" },
+          { name: "validBefore", type: "uint256" },
+          { name: "nonce", type: "bytes32" },
+        ],
+      };
+
+      // Message to sign
+      const message = {
+        from: address,
+        to: paymentData.paymentRequirements.payTo,
+        value,
+        validAfter: "0",
+        validBefore,
+        nonce,
+      };
+
+      // Sign EIP-712 typed data
+      const signature = await signTypedDataAsync({
+        domain,
+        types,
+        primaryType: "TransferWithAuthorization",
+        message,
       });
+
+      // Build x402 payment header (matching official format from docs)
+      const paymentHeader = btoa(JSON.stringify({
+        x402Version: 1,
+        scheme: "exact",
+        network: paymentData.paymentRequirements.network,
+        payload: {
+          from: address,
+          to: paymentData.paymentRequirements.payTo,
+          value: value,
+          validAfter: 0,
+          validBefore: parseInt(validBefore),
+          nonce,
+          signature,
+          asset: paymentData.paymentRequirements.asset,
+        },
+      }));
+
+      // Settle payment via our API
+      setStep("settling");
+
+      const settleRes = await fetch("/api/billing/x402/settle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentHeader,
+          paymentRequirements: paymentData.paymentRequirements,
+          planId,
+          billingCycle,
+        }),
+      });
+
+      const settleData = await settleRes.json();
+
+      if (settleRes.ok && settleData.success) {
+        toast.success("Payment successful! Subscription activated.");
+        onSuccess();
+        onClose();
+      } else {
+        toast.error(settleData.error || settleData.reason || "Payment failed");
+        setStep("payment");
+      }
     } catch (error: any) {
-      // Check for user rejection
+      // Handle user rejection
       if (error.code === 4001 ||
         error.name === 'UserRejectedRequestError' ||
-        error.message?.includes('User rejected the request')) {
-        toast.info("Transaction cancelled");
-        return;
-      }
-
-      if (error.message?.includes('Failed to connect to MetaMask') ||
-        error.message?.includes('Resource unavailable')) {
-        toast.error("Connection to wallet failed. Please try again.");
+        error.message?.includes('User rejected')) {
+        toast.info("Signature cancelled");
+        setStep("payment");
         return;
       }
 
       console.error("Payment error:", error);
       toast.error(error.message || "Payment failed. Please try again.");
-    }
-  };
-
-  const verifyPayment = async () => {
-    if (!txHash) return;
-    try {
-      setStep("verifying");
-      await verifyWithRetry(txHash);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error verifying payment");
       setStep("payment");
     }
   };
 
-  // Handle dialog close - prevent closing when RainbowKit modal is interacting
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Handle dialog close
   const handleOpenChange = (open: boolean) => {
-    // Only allow closing if explicitly requested (not from focus loss)
     if (!open) {
       onClose();
     }
@@ -366,41 +352,42 @@ export function X402PaymentModal({
       <DialogContentAny
         className="sm:max-w-md w-[90%] rounded-xl"
         onPointerDownOutside={(e: any) => {
-          // Prevent closing when clicking on RainbowKit modal
           const target = e.target as HTMLElement;
           if (target.closest('[data-rk]') || target.closest('[data-radix-popper-content-wrapper]')) {
             e.preventDefault();
           }
         }}
         onInteractOutside={(e: any) => {
-          // Prevent closing when interacting with RainbowKit
           const target = e.target as HTMLElement;
           if (target.closest('[data-rk]') || target.closest('[data-radix-popper-content-wrapper]')) {
             e.preventDefault();
           }
         }}
         onFocusOutside={(e: any) => {
-          // Prevent closing when focus moves to RainbowKit modal
           e.preventDefault();
         }}
       >
         <DialogHeaderAny>
-          <DialogTitleAny>Pay with Crypto (x402)</DialogTitleAny>
-          <DialogDescriptionAny>
-            Secure payment via Cronos Testnet
+          <DialogTitleAny className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Pay with Crypto
+          </DialogTitleAny>
+          <DialogDescriptionAny className="flex items-center gap-1.5">
+            <span>Gasless payment via Cronos x402</span>
           </DialogDescriptionAny>
         </DialogHeaderAny>
 
-        <div className="overflow-y-auto max-h-[60vh] sm:max-h-[70vh] px-1">
+        <div className="overflow-y-auto max-h-[60vh] sm:max-h-[70vh] px-1 scrollbar-hide">
           {step === "init" && (
             <div className="flex flex-col items-center justify-center py-6 space-y-5">
               <div className="p-3 bg-primary/10 rounded-full">
                 <Wallet className="h-6 w-6 text-primary" />
               </div>
               <div className="text-center space-y-2">
-                <h3 className="font-medium">Crypto Payment</h3>
+                <h3 className="font-medium">Gasless USDC.e Payment</h3>
                 <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-                  Subscribe to the <strong>{planId.toUpperCase()}</strong> plan using TCRO on Cronos Testnet.
+                  Subscribe to <strong>{planId.toUpperCase()}</strong> using USDC.e on Cronos Testnet.
+                  <span className="text-muted-foreground font-bold"> No gas fees required!</span>
                 </p>
               </div>
 
@@ -416,9 +403,9 @@ export function X402PaymentModal({
                         </p>
                         <p className="text-xs text-amber-700 dark:text-amber-300">
                           {isBillingCycleChange ? (
-                            <>Your current <strong>{currentTier?.toUpperCase()} ({currentBillingCycle?.toUpperCase()})</strong> subscription will be <strong>cancelled immediately</strong> and replaced with <strong>{planId.toUpperCase()} ({billingCycle.toUpperCase()})</strong>. Any remaining time on your current plan will not be refunded or prorated.</>
+                            <>Your current <strong>{currentTier?.toUpperCase()} ({currentBillingCycle?.toUpperCase()})</strong> subscription will be <strong>cancelled immediately</strong> and replaced.</>
                           ) : (
-                            <>Your current <strong>{currentTier?.toUpperCase()}</strong> subscription will be <strong>cancelled immediately</strong> and replaced with the new <strong>{planId.toUpperCase()}</strong> plan. Any remaining time on your current plan will not be refunded or prorated.</>
+                            <>Your current <strong>{currentTier?.toUpperCase()}</strong> subscription will be <strong>cancelled immediately</strong> and replaced with <strong>{planId.toUpperCase()}</strong>.</>
                           )}
                         </p>
                       </div>
@@ -435,55 +422,135 @@ export function X402PaymentModal({
               )}
 
               {(!isChangingPlan || confirmPlanChange) && (
-                <ButtonAny onClick={initPayment} disabled={isLoading} className="w-full max-w-xs">
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Proceed to Payment
-                </ButtonAny>
+                <div className="w-full max-w-xs space-y-3">
+                  {!isConnected ? (
+                    /* Step 1: Connect Wallet */
+                    <ConnectButton.Custom>
+                      {({ openConnectModal, mounted }) => {
+                        const ready = mounted;
+                        return (
+                          <ButtonAny
+                            onClick={openConnectModal}
+                            disabled={!ready}
+                            className="w-full"
+                            size="lg"
+                          >
+                            <Wallet className="mr-2 h-4 w-4" />
+                            Connect Wallet to Continue
+                          </ButtonAny>
+                        );
+                      }}
+                    </ConnectButton.Custom>
+                  ) : !isOnCorrectChain ? (
+                    /* Step 2: Switch to correct chain */
+                    <ButtonAny
+                      onClick={() => switchChain({ chainId: cronosTestnet.id })}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <AlertCircle className="mr-2 h-4 w-4" />
+                      Switch to Cronos Testnet
+                    </ButtonAny>
+                  ) : (
+                    /* Step 3: Verify wallet ownership and proceed */
+                    <div className="space-y-3">
+                      {/* Connected wallet info */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-full bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                            <Wallet className="h-3 w-3" />
+                          </div>
+                          <span className="text-sm font-medium">
+                            {address?.slice(0, 6)}...{address?.slice(-4)}
+                          </span>
+                          {walletVerified && (
+                            <ShieldCheck className="h-4 w-4 text-green-500" />
+                          )}
+                        </div>
+                        <ConnectButton.Custom>
+                          {({ openAccountModal }) => (
+                            <button
+                              onClick={openAccountModal}
+                              className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
+                            >
+                              Change
+                            </button>
+                          )}
+                        </ConnectButton.Custom>
+                      </div>
+
+                      <ButtonAny
+                        onClick={verifyWalletOwnership}
+                        disabled={isLoading || isSigningMessage}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {(isLoading || isSigningMessage) ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="mr-2 h-4 w-4" />
+                        )}
+                        {isSigningMessage ? "Sign to Verify..." : "Verify Wallet & Proceed"}
+                      </ButtonAny>
+                      <p className="text-xs text-center text-muted-foreground">
+                        You'll sign a message to prove wallet ownership
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
 
-          {step === "payment" && paymentDetails && (
+          {step === "payment" && paymentData && (
             <div className="space-y-6">
               {/* Payment Details Card */}
-              <div className="p-4 bg-muted/50 rounded-lg space-y-4 border">
+              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg space-y-4 border border-green-200 dark:border-green-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300">GASLESS PAYMENT</span>
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-green-600/70">Cronos Testnet</span>
+                </div>
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Total Amount</span>
                   <div className="flex flex-col items-end">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold">{paymentDetails.amount}</span>
-                      <span className="text-sm font-medium text-muted-foreground">TCRO</span>
+                      <span className="text-2xl font-bold">{paymentData.displayInfo?.usdcAmount}</span>
+                      <span className="text-sm font-medium text-muted-foreground">{paymentData.displayInfo?.usdcSymbol}</span>
                     </div>
-                    {paymentDetails.usdPrice && (
-                      <span className="text-xs text-muted-foreground">
-                        ≈ ${paymentDetails.usdPrice} USD @ ${paymentDetails.croUsdPrice?.toFixed(4)}/CRO
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground">
+                      ≈ ${paymentData.displayInfo?.usdPrice} USD
+                    </span>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
-                    <span>Send to address</span>
-                    <span className="text-[10px] uppercase tracking-wider font-medium text-primary/70">Cronos Testnet</span>
+                    <span>Recipient</span>
                   </div>
-                  <div className="flex items-center gap-2 p-2 bg-background rounded border shadow-sm">
+                  <div className="flex items-center gap-2 p-2 bg-white/50 dark:bg-black/20 rounded border shadow-sm">
                     <code className="flex-1 text-xs font-mono truncate text-muted-foreground">
-                      {paymentDetails.receiver}
+                      {paymentData.displayInfo?.receiver}
                     </code>
                     <ButtonAny
                       size="icon"
                       variant="ghost"
                       className="h-6 w-6 shrink-0 hover:bg-muted"
-                      onClick={() => handleCopy(paymentDetails.receiver)}
+                      onClick={() => handleCopy(paymentData.displayInfo?.receiver)}
                     >
                       {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                     </ButtonAny>
                   </div>
                 </div>
+
+                <p className="text-xs text-green-700 dark:text-green-300 bg-green-100/50 dark:bg-green-900/30 p-2 rounded">
+                  {paymentData.displayInfo?.note}
+                </p>
               </div>
 
-              {/* Wallet Section - Using RainbowKit */}
+              {/* Wallet Section */}
               <div className="space-y-3">
                 {!isConnected ? (
                   <div className="flex flex-col items-center gap-3">
@@ -504,63 +571,6 @@ export function X402PaymentModal({
                       }}
                     </ConnectButton.Custom>
                   </div>
-                ) : !isWalletVerified ? (
-                  <div className="space-y-3">
-                    {/* Signature Verification Section */}
-                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
-                          <PenLine className="h-4 w-4" />
-                        </div>
-                        <div className="space-y-1 flex-1">
-                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                            Verify Wallet Ownership
-                          </p>
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            Sign a message to prove you own this wallet. This links your wallet to your account for secure payments.
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
-                            <div className="p-1 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                              <Wallet className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <span className="text-xs font-mono text-blue-700 dark:text-blue-300">
-                              {address?.slice(0, 6)}...{address?.slice(-4)}
-                            </span>
-                            <ConnectButton.Custom>
-                              {({ openAccountModal }) => (
-                                <button
-                                  onClick={openAccountModal}
-                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors ml-auto"
-                                >
-                                  <LogOut className="h-3 w-3" />
-                                  Change
-                                </button>
-                              )}
-                            </ConnectButton.Custom>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <ButtonAny
-                      onClick={requestSignatureMessage}
-                      disabled={isSigningMessage || isVerifyingSignature}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {isSigningMessage || isVerifyingSignature ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isSigningMessage ? "Sign in your wallet..." : "Verifying..."}
-                        </>
-                      ) : (
-                        <>
-                          <PenLine className="mr-2 h-4 w-4" />
-                          Sign to Verify Wallet
-                        </>
-                      )}
-                    </ButtonAny>
-                  </div>
                 ) : (
                   <div className="space-y-3">
                     {/* Wrong Chain Warning */}
@@ -573,7 +583,7 @@ export function X402PaymentModal({
                               Wrong Network
                             </p>
                             <p className="text-xs text-amber-700 dark:text-amber-300">
-                              Please switch to Cronos Testnet to continue.
+                              Please switch to Cronos Testnet.
                             </p>
                           </div>
                           <ButtonAny
@@ -587,16 +597,16 @@ export function X402PaymentModal({
                       </div>
                     )}
 
-                    {/* Wallet Info */}
+                    {/* Wallet Info with USDC Balance */}
                     <div className={`p-3 rounded-lg border transition-colors ${hasInsufficientBalance
-                        ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
-                        : "bg-green-50/50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
+                      ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
+                      : "bg-green-50/50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
                       }`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className={`p-1.5 rounded-full ${hasInsufficientBalance
-                              ? "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"
-                              : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
+                            ? "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"
+                            : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
                             }`}>
                             <Wallet className="h-3.5 w-3.5" />
                           </div>
@@ -604,10 +614,6 @@ export function X402PaymentModal({
                             <div className="flex items-center gap-1.5">
                               <span className="text-sm font-medium">
                                 {address?.slice(0, 6)}...{address?.slice(-4)}
-                              </span>
-                              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
-                                <Check className="h-2.5 w-2.5" />
-                                Verified
                               </span>
                             </div>
                             <ConnectButton.Custom>
@@ -624,12 +630,12 @@ export function X402PaymentModal({
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs text-muted-foreground">Balance</div>
+                          <div className="text-xs text-muted-foreground">USDC.e Balance</div>
                           <div className={`font-mono font-medium ${hasInsufficientBalance
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-green-600 dark:text-green-400"
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-green-600 dark:text-green-400"
                             }`}>
-                            {userBalance ? parseFloat(userBalance).toFixed(4) : "..."} TCRO
+                            {parseFloat(userUsdcBalance).toFixed(2)} USDC.e
                           </div>
                         </div>
                       </div>
@@ -637,94 +643,80 @@ export function X402PaymentModal({
                       {hasInsufficientBalance && (
                         <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 mt-2 pt-2 border-t border-red-200 dark:border-red-900/50">
                           <AlertCircle className="h-3 w-3" />
-                          <span>Insufficient balance. You need {paymentDetails.amount} TCRO.</span>
+                          <span>Insufficient balance. You need {requiredAmount} USDC.e.</span>
                         </div>
                       )}
                     </div>
 
                     <ButtonAny
                       onClick={handlePayment}
-                      disabled={isSending || isConfirming || hasInsufficientBalance || !isOnCorrectChain}
-                      className="w-full"
+                      disabled={isSigningTypedData || hasInsufficientBalance || !isOnCorrectChain}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                       size="lg"
                     >
-                      {isSending || isConfirming ? (
+                      {isSigningTypedData ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {isConfirming ? "Confirming Transaction..." : "Processing..."}
+                          Sign in Wallet...
                         </>
                       ) : (
-                        `Pay ${paymentDetails.amount} TCRO`
+                        <>
+                          Sign & Pay {requiredAmount} USDC.e (Gasless)
+                        </>
                       )}
                     </ButtonAny>
                   </div>
                 )}
               </div>
 
-              {/* Transaction Status */}
-              {isConfirming && sendTxHash && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-start gap-3">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400 mt-0.5" />
-                    <div className="space-y-1 flex-1">
-                      <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Waiting for block confirmation</p>
-                      <p className="text-xs text-blue-600/80 dark:text-blue-400/80">
-                        This usually takes a few seconds. Please don't close this window.
-                      </p>
-                      <a
-                        href={`https://explorer.cronos.org/testnet/tx/${sendTxHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-700 dark:text-blue-300 hover:underline mt-1"
-                      >
-                        View on Explorer <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Manual Entry Toggle */}
+              {/* Token info */}
               <div className="pt-2 border-t">
-                <button
-                  onClick={() => setShowManualEntry(!showManualEntry)}
-                  className="flex items-center justify-center w-full gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-2"
+                <a
+                  href={`https://explorer.cronos.org/testnet/token/${USDC_TESTNET_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
-                  <span>Having trouble? Enter transaction hash manually</span>
-                  {showManualEntry ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </button>
-
-                {showManualEntry && (
-                  <div className="space-y-3 pt-2 animate-in slide-in-from-top-2">
-                    <div className="space-y-2">
-                      <LabelAny htmlFor="txHash" className="text-xs">Transaction Hash</LabelAny>
-                      <InputAny
-                        id="txHash"
-                        placeholder="0x..."
-                        value={txHash}
-                        onChange={(e: any) => setTxHash(e.target.value)}
-                        disabled={isConfirming}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-                    <ButtonAny
-                      onClick={verifyPayment}
-                      disabled={!txHash || isLoading || isConfirming}
-                      variant="secondary"
-                      className="w-full"
-                    >
-                      Verify Payment Manually
-                    </ButtonAny>
-                  </div>
-                )}
+                  <span>View devUSDC.e on Explorer</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             </div>
           )}
 
-          {step === "verifying" && (
+          {step === "verify" && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Verifying transaction on-chain...</p>
+              <div className="relative">
+                <ShieldCheck className="h-8 w-8 text-primary animate-pulse" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-medium">Verifying Wallet Ownership</p>
+                <p className="text-sm text-muted-foreground">Please sign the verification message in your wallet</p>
+              </div>
+            </div>
+          )}
+
+          {step === "signing" && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <div className="relative">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-medium">Sign Authorization</p>
+                <p className="text-sm text-muted-foreground">Please sign the EIP-3009 authorization in your wallet</p>
+              </div>
+            </div>
+          )}
+
+          {step === "settling" && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <div className="relative">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-medium">Settling Payment</p>
+                <p className="text-sm text-muted-foreground">The facilitator is submitting your payment on-chain...</p>
+              </div>
             </div>
           )}
         </div>
