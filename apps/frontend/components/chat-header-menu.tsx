@@ -120,8 +120,8 @@ export function ChatHeaderMenu({
             await archiveChat({ chatId });
             mutate("/api/history");
             mutate("/api/history/archived");
-            router.push("/");
             toast.success("Chat archived");
+            router.push("/");
         } catch (error) {
             console.error("Failed to archive chat:", error);
             toast.error("Failed to archive chat");
@@ -147,8 +147,8 @@ export function ChatHeaderMenu({
         try {
             await fetch(`/api/chat?id=${chatId}`, { method: "DELETE" });
             mutate("/api/history");
-            router.push("/");
             toast.success("Chat deleted");
+            router.push("/");
         } catch (error) {
             console.error("Failed to delete chat:", error);
             toast.error("Failed to delete chat");

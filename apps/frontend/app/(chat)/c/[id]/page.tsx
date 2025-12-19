@@ -40,13 +40,17 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     notFound();
   }
 
-  const chat = await getChatById({ id });
+  // Parallelize all async operations for faster page load
+  const [chat, session, messagesFromDb, cookieStore] = await Promise.all([
+    getChatById({ id }),
+    auth(),
+    getMessagesByChatId({ id }),
+    cookies(),
+  ]);
 
   if (!chat) {
     notFound();
   }
-
-  const session = await auth();
 
   if (chat.visibility === "private") {
     if (!session || !session.user) {
@@ -58,11 +62,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }
   }
 
-  const messagesFromDb = await getMessagesByChatId({
-    id,
-  });
-
-  const cookieStore = await cookies();
   const chatModelFromCookie = cookieStore.get("chat-model");
 
   if (!chatModelFromCookie) {

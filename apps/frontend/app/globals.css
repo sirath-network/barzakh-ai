@@ -195,6 +195,15 @@
   }
 }
 
+@keyframes loading-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
 .loading-pulse {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
