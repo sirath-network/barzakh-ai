@@ -1,79 +1,98 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 export function useSmoothStreaming(
   targetText: string,
   isStreaming: boolean,
   speed: number = 10
 ) {
-  // Initialize with targetText if not streaming, otherwise empty string (or current target if we want to jump start)
-  // But usually for a new message streaming starts from empty.
-  // If we switch chats, isStreaming might be false, so we show full text.
-  const [displayedText, setDisplayedText] = useState(isStreaming ? '' : targetText);
-  
+  // When not streaming, we want to show full text immediately
+  // When streaming, we animate from empty (or current position)
+  const [displayedText, setDisplayedText] = useState(() =>
+    isStreaming ? '' : targetText
+  );
+
   const displayedTextRef = useRef(displayedText);
   const targetTextRef = useRef(targetText);
   const animationRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(Date.now());
+  const prevIsStreamingRef = useRef(isStreaming);
 
-  // Update target ref
+  // Sync displayedTextRef with state
+  useEffect(() => {
+    displayedTextRef.current = displayedText;
+  }, [displayedText]);
+
+  // Update target ref and handle streaming state changes
   useEffect(() => {
     targetTextRef.current = targetText;
-    
-    // If not streaming, sync immediately to ensure we show full content
+
+    // Only sync immediately when:
+    // 1. Not streaming AND
+    // 2. Either we just stopped streaming OR the displayed text doesn't match target
     if (!isStreaming) {
-      setDisplayedText(targetText);
-      displayedTextRef.current = targetText;
+      // Check if we actually need to update to avoid infinite loops
+      if (displayedTextRef.current !== targetText) {
+        setDisplayedText(targetText);
+        displayedTextRef.current = targetText;
+      }
     }
+
+    // Reset displayed text when streaming starts fresh
+    if (isStreaming && !prevIsStreamingRef.current) {
+      // Starting to stream - reset if target is new content
+      if (targetText.length < displayedTextRef.current.length) {
+        setDisplayedText('');
+        displayedTextRef.current = '';
+      }
+    }
+
+    prevIsStreamingRef.current = isStreaming;
   }, [targetText, isStreaming]);
 
   useEffect(() => {
-    if (!isStreaming) return;
+    if (!isStreaming) {
+      // Cancel any ongoing animation when streaming stops
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      return;
+    }
 
     const animate = () => {
       const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateRef.current;
-      
-      // Limit updates to avoid excessive re-renders (e.g., max 30fps = 33ms)
-      // But we want it smooth, so maybe 60fps is fine if lightweight.
-      // Let's try to update every frame but control the amount of text added.
-      
+
       const current = displayedTextRef.current;
       const target = targetTextRef.current;
 
       if (current.length < target.length) {
         const diff = target.length - current.length;
-        
-        // Adaptive speed:
-        // If diff is small, add 1 char.
-        // If diff is large, add more to catch up.
-        // We want to drain the buffer smoothly.
-        
-        // Base speed: 1 char per frame (60 chars/sec) is decent.
-        // If diff > 50, speed up.
-        
+
+        // Adaptive speed based on buffer size
         let charsToAdd = 1;
         if (diff > 100) charsToAdd = 5;
         else if (diff > 50) charsToAdd = 3;
         else if (diff > 20) charsToAdd = 2;
-        
-        // Also consider the speed prop if we want to slow it down
-        // But usually we want to be as fast as the LLM but smooth.
-        
+
         const next = target.slice(0, current.length + charsToAdd);
-        setDisplayedText(next);
         displayedTextRef.current = next;
+        setDisplayedText(next);
         lastUpdateRef.current = now;
       }
-      
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
     };
   }, [isStreaming]);
 
   return displayedText;
 }
+

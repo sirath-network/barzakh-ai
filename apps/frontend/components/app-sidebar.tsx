@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { SidebarUserNav } from "@/components/sidebar-user-nav";
 import { useView } from "@/context/view-context";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -33,6 +33,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setView } = useView();
   const { resolvedTheme, setTheme, theme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by waiting for mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const SidebarAny = Sidebar as any;
   const SidebarHeaderAny = SidebarHeader as any;
@@ -99,12 +105,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         }}
                         className="flex items-center"
                       >
+                        {/* Use CSS to toggle logos to avoid hydration mismatch */}
                         <Image
-                          src={resolvedTheme === 'dark' ? '/images/barzakh/logo-white.svg' : '/images/barzakh/logo-dark.svg'}
+                          src="/images/barzakh/logo-dark.svg"
                           alt="Barzakh"
                           width={18}
                           height={18}
-                          className="w-[18px] h-[18px]"
+                          className="w-[18px] h-[18px] dark:hidden"
+                        />
+                        <Image
+                          src="/images/barzakh/logo-white.svg"
+                          alt="Barzakh"
+                          width={18}
+                          height={18}
+                          className="w-[18px] h-[18px] hidden dark:block"
                         />
                       </Link>
                       <TooltipAny>

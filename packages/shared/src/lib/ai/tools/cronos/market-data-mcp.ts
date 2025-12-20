@@ -14,6 +14,22 @@ import { z } from "zod";
 const CRYPTO_COM_API_BASE = "https://api.crypto.com/v2";
 
 /**
+ * Common token symbol to CoinGecko ID mapping (for fallback)
+ */
+const COINGECKO_ID_MAP: Record<string, string> = {
+    "CRO": "crypto-com-chain",
+    "BTC": "bitcoin",
+    "ETH": "ethereum",
+    "USDT": "tether",
+    "USDC": "usd-coin",
+    "VVS": "vvs-finance",
+    "BNB": "binancecoin",
+    "SOL": "solana",
+    "DOGE": "dogecoin",
+    "MATIC": "matic-network",
+};
+
+/**
  * Get real-time cryptocurrency price data
  */
 export const getCryptoPrice = tool({
@@ -22,13 +38,22 @@ export const getCryptoPrice = tool({
         symbol: z.string().describe("Trading pair symbol, e.g., 'CRO_USDT', 'BTC_USDT', 'ETH_USDT'. Use _USDT suffix for USD prices."),
     }),
     execute: async ({ symbol }) => {
+        // Extract base token from pair (e.g., "CRO_USDT" -> "CRO")
+        const baseToken = symbol.toUpperCase().replace("/", "_").split("_")[0];
+
         try {
             // Normalize symbol format
             const normalizedSymbol = symbol.toUpperCase().replace("/", "_");
 
+            // Use AbortController for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
             const response = await fetch(
-                `${CRYPTO_COM_API_BASE}/public/get-ticker?instrument_name=${normalizedSymbol}`
+                `${CRYPTO_COM_API_BASE}/public/get-ticker?instrument_name=${normalizedSymbol}`,
+                { signal: controller.signal }
             );
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch price: ${response.status}`);
@@ -59,12 +84,40 @@ export const getCryptoPrice = tool({
                 volume24h: ticker.v,
                 priceChange24h: ticker.c,
                 timestamp,
+                source: "crypto.com",
             };
         } catch (error: any) {
-            console.error("Error fetching crypto price:", error);
+            console.error("Error fetching crypto price from Crypto.com, trying CoinGecko fallback:", error.message);
+
+            // Fallback to CoinGecko
+            try {
+                const coinGeckoId = COINGECKO_ID_MAP[baseToken] || baseToken.toLowerCase();
+                const fallbackResponse = await fetch(
+                    `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`
+                );
+
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    if (fallbackData[coinGeckoId]) {
+                        const tokenData = fallbackData[coinGeckoId];
+                        return {
+                            symbol: `${baseToken}_USDT`,
+                            price: tokenData.usd,
+                            priceChange24h: tokenData.usd_24h_change,
+                            volume24h: tokenData.usd_24h_vol,
+                            timestamp: new Date().toISOString(),
+                            source: "coingecko (fallback)",
+                        };
+                    }
+                }
+            } catch (fallbackError) {
+                console.error("CoinGecko fallback also failed:", fallbackError);
+            }
+
             return {
                 error: "Failed to fetch cryptocurrency price",
                 details: error.message,
+                suggestion: "Try using getCoinGeckoPrice tool for more reliable pricing",
             };
         }
     },

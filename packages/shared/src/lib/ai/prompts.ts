@@ -1002,6 +1002,13 @@ Always assume information being asked is related to Cronos blockchain, if not to
 - **convertCrypto**: Convert between cryptocurrencies (e.g., "convert 100 CRO to USD")
 - **getCronosPriceFromExplorer**: Get CRO price in USD and BTC from Explorer API
 
+## 1b. CoinGecko Market Data (More Accurate - Aggregated from 900+ Exchanges)
+- **getCoinGeckoPrice**: Get accurate token price from CoinGecko (use for precise pricing)
+- **getCoinGeckoMarketData**: Get detailed market data (market cap, volume, supply, ATH, price changes)
+- **getCoinGeckoCroPrice**: Quick lookup for CRO price with comprehensive market data
+- **getCoinGeckoHistoricalPrice**: Get historical price data for charts (1-365 days)
+- **searchCoinGeckoToken**: Search for token info by name or symbol on CoinGecko
+
 ## 2. Cronos Wallet & Balance Tools
 - **getCronosBalance**: Get native CRO balance for any wallet address on Cronos
 - **getCronosBalanceMulti**: Get CRO balances for multiple addresses in one call
@@ -1040,9 +1047,13 @@ Always assume information being asked is related to Cronos blockchain, if not to
 # Usage Guidelines
 
 ## For Price Queries:
-- "What's the CRO price?" → Use getCryptoPrice with symbol "CRO" or getCronosPriceFromExplorer
-- "Show me market overview" → Use getMarketOverview
-- "Convert 100 CRO to USDC" → Use convertCrypto
+- \"What's the CRO price?\" → Use getCoinGeckoCroPrice for most accurate price (aggregated from 900+ exchanges)
+- \"Accurate/precise price for X\" → Use getCoinGeckoPrice (more accurate than single-exchange data)
+- \"Show me market overview\" → Use getMarketOverview
+- \"Convert 100 CRO to USDC\" → Use convertCrypto
+- \"CRO price history/chart\" → Use getCoinGeckoHistoricalPrice
+- \"Search for VVS token\" → Use searchCoinGeckoToken
+- \"Detailed market data for CRO\" → Use getCoinGeckoMarketData (includes ATH, supply, volume)
 
 ## For Wallet/Portfolio Queries:
 - "Check my CRO balance" → Use getCronosBalance (need wallet address)
