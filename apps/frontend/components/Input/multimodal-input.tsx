@@ -130,7 +130,7 @@ function PureAttachmentsButton({
       variant="ghost"
       aria-label="Attach files"
     >
-      <Plus size={18} />
+      {(Plus as any)({ size: 18 })}
     </Button>
   );
 }
@@ -844,12 +844,12 @@ function PureMultimodalInput({
 
   const handleGroupSelect = useCallback(
     async (group: SearchGroup) => {
-      const currentForcedModel = FORCED_MODEL_BY_GROUP[selectedGroup];
-      const nextForcedModel = FORCED_MODEL_BY_GROUP[group.id];
+      const currentForcedModel = FORCED_MODEL_BY_GROUP[selectedGroup as SearchGroupId];
+      const nextForcedModel = FORCED_MODEL_BY_GROUP[group.id as SearchGroupId];
 
       const updateGroupState = () => {
-        setSelectedGroup(group.id);
-        setLocalStorageChatMode(group.id);
+        setSelectedGroup(group.id as SearchGroupId);
+        setLocalStorageChatMode(group.id as SearchGroupId);
       };
 
       // Entering or switching to a forced-model group
@@ -1190,13 +1190,13 @@ function PureMultimodalInput({
         <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
           <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
             <span>By sending a message to Barzakh, you agree to our </span>
-            <Link href="/terms-of-service" className="underline hover:text-accent-foreground transition-colors">
+            <a href="/terms-of-service" className="underline hover:text-accent-foreground transition-colors">
               Terms of Service
-            </Link>
+            </a>
             <span> and have read our </span>
-            <Link href="/privacy-policy" className="underline hover:text-accent-foreground transition-colors">
+            <a href="/privacy-policy" className="underline hover:text-accent-foreground transition-colors">
               Privacy Policy
-            </Link>
+            </a>
             .
           </div>
         </div>
