@@ -3,6 +3,7 @@
  * 
  * Exports all Cronos-related AI tools for the hackathon:
  * - Market Data MCP (real-time prices)
+ * - CoinGecko Market Data (aggregated, accurate prices)
  * - Cronos Blockchain Tools (wallet, blocks, transactions)
  * - VVS Finance DEX (swaps, liquidity)
  */
@@ -15,6 +16,16 @@ export {
     convertCrypto,
     cronosMarketDataTools,
 } from "./market-data-mcp";
+
+// CoinGecko Market Data (more accurate, aggregated from 900+ exchanges)
+export {
+    getCoinGeckoPrice,
+    getCoinGeckoMarketData,
+    getCoinGeckoHistoricalPrice,
+    getCoinGeckoCroPrice,
+    searchCoinGeckoToken,
+    coinGeckoMarketDataTools,
+} from "./coingecko-market-data";
 
 // Cronos Blockchain Tools
 export {
@@ -37,7 +48,14 @@ export {
 
 // Combined export of all Cronos tools for easy registration
 export const allCronosTools = {
-    // Market Data
+    // CoinGecko Market Data (aggregated, more accurate)
+    getCoinGeckoPrice: () => import("./coingecko-market-data").then(m => m.getCoinGeckoPrice),
+    getCoinGeckoMarketData: () => import("./coingecko-market-data").then(m => m.getCoinGeckoMarketData),
+    getCoinGeckoHistoricalPrice: () => import("./coingecko-market-data").then(m => m.getCoinGeckoHistoricalPrice),
+    getCoinGeckoCroPrice: () => import("./coingecko-market-data").then(m => m.getCoinGeckoCroPrice),
+    searchCoinGeckoToken: () => import("./coingecko-market-data").then(m => m.searchCoinGeckoToken),
+
+    // Crypto.com Market Data
     getCryptoPrice: () => import("./market-data-mcp").then(m => m.getCryptoPrice),
     getMarketOverview: () => import("./market-data-mcp").then(m => m.getMarketOverview),
     getCronosMarketData: () => import("./market-data-mcp").then(m => m.getCronosMarketData),
@@ -56,3 +74,4 @@ export const allCronosTools = {
     getVVSTokenList: () => import("./vvs-swap").then(m => m.getVVSTokenList),
     getVVSPoolInfo: () => import("./vvs-swap").then(m => m.getVVSPoolInfo),
 };
+
