@@ -469,9 +469,13 @@ export async function deletePasswordResetToken(token: string) {
 
 export async function deleteChatById({ id }: { id: string }) {
   try {
-    await db.delete(vote).where(eq(vote.chatId, id));
-    await db.delete(message).where(eq(message.chatId, id));
+    // Run vote and message deletions in parallel for faster execution
+    await Promise.all([
+      db.delete(vote).where(eq(vote.chatId, id)),
+      db.delete(message).where(eq(message.chatId, id)),
+    ]);
 
+    // Delete the chat itself last (after related records are removed)
     return await db.delete(chat).where(eq(chat.id, id));
   } catch (error) {
     console.error("Failed to delete chat by id from database");

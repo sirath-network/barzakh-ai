@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useWindowSize } from "usehooks-ts";
 import { User } from "next-auth";
 import { cn } from "@barzakh/shared/lib/utils/utils";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import { MessageCircleMore, Sparkles } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
@@ -166,8 +166,8 @@ export const QuestionSuggestions = ({
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
           {Array.from({ length: totalSuggestions }).map((_, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="h-12 w-full rounded-xl bg-muted/30 animate-pulse border border-border/20"
             />
           ))}
@@ -190,8 +190,8 @@ export const QuestionSuggestions = ({
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
         {suggestions.map((suggestion, index) => {
-           const IconComponent = suggestion.icon as any;
-           return (
+          const IconComponent = suggestion.icon as any;
+          return (
             <motion.button
               key={suggestion.key}
               type="button"

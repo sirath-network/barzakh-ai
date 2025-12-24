@@ -4,7 +4,7 @@ import {
   HoverCardTrigger,
 } from "@/components/hover-card";
 import { cn, SearchGroup } from "@barzakh/shared/lib/utils/utils";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import Image from "next/image";
 
 interface ToolbarButtonProps {

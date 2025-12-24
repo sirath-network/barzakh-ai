@@ -8,6 +8,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  createElement,
   type Dispatch,
   type SetStateAction,
   type ChangeEvent,
@@ -118,8 +119,9 @@ function PureAttachmentsButton({
     <Button
       className={cn(
         "rounded-full p-2 h-9 w-9 transition-all duration-200",
-        "text-muted-foreground hover:text-foreground",
-        "hover:bg-muted/50",
+        "text-neutral-500 dark:text-neutral-400",
+        "hover:text-neutral-800 dark:hover:text-neutral-100",
+        "hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50",
         "disabled:opacity-50"
       )}
       onClick={(event) => {
@@ -130,7 +132,7 @@ function PureAttachmentsButton({
       variant="ghost"
       aria-label="Attach files"
     >
-      {(Plus as any)({ size: 18 })}
+      {createElement(Plus as any, { size: 20, strokeWidth: 2 })}
     </Button>
   );
 }
@@ -1011,10 +1013,7 @@ function PureMultimodalInput({
               aria-label="Scroll to bottom"
             >
               <span className="relative z-10 flex items-center justify-center">
-                {(() => {
-                  const ArrowDownAny = ArrowDown as any;
-                  return <ArrowDownAny className="h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" />;
-                })()}
+                {createElement(ArrowDown as any, { className: "h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" })}
               </span>
             </button>
           </motion.div>

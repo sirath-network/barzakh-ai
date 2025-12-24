@@ -3,7 +3,7 @@
 import type { Attachment } from "ai";
 import { LoaderIcon } from "./icons";
 import { X, Code, Download } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
@@ -23,7 +23,7 @@ const FileIcons = {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-blue-500">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M14 2v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M16 13l-4 4-4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M16 13l-4 4-4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M10 9l-4 4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
@@ -61,10 +61,10 @@ const useAttachmentInfo = (attachment: Attachment) => {
     let fileType: FileType = 'default';
     if (contentType.includes('pdf')) fileType = 'pdf';
     else if (contentType.includes('json') || extension === 'json') fileType = 'json';
-    else if (contentType.includes('javascript') || contentType.includes('typescript') || 
-             ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'sass', 'less', 'vue', 'svelte',
-              'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'sh', 'bat', 'ps1', 
-              'sql', 'dockerfile', 'gitignore', 'env', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'].includes(extension)) fileType = 'code';
+    else if (contentType.includes('javascript') || contentType.includes('typescript') ||
+      ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'sass', 'less', 'vue', 'svelte',
+        'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'sh', 'bat', 'ps1',
+        'sql', 'dockerfile', 'gitignore', 'env', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf'].includes(extension)) fileType = 'code';
     else if (contentType.startsWith('text/') || ['txt', 'md', 'markdown', 'csv', 'tsv', 'log', 'rtf'].includes(extension)) fileType = 'text';
 
     const Icon = FileIcons[fileType];
@@ -131,14 +131,14 @@ export const PreviewAttachment = ({
 }: PreviewAttachmentProps) => {
   const { name, url, contentType } = attachment;
   const isImage = contentType?.startsWith("image/");
-  const isCodeFile = contentType?.includes('javascript') || contentType?.includes('typescript') || 
+  const isCodeFile = contentType?.includes('javascript') || contentType?.includes('typescript') ||
     contentType?.includes('json') || contentType?.includes('html') || contentType?.includes('css') ||
     ['js', 'ts', 'jsx', 'tsx', 'html', 'css', 'py', 'java', 'cpp', 'c', 'sh', 'json'].includes(
       (name || '').split('.').pop()?.toLowerCase() || ''
     );
   const { Icon, fileExtension } = useAttachmentInfo(attachment);
   const config = sizeConfig[size];
-  
+
   // Preview states
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -148,7 +148,7 @@ export const PreviewAttachment = ({
   // Load file content for code files
   const loadFileContent = async () => {
     if (!isCodeFile || fileContent !== null) return;
-    
+
     try {
       const response = await fetch(url);
       const text = await response.text();
@@ -220,7 +220,7 @@ export const PreviewAttachment = ({
       className="flex flex-col gap-2 items-center relative group select-none"
     >
       <PreviewContainer>
-        <div 
+        <div
           className="bg-gradient-to-br from-muted/40 to-muted/20 w-full h-full rounded-2xl relative flex items-center justify-center border border-border/20 shadow-lg overflow-hidden group/card cursor-pointer touch-manipulation focus:ring-2 focus:ring-primary/50 focus:outline-none"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
@@ -244,16 +244,16 @@ export const PreviewAttachment = ({
                 <Icon />
                 {/* Enhanced glow effect for code files */}
                 {isCodeFile && (
-                  <motion.div 
+                  <motion.div
                     className="absolute inset-0 bg-blue-500/20 rounded-full blur-sm -z-10"
                     animate={isHovered ? { scale: 1.2, opacity: 0.4 } : { scale: 1, opacity: 0.2 }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
                   />
                 )}
               </div>
-              <motion.div 
+              <motion.div
                 className={clsx(
-                  config.badge, 
+                  config.badge,
                   "bg-white/90 text-gray-700 rounded-full font-semibold border border-white/30 shadow-sm",
                   isCodeFile && "bg-blue-100 text-blue-700 border-blue-200"
                 )}
@@ -266,13 +266,13 @@ export const PreviewAttachment = ({
           )}
 
           {isUploading && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center"
             >
-              <motion.div 
+              <motion.div
                 className="flex flex-col items-center gap-2"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
@@ -285,7 +285,7 @@ export const PreviewAttachment = ({
                 >
                   <LoaderIcon />
                 </motion.div>
-                <motion.span 
+                <motion.span
                   className="text-xs text-muted-foreground"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -402,7 +402,7 @@ export const PreviewAttachment = ({
                 </div>
               </div>
             )}
-            
+
             {/* Image Preview Actions */}
             {isImage && (
               <div className="absolute bottom-4 right-4 flex gap-2">

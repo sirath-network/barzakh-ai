@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import { Button } from "./ui/button";
 import { ChatRequestOptions, CreateMessage, Message } from "ai";
 import { memo } from "react";

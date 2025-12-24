@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { signIn, getSession } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import Spline from '@splinetool/react-spline';
 import type { Application } from '@splinetool/runtime';
@@ -74,23 +74,23 @@ export default function Page() {
     if (splineApp) {
       spline.current = splineApp;
       console.log('Spline scene loaded successfully - interactive mode enabled');
-      
+
       // Reset hexagons to inactive state on initial load
       // Wait a bit longer to ensure Spline is fully initialized
       setTimeout(() => {
         try {
           // Access the internal Three.js scene
           const internalScene = (splineApp as any)._scene;
-          
+
           if (internalScene) {
             // Recursively traverse and reset all meshes
             internalScene.traverse((object: any) => {
               // Reset mesh material properties
               if (object.isMesh && object.material) {
-                const materials = Array.isArray(object.material) 
-                  ? object.material 
+                const materials = Array.isArray(object.material)
+                  ? object.material
                   : [object.material];
-                
+
                 materials.forEach((mat: any) => {
                   if (mat) {
                     // Turn off emission
@@ -108,19 +108,19 @@ export default function Page() {
                   }
                 });
               }
-              
+
               // Handle PointLights - reduce intensity or disable
               if (object.isPointLight) {
                 object.intensity = 0;
                 object.visible = false;
               }
-              
+
               // Handle ambient lights  
               if (object.type === 'AmbientLight') {
                 object.intensity = 0;
               }
             });
-            
+
             console.log('Spline hexagons and lights reset to inactive state');
             // Make scene visible after reset
             setSplineVisible(true);
@@ -162,7 +162,7 @@ export default function Page() {
       setIsTwoFAModalOpen(true);
     }
   };
-  
+
   const formVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
@@ -252,7 +252,7 @@ export default function Page() {
 
   return (
     <>
-      <ActionResultOverlay 
+      <ActionResultOverlay
         status={overlayState.status}
         title={overlayState.title}
         message={overlayState.message}
@@ -263,34 +263,34 @@ export default function Page() {
           </Button>
         )}
       </ActionResultOverlay>
-      
+
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
         {/* --- CHANGES START HERE --- */}
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
           {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
-          <div 
+          <div
             className="absolute inset-0"
             style={{
               pointerEvents: mouseHasMoved ? 'auto' : 'none'
             }}
           >
-            <Spline 
+            <Spline
               scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
               onLoad={onLoad}
-              style={{ 
-                width: '100%', 
+              style={{
+                width: '100%',
                 height: '100%',
                 opacity: splineVisible ? 1 : 0,
                 transition: 'opacity 0.5s ease-in'
               }}
             />
           </div>
-          
+
           {/* Overlay to block ALL pointer events until mouse moves */}
           {!mouseHasMoved && (
-            <div 
-              className="absolute inset-0 z-[50] bg-black/0" 
-              style={{ 
+            <div
+              className="absolute inset-0 z-[50] bg-black/0"
+              style={{
                 pointerEvents: 'auto',
                 cursor: 'default'
               }}
@@ -305,31 +305,31 @@ export default function Page() {
 
           {/* 3. Text Content (frontmost layer) */}
           <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative z-[10] pointer-events-none" // Ensure content is above video and gradient, don't block Spline interactions
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="relative z-[10] pointer-events-none" // Ensure content is above video and gradient, don't block Spline interactions
           >
-              <img
-                alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.png" 
-                className="w-48 h-auto mb-4 mx-auto" 
-              />
-              <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-              <p className="text-gray-200 mt-2 max-w-sm">
-                Intelligent, focused AI search powering crypto and blockchain insights.
-              </p>
+            <img
+              alt="Brand Banner"
+              src="/images/barzakh/banner/sirath-banner.png"
+              className="w-48 h-auto mb-4 mx-auto"
+            />
+            <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
+            <p className="text-gray-200 mt-2 max-w-sm">
+              Intelligent, focused AI search powering crypto and blockchain insights.
+            </p>
           </motion.div>
         </div>
         {/* --- CHANGES END HERE --- */}
 
         <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
           <motion.div
-              key="login-form"
-              variants={formVariants}
-              initial="initial"
-              animate="animate"
-              className="mx-auto w-full max-w-md space-y-6"
+            key="login-form"
+            variants={formVariants}
+            initial="initial"
+            animate="animate"
+            className="mx-auto w-full max-w-md space-y-6"
           >
             <div className="space-y-2 text-center">
               <img
@@ -342,7 +342,7 @@ export default function Page() {
                 Enter your credentials to access your account.
               </p>
             </div>
-            
+
             <div className="space-y-4">
               <button
                 onClick={() => signIn("google", { callbackUrl: "/" })}
@@ -370,7 +370,7 @@ export default function Page() {
                   turnstileRef={turnstileRef}
                   onValidationChange={handleValidationChange}
                 >
-                  <SubmitButton 
+                  <SubmitButton
                     isSuccessful={false}
                     className="w-full"
                     disabled={!isFormValid}
@@ -380,7 +380,7 @@ export default function Page() {
                 </AuthForm>
               </form>
             </div>
-            
+
             <p className="text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
               <Link
@@ -393,7 +393,7 @@ export default function Page() {
 
             <p className="text-center text-sm text-muted-foreground">
               <Link href="/" className="underline underline-offset-4 hover:text-primary">
-                  &larr; Back to Home
+                &larr; Back to Home
               </Link>
             </p>
 
@@ -402,8 +402,8 @@ export default function Page() {
       </div>
 
       {/* 2FA Verification Modal */}
-      <Dialog 
-        open={isTwoFAModalOpen} 
+      <Dialog
+        open={isTwoFAModalOpen}
         onOpenChange={(open) => {
           setIsTwoFAModalOpen(open);
           // Reset Turnstile widget when modal is closed so user can get a fresh token
@@ -437,10 +437,10 @@ export default function Page() {
               <button
                 type="button"
                 className="text-sm sm:text-base text-red-600 hover:underline"
-                onClick={() => { 
-                  setUseBackupCode(!useBackupCode); 
-                  setTwoFAToken(""); 
-                  setHasAutoSubmitted(false); 
+                onClick={() => {
+                  setUseBackupCode(!useBackupCode);
+                  setTwoFAToken("");
+                  setHasAutoSubmitted(false);
                 }}
               >
                 {useBackupCode ? "Use TOTP code" : "Use backup code"}

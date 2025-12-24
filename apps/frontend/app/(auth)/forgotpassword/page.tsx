@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import Spline from '@splinetool/react-spline';
 import type { Application } from '@splinetool/runtime';
@@ -77,18 +77,18 @@ export default function Page() {
   const onLoad = (splineApp: Application) => {
     if (splineApp) {
       spline.current = splineApp;
-      
+
       setTimeout(() => {
         try {
           const internalScene = (splineApp as any)._scene;
-          
+
           if (internalScene) {
             internalScene.traverse((object: any) => {
               if (object.isMesh && object.material) {
-                const materials = Array.isArray(object.material) 
-                  ? object.material 
+                const materials = Array.isArray(object.material)
+                  ? object.material
                   : [object.material];
-                
+
                 materials.forEach((mat: any) => {
                   if (mat) {
                     if (mat.emissive) {
@@ -103,17 +103,17 @@ export default function Page() {
                   }
                 });
               }
-              
+
               if (object.isPointLight) {
                 object.intensity = 0;
                 object.visible = false;
               }
-              
+
               if (object.type === 'AmbientLight') {
                 object.intensity = 0;
               }
             });
-            
+
             setSplineVisible(true);
           }
         } catch (error) {
@@ -126,12 +126,12 @@ export default function Page() {
 
   useEffect(() => {
     console.log(`📱 Frontend received status: ${state.status}`, state);
-    
+
     // Reset submitting state for any final status
     if (state.status !== "idle" && state.status !== "in_progress") {
       setIsSubmitting(false);
     }
-    
+
     if (state.status === "failed") {
       turnstileRef.current?.reset();
       setTurnstileToken(""); // Clear the token on failure
@@ -173,22 +173,22 @@ export default function Page() {
       console.log("🚫 Form submission blocked - already submitting");
       return;
     }
-    
+
     // Check if Turnstile token is available before proceeding
     if (!turnstileToken || turnstileToken.trim() === "") {
       console.log("🚫 Form submission blocked - Turnstile token not available");
-      setOverlayState({ 
-        status: "error", 
-        title: "Verification Required", 
-        message: "Please complete the security verification before proceeding." 
+      setOverlayState({
+        status: "error",
+        title: "Verification Required",
+        message: "Please complete the security verification before proceeding."
       });
       return;
     }
-    
+
     setIsSubmitting(true);
     setEmail(formData.get("email") as string);
     formData.set("cf-turnstile-response", turnstileToken);
-    
+
     console.log("📤 Form submission started with valid Turnstile token");
     formAction(formData);
   };
@@ -204,7 +204,7 @@ export default function Page() {
 
   const handleResendOTP = async () => {
     if (!email || isResending) return;
-    
+
     setIsResending(true);
     try {
       const response = await fetch("/api/auth/resend-otp", {
@@ -218,28 +218,28 @@ export default function Page() {
       const data = await response.json();
 
       if (response.ok) {
-        setOverlayState({ 
-          status: "success", 
-          title: "Code Resent", 
-          message: "A new verification code has been sent to your email." 
+        setOverlayState({
+          status: "success",
+          title: "Code Resent",
+          message: "A new verification code has been sent to your email."
         });
-        
+
         // Auto-close the success overlay after 2 seconds
         setTimeout(() => {
           setOverlayState({ status: "idle", message: "" });
         }, 2000);
       } else {
-        setOverlayState({ 
-          status: "error", 
-          title: "Resend Failed", 
-          message: data.message || "Failed to resend verification code. Please try again." 
+        setOverlayState({
+          status: "error",
+          title: "Resend Failed",
+          message: data.message || "Failed to resend verification code. Please try again."
         });
       }
     } catch (error) {
-      setOverlayState({ 
-        status: "error", 
-        title: "Resend Failed", 
-        message: "Failed to resend verification code. Please try again." 
+      setOverlayState({
+        status: "error",
+        title: "Resend Failed",
+        message: "Failed to resend verification code. Please try again."
       });
     } finally {
       setIsResending(false);
@@ -250,7 +250,7 @@ export default function Page() {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
-  
+
   const closeOverlay = () => {
     setOverlayState({ status: "idle", message: "" });
     // Reset Turnstile when closing error overlay to ensure fresh token on retry
@@ -271,19 +271,19 @@ export default function Page() {
       const response = await fetch("/api/2fa/forgot-password-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email: twoFAEmail, 
-          twoFactorToken: twoFAToken.trim() 
+        body: JSON.stringify({
+          email: twoFAEmail,
+          twoFactorToken: twoFAToken.trim()
         }),
       });
       const data = await response.json();
       if (response.ok) {
         setIsTwoFAModalOpen(false);
         setIsSuccessful(true);
-        setOverlayState({ 
-          status: "success", 
-          title: "Link Sent", 
-          message: "A password reset link has been sent to your email." 
+        setOverlayState({
+          status: "success",
+          title: "Link Sent",
+          message: "A password reset link has been sent to your email."
         });
         setTimeout(() => {
           router.push("/login");
@@ -341,29 +341,29 @@ export default function Page() {
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
           {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
-          <div 
+          <div
             className="absolute inset-0"
             style={{
               pointerEvents: mouseHasMoved ? 'auto' : 'none'
             }}
           >
-            <Spline 
+            <Spline
               scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
               onLoad={onLoad}
-              style={{ 
-                width: '100%', 
+              style={{
+                width: '100%',
                 height: '100%',
                 opacity: splineVisible ? 1 : 0,
                 transition: 'opacity 0.5s ease-in'
               }}
             />
           </div>
-          
+
           {/* Overlay to block ALL pointer events until mouse moves */}
           {!mouseHasMoved && (
-            <div 
-              className="absolute inset-0 z-[50] bg-black/0" 
-              style={{ 
+            <div
+              className="absolute inset-0 z-[50] bg-black/0"
+              style={{
                 pointerEvents: 'auto',
                 cursor: 'default'
               }}
@@ -378,42 +378,42 @@ export default function Page() {
 
           {/* 3. Text Content (frontmost layer) */}
           <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative z-[10] pointer-events-none"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="relative z-[10] pointer-events-none"
           >
-              <img
-                alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.png" 
-                className="w-48 h-auto mb-4 mx-auto"
-              />
-              <h1 className="text-3xl font-bold text-white">Forgot Password?</h1>
-              <p className="text-gray-200 mt-2 max-w-sm">
-                Don&apos;t worry. We&apos;ll send you a link to get back into your account.
-              </p>
+            <img
+              alt="Brand Banner"
+              src="/images/barzakh/banner/sirath-banner.png"
+              className="w-48 h-auto mb-4 mx-auto"
+            />
+            <h1 className="text-3xl font-bold text-white">Forgot Password?</h1>
+            <p className="text-gray-200 mt-2 max-w-sm">
+              Don&apos;t worry. We&apos;ll send you a link to get back into your account.
+            </p>
           </motion.div>
         </div>
 
         <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
           <motion.div
-              key="forgot-password-form"
-              variants={formVariants}
-              initial="initial"
-              animate="animate"
-              className="mx-auto w-full max-w-md space-y-8"
+            key="forgot-password-form"
+            variants={formVariants}
+            initial="initial"
+            animate="animate"
+            className="mx-auto w-full max-w-md space-y-8"
           >
             <div className="space-y-4 text-center">
-               <img
+              <img
                 alt="Brand Banner"
                 src="/images/barzakh/banner/sirath-banner.png"
-                className="w-32 h-auto mx-auto lg:hidden" 
+                className="w-32 h-auto mx-auto lg:hidden"
               />
               <h1 className="text-3xl font-bold">
                 {showOTPField ? "Verify Your Email" : "Reset Password"}
               </h1>
               <p className="text-muted-foreground">
-                {showOTPField 
+                {showOTPField
                   ? `Enter the code sent to ${email}`
                   : "Enter your email to receive a verification code."
                 }
@@ -431,7 +431,7 @@ export default function Page() {
                 </div>
               )}
             </div>
-            
+
             <form action={handleSubmit}>
               <AuthForm
                 defaultEmail={email}
@@ -445,21 +445,21 @@ export default function Page() {
                 turnstileRef={turnstileRef}
                 onValidationChange={handleValidationChange}
               >
-                <SubmitButton 
-                  isSuccessful={isSuccessful} 
+                <SubmitButton
+                  isSuccessful={isSuccessful}
                   className="w-full"
                   disabled={!isFormValid || isSubmitting}
                 >
-                  {isSubmitting 
-                    ? "Processing..." 
-                    : showOTPField 
-                      ? "Verify & Send Reset Link" 
+                  {isSubmitting
+                    ? "Processing..."
+                    : showOTPField
+                      ? "Verify & Send Reset Link"
                       : "Send Verification Code"
                   }
                 </SubmitButton>
               </AuthForm>
             </form>
-            
+
             <div className="space-y-3">
               <p className="text-center text-sm text-muted-foreground">
                 Remembered your password?{" "}
@@ -472,9 +472,9 @@ export default function Page() {
               </p>
 
               <p className="text-center text-sm text-muted-foreground">
-                 <Link href="/" className="underline underline-offset-4 hover:text-primary">
-                    &larr; Back to Home
-                 </Link>
+                <Link href="/" className="underline underline-offset-4 hover:text-primary">
+                  &larr; Back to Home
+                </Link>
               </p>
             </div>
 
@@ -483,8 +483,8 @@ export default function Page() {
       </div>
 
       {/* 2FA Verification Modal */}
-      <Dialog 
-        open={isTwoFAModalOpen} 
+      <Dialog
+        open={isTwoFAModalOpen}
         onOpenChange={(open) => {
           setIsTwoFAModalOpen(open);
           // Reset Turnstile widget when modal is closed so user can get a fresh token
@@ -519,10 +519,10 @@ export default function Page() {
               <button
                 type="button"
                 className="text-sm sm:text-base text-red-600 hover:underline"
-                onClick={() => { 
-                  setUseBackupCode(!useBackupCode); 
-                  setTwoFAToken(""); 
-                  setHasAutoSubmitted(false); 
+                onClick={() => {
+                  setUseBackupCode(!useBackupCode);
+                  setTwoFAToken("");
+                  setHasAutoSubmitted(false);
                 }}
               >
                 {useBackupCode ? "Use TOTP code" : "Use backup code"}

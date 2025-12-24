@@ -2,7 +2,7 @@
 
 import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
-import { motion } from "framer-motion";
+import { motion } from "@/lib/framer-motion";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import type { Message } from "ai";
 import { generateStatusFromMessage } from "@/lib/status-generator";
@@ -22,12 +22,12 @@ export const ThinkingMessage = ({ messages = [] }: ThinkingMessageProps) => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === 'assistant') {
         const assistantMessage = messages[i];
-        
+
         // Check if this message has pending tools
         const pendingTools = assistantMessage.toolInvocations?.filter(
           (tool) => tool.state === "call" || tool.state === "partial-call"
         );
-        
+
         if (pendingTools && pendingTools.length > 0) {
           // Find the user prompt that triggered this
           let userPrompt: string | undefined;
@@ -45,7 +45,7 @@ export const ThinkingMessage = ({ messages = [] }: ThinkingMessageProps) => {
               break;
             }
           }
-          
+
           const status = generateStatusFromMessage(assistantMessage, userPrompt);
           return status || undefined;
         }

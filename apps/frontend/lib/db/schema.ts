@@ -11,7 +11,10 @@ import {
   boolean,
   integer,
   serial,
-} from "drizzle-orm/pg-core"; export const user = pgTable("User", {
+  index,
+} from "drizzle-orm/pg-core";
+
+export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   email: varchar("email", { length: 64 }).unique(),
   walletAddress: varchar("walletAddress", { length: 64 }),
@@ -103,15 +106,24 @@ export const chat = pgTable("Chat", {
 
 export type Chat = InferSelectModel<typeof chat>;
 
-export const message = pgTable("Message", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  chatId: uuid("chatId")
-    .notNull()
-    .references(() => chat.id),
-  role: varchar("role").notNull(),
-  content: json("content").notNull(),
-  createdAt: timestamp("createdAt").notNull(),
-});
+export const message = pgTable(
+  "Message",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    chatId: uuid("chatId")
+      .notNull()
+      .references(() => chat.id),
+    role: varchar("role").notNull(),
+    content: json("content").notNull(),
+    createdAt: timestamp("createdAt").notNull(),
+  },
+  (table) => ({
+    // Single column index for simple chatId lookups (e.g., DELETE operations)
+    chatIdIdx: index("idx_message_chat_id").on(table.chatId),
+    // Composite index for chatId + createdAt (optimizes ORDER BY queries)
+    chatIdCreatedAtIdx: index("idx_message_chat_id_created_at").on(table.chatId, table.createdAt),
+  })
+);
 
 export type Message = InferSelectModel<typeof message>;
 
@@ -126,11 +138,10 @@ export const vote = pgTable(
       .references(() => message.id),
     isUpvoted: boolean("isUpvoted").notNull(),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-    };
-  }
+  (table) => ({
+    pk: primaryKey({ columns: [table.chatId, table.messageId] }),
+    chatIdIdx: index("idx_vote_chat_id").on(table.chatId),
+  })
 );
 
 export type Vote = InferSelectModel<typeof vote>;
