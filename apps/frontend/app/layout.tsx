@@ -87,6 +87,8 @@ import { config } from "@/lib/wagmi";
 
 
 
+import { ChunkErrorHandler } from "@/components/chunk-error-handler";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -114,6 +116,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <ChunkErrorHandler />
         {/* dont remove below div. it is for modal */}
         <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
           <ThemeProvider
