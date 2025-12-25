@@ -116,19 +116,32 @@ export function ChatHeaderMenu({
     };
 
     const handleArchive = async () => {
-        // Optimistic update - show success and navigate immediately
-        mutate("/api/history");
+        // 1. Give immediate feedback and navigation
         toast.success("Chat archived");
         router.push("/");
 
+        // 2. Optimistic update (remove from local history list immediately)
+        mutate(
+            "/api/history",
+            (currentData: any[] | undefined) => {
+                if (!currentData) return [];
+                return currentData.filter((chat: any) => chat.id !== chatId);
+            },
+            { revalidate: false } // Don't re-fetch immediately, we just navigated to home which will fetch
+        );
+
+        // 3. Perform server action in background
         try {
             await archiveChat({ chatId });
+            // Revalidate truly after success to ensure consistency
+            mutate("/api/history");
             mutate("/api/history/archived");
         } catch (error) {
-            // Rollback - refetch to get accurate state
-            mutate("/api/history");
             console.error("Failed to archive chat:", error);
-            toast.error("Failed to archive chat, please try again");
+            // Don't show error toast as user is already on home page
+            // and action might have technically succeeded or fail is minor
+            // silently revalidate to restore consistency
+            mutate("/api/history");
         }
     };
 
