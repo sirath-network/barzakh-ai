@@ -5,6 +5,7 @@ import { user } from "@/lib/db/schema";
 import { hash, compare } from "bcryptjs";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { RESERVED_USERNAMES, isReservedUsername } from "@/lib/reserved-usernames";
 
 const passwordValidation = z
   .string()
@@ -49,6 +50,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "USERNAME_INVALID" }, { status: 400 });
     }
 
+    // Check if username is reserved
+    if (isReservedUsername(normalized, session.user.email)) {
+      return NextResponse.json({ error: "USERNAME_RESERVED" }, { status: 403 });
+    }
+
     const existing = await db
       .select()
       .from(user)
@@ -68,15 +74,13 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    console.log("API: Current session:", session);
 
     if (!session?.user?.id) {
-      console.log("API: No session or user ID found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
-    
+
     const { fullName, username, avatar, currentPassword, password: newPassword } = body;
 
     // Fetch existing user
@@ -84,8 +88,6 @@ export async function POST(req: Request) {
       .select()
       .from(user)
       .where(eq(user.id, session.user.id));
-
-    console.log("API: Found existing user:", existingUser ? 'Yes' : 'No');
 
     if (!existingUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -97,7 +99,7 @@ export async function POST(req: Request) {
       if (existingUser.password && !currentPassword) {
         return NextResponse.json({ error: "Current password is required" }, { status: 400 });
       }
-      
+
       try {
         passwordValidation.parse(newPassword);
       } catch (error) {
@@ -114,14 +116,14 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
         }
         if (await compare(newPassword, existingUser.password)) {
-            return NextResponse.json({ error: "New password cannot be the same as current password" }, { status: 400 });
+          return NextResponse.json({ error: "New password cannot be the same as current password" }, { status: 400 });
         }
       }
     }
 
     // Prepare update object, only including fields that were provided
     const updateData: any = {};
-    
+
     if (fullName !== undefined) {
       updateData.name = fullName?.trim() || null;
     }
@@ -133,6 +135,10 @@ export async function POST(req: Request) {
         const valid = /^[a-z0-9]+$/.test(normalized);
         if (!valid) {
           return NextResponse.json({ error: "USERNAME_INVALID" }, { status: 400 });
+        }
+        // Check if username is reserved
+        if (isReservedUsername(normalized, session.user.email)) {
+          return NextResponse.json({ error: "USERNAME_RESERVED" }, { status: 403 });
         }
         // Check uniqueness against other users
         const existingSameUsername = await db
@@ -151,7 +157,7 @@ export async function POST(req: Request) {
     if (avatar !== undefined) {
       updateData.image = avatar?.trim() || null;
     }
-    
+
     if (newPassword) {
       updateData.password = await hash(newPassword, 10);
       updateData.tokenVersion = sql`${user.tokenVersion} + 1`;
@@ -159,7 +165,7 @@ export async function POST(req: Request) {
 
     // Check if there is anything to update
     if (Object.keys(updateData).length === 0) {
-        return NextResponse.json({ error: "No update data provided" }, { status: 400 });
+      return NextResponse.json({ error: "No update data provided" }, { status: 400 });
     }
 
     // Perform update
@@ -176,15 +182,11 @@ export async function POST(req: Request) {
         tokenVersion: user.tokenVersion,
       });
 
-    console.log("API: Update result:", updateResult);
-
     if (!updateResult || updateResult.length === 0) {
       return NextResponse.json({ error: "Failed to update user" }, { status: 500 });
     }
 
     const updatedUser = updateResult[0];
-
-    console.log("API: Returning updated user:", updatedUser);
 
     return NextResponse.json({
       success: true,
@@ -200,7 +202,7 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("API ERROR:", error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: "Failed to update profile. Please try again.",
       details: error instanceof Error ? error.message : "Unknown error"
     }, { status: 500 });

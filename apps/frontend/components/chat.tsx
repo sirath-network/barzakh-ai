@@ -105,7 +105,6 @@ export function Chat({
       mutate("/api/history");
     },
     onError: (error: any) => {
-      console.log(error);
       toast.error(error.message);
     },
   });
@@ -288,7 +287,7 @@ export function Chat({
             {messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center p-4 md:justify-center md:pb-24 md:overflow-y-auto custom-scrollbar">
                 <div className="flex-1 w-full max-w-3xl flex flex-col items-center justify-center gap-6 md:gap-8 md:flex-none overflow-y-auto md:overflow-visible">
-                  <Overview />
+                  <Overview user={user} />
                 </div>
 
                 <div className="w-full max-w-3xl mt-4 md:mt-8 flex-none">

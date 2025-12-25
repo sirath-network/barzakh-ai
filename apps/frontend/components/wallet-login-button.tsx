@@ -9,9 +9,11 @@ import { toast } from "sonner";
 
 interface WalletLoginButtonProps {
   turnstileToken?: string;
+  disabled?: boolean;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
-export function WalletLoginButton({ turnstileToken }: WalletLoginButtonProps) {
+export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange }: WalletLoginButtonProps) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { openConnectModal } = useConnectModal();
@@ -54,19 +56,19 @@ export function WalletLoginButton({ turnstileToken }: WalletLoginButtonProps) {
 
     } catch (error: any) {
       // Handle user rejection specifically
-      if (error.name === 'UserRejectedRequestError' || 
-          error.message?.includes('User rejected the request') ||
-          error.code === 4001) { // 4001 is the standard EIP-1193 error code for user rejection
+      if (error.name === 'UserRejectedRequestError' ||
+        error.message?.includes('User rejected the request') ||
+        error.code === 4001) { // 4001 is the standard EIP-1193 error code for user rejection
         toast.info("Login cancelled");
-      } else if (error.message?.includes('Failed to connect to MetaMask') || 
-                 error.message?.includes('Resource unavailable')) {
+      } else if (error.message?.includes('Failed to connect to MetaMask') ||
+        error.message?.includes('Resource unavailable')) {
         // Handle MetaMask connection issues without logging error to console (avoids Next.js overlay)
         toast.error("Connection to wallet failed. Please try again.");
       } else {
         console.error("Login failed:", error);
         toast.error("Login failed. Please try again.");
       }
-      
+
       disconnect();
     } finally {
       setIsLoading(false);
@@ -94,11 +96,17 @@ export function WalletLoginButton({ turnstileToken }: WalletLoginButtonProps) {
     }
   }, [isInitiatingLogin, isConnected, address]);
 
+  // Notify parent of loading state changes (includes when wallet modal is open)
+  useEffect(() => {
+    const walletInProgress = isLoading || isInitiatingLogin;
+    onLoadingChange?.(walletInProgress);
+  }, [isLoading, isInitiatingLogin, onLoadingChange]);
+
   return (
     <button
       className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
       onClick={handleClick}
-      disabled={isLoading}
+      disabled={isLoading || !turnstileToken || disabled}
       type="button"
     >
       <Wallet className="mr-2 h-4 w-4" />

@@ -129,7 +129,7 @@ export const QuestionSuggestions = ({
       subtitle: s.subtitle,
       isHistory: false,
       icon: Sparkles,
-      iconColor: 'text-purple-500 dark:text-purple-400',
+      iconColor: 'text-primary',
     }));
 
     return [...historyItems, ...aiItems];
@@ -161,18 +161,29 @@ export const QuestionSuggestions = ({
     );
   };
 
-  if (isLoadingSuggestions && (!history || history.length === 0)) {
+  // Loading logic:
+  // - Guest users: Show skeleton only while AI suggestions load (very fast)
+  // - Logged-in users: Show skeleton until history loads (or is confirmed empty)
+  const isGuestWaiting = !user && isLoadingSuggestions;
+  const isUserWaitingForHistory = user && history === undefined;
+
+  if (isGuestWaiting || isUserWaitingForHistory) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6 w-full">
+      <div className="mb-6 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
           {Array.from({ length: totalSuggestions }).map((_, i) => (
             <div
               key={i}
-              className="h-12 w-full rounded-xl bg-muted/30 animate-pulse border border-border/20"
-            />
+              className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/40 animate-pulse"
+            >
+              {/* Icon placeholder */}
+              <div className="shrink-0 h-4 w-4 rounded bg-muted-foreground/30" />
+              {/* Text placeholder */}
+              <div className="flex-1 h-4 rounded bg-muted-foreground/30" />
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     );
   }
 

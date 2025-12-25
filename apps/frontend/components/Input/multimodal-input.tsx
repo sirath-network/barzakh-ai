@@ -208,7 +208,6 @@ function PureSendButton({
         )}
         onClick={(event) => {
           event.preventDefault();
-          console.log("Send button clicked, uploadQueue length:", uploadQueue.length);
           submitForm();
         }}
         disabled={isDisabled}
@@ -568,7 +567,6 @@ function PureMultimodalInput({
       return;
     }
     if (uploadQueue.length > 0) {
-      console.log("SubmitForm blocked: uploadQueue length:", uploadQueue.length);
       toast.info("Please wait for file uploads to complete before sending.");
       return;
     }
@@ -659,7 +657,6 @@ function PureMultimodalInput({
       messageContent = content;
 
       const originalUrls = successfulImages.map((item) => item.originalUrl);
-      console.log("✅ Inlined images for AI request:", originalUrls);
 
       content.push({
         type: "text",
@@ -680,7 +677,6 @@ function PureMultimodalInput({
 
           // If direct fetch fails (CORS), try via proxy
           if (!response.ok) {
-            console.log(`Direct fetch failed for ${attachmentName}, trying proxy...`);
             response = await fetch('/api/proxy-file', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -770,7 +766,6 @@ function PureMultimodalInput({
   ]);
 
   const uploadFile = async (file: File) => {
-    console.log("Uploading file:", file.name, "Type:", file.type, "Size:", file.size);
 
     // Client-side size validation (25MB limit for Cloudflare R2)
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
@@ -789,13 +784,11 @@ function PureMultimodalInput({
       });
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ File uploaded successfully to Cloudflare R2 Storage:", data.url);
         const attachment = {
           url: data.url,
           name: data.pathname,
           contentType: data.contentType,
         };
-        console.log("Created attachment:", attachment);
         return attachment;
       }
       const { error } = await response.json();
@@ -814,27 +807,20 @@ function PureMultimodalInput({
       const files = Array.from(event.target.files || []);
       if (files.length === 0) return;
 
-      console.log("Starting upload for files:", files.map(f => f.name));
-      console.log("Files details:", files.map(f => ({ name: f.name, type: f.type, size: f.size })));
       setUploadQueue(files.map((file) => file.name));
       try {
         const uploadedAttachments = await Promise.all(files.map(uploadFile));
-        console.log("Upload results:", uploadedAttachments);
         const successfulUploads = uploadedAttachments.filter(
           Boolean
         ) as Attachment[];
-        console.log("Successful uploads:", successfulUploads);
         setAttachments((prev) => {
           const newAttachments = [...prev, ...successfulUploads];
-          console.log("Updated attachments:", newAttachments);
           return newAttachments;
         });
-        console.log("Upload completed successfully");
       } catch (error) {
         console.error("Error uploading files:", error);
         toast.error("An error occurred during file upload.");
       } finally {
-        console.log("Clearing upload queue");
         setUploadQueue([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -939,7 +925,6 @@ function PureMultimodalInput({
 
       if (files.length > 0) {
         event.preventDefault();
-        console.log("Pasted files:", files.map(f => f.name));
 
         setUploadQueue(files.map((file) => file.name));
         try {
@@ -948,7 +933,6 @@ function PureMultimodalInput({
             Boolean
           ) as Attachment[];
           setAttachments((prev) => [...prev, ...successfulUploads]);
-          console.log("Paste upload completed successfully");
         } catch (error) {
           console.error("Paste upload failed:", error);
           toast.error("Failed to upload pasted files. Please try again.");
@@ -1110,7 +1094,6 @@ function PureMultimodalInput({
                 if (uploadQueue.length === 0) {
                   submitForm();
                 } else {
-                  console.log("Blocked: Files still uploading");
                   toast.info("Please wait for file uploads to complete before sending.");
                 }
               }

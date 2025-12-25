@@ -17,6 +17,7 @@ import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import useSWR from "swr";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
+import { handleLogout } from "@/lib/auth-utils";
 
 import {
   DropdownMenu,
@@ -115,8 +116,8 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" });
+  const handleLogoutClick = async () => {
+    await handleLogout();
   };
 
   // Track dropdown open state for compact mode
@@ -140,7 +141,7 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
                 height={32}
                 className={`rounded-full shadow-sm object-cover transition-all duration-200 ${compact
                   ? 'w-8 h-8 cursor-pointer'
-                  : 'w-8 h-8 border-2 border-border/30'
+                  : 'w-8 h-8'
                   }`}
                 onError={(e: any) => {
                   e.currentTarget.style.display = 'none';
@@ -182,7 +183,7 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
                 alt={user.name || "User"}
                 width={32}
                 height={32}
-                className="rounded-full w-8 h-8 object-cover border border-border/30"
+                className="rounded-full w-8 h-8 object-cover"
                 onError={(e: any) => {
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
@@ -268,7 +269,7 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
           </DropdownMenuItemAny>
         </DropdownMenuGroupAny>
         <DropdownMenuSeparatorAny />
-        <DropdownMenuItemAny onClick={handleLogout}>
+        <DropdownMenuItemAny onClick={handleLogoutClick}>
           <LogOut className="mr-2 h-4 w-4 text-red-500" />
           Log out
         </DropdownMenuItemAny>

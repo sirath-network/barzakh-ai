@@ -1,11 +1,10 @@
 // @ts-nocheck
 "use client";
 
-import { useActionState, useEffect, useState, useRef } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "@/lib/framer-motion";
-import type { Application } from '@splinetool/runtime';
-import Spline from '@splinetool/react-spline';
+import { LazySpline } from "@/components/lazy-spline";
 import {
   verifyAndResetPassword,
   VerifyAndResetPasswordActionState,
@@ -29,9 +28,6 @@ export default function ResetPassword() {
 
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
-  const spline = useRef<Application | null>(null);
-  const [splineVisible, setSplineVisible] = useState(false);
-  const [mouseHasMoved, setMouseHasMoved] = useState(false);
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
     message: "",
@@ -43,71 +39,6 @@ export default function ResetPassword() {
   >(verifyAndResetPassword, {
     status: "idle",
   });
-
-  // Handle mouse movement to enable Spline scene
-  useEffect(() => {
-    const handleMouseMove = () => {
-      setTimeout(() => {
-        if (!mouseHasMoved) {
-          setMouseHasMoved(true);
-        }
-      }, 50);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseHasMoved]);
-
-  // Load Spline scene - this makes it interactive  
-  const onLoad = (splineApp: Application) => {
-    if (splineApp) {
-      spline.current = splineApp;
-
-      setTimeout(() => {
-        try {
-          const internalScene = (splineApp as any)._scene;
-
-          if (internalScene) {
-            internalScene.traverse((object: any) => {
-              if (object.isMesh && object.material) {
-                const materials = Array.isArray(object.material)
-                  ? object.material
-                  : [object.material];
-
-                materials.forEach((mat: any) => {
-                  if (mat) {
-                    if (mat.emissive) {
-                      mat.emissive.setHex(0x000000);
-                      mat.emissiveIntensity = 0;
-                    }
-                    if (mat.emissiveMap) {
-                      mat.emissiveMap = null;
-                      mat.needsUpdate = true;
-                    }
-                    mat.needsUpdate = true;
-                  }
-                });
-              }
-
-              if (object.isPointLight) {
-                object.intensity = 0;
-                object.visible = false;
-              }
-
-              if (object.type === 'AmbientLight') {
-                object.intensity = 0;
-              }
-            });
-
-            setSplineVisible(true);
-          }
-        } catch (error) {
-          console.log('Could not reset Spline scene:', error);
-          setSplineVisible(true);
-        }
-      }, 800);
-    }
-  };
 
   const handleSubmit = (formData: FormData) => {
     if (typeof token !== "string") {
@@ -163,35 +94,11 @@ export default function ResetPassword() {
       </ActionResultOverlay>
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
-          <div
+          {/* 1. Spline 3D Background - Lazy loaded for better performance */}
+          <LazySpline
+            scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
             className="absolute inset-0"
-            style={{
-              pointerEvents: mouseHasMoved ? 'auto' : 'none'
-            }}
-          >
-            <Spline
-              scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-              onLoad={onLoad}
-              style={{
-                width: '100%',
-                height: '100%',
-                opacity: splineVisible ? 1 : 0,
-                transition: 'opacity 0.5s ease-in'
-              }}
-            />
-          </div>
-
-          {/* Overlay to block ALL pointer events until mouse moves */}
-          {!mouseHasMoved && (
-            <div
-              className="absolute inset-0 z-[50] bg-black/0"
-              style={{
-                pointerEvents: 'auto',
-                cursor: 'default'
-              }}
-            />
-          )}
+          />
 
           {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
           {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
