@@ -427,24 +427,27 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     const currentPath = window.location.pathname;
     const shouldRedirect = currentPath === `/c/${chatId}`;
 
+    // Optimistic update - remove from UI immediately for instant feedback
+    mutate((history) => {
+      if (history) {
+        return history.filter((h) => h.id !== chatId);
+      }
+    }, false);
+
+    toast.success("Archived successfully");
+
+    // Redirect immediately if viewing the archived chat
+    if (shouldRedirect) {
+      router.push("/");
+    }
+
     try {
       await archiveChat({ chatId });
-
-      mutate((history) => {
-        if (history) {
-          return history.filter((h) => h.id !== chatId);
-        }
-      });
-
-      toast.success("Archived successfully");
-
-      // Redirect to new chat if the user is currently viewing the archived chat
-      if (shouldRedirect) {
-        router.push("/");
-      }
     } catch (error) {
+      // Rollback on error - refetch history to restore accurate state
+      mutate();
       console.error("Failed to archive chat:", error);
-      toast.error("Failed to archive chat");
+      toast.error("Failed to archive chat, please try again");
     }
   };
 

@@ -168,11 +168,10 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
   };
 
   return (
-    <div className={`relative bg-gray-900 border border-gray-700 rounded-lg overflow-hidden transition-all duration-300 ${
-      isFullscreen 
-        ? 'fixed inset-4 z-50 h-[calc(100vh-2rem)] w-[calc(100vw-2rem)]' 
+    <div className={`relative bg-gray-900 border border-gray-700 rounded-lg overflow-hidden transition-all duration-300 ${isFullscreen
+        ? 'fixed inset-4 z-50 h-[calc(100vh-2rem)] w-[calc(100vw-2rem)]'
         : 'w-full h-96 md:h-[500px] lg:h-[600px]'
-    }`}>
+      }`}>
       {/* Header */}
       <div className="flex items-center justify-between bg-gray-800 px-3 py-2 border-b border-gray-700">
         <div className="flex items-center gap-2">
@@ -185,7 +184,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-1">
           {/* Mobile: Show fewer buttons */}
           <div className="hidden sm:flex items-center gap-1">
@@ -211,7 +210,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
               <DownloadAny className="w-4 h-4" />
             </button>
           </div>
-          
+
           {/* Mobile menu button */}
           <div className="sm:hidden relative">
             <button
@@ -221,7 +220,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
               <SettingsAny className="w-4 h-4" />
             </button>
           </div>
-          
+
           <button
             onClick={toggleFullscreen}
             className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
@@ -236,7 +235,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
       {showSettings && (
         <div className="absolute top-12 right-2 bg-gray-800 border border-gray-600 rounded-lg p-3 z-10 min-w-48 shadow-lg">
           <h3 className="text-sm font-medium text-white mb-2">Editor Settings</h3>
-          
+
           <div className="space-y-3">
             <div>
               <label className="text-xs text-gray-300 block mb-1">Font Size</label>
@@ -251,7 +250,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
                 <option value={18}>18px</option>
               </select>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <label className="text-xs text-gray-300">Line Numbers</label>
               <input
@@ -261,7 +260,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
                 className="text-blue-500"
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <label className="text-xs text-gray-300">Word Wrap</label>
               <input
@@ -271,7 +270,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
                 className="text-blue-500"
               />
             </div>
-            
+
             {/* Mobile actions */}
             <div className="sm:hidden pt-2 border-t border-gray-600 space-y-2">
               <button
@@ -294,10 +293,9 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
       )}
 
       {/* Editor Container */}
-      <div 
-        className={`relative w-full transition-all ${
-          isFullscreen ? 'h-[calc(100%-3rem)]' : 'h-[calc(100%-3rem)]'
-        }`}
+      <div
+        className={`relative w-full transition-all ${isFullscreen ? 'h-[calc(100%-3rem)]' : 'h-[calc(100%-3rem)]'
+          }`}
         ref={containerRef}
       />
 
@@ -320,7 +318,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
 
       {/* Fullscreen overlay backdrop */}
       {isFullscreen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={toggleFullscreen}
         />
@@ -373,8 +371,6 @@ if __name__ == "__main__":
 
   const handleSaveContent = (content: string, debounce: boolean) => {
     setCode(content);
-    // Simulate saving logic here
-    console.log('Saving content:', { content: content.substring(0, 50) + '...', debounce });
   };
 
   const CodeEditor = memo(PureCodeEditor, areEqual);
@@ -385,7 +381,7 @@ if __name__ == "__main__":
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Responsive Code Editor</h1>
         <p className="text-gray-600">A fully responsive Python code editor with mobile support</p>
       </div>
-      
+
       <CodeEditor
         content={code}
         onSaveContent={handleSaveContent}
@@ -394,7 +390,7 @@ if __name__ == "__main__":
         currentVersionIndex={0}
         suggestions={[]}
       />
-      
+
       <div className="mt-4 flex gap-2">
         <button
           onClick={() => setStatus(status === 'streaming' ? 'idle' : 'streaming')}

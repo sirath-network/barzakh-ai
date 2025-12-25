@@ -4,6 +4,7 @@ import { genSaltSync, hashSync } from "bcrypt-ts";
 import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { isReservedUsername } from "@/lib/reserved-usernames";
 
 import {
   user,
@@ -221,29 +222,45 @@ export async function createUser(
  * - Must start with a letter
  * - Lowercase letters and numbers only
  * - No spaces or special characters
+ * - Cannot be a reserved username (unless @barzakh.tech email)
+ * - Skip reserved words in names (e.g., "Admin Smith" → "smith" not "adminsmith")
  */
 async function generateUsernameFromName(name?: string | null, email?: string | null): Promise<string> {
   let baseUsername = "";
 
-  // Try to use name first, then email prefix
+  // Try to use name first, skip reserved words
   if (name && name.trim()) {
-    // Take the name, convert to lowercase, remove special chars
-    baseUsername = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '') // Remove all non-alphanumeric
-      .trim();
-  } else if (email) {
-    // Use email prefix before @
+    // Split name into parts and filter out reserved words
+    const nameParts = name.toLowerCase().split(/\s+/);
+    const validParts: string[] = [];
+
+    for (const part of nameParts) {
+      const cleanPart = part.replace(/[^a-z0-9]/g, '').trim();
+      if (cleanPart && !isReservedUsername(cleanPart, email)) {
+        validParts.push(cleanPart);
+      }
+    }
+
+    // Use non-reserved parts to build username
+    if (validParts.length > 0) {
+      baseUsername = validParts.join('');
+    }
+  }
+
+  // If no valid parts from name, try email prefix
+  if (!baseUsername && email) {
     const emailPrefix = email.split('@')[0];
-    baseUsername = emailPrefix
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .trim();
+    const cleanEmail = emailPrefix.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+
+    // Check if email prefix is reserved
+    if (cleanEmail && !isReservedUsername(cleanEmail, email)) {
+      baseUsername = cleanEmail;
+    }
   }
 
   // Ensure it starts with a letter
   if (!baseUsername || !/^[a-z]/.test(baseUsername)) {
-    // Prepend 'user' if empty or doesn't start with a letter
+    // Use 'user' prefix if empty or doesn't start with a letter
     baseUsername = 'user' + baseUsername;
   }
 
@@ -255,6 +272,12 @@ async function generateUsernameFromName(name?: string | null, email?: string | n
   // Truncate to max 16 chars to leave room for random suffix
   if (baseUsername.length > 16) {
     baseUsername = baseUsername.slice(0, 16);
+  }
+
+  // Final check - if base username is still reserved (edge case), use random fallback
+  if (isReservedUsername(baseUsername, email)) {
+    const fallbackSuffix = Math.floor(10000000 + Math.random() * 90000000).toString();
+    baseUsername = 'user' + fallbackSuffix;
   }
 
   // Try the base username first, then add random suffix if taken
@@ -281,7 +304,7 @@ async function generateUsernameFromName(name?: string | null, email?: string | n
     attempts++;
   }
 
-  // Fallback: use 'user' + random UUID portion
+  // Fallback: use 'user' + random UUID portion (this is always safe)
   const fallbackSuffix = Math.floor(10000000 + Math.random() * 90000000).toString();
   return 'user' + fallbackSuffix;
 }

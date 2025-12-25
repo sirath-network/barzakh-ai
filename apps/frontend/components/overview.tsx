@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "@/lib/framer-motion";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import type { User } from "next-auth";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -12,14 +12,14 @@ const getGreeting = () => {
 };
 
 const containerVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      delay: 0.2,
+      duration: 0.2,
       when: "beforeChildren",
-      staggerChildren: 0.3,
+      staggerChildren: 0.1,
     },
   },
 };
@@ -29,54 +29,59 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Assume session.user type has 'username' property
-interface ExtendedUser {
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  username?: string | null; // Add username property
+// Extended user type with username property
+type ExtendedUser = User & {
+  username?: string | null;
+};
+
+interface OverviewProps {
+  user?: ExtendedUser;
 }
 
-export const Overview = () => {
+export const Overview = ({ user }: OverviewProps) => {
   const [isMounted, setIsMounted] = useState(false);
-  const { data: session, update } = useSession();
-  const user: ExtendedUser | undefined = session?.user;
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Force session update when component mounts to ensure fresh data (only once)
-  useEffect(() => {
-    if (isMounted && !user?.name && !user?.username) {
-      // Only update once when component first mounts and user data is missing
-      const timeoutId = setTimeout(() => {
-        update();
-      }, 100); // Small delay to prevent immediate re-renders
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isMounted]); // Remove user dependencies to prevent continuous updates
-
   const greeting = getGreeting();
 
-  // MODIFIED: Logic to determine the name to display
+  // Logic to determine the name to display
   const displayName = user?.username
     ? user.username // 1. Prioritize username if exists
     : user?.name
       ? user.name     // 2. If name exists, use name
-      : session
+      : user
         ? "User"         // 3. If logged in but no username/name, show "User"
         : "Guest";       // 4. If not logged in, show "Guest"
 
   const userImage = user?.image;
 
-  // MODIFIED: Condition to show avatar
   // Show avatar if user is logged in AND has set up username or name
   const showAvatar = !!(user?.username || user?.name);
 
   if (!isMounted) {
-    return <div className="h-40 sm:h-28" />;
+    // Skeleton matching the actual UI layout
+    return (
+      <div className="max-w-3xl mx-auto mb-6">
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left animate-pulse">
+            {/* Avatar skeleton - only show if user exists */}
+            {user && (
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-primary/60 shrink-0" />
+            )}
+            {/* Text content skeleton */}
+            <div className="flex flex-col gap-2 items-center sm:items-start">
+              {/* Greeting line - matches h1 text-2xl sm:text-3xl */}
+              <div className="h-7 sm:h-9 w-56 sm:w-72 rounded-lg bg-muted-foreground/30" />
+              {/* Subtitle line - matches p text-sm sm:text-base */}
+              <div className="h-4 sm:h-5 w-48 sm:w-64 rounded bg-muted-foreground/25" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -99,14 +104,14 @@ export const Overview = () => {
                     alt={displayName}
                     width={64}
                     height={64}
-                    className="w-16 h-16 rounded-full object-cover ring-2 ring-neutral-300 dark:ring-red-500/60"
+                    className="w-16 h-16 rounded-full object-cover"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                       e.currentTarget.nextElementSibling?.classList.remove('hidden');
                     }}
                   />
                 ) : null}
-                <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-primary/60 ring-2 ring-neutral-300 dark:ring-red-500/60 ${userImage ? 'hidden' : ''}`}>
+                <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-primary/60 ${userImage ? 'hidden' : ''}`}>
                   <span className="text-2xl font-bold text-white">
                     {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
                   </span>

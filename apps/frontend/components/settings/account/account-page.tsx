@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { User, Image as ImageIcon, AtSign, Save, Upload, Trash2, CheckCircle, AlertCircle, Shield, Key } from "lucide-react";
 import DeleteAccountModal from "./delete-account-modal";
 import ImageCropModal from "./image-crop-modal";
+import { RESERVED_USERNAMES, isReservedUsername } from "@/lib/reserved-usernames";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -50,6 +51,8 @@ export default function AccountSettingsPage() {
     username !== initialData.username ||
     avatar !== initialData.avatar;
 
+  const userEmail = session?.user?.email || '';
+
   const validateUsername = (value: string) => {
     const normalized = value.toLowerCase();
 
@@ -71,6 +74,11 @@ export default function AccountSettingsPage() {
 
     if (!/^[a-z]/.test(normalized)) {
       return { isValid: false, message: "Must start with a letter" };
+    }
+
+    // Check reserved usernames - the function returns true if reserved AND user is not allowed
+    if (isReservedUsername(normalized, userEmail)) {
+      return { isValid: false, message: "Username is restricted" };
     }
 
     return { isValid: true, message: "" };
@@ -106,9 +114,10 @@ export default function AccountSettingsPage() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           const isTaken = data?.error === "USERNAME_TAKEN";
+          const isReserved = data?.error === "USERNAME_RESERVED";
           setUsernameAvailability({
-            status: isTaken ? "taken" : "error",
-            message: isTaken ? "Username is already taken" : "Unable to check availability",
+            status: isTaken || isReserved ? "taken" : "error",
+            message: isReserved ? "Username is restricted" : isTaken ? "Username is already taken" : "Unable to check availability",
           });
           return;
         }
@@ -257,6 +266,10 @@ export default function AccountSettingsPage() {
           toast.error("Username is already taken. Please choose another.");
           return;
         }
+        if (res.status === 403 && data?.error === "USERNAME_RESERVED") {
+          toast.error("This username is reserved for core team members.");
+          return;
+        }
         throw new Error(data.error || "Failed to update profile");
       }
 
@@ -314,7 +327,7 @@ export default function AccountSettingsPage() {
                     </label>
                     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
                       <div className="relative">
-                        <div className="w-20 h-20 rounded-full border-2 border-gray-200 dark:border-red-900/50 shadow-lg overflow-hidden bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center">
+                        <div className={`w-20 h-20 rounded-full shadow-lg overflow-hidden flex items-center justify-center ${!avatar ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
                           {avatar ? (
                             <img
                               src={avatar}
@@ -393,8 +406,8 @@ export default function AccountSettingsPage() {
                         value={username}
                         onChange={(e) => handleUsernameChange(e.target.value)}
                         className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${username && !usernameValidation.isValid
-                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                            : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
                           }`}
                         placeholder="Choose a username"
                       />
@@ -409,10 +422,10 @@ export default function AccountSettingsPage() {
                         ) : usernameAvailability.status !== "idle" ? (
                           <div
                             className={`mt-2 text-sm ${usernameAvailability.status === "available"
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : usernameAvailability.status === "checking"
-                                  ? "text-gray-500 dark:text-gray-400"
-                                  : "text-red-600 dark:text-red-400"
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : usernameAvailability.status === "checking"
+                                ? "text-gray-500 dark:text-gray-400"
+                                : "text-red-600 dark:text-red-400"
                               }`}
                           >
                             {usernameAvailability.message}

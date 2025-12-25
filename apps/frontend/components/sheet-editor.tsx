@@ -24,13 +24,13 @@ interface Row {
   [key: string]: any;
 }
 
-function PureSheetEditor({ 
-  content, 
-  onSaveContent, 
-  status, 
-  isCurrentVersion, 
-  currentVersionIndex, 
-  suggestions 
+function PureSheetEditor({
+  content,
+  onSaveContent,
+  status,
+  isCurrentVersion,
+  currentVersionIndex,
+  suggestions
 }: SheetEditorProps) {
   const { theme } = useTheme();
   const [rows, setRows] = useState<Row[]>([]);
@@ -50,7 +50,7 @@ function PureSheetEditor({
 
     // Parse header row
     const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
-    
+
     // Create columns
     const newColumns: Column<Row>[] = headers.map((header, index) => ({
       key: `col_${index}`,
@@ -64,11 +64,11 @@ function PureSheetEditor({
     const newRows: Row[] = lines.slice(1).map((line, rowIndex) => {
       const values = line.split(',').map(value => value.trim().replace(/"/g, ''));
       const row: Row = { id: `row_${rowIndex}` };
-      
+
       headers.forEach((_, colIndex) => {
         row[`col_${colIndex}`] = values[colIndex] || '';
       });
-      
+
       return row;
     });
 
@@ -79,12 +79,12 @@ function PureSheetEditor({
   // Convert rows back to CSV
   const convertToCSV = useCallback((rows: Row[], columns: Column<Row>[]) => {
     if (columns.length === 0) return '';
-    
+
     const headers = columns.map(col => col.name);
-    const csvRows = rows.map(row => 
+    const csvRows = rows.map(row =>
       columns.map(col => `"${row[col.key] || ''}"`).join(',')
     );
-    
+
     return [headers.join(','), ...csvRows].join('\n');
   }, []);
 
@@ -97,7 +97,7 @@ function PureSheetEditor({
   const handleRowsChange = useCallback((newRows: Row[]) => {
     setRows(newRows);
     setIsEditing(true);
-    
+
     // Convert to CSV and save
     const csvContent = convertToCSV(newRows, columns);
     onSaveContent(csvContent, true);
@@ -107,7 +107,7 @@ function PureSheetEditor({
   const handleColumnsChange = useCallback((newColumns: Column<Row>[]) => {
     setColumns(newColumns);
     setIsEditing(true);
-    
+
     // Convert to CSV and save
     const csvContent = convertToCSV(rows, newColumns);
     onSaveContent(csvContent, true);
@@ -119,7 +119,7 @@ function PureSheetEditor({
     columns.forEach(col => {
       newRow[col.key] = '';
     });
-    
+
     const newRows = [...rows, newRow];
     handleRowsChange(newRows);
   }, [columns, rows, handleRowsChange]);
@@ -134,19 +134,19 @@ function PureSheetEditor({
       sortable: true,
       minWidth: 100,
     };
-    
+
     const newColumns = [...columns, newColumn];
-    
+
     // Add empty values for new column to all existing rows
     const newRows = rows.map(row => ({
       ...row,
       [newColumnKey]: ''
     }));
-    
+
     setColumns(newColumns);
     setRows(newRows);
     setIsEditing(true);
-    
+
     const csvContent = convertToCSV(newRows, newColumns);
     onSaveContent(csvContent, true);
   }, [columns, rows, convertToCSV, onSaveContent]);
@@ -160,18 +160,18 @@ function PureSheetEditor({
   // Delete column
   const deleteColumn = useCallback((columnKey: string) => {
     if (columns.length <= 1) return; // Don't delete the last column
-    
+
     const newColumns = columns.filter(col => col.key !== columnKey);
     const newRows = rows.map(row => {
       const newRow = { ...row };
       delete newRow[columnKey];
       return newRow;
     });
-    
+
     setColumns(newColumns);
     setRows(newRows);
     setIsEditing(true);
-    
+
     const csvContent = convertToCSV(newRows, newColumns);
     onSaveContent(csvContent, true);
   }, [columns, rows, convertToCSV, onSaveContent]);
@@ -280,7 +280,6 @@ Bob Johnson,35,Chicago,Manager`);
 
   const handleSaveContent = useCallback((newContent: string, hasChanges: boolean) => {
     setContent(newContent);
-    console.log('Content saved:', { newContent, hasChanges });
   }, []);
 
   return (

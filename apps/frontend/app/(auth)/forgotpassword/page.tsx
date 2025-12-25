@@ -7,8 +7,7 @@ import { useActionState, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { motion } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
-import Spline from '@splinetool/react-spline';
-import type { Application } from '@splinetool/runtime';
+import { LazySpline } from "@/components/lazy-spline";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -35,9 +34,6 @@ export default function Page() {
   const [isResending, setIsResending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null);
-  const spline = useRef<Application | null>(null);
-  const [splineVisible, setSplineVisible] = useState(false);
-  const [mouseHasMoved, setMouseHasMoved] = useState(false);
 
   // 2FA modal state
   const [isTwoFAModalOpen, setIsTwoFAModalOpen] = useState(false);
@@ -59,73 +55,7 @@ export default function Page() {
     status: "idle",
   });
 
-  // Handle mouse movement to enable Spline scene
   useEffect(() => {
-    const handleMouseMove = () => {
-      setTimeout(() => {
-        if (!mouseHasMoved) {
-          setMouseHasMoved(true);
-        }
-      }, 50);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseHasMoved]);
-
-  // Load Spline scene - this makes it interactive  
-  const onLoad = (splineApp: Application) => {
-    if (splineApp) {
-      spline.current = splineApp;
-
-      setTimeout(() => {
-        try {
-          const internalScene = (splineApp as any)._scene;
-
-          if (internalScene) {
-            internalScene.traverse((object: any) => {
-              if (object.isMesh && object.material) {
-                const materials = Array.isArray(object.material)
-                  ? object.material
-                  : [object.material];
-
-                materials.forEach((mat: any) => {
-                  if (mat) {
-                    if (mat.emissive) {
-                      mat.emissive.setHex(0x000000);
-                      mat.emissiveIntensity = 0;
-                    }
-                    if (mat.emissiveMap) {
-                      mat.emissiveMap = null;
-                      mat.needsUpdate = true;
-                    }
-                    mat.needsUpdate = true;
-                  }
-                });
-              }
-
-              if (object.isPointLight) {
-                object.intensity = 0;
-                object.visible = false;
-              }
-
-              if (object.type === 'AmbientLight') {
-                object.intensity = 0;
-              }
-            });
-
-            setSplineVisible(true);
-          }
-        } catch (error) {
-          console.log('Could not reset Spline scene:', error);
-          setSplineVisible(true);
-        }
-      }, 800);
-    }
-  };
-
-  useEffect(() => {
-    console.log(`📱 Frontend received status: ${state.status}`, state);
 
     // Reset submitting state for any final status
     if (state.status !== "idle" && state.status !== "in_progress") {
@@ -170,13 +100,11 @@ export default function Page() {
 
   const handleSubmit = (formData: FormData) => {
     if (isSubmitting) {
-      console.log("🚫 Form submission blocked - already submitting");
       return;
     }
 
     // Check if Turnstile token is available before proceeding
     if (!turnstileToken || turnstileToken.trim() === "") {
-      console.log("🚫 Form submission blocked - Turnstile token not available");
       setOverlayState({
         status: "error",
         title: "Verification Required",
@@ -188,14 +116,11 @@ export default function Page() {
     setIsSubmitting(true);
     setEmail(formData.get("email") as string);
     formData.set("cf-turnstile-response", turnstileToken);
-
-    console.log("📤 Form submission started with valid Turnstile token");
     formAction(formData);
   };
 
   const handleTurnstileSuccess = (token: string) => {
     setTurnstileToken(token);
-    console.log("🔒 Turnstile token received and ready for submission");
   };
 
   const handleValidationChange = (isValid: boolean) => {
@@ -340,35 +265,11 @@ export default function Page() {
 
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
-          <div
+          {/* 1. Spline 3D Background - Lazy loaded for better performance */}
+          <LazySpline
+            scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
             className="absolute inset-0"
-            style={{
-              pointerEvents: mouseHasMoved ? 'auto' : 'none'
-            }}
-          >
-            <Spline
-              scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-              onLoad={onLoad}
-              style={{
-                width: '100%',
-                height: '100%',
-                opacity: splineVisible ? 1 : 0,
-                transition: 'opacity 0.5s ease-in'
-              }}
-            />
-          </div>
-
-          {/* Overlay to block ALL pointer events until mouse moves */}
-          {!mouseHasMoved && (
-            <div
-              className="absolute inset-0 z-[50] bg-black/0"
-              style={{
-                pointerEvents: 'auto',
-                cursor: 'default'
-              }}
-            />
-          )}
+          />
 
           {/* 2. GRADIENT BLUR LAYER (NEW) */}
           {/* Top Gradient - pointer events none so cursor can interact with Spline below */}

@@ -49,7 +49,6 @@ export const authOptions: NextAuthConfig = {
             if (payload.type === "session" && payload.email) {
               const users = await getUser(payload.email as string);
               if (users.length > 0) {
-                console.log("2FA session token verified successfully");
                 return users[0] as any;
               }
             }
@@ -61,13 +60,11 @@ export const authOptions: NextAuthConfig = {
 
         // Regular password authentication
         if (!email || !password) {
-          console.log("Missing email or password for regular auth");
           return null;
         }
 
         const users = await getUser(email);
         if (users.length === 0) {
-          console.log("User not found:", email);
           return null;
         }
 
@@ -261,7 +258,6 @@ export const authOptions: NextAuthConfig = {
           const dbVer = dbUser.tokenVersion ?? 0;
 
           if (tokenVer !== dbVer) {
-            console.log(`Token version mismatch (cached) for ${token.id}: token=${tokenVer}, db=${dbVer}`);
             return null;
           }
 
@@ -283,7 +279,6 @@ export const authOptions: NextAuthConfig = {
             const dbVer = dbUser.tokenVersion ?? 0;
 
             if (tokenVer !== dbVer) {
-              console.log(`Token version mismatch (db) for ${token.id}: token=${tokenVer}, db=${dbVer}`);
               return null;
             }
 

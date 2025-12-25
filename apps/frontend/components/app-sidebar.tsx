@@ -63,7 +63,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     }
     setView('chat');
     router.push("/");
-    router.refresh();
   };
 
   // 2. Define animation variants
@@ -219,7 +218,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           ) : (
             <div className="flex gap-1 w-full">
               <ButtonAny
-                variant={theme === 'light' ? 'secondary' : 'ghost'}
+                variant={mounted && theme === 'light' ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => setTheme('light')}
                 className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-neutral-600 dark:text-neutral-400"
@@ -228,7 +227,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <span className="text-[11px] font-medium">Light</span>
               </ButtonAny>
               <ButtonAny
-                variant={theme === 'dark' ? 'secondary' : 'ghost'}
+                variant={mounted && theme === 'dark' ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => setTheme('dark')}
                 className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-neutral-600 dark:text-neutral-400"
@@ -237,7 +236,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <span className="text-[11px] font-medium">Dark</span>
               </ButtonAny>
               <ButtonAny
-                variant={theme === 'system' ? 'secondary' : 'ghost'}
+                variant={mounted && theme === 'system' ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => setTheme('system')}
                 className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-neutral-600 dark:text-neutral-400"

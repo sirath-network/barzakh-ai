@@ -52,7 +52,7 @@ function PureChatHeader({
   onUnarchive?: () => void;
 }) {
   const router = useRouter();
-  const { open: isSidebarOpen } = useSidebar();
+  const { open: isSidebarOpen, openMobile: isSidebarOpenMobile, isMobile } = useSidebar();
   const { width: windowWidth } = useWindowSize();
   const isDesktop = windowWidth >= 768;
 
@@ -141,7 +141,9 @@ function PureChatHeader({
           {!title && <ArtifactToggle />}
 
           {user ? (
-            <SidebarUserNav user={user} compact={true} />
+            // Hide user nav when sidebar is open to reduce clutter
+            // On desktop: if sidebar is expanded. On mobile: if mobile sheet is open.
+            (isDesktop && isSidebarOpen) || (isMobile && isSidebarOpenMobile) ? null : <SidebarUserNav user={user} compact={true} />
           ) : (
             <ButtonAny
               className="px-3 py-1 text-sm h-auto"

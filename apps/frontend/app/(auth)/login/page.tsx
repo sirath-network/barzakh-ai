@@ -7,8 +7,7 @@ import { useEffect, useState, useRef } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { motion } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
-import Spline from '@splinetool/react-spline';
-import type { Application } from '@splinetool/runtime';
+import { LazySpline } from "@/components/lazy-spline";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -33,10 +32,6 @@ export default function Page() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [isFormValid, setIsFormValid] = useState(false);
   const turnstileRef = useRef<TurnstileInstance>(null); // Ref for the Turnstile component
-  const spline = useRef<Application | null>(null); // Ref for the Spline application
-  const [splineVisible, setSplineVisible] = useState(false); // Control visibility to reset initial state
-  const [mouseHasMoved, setMouseHasMoved] = useState(false); // Track if mouse has moved to avoid initial hover state
-
   const [overlayState, setOverlayState] = useState<OverlayState>({
     status: "idle",
     message: "",
@@ -53,85 +48,18 @@ export default function Page() {
   const [useBackupCode, setUseBackupCode] = useState(false);
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
 
-  // Handle mouse movement to enable Spline scene
-  useEffect(() => {
-    const handleMouseMove = () => {
-      // Small delay before enabling to ensure initial cursor position doesn't trigger
-      setTimeout(() => {
-        if (!mouseHasMoved) {
-          setMouseHasMoved(true);
-        }
-      }, 50);
-    };
+  // Track login method in progress to disable other buttons
+  const [walletLoginInProgress, setWalletLoginInProgress] = useState(false);
+  const [googleLoginInProgress, setGoogleLoginInProgress] = useState(false);
 
-    // Listen for mouse movement - with slight delay
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseHasMoved]);
-
-  // Load Spline scene - this makes it interactive  
-  const onLoad = (splineApp: Application) => {
-    if (splineApp) {
-      spline.current = splineApp;
-      console.log('Spline scene loaded successfully - interactive mode enabled');
-
-      // Reset hexagons to inactive state on initial load
-      // Wait a bit longer to ensure Spline is fully initialized
-      setTimeout(() => {
-        try {
-          // Access the internal Three.js scene
-          const internalScene = (splineApp as any)._scene;
-
-          if (internalScene) {
-            // Recursively traverse and reset all meshes
-            internalScene.traverse((object: any) => {
-              // Reset mesh material properties
-              if (object.isMesh && object.material) {
-                const materials = Array.isArray(object.material)
-                  ? object.material
-                  : [object.material];
-
-                materials.forEach((mat: any) => {
-                  if (mat) {
-                    // Turn off emission
-                    if (mat.emissive) {
-                      mat.emissive.setHex(0x000000);
-                      mat.emissiveIntensity = 0;
-                    }
-                    // Remove emissive map
-                    if (mat.emissiveMap) {
-                      mat.emissiveMap = null;
-                      mat.needsUpdate = true;
-                    }
-                    // Update material
-                    mat.needsUpdate = true;
-                  }
-                });
-              }
-
-              // Handle PointLights - reduce intensity or disable
-              if (object.isPointLight) {
-                object.intensity = 0;
-                object.visible = false;
-              }
-
-              // Handle ambient lights  
-              if (object.type === 'AmbientLight') {
-                object.intensity = 0;
-              }
-            });
-
-            console.log('Spline hexagons and lights reset to inactive state');
-            // Make scene visible after reset
-            setSplineVisible(true);
-          }
-        } catch (error) {
-          console.log('Could not reset Spline scene:', error);
-          // Show anyway if reset fails
-          setSplineVisible(true);
-        }
-      }, 800); // Increased timeout to ensure scene is fully loaded and stabilized
+  // Handle Google OAuth with Turnstile verification
+  const handleGoogleSignIn = () => {
+    if (!turnstileToken) {
+      toast.error("Please complete the security verification first");
+      return;
     }
+    setGoogleLoginInProgress(true);
+    signIn("google", { callbackUrl: "/" });
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -152,7 +80,7 @@ export default function Page() {
       await getSession();
       setTimeout(() => {
         router.push("/");
-      }, 2000);
+      }, 500);
     } else if (result.status === "requires_2fa") {
       // Open 2FA modal instead of redirecting to a separate page
       setTwoFAEmail(result.email!);
@@ -267,35 +195,11 @@ export default function Page() {
       <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
         {/* --- CHANGES START HERE --- */}
         <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Spline 3D Background - Must be at base z-index to receive events */}
-          <div
+          {/* 1. Spline 3D Background - Lazy loaded for better performance */}
+          <LazySpline
+            scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
             className="absolute inset-0"
-            style={{
-              pointerEvents: mouseHasMoved ? 'auto' : 'none'
-            }}
-          >
-            <Spline
-              scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-              onLoad={onLoad}
-              style={{
-                width: '100%',
-                height: '100%',
-                opacity: splineVisible ? 1 : 0,
-                transition: 'opacity 0.5s ease-in'
-              }}
-            />
-          </div>
-
-          {/* Overlay to block ALL pointer events until mouse moves */}
-          {!mouseHasMoved && (
-            <div
-              className="absolute inset-0 z-[50] bg-black/0"
-              style={{
-                pointerEvents: 'auto',
-                cursor: 'default'
-              }}
-            />
-          )}
+          />
 
           {/* 2. GRADIENT BLUR LAYER (NEW) */}
           {/* Top Gradient - pointer events none so cursor can interact with Spline below */}
@@ -345,13 +249,18 @@ export default function Page() {
 
             <div className="space-y-4">
               <button
-                onClick={() => signIn("google", { callbackUrl: "/" })}
-                className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                onClick={handleGoogleSignIn}
+                disabled={!turnstileToken || walletLoginInProgress || googleLoginInProgress}
+                className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <LogoGoogle className="mr-2 h-4 w-4" />
-                Continue with Google
+                {googleLoginInProgress ? "Redirecting..." : "Continue with Google"}
               </button>
-              <WalletLoginButton turnstileToken={turnstileToken} />
+              <WalletLoginButton
+                turnstileToken={turnstileToken}
+                disabled={googleLoginInProgress}
+                onLoadingChange={setWalletLoginInProgress}
+              />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 import type { User } from "next-auth";
 import { useTheme } from "next-themes";
 import {
@@ -61,12 +63,15 @@ export function SettingsMenu({
 }) {
   const { theme, setTheme } = useTheme();
   const { setView } = useView();
-  // ✅ 1. Ambil setSidebarView dari useSidebar
   const { setOpenMobile, setSidebarView, setOpen } = useSidebar();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleMenuClick = (page: SettingsPageType) => {
     setView(page);
-    // Close the sidebar on both mobile and desktop for a cleaner settings view
     setOpen(false);
     setOpenMobile(false);
     if (setSidebarView) {
@@ -77,7 +82,7 @@ export function SettingsMenu({
   return (
     <div className="flex flex-col h-full p-1 space-y-1">
       <div className="flex items-center p-3 mb-2 space-x-3 sm:space-x-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gradient-to-br from-primary/30 to-primary/60 flex-shrink-0 flex items-center justify-center">
+        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center ${!user?.image ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
           {user?.image ? (
             <img
               src={user.image}
@@ -90,7 +95,7 @@ export function SettingsMenu({
               }}
             />
           ) : null}
-          <span className={`text-2xl font-bold text-white ${user?.image ? 'hidden' : ''}`}>
+          <span className={`text-2xl sm:text-3xl font-bold text-white ${user?.image ? 'hidden' : ''}`}>
             {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}
           </span>
         </div>
@@ -181,7 +186,7 @@ export function SettingsMenu({
       <div className="p-2 space-y-2">
         <div className="flex gap-1">
           <ButtonAny
-            variant={theme === 'light' ? 'secondary' : 'ghost'}
+            variant={mounted && theme === 'light' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setTheme('light')}
             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5"
@@ -190,7 +195,7 @@ export function SettingsMenu({
             <span className="text-[11px]">Light</span>
           </ButtonAny>
           <ButtonAny
-            variant={theme === 'dark' ? 'secondary' : 'ghost'}
+            variant={mounted && theme === 'dark' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setTheme('dark')}
             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5"
@@ -199,7 +204,7 @@ export function SettingsMenu({
             <span className="text-[11px]">Dark</span>
           </ButtonAny>
           <ButtonAny
-            variant={theme === 'system' ? 'secondary' : 'ghost'}
+            variant={mounted && theme === 'system' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => setTheme('system')}
             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5"

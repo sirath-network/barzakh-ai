@@ -116,15 +116,19 @@ export function ChatHeaderMenu({
     };
 
     const handleArchive = async () => {
+        // Optimistic update - show success and navigate immediately
+        mutate("/api/history");
+        toast.success("Chat archived");
+        router.push("/");
+
         try {
             await archiveChat({ chatId });
-            mutate("/api/history");
             mutate("/api/history/archived");
-            toast.success("Chat archived");
-            router.push("/");
         } catch (error) {
+            // Rollback - refetch to get accurate state
+            mutate("/api/history");
             console.error("Failed to archive chat:", error);
-            toast.error("Failed to archive chat");
+            toast.error("Failed to archive chat, please try again");
         }
     };
 
