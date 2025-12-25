@@ -142,8 +142,13 @@ function PureChatHeader({
 
           {user ? (
             // Hide user nav when sidebar is open to reduce clutter
-            // On desktop: if sidebar is expanded. On mobile: if mobile sheet is open.
-            (isDesktop && isSidebarOpen) || (isMobile && isSidebarOpenMobile) ? null : <SidebarUserNav user={user} compact={true} />
+            // Hide user nav when sidebar is open to reduce clutter
+            // On desktop: if sidebar is expanded, hide using md:hidden.
+            // On mobile: if mobile sheet is open, hide using hidden.
+            // This works on server too because isSidebarOpen is stable from cookies.
+            <div className={`${isSidebarOpen ? "md:hidden" : ""} ${isSidebarOpenMobile ? "hidden" : ""}`}>
+              <SidebarUserNav user={user} compact={true} />
+            </div>
           ) : (
             <ButtonAny
               className="px-3 py-1 text-sm h-auto"

@@ -1,4 +1,6 @@
 import "server-only";
+// @ts-expect-error React 19 feature not available in @types/react v18
+import { cache } from 'react';
 
 import { genSaltSync, hashSync } from "bcrypt-ts";
 import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
@@ -556,7 +558,7 @@ export async function restoreChat({ id }: { id: string }) {
   }
 }
 
-export async function getChatById({ id }: { id: string }) {
+export const getChatById = cache(async ({ id }: { id: string }) => {
   try {
     const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
     return selectedChat;
@@ -564,7 +566,7 @@ export async function getChatById({ id }: { id: string }) {
     console.error("Failed to get chat by id from database");
     throw error;
   }
-}
+});
 
 export async function saveMessages({ messages }: { messages: Array<Message> }) {
   try {
