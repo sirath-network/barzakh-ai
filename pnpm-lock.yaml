@@ -831,8 +831,8 @@ importers:
         specifier: ^7.1.2
         version: 7.1.2(graphql@16.10.0)
       langchain:
-        specifier: ^0.3.31
-        version: 0.3.31(@langchain/core@0.3.80)(axios@1.13.2)(ws@8.18.3)
+        specifier: ^0.3.37
+        version: 0.3.37(@langchain/core@0.3.80)(axios@1.13.2)(ws@8.18.3)
       lucide-react:
         specifier: ^0.446.0
         version: 0.446.0(react@19.0.1)
@@ -16279,8 +16279,8 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /langchain@0.3.31(@langchain/core@0.3.80)(axios@1.13.2)(ws@8.18.3):
-    resolution: {integrity: sha512-C7n7WGa44RytsuxEtGcArVcXidRqzjl6UWQxaG3NdIw4gIqErWoOlNC1qADAa04H5JAOARxuE6S99+WNXB/rzA==}
+  /langchain@0.3.37(@langchain/core@0.3.80)(axios@1.13.2)(ws@8.18.3):
+    resolution: {integrity: sha512-1jPsZ6xsxkcQPUvqRjvfuOLwZLLyt49hzcOK7OYAJovIkkOxd5gzK4Yw6giPUQ8g4XHyvULNlWBz+subdkcokw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@langchain/anthropic': '*'
