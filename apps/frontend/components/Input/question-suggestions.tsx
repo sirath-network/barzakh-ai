@@ -76,17 +76,14 @@ export const QuestionSuggestions = ({
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(true);
   const { width, height } = useWindowSize();
 
-  const [totalSuggestions, setTotalSuggestions] = useState(3);
-
-  useEffect(() => {
-    if (width < 640) {
-      setTotalSuggestions(2);
-    } else if (width < 1024) {
-      setTotalSuggestions(4);
-    } else {
-      setTotalSuggestions(3);
-    }
-  }, [width, height]);
+  // Calculate suggestions count based on screen width - use useMemo for SSR safety
+  const totalSuggestions = useMemo(() => {
+    // Default to 3 on server/initial render
+    if (width === 0) return 3;
+    if (width < 640) return 2;      // Mobile: 2
+    if (width < 1024) return 4;     // Tablet/iPad: 4
+    return 3;                        // Desktop: 3
+  }, [width]);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -168,20 +165,32 @@ export const QuestionSuggestions = ({
   const isUserWaitingForHistory = user && history === undefined;
 
   if (isGuestWaiting || isUserWaitingForHistory) {
+    // Use CSS-based visibility to avoid SSR hydration mismatch
+    // Render 4 skeletons (max needed) but hide extras via CSS
+    // Mobile (<640px): show 2, Tablet (640-1023px): show 4, Desktop (>=1024px): show 3
     return (
       <div className="mb-6 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
-          {Array.from({ length: totalSuggestions }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/40 animate-pulse"
-            >
-              {/* Icon placeholder */}
-              <div className="shrink-0 h-4 w-4 rounded bg-muted-foreground/30" />
-              {/* Text placeholder */}
-              <div className="flex-1 h-4 rounded bg-muted-foreground/30" />
-            </div>
-          ))}
+          {/* Skeleton 1 - Always visible */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/40 animate-pulse">
+            <div className="shrink-0 h-4 w-4 rounded bg-muted-foreground/30" />
+            <div className="flex-1 h-4 rounded bg-muted-foreground/30" />
+          </div>
+          {/* Skeleton 2 - Always visible */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/40 animate-pulse">
+            <div className="shrink-0 h-4 w-4 rounded bg-muted-foreground/30" />
+            <div className="flex-1 h-4 rounded bg-muted-foreground/30" />
+          </div>
+          {/* Skeleton 3 - Hidden on mobile, visible on tablet/desktop */}
+          <div className="hidden sm:flex items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/40 animate-pulse">
+            <div className="shrink-0 h-4 w-4 rounded bg-muted-foreground/30" />
+            <div className="flex-1 h-4 rounded bg-muted-foreground/30" />
+          </div>
+          {/* Skeleton 4 - Only visible on tablet (640-1023px) */}
+          <div className="hidden sm:flex lg:hidden items-center gap-3 p-3 rounded-xl bg-muted/40 border border-border/40 animate-pulse">
+            <div className="shrink-0 h-4 w-4 rounded bg-muted-foreground/30" />
+            <div className="flex-1 h-4 rounded bg-muted-foreground/30" />
+          </div>
         </div>
       </div>
     );
