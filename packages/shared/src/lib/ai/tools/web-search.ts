@@ -47,10 +47,10 @@ function getNextApiKey(): string | undefined {
 
 export const webSearch = tool({
   description:
-    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. Always prefer this over your internal knowledge for time-sensitive queries.",
+    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. IMPORTANT: For crypto/blockchain/token queries, ALWAYS use ALL THREE topic types ['general', 'news', 'finance'] to get comprehensive results from different sources. This ensures you find both news articles and financial data.",
   parameters: z.object({
     queries: z.array(
-      z.string().describe("Array of search queries to look up on the web. Include date/year keywords (e.g., '2025', 'December 2025', 'latest') for time-sensitive queries.")
+      z.string().describe("Array of search queries. Do NOT include specific years like '2025' or '2026' - let the search find the most relevant results. Use 'latest' or 'upcoming' for time-sensitive queries instead of hardcoded years.")
     ),
     maxResults: z
       .array(
@@ -63,11 +63,11 @@ export const webSearch = tool({
     topics: z
       .array(
         z
-          .enum(["general", "news"])
-          .describe("Array of topic types to search for. Use 'news' for current events and breaking news.")
+          .enum(["general", "news", "finance"])
+          .describe("Topic types to search. For crypto/blockchain queries, ALWAYS pass ALL THREE: ['general', 'news', 'finance'] for comprehensive coverage. 'finance' is critical for token/TGE/market queries.")
       )
       .optional()
-      .default(["general"]),
+      .default(["general", "news", "finance"]),
     searchDepth: z
       .array(
         z
@@ -75,12 +75,17 @@ export const webSearch = tool({
           .describe("Array of search depths. Use 'advanced' for comprehensive research that needs more detailed results.")
       )
       .optional()
-      .default(["basic"]),
+      .default(["advanced"]),
     timeRange: z
       .enum(["day", "week", "month", "year", "all"])
       .describe("Time range to filter results. Use 'day' for today's news, 'week' for recent updates, 'month' for monthly trends. Default is 'week' for most queries.")
       .optional()
       .default("week"),
+    include_domains: z
+      .array(z.string())
+      .describe("Optional list of domains to restrict results to. Only use if you specifically need results from certain sites (e.g., ['x.com'] for tweets only). Leave empty for diverse sources.")
+      .optional()
+      .default([]),
     exclude_domains: z
       .array(z.string())
       .describe("A list of domains to exclude from all search results.")
@@ -89,16 +94,18 @@ export const webSearch = tool({
   execute: async ({
     queries,
     maxResults = [10],
-    topics = ["general"],
-    searchDepth = ["basic"],
+    topics = ["general", "news", "finance"],
+    searchDepth = ["advanced"],
     timeRange = "week",
+    include_domains = [],
     exclude_domains = [],
   }: {
     queries: string[];
     maxResults?: number[];
-    topics?: ("general" | "news")[];
+    topics?: ("general" | "news" | "finance")[];
     searchDepth?: ("basic" | "advanced")[];
     timeRange?: "day" | "week" | "month" | "year" | "all";
+    include_domains?: string[];
     exclude_domains?: string[];
   }) => {
     const includeImageDescriptions = true;
@@ -109,6 +116,7 @@ export const webSearch = tool({
     console.log("Topics:", topics);
     console.log("Search Depths:", searchDepth);
     console.log("Time Range:", timeRange);
+    console.log("Include Domains:", include_domains);
     console.log("Exclude Domains:", exclude_domains);
 
     // Map timeRange to days for Tavily API
@@ -120,7 +128,7 @@ export const webSearch = tool({
       all: undefined,
     };
 
-    const searchWithRetry = async (query: string, index: number) => {
+    const searchWithRetry = async (query: string, topic: "general" | "news" | "finance", index: number) => {
       let attempts = 0;
       while (attempts < apiKeys.length) {
         const apiKey = getNextApiKey();
@@ -132,22 +140,25 @@ export const webSearch = tool({
 
         try {
           const tvly = tavily({ apiKey });
-          const isNewsQuery = topics[index] === "news" || topics[0] === "news";
-          const daysValue = timeRangeToDays[timeRange] ?? (isNewsQuery ? 7 : undefined);
+          const isNewsOrFinance = topic === "news" || topic === "finance";
+          const daysValue = timeRangeToDays[timeRange] ?? (isNewsOrFinance ? 7 : undefined);
 
           const data = await tvly.search(query, {
-            topic: topics[index] || topics[0] || "general",
+            topic: topic,
             days: daysValue,
             maxResults: maxResults[index] || maxResults[0] || 10,
-            searchDepth: searchDepth[index] || searchDepth[0] || "basic",
-            includeAnswer: true,
+            searchDepth: searchDepth[index] || searchDepth[0] || "advanced",
+            includeAnswer: "advanced" as unknown as boolean,
             includeImages: false,
             includeImageDescriptions: false,
+            includeDomains: include_domains.length > 0 ? include_domains : undefined,
             excludeDomains: exclude_domains,
           });
 
           return {
             query,
+            topic,
+            answer: (data as any).answer,
             results: data.results.map((obj: any) => {
               // Sanitize content to prevent indirect prompt injection
               const contentScan = scanExternalContent(obj.content || '');
@@ -165,8 +176,7 @@ export const webSearch = tool({
                 title: obj.title,
                 content: sanitizeExternalContent(obj.content || ''),
                 raw_content: obj.raw_content ? sanitizeExternalContent(obj.raw_content) : undefined,
-                published_date:
-                  topics[index] === "news" ? obj.published_date : undefined,
+                published_date: obj.published_date,
               };
             }),
             images: includeImageDescriptions
@@ -230,10 +240,72 @@ export const webSearch = tool({
       throw new Error("All Tavily API keys are rate-limited or invalid.");
     };
 
-    // Execute web searches in parallel
-    const webSearchPromises = queries.map(searchWithRetry);
+    // Create search combinations: each query × each topic
+    const searchCombinations: { query: string; topic: "general" | "news" | "finance"; index: number }[] = [];
+    for (let i = 0; i < queries.length; i++) {
+      for (const topic of topics) {
+        searchCombinations.push({ query: queries[i], topic, index: i });
+      }
+    }
 
-    const webSearchResults = await Promise.all(webSearchPromises);
+    console.log(`Executing ${searchCombinations.length} searches (${queries.length} queries × ${topics.length} topics)...`);
+
+    // Execute all searches in parallel
+    const allSearchResults = await Promise.all(
+      searchCombinations.map(({ query, topic, index }) => searchWithRetry(query, topic, index))
+    );
+
+    // Group results by query and merge/deduplicate
+    const groupedResults: Record<string, {
+      results: any[];
+      images: any[];
+      answers: string[];
+      seenUrls: Set<string>;
+    }> = {};
+
+    for (const result of allSearchResults) {
+      if (!groupedResults[result.query]) {
+        groupedResults[result.query] = {
+          results: [],
+          images: [],
+          answers: [],
+          seenUrls: new Set()
+        };
+      }
+
+      const group = groupedResults[result.query];
+
+      // Add answer if available
+      if (result.answer) {
+        group.answers.push(result.answer);
+      }
+
+      // Deduplicate results by URL
+      for (const r of result.results) {
+        if (!group.seenUrls.has(r.url)) {
+          group.seenUrls.add(r.url);
+          group.results.push(r);
+        }
+      }
+
+      // Add images (deduplicate by URL)
+      for (const img of result.images) {
+        const imgUrl = typeof img === 'string' ? img : img.url;
+        if (!group.seenUrls.has(imgUrl)) {
+          group.seenUrls.add(imgUrl);
+          group.images.push(img);
+        }
+      }
+    }
+
+    // Convert to array format for response (matching frontend expected structure)
+    const webSearchResults = Object.entries(groupedResults).map(([query, data]) => ({
+      query,
+      results: data.results,
+      images: data.images,
+      // Include the best answer (first non-empty one from all topic searches)
+      answer: data.answers.find(a => a && a.length > 0) || null,
+    }));
 
     let newsSearchResults: any = null;
     if (topics.includes("news")) {
