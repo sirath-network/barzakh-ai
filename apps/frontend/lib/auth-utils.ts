@@ -12,51 +12,52 @@ export const handleLogout = async () => {
     return;
   }
   isLoggingOut = true;
+
   try {
-    // First, call NextAuth signOut without redirect
-    await signOut({ redirect: false });
-    
-    // Clear all storage
+    // Clear all storage first
     if (typeof window !== "undefined") {
       localStorage.clear();
       sessionStorage.clear();
-      
-      // Clear all possible NextAuth cookies
-      const authCookies = [
-        'next-auth.session-token',
-        'next-auth.csrf-token', 
-        'next-auth.callback-url',
-        'authjs.session-token',
-        'authjs.csrf-token',
-        'authjs.callback-url',
-        '__Secure-next-auth.session-token',
-        '__Secure-next-auth.callback-url',
-        '__Secure-next-auth.csrf-token',
-        '__Secure-authjs.session-token',
-        '__Secure-authjs.callback-url',
-        '__Secure-authjs.csrf-token',
-        '__Host-next-auth.csrf-token',
-        '__Host-authjs.csrf-token'
-      ];
-      
-      // Clear cookies with different domain and path combinations
-      authCookies.forEach(cookieName => {
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure`;
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=strict`;
-      });
     }
-    
-    // Force redirect to login page with cache busting
-    window.location.replace("/login");
-    
+
+    // Use NextAuth's signOut with redirect: true and callbackUrl
+    // This ensures the server-side session is properly cleared before redirect
+    // The key issue was that redirect: false + manual redirect doesn't wait for session clearing
+    await signOut({
+      callbackUrl: "/login",
+      redirect: true
+    });
+
+    // Fallback redirect in case NextAuth redirect doesn't trigger
+    window.location.href = "/login";
+
   } catch (error) {
     console.error("Logout error:", error);
-    // Even if there's an error, force redirect to login
+    // Fallback: try the direct API approach
     if (typeof window !== "undefined") {
-      window.location.replace("/login");
+      try {
+        // Get CSRF token for the signout request
+        const csrfResponse = await fetch("/api/auth/csrf");
+        const { csrfToken } = await csrfResponse.json();
+
+        // Call the signout endpoint directly
+        await fetch("/api/auth/signout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            csrfToken,
+            callbackUrl: "/login",
+          }),
+          credentials: "include",
+        });
+      } catch (fallbackError) {
+        console.error("Fallback logout error:", fallbackError);
+      }
+
+      // Force redirect to login page
+      window.location.href = "/login";
     }
   } finally {
     // Reset the flag after a delay to allow for future logouts
