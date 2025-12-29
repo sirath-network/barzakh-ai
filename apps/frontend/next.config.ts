@@ -11,12 +11,11 @@ const nextConfig: NextConfig = {
     ],
   },
   devIndicators: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Turbopack configuration for Next.js 16
+  turbopack: {},
   webpack: (config, { isServer }) => {
     // Handle WalletConnect / RainbowKit / wagmi dependencies
     // These packages have optional dependencies that aren't needed for web
