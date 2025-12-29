@@ -19,7 +19,7 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage } from "lucide-react";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
@@ -44,6 +44,10 @@ const BarChart3Any = BarChart3 as any;
 const WalletAny = Wallet as any;
 const FileTextAny = FileText as any;
 const FileImageAny = FileImage as any;
+const CreditCardAny = CreditCard as any;
+const TooltipAny = Tooltip as any;
+const TooltipTriggerAny = TooltipTrigger as any;
+const TooltipContentAny = TooltipContent as any;
 
 // HELPER: Map from tool name to corresponding icon
 const toolIcons: Record<string, React.ElementType> = {
@@ -73,6 +77,9 @@ const toolIcons: Record<string, React.ElementType> = {
   getVVSSwapQuote: BarChart3Any,
   getVVSTokenList: BarChart3Any,
   getVVSPoolInfo: BarChart3Any,
+  // x402 Payment Tools
+  initiateX402Payment: CreditCardAny,
+  getSubscriptionInfo: FileTextAny,
 };
 
 // HELPER: Small component to render each tool icon
@@ -96,6 +103,9 @@ import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
 import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
 import { generateStatusFromMessage } from "@/lib/status-generator";
+import { X402PaymentApproval } from "./x402-payment-approval";
+
+const X402PaymentApprovalAny = X402PaymentApproval as any;
 
 
 const PurePreviewMessage = ({
@@ -145,7 +155,7 @@ const PurePreviewMessage = ({
       (Array.isArray(message.content) && message.content.length > 0) ||
       (message.toolInvocations && message.toolInvocations.length > 0)
     );
-    isPreloadedRef.current = hasContent && !isLoading;
+    isPreloadedRef.current = hasContent && !isLoading ? true : false;
   }
   const isPreloaded = isPreloadedRef.current;
 
@@ -350,7 +360,8 @@ const PurePreviewMessage = ({
                       'getSolanaChainWalletPortfolio',
                       'getEvmMultiChainWalletPortfolio',
                       'getTokenBalances',
-                      'createImage'
+                      'createImage',
+                      'initiateX402Payment',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -391,6 +402,7 @@ const PurePreviewMessage = ({
                                 No image generated
                               </div>
                             ),
+                            initiateX402Payment: <X402PaymentApprovalAny result={result} />,
                           };
 
                           return (
@@ -777,11 +789,14 @@ const PurePreviewMessage = ({
                                     getVVSSwapQuote: "VVS Quote",
                                     getVVSTokenList: "VVS Tokens",
                                     getVVSPoolInfo: "VVS Pool",
+                                    // x402 Payment Tools
+                                    initiateX402Payment: "x402 Payment",
+                                    getSubscriptionInfo: "Subscription Info",
                                   };
 
                                   return (
-                                    <Tooltip key={tool.toolCallId}>
-                                      <TooltipTrigger asChild>
+                                    <TooltipAny key={tool.toolCallId}>
+                                      <TooltipTriggerAny asChild>
                                         <motion.span
                                           className="inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 text-[9px] sm:text-xs font-medium bg-accent text-accent-foreground rounded-md sm:rounded-lg border border-border hover:bg-accent/80 transition-colors cursor-default whitespace-nowrap"
                                           initial={isPreloaded ? false : { opacity: 0, y: 10 }}
@@ -792,11 +807,11 @@ const PurePreviewMessage = ({
                                           <ToolIcon toolName={tool.toolName} />
                                           <span className="hidden sm:inline">{toolNames[tool.toolName] || tool.toolName}</span>
                                         </motion.span>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top" className="sm:hidden">
+                                      </TooltipTriggerAny>
+                                      <TooltipContentAny side="top" className="sm:hidden">
                                         <p>{toolNames[tool.toolName] || tool.toolName}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
+                                      </TooltipContentAny>
+                                    </TooltipAny>
                                   );
                                 })}
                                 {completedTools.length > 2 && (

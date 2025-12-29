@@ -9,14 +9,14 @@ import {
 // USD prices for each plan and billing cycle
 const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
   pro: {
-    monthly: 25,
-    quarterly: 66,
-    yearly: 240,
+    monthly: 0.01,
+    quarterly: 0.02,
+    yearly: 0.05,
   },
   ultimate: {
-    monthly: 250,
-    quarterly: 660,
-    yearly: 2400,
+    monthly: 0.02,
+    quarterly: 0.05,
+    yearly: 0.10,
   },
 };
 
