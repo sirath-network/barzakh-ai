@@ -9,12 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://chat.barzakh.tech">
-    <img src="https://img.shields.io/badge/Live-chat.barzakh.tech-blue?style=for-the-badge" alt="Live Demo">
-  </a>
-  <a href="./docs/WHITEPAPER.md">
-    <img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-purple?style=for-the-badge" alt="Whitepaper">
-  </a>
+  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/Live-chat.barzakh.tech-blue?style=for-the-badge" alt="Live Demo"></a>&nbsp;
+  <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-purple?style=for-the-badge" alt="Whitepaper"></a>
 </p>
 
 <p align="center">
