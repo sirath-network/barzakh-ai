@@ -49,8 +49,13 @@ Barzakh AI has two deployment targets:
 | `/api/settings` | GET, PATCH | Yes | 30/min | User settings |
 | `/api/auth/*` | ALL | Partial | 20/min | NextAuth endpoints |
 | `/api/webhooks/stripe` | POST | No* | 100/min | Stripe webhooks |
+| `/api/billing/x402/subscribe` | POST | Yes | 10/min | Initiate x402 payment |
+| `/api/billing/x402/settle` | POST | Yes | 10/min | Settle x402 payment |
+| `/api/billing/x402/verify` | POST | Yes | 20/min | Verify transaction |
+| `/api/billing/x402/verify-wallet` | GET/POST | Yes | 20/min | Wallet signature verification |
 | `/api/zerion/*` | GET | Yes | 60/min | Zerion API proxy |
-| `/api/messagelimitcron` | GET | No* | 1/day | Cron job |
+| `/api/cron/check-subscriptions` | GET | No* | 4/day | x402 subscription expiry check |
+| `/api/messagelimitcron` | GET | No* | 1/day | Daily message limit reset |
 
 > *Webhook endpoints use signature verification instead of session auth
 
@@ -352,18 +357,29 @@ components:
         selectedChatModel:
           type: string
           enum:
-            - gpt-4o
-            - gpt-4o-mini
-            - claude-sonnet
-            - claude-haiku
-            - gemini-2.0-flash
-          default: gpt-4o-mini
+            - chat-model-small      # GPT 4o
+            - chat-model-large      # GPT 4.1
+            - chat-model-gigantic   # GPT 5.1
+            - chat-model-colossal   # GPT 5.2
+            - chat-model-glm        # GLM 4.7
+            - chat-model-claude     # Claude Opus 4.5 Thinking
+          default: chat-model-gigantic
         group:
           type: string
           enum:
             - search
             - imagine
             - multimodal
+            - cronos
+            - aptos
+            - solana
+            - sei
+            - zeta
+            - flow
+            - monad
+            - wormhole
+            - on_chain
+            - coding
           default: search
         stream:
           type: boolean

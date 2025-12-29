@@ -9,19 +9,18 @@
 </p>
 
 <p align="center">
-  <a href="https://chat.barzakh.tech">
-    <img src="https://img.shields.io/badge/Live-chat.barzakh.tech-blue?style=for-the-badge" alt="Live Demo">
-  </a>
+  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/Live-chat.barzakh.tech-blue?style=for-the-badge" alt="Live Demo"></a>&nbsp;
+  <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-purple?style=for-the-badge" alt="Whitepaper"></a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Next.js-15.4-black?logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/React-19.0-61DAFB?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/Next.js-16.1-black?logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black" alt="React">
   <img src="https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white" alt="Node.js">
   <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/pnpm-8.6-F69220?logo=pnpm&logoColor=white" alt="pnpm">
-  <img src="https://img.shields.io/badge/Turborepo-2.4-EF4444?logo=turborepo&logoColor=white" alt="Turborepo">
+  <img src="https://img.shields.io/badge/Turborepo-2.7-EF4444?logo=turborepo&logoColor=white" alt="Turborepo">
   <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
 </p>
@@ -54,7 +53,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 
 | Feature | Description |
 |---------|-------------|
-| **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.5, Grok 4.1, GLM 4.6 with intelligent routing |
+| **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.5, Grok 4.1, GLM 4.7 with intelligent routing |
 | **50+ Blockchain Tools** | Chain-specific analyzers for Cronos, EVM, Aptos, Solana, Flow, SEI, Zeta, Monad |
 | **x402 Gasless Payments** | EIP-3009/EIP-712 gasless USDC payments on Cronos |
 | **VVS DEX Integration** | Swap quotes, liquidity pools, and token lists from VVS Finance |
@@ -85,7 +84,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 ┌───────────────────────────────────────────────────────────────────────────────────────┐
 │                              APPLICATION LAYER (Vercel)                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                         Next.js 15.4 (App Router + RSC)                         │  │
+│  │                         Next.js 16.1 (App Router + RSC)                         │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │  │
 │  │  │  React 19   │  │   Server    │  │  API Routes │  │    Middleware Chain     │ │  │
 │  │  │     RSC     │  │  Components │  │   (Edge)    │  │  Auth → Rate → Validate │ │  │
@@ -112,7 +111,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 │  │                           LLM Provider Abstraction                            │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │  │
 │  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   CometAPI       │ │  │
-│  │  │ GPT-4o/5 │  │ Claude   │  │  Grok 2  │  │ GLM-4.6  │  │  (Aggregator)    │ │  │
+│  │  │ GPT-4o/5 │  │ Claude   │  │  Grok 2  │  │ GLM-4.7  │  │  (Aggregator)    │ │  │
 │  │  │ o1/o3    │  │ Opus 4.5 │  │   4.1    │  │  Plus    │  │  Multi-Provider  │ │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │  │
 │  └───────────────────────────────────────────────────────────────────────────────┘  │
@@ -222,9 +221,9 @@ sequenceDiagram
 |-------|------------|---------|---------|
 | **Runtime** | Node.js | 18+ | Server runtime |
 | **Package Manager** | pnpm | 8.6.12 | Fast, disk-efficient |
-| **Monorepo** | Turborepo | 2.4.4 | Build orchestration |
-| **Framework** | Next.js | 15.4.10 | Full-stack React framework |
-| **UI Library** | React | 19.0.1 | UI components (RSC enabled) |
+| **Monorepo** | Turborepo | 2.7.2 | Build orchestration |
+| **Framework** | Next.js | 16.1.0 | Full-stack React framework |
+| **UI Library** | React | 19.2.0 | UI components (RSC enabled) |
 | **Language** | TypeScript | 5.6.3 | Type safety |
 
 ### Frontend Stack
@@ -278,12 +277,12 @@ sequenceDiagram
 |----------|--------------|----------|---------------|----------|
 | `chat-model-small` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
 | `chat-model-large` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
-| `chat-model-gigantic` | **GPT 5.1** | CometAPI | `gpt-5.1` | Experimental, next-gen |
+| `chat-model-gigantic` | **GPT 5.1** ⭐ | CometAPI | `gpt-5.1` | Experimental, next-gen |
 | `chat-model-colossal` | **GPT 5.2** | CometAPI | `gpt-5.2` | Experimental, advanced |
-| `chat-model-glm` | **GLM 4.6** ⭐ | CometAPI | `glm-4.6` | Default model, multilingual |
+| `chat-model-glm` | **GLM 4.7** | CometAPI | `glm-4.7` | Multilingual |
 | `chat-model-claude` | **Claude Opus 4.5 Thinking** | CometAPI | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
 
-> ⭐ **Default Model:** GLM 4.6 (`chat-model-glm`)
+> ⭐ **Default Model:** GPT 5.1 (`chat-model-gigantic`)
 
 ### Image Generation
 
@@ -601,7 +600,7 @@ flowchart TB
 ```
 barzakh-ai/
 ├── apps/
-│   ├── frontend/                     # Next.js 15.4 Application
+│   ├── frontend/                     # Next.js 16.1 Application
 │   │   ├── app/
 │   │   │   ├── (auth)/               # Auth pages (login, register, 2FA)
 │   │   │   ├── (chat)/               # Chat interface + API routes
