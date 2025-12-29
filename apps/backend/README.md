@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Barzakh AI - Backend API
+
+Supplementary backend services for the Barzakh AI platform, providing an OpenAI-compatible API.
+
+## Overview
+
+This package contains supplementary backend services that complement the main frontend application. Built with:
+
+- **Next.js 16.1.0** with App Router
+- **React 19.2.0**
+- **Vercel AI SDK 4.1.17**
+- **TypeScript 5.x**
+
+## Architecture
+
+The Barzakh AI platform uses a hybrid architecture:
+
+| Component | Location | Port | Purpose |
+|-----------|----------|------|---------|
+| **Main App** | `apps/frontend/` | 3000 | Primary web app + API routes |
+| **Backend API** | `apps/backend/` | 3001 | OpenAI-compatible API |
+| **Shared Logic** | `packages/shared/` | - | AI tools, prompts, utilities |
 
 ## Getting Started
 
-First, run the development server:
+From the monorepo root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install dependencies
+pnpm install
+
+# Start all services
 pnpm dev
-# or
-bun dev
+
+# Start backend only
+pnpm dev:api
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start dev server on port 3001 |
+| `pnpm build` | Build for production |
+| `pnpm start` | Start production server |
+| `pnpm lint` | Run ESLint |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## API Endpoints
 
-## Learn More
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chat/completions` | POST | OpenAI-compatible chat completions |
+| `/api/completions` | POST | Legacy completions endpoint |
 
-To learn more about Next.js, take a look at the following resources:
+## Technology Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Category | Technology |
+|----------|------------|
+| **Runtime** | Node.js 18+ |
+| **Framework** | Next.js 16.1.0 |
+| **Language** | TypeScript 5.x |
+| **AI** | Vercel AI SDK 4.1.17 |
+| **Database** | Drizzle ORM 0.34.0 |
+| **Web3** | Wagmi 2.14.11, Viem 2.23.4 |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Related Packages
 
-## Deploy on Vercel
+- [`apps/frontend`](../frontend/README.md) - Main Next.js application
+- [`packages/shared`](../../packages/shared/) - Shared utilities
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Main README](../../README.md)
+- [Whitepaper](../../docs/WHITEPAPER.md)
+
+## License
+
+MIT License - see [LICENSE](../../LICENSE)
