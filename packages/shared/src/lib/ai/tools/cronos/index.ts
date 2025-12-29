@@ -46,6 +46,14 @@ export {
     vvsSwapTools,
 } from "./vvs-swap";
 
+// x402 Payment Tools (AI-initiated subscription payments)
+export {
+    initiateX402Payment,
+    getSubscriptionInfo,
+    getCurrentSubscriptionStatus,
+    x402TransferTools,
+} from "./x402-transfer";
+
 // Combined export of all Cronos tools for easy registration
 export const allCronosTools = {
     // CoinGecko Market Data (aggregated, more accurate)
@@ -73,5 +81,9 @@ export const allCronosTools = {
     getVVSSwapQuote: () => import("./vvs-swap").then(m => m.getVVSSwapQuote),
     getVVSTokenList: () => import("./vvs-swap").then(m => m.getVVSTokenList),
     getVVSPoolInfo: () => import("./vvs-swap").then(m => m.getVVSPoolInfo),
+
+    // x402 Payment Tools
+    initiateX402Payment: () => import("./x402-transfer").then(m => m.initiateX402Payment),
+    getSubscriptionInfo: () => import("./x402-transfer").then(m => m.getSubscriptionInfo),
 };
 

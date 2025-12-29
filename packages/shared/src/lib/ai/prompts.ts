@@ -66,6 +66,11 @@ import {
   getVVSTokenList,
   getVVSPoolInfo,
 } from "./tools/cronos/vvs-swap";
+import {
+  initiateX402Payment,
+  getSubscriptionInfo,
+  getCurrentSubscriptionStatus,
+} from "./tools/cronos/x402-transfer";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
@@ -251,6 +256,10 @@ const groupTools = {
     "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
     "ensToAddress",
+    // x402 Payment Tools (available in all contexts)
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   on_chain: [
     "webSearch",
@@ -349,6 +358,9 @@ const groupTools = {
     "getVVSSwapQuote",
     "getVVSTokenList",
     "getVVSPoolInfo",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
   ] as const,
 } as const;
 
@@ -417,6 +429,10 @@ export const allTools = {
   getVVSSwapQuote,
   getVVSTokenList,
   getVVSPoolInfo,
+  // x402 Payment Tools
+  initiateX402Payment,
+  getSubscriptionInfo,
+  getCurrentSubscriptionStatus,
 };
 
 const groupPrompts = {
@@ -460,6 +476,21 @@ const groupPrompts = {
   **NEVER say "no DeFi positions" without checking defi.hasDefiPositions first!**
 
   ## Ens lookup: If user enters a ENS name like 'somename.eth', use the ensToAddress tool to get the corresponding address. Format the final address as **bold**.
+
+  ## Barzakh AI Subscriptions:
+  You have tools to help users subscribe to Barzakh AI premium plans:
+  - **initiateX402Payment**: Use when user wants to subscribe, upgrade, downgrade, or change their plan. Parameters: planId, billingCycle, currentTier, currentBillingCycle
+  - **getSubscriptionInfo**: Use when user asks about subscription options/pricing without being ready to subscribe
+  
+  **IMPORTANT**: The user's current subscription is provided in system context below. 
+  - If user tries to subscribe to their EXACT SAME plan+cycle, inform them they're already subscribed - do NOT call the tool.
+  - For ANY other change, CALL THE TOOL:
+    - Upgrades: pro → ultimate, monthly → quarterly → yearly
+    - Downgrades: ultimate → pro, yearly → quarterly → monthly
+    - Any combination is allowed!
+  - When calling initiateX402Payment, ALWAYS pass currentTier and currentBillingCycle from the user context.
+  
+  Pricing: Pro ($0.01-0.05 for testing), Ultimate ($0.02-0.10 for testing). Payment via devUSDC.e on Cronos Testnet (gasless).
   `,
 
   on_chain: `
@@ -1044,6 +1075,16 @@ Always assume information being asked is related to Cronos blockchain, if not to
 - **getVVSTokenList**: Get list of supported tokens on VVS Finance with prices and liquidity
 - **getVVSPoolInfo**: Get liquidity pool information (TVL, APR, volume)
 
+## 7. x402 Subscription Payment Tools (Barzakh AI Subscriptions)
+- **initiateX402Payment**: Initiate a subscription payment for Barzakh AI. Use this when user wants to subscribe, upgrade, or renew a subscription. Parameters: planId ('pro' or 'ultimate'), billingCycle ('monthly', 'quarterly', 'yearly'). Returns a payment component for user approval.
+- **getSubscriptionInfo**: Get information about available subscription plans and pricing. Use when users ask about subscription options without wanting to subscribe immediately.
+
+Subscription Pricing:
+- Pro: $25/month, $66/quarter (12% savings), $240/year (20% savings) - 50-150 messages/day
+- Ultimate: $250/month, $660/quarter, $2400/year - 250-500 messages/day
+
+Payment is made in devUSDC.e on Cronos Testnet (gasless EIP-3009 transfer).
+
 # Usage Guidelines
 
 ## For Price Queries:
@@ -1081,6 +1122,12 @@ Always assume information being asked is related to Cronos blockchain, if not to
 
 ## Web Search:
 Use webSearch tool for general Cronos ecosystem questions, news, tutorials, and documentation.
+
+## For Subscription Queries:
+- "I want to subscribe" / "subscribe to pro monthly" → Use initiateX402Payment with planId and billingCycle
+- "What subscription plans are available?" / "pricing?" → Use getSubscriptionInfo
+- "Upgrade my plan" / "renew my subscription" → Use initiateX402Payment
+- "How much is the ultimate plan?" → Use getSubscriptionInfo first, or initiateX402Payment if user is ready
 
 # Data Formatting Rules
 - Always convert Wei to CRO/tokens (1 CRO = 10^18 Wei)

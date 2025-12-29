@@ -419,6 +419,35 @@ export async function POST(request: Request) {
     // Continue with empty tools and system prompt
   }
 
+  // Inject user subscription context into system prompt
+  // Fetch fresh subscription data from DB (not cached session) for real-time accuracy
+  let currentTier = session.user.tier || 'free';
+  let currentBillingCycle = session.user.billingCycle || 'monthly';
+  let username = session.user.username || session.user.email;
+
+  try {
+    const freshUserData = await getUserById(session.user.id);
+    if (freshUserData && freshUserData.length > 0) {
+      const userData = freshUserData[0];
+      currentTier = userData.tier || 'free';
+      currentBillingCycle = userData.billingCycle || 'monthly';
+      username = userData.username || userData.email || username;
+    }
+  } catch (error) {
+    console.warn("Failed to fetch fresh user data, using session:", error);
+  }
+
+  const userSubscriptionContext = `
+
+## Current User Subscription Context:
+- **Current Tier**: ${currentTier}
+- **Billing Cycle**: ${currentBillingCycle}
+- **Username**: ${username}
+
+When using initiateX402Payment, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".
+`;
+  systemPrompt = systemPrompt + userSubscriptionContext;
+
   // Select appropriate model based on routed group
   // When auto-routing, use the model configured for that group
   const effectiveModel = (effectiveGroup !== group && FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP])
