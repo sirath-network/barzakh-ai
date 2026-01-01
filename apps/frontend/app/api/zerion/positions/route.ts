@@ -3,11 +3,8 @@ import { getZerionApiKey } from "@barzakh/shared/lib/utils/utils";
 import { auth } from "@/app/(auth)/auth";
 
 export async function GET(request: NextRequest) {
-  // SECURITY: Require authentication to prevent API key abuse
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // No auth required - this is public on-chain data
+  // Allows guests to view portfolio data in shared chats
 
   const searchParams = request.nextUrl.searchParams;
   const address = searchParams.get("address");
@@ -41,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     // Call Zerion API to get wallet positions filtered by chain
     const url = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${chain}&currency=${currency}&sort=value`;
-    
+
     console.log("Fetching positions from:", url);
 
     const response = await fetch(url, options);

@@ -42,6 +42,7 @@ export interface ClassificationOptions {
     confidenceThreshold?: number;
     enableMultiIntent?: boolean;
     chatContext?: string | null; // Chain context from chat history for follow-up messages
+    hasImageContext?: boolean; // True if conversation has image generation history
 }
 
 interface IntentPattern {
@@ -493,9 +494,10 @@ async function classifyByLLM(message: string, chatContext?: string | null): Prom
 `;
 
     // Add context hint if we have a chain-specific context
-    const contextHint = chatContext
-        ? `\n\nIMPORTANT CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation. Unless the user explicitly mentions a DIFFERENT blockchain or changes topic entirely, you should classify this as "${chatContext}". Only classify as a different chain if the user explicitly names it.`
-        : '';
+    let contextHint = '';
+    if (chatContext) {
+        contextHint = `\n\nIMPORTANT CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation. Unless the user explicitly mentions a DIFFERENT blockchain or changes topic entirely, you should classify this as "${chatContext}". Only classify as a different chain if the user explicitly names it.`;
+    }
 
     try {
         const { object } = await generateObject({
@@ -564,8 +566,15 @@ Respond with the most appropriate intent category and your confidence level (0-1
 // Main Classification Function
 // ============================================================================
 
-// Chain-specific groups that support context persistence
-const CHAIN_SPECIFIC_GROUPS: IntentType[] = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad'];
+// Helper function to check if pattern matched a different topic than the expected context
+function patternMatchedDifferentTopic(patternResult: IntentClassification | null, expectedIntent: IntentType): boolean {
+    if (!patternResult) return false;
+    // Only consider it a different topic if it matched with reasonable confidence and is NOT the expected intent
+    return patternResult.primaryIntent !== expectedIntent && patternResult.confidence > 0.5;
+}
+
+// Groups that support context persistence (chain-specific + imagine)
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -583,7 +592,7 @@ export async function classifyIntent(
     message: string,
     options: ClassificationOptions = {}
 ): Promise<IntentClassification> {
-    const { fallbackToLLM = true, confidenceThreshold = 0.6, chatContext } = options;
+    const { fallbackToLLM = true, confidenceThreshold = 0.6, chatContext, hasImageContext } = options;
 
     // Skip classification for empty messages
     if (!message || message.trim().length === 0) {
@@ -609,12 +618,28 @@ export async function classifyIntent(
     }
 
     // Step 2: Context-based routing for follow-up messages
-    // If we have a valid chain context and pattern matching didn't find a clear different chain,
+    // If we have a valid context and pattern matching didn't find a clear different intent,
     // use the context to route the message
-    if (chatContext && CHAIN_SPECIFIC_GROUPS.includes(chatContext as IntentType)) {
+
+    // Handle image context - if conversation has image generation history
+    if (hasImageContext && !patternMatchedDifferentTopic(patternResult, 'imagine')) {
+        console.log(
+            `[INTENT] Using image context: imagine (continuing image conversation) in ${Date.now() - startTime}ms`
+        );
+        return {
+            primaryIntent: 'imagine',
+            confidence: 0.75,
+            indicators: ['context:continuing_image_conversation'],
+            requiresMultiTool: false,
+            classificationMethod: 'pattern',
+        };
+    }
+
+    // Handle chain-specific context
+    if (chatContext && CONTEXT_AWARE_GROUPS.includes(chatContext as IntentType)) {
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&
-            CHAIN_SPECIFIC_GROUPS.includes(patternResult.primaryIntent as IntentType) &&
+            CONTEXT_AWARE_GROUPS.includes(patternResult.primaryIntent as IntentType) &&
             patternResult.primaryIntent !== chatContext &&
             patternResult.confidence > 0.5;
 

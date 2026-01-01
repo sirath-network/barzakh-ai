@@ -1,27 +1,19 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
-import { 
-  validateImageFile, 
-  checkFileContent, 
+import {
+  validateImageFile,
+  checkFileContent,
   checkImageMetadata,
   detectPolyglotAttack,
   scanImageMetadata,
 } from '@/lib/security';
 import { uploadToR2 } from '@/lib/r2-storage';
 
-// Increase body size limit for file uploads
-// Cloudflare R2 has much higher limits than Vercel Blob
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '25mb',
-    },
-  },
-};
-
-// Next.js 13+ App Router: Use route segment config
+// Next.js 15+ App Router route segment config
+// Note: Body size limits are handled at the application level, not route config
 export const maxDuration = 60; // 60 seconds timeout for large uploads
+export const dynamic = 'force-dynamic';
 
 const FileSchema = z.object({
   file: z.any(),
@@ -51,7 +43,7 @@ export async function POST(request: Request) {
     // Cloudflare R2 supports much larger files than Vercel Blob
     // Setting limit to 25MB for user uploads
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
-    
+
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: 'File size should be less than 25MB' },
@@ -90,14 +82,14 @@ export async function POST(request: Request) {
     // SECURITY CHECK: File Content Validation
     // ===========================================
     const isImageFile = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(fileExtension);
-    
+
     if (isImageFile) {
       // Validate image file (magic bytes, SVG scripts, etc.)
       const imageSecurityCheck = await validateImageFile(file as File, {
         maxSize: MAX_FILE_SIZE,
         checkMagicBytes: true,
       });
-      
+
       if (!imageSecurityCheck.safe) {
         console.warn(`[SECURITY] Blocked malicious image upload from user ${session.user?.id}:`, {
           filename: file.name,
@@ -105,7 +97,7 @@ export async function POST(request: Request) {
           riskScore: imageSecurityCheck.riskScore,
         });
         return NextResponse.json(
-          { 
+          {
             error: 'Security violation detected in uploaded image',
             details: imageSecurityCheck.threats[0]?.description || 'File validation failed',
           },
@@ -126,7 +118,7 @@ export async function POST(request: Request) {
           riskScore: polyglotCheck.riskScore,
         });
         return NextResponse.json(
-          { 
+          {
             error: 'Security violation: File format mismatch detected',
             details: 'The uploaded file appears to contain embedded code or scripts.',
           },
@@ -147,7 +139,7 @@ export async function POST(request: Request) {
           riskScore: deepMetadataScan.riskScore,
         });
         return NextResponse.json(
-          { 
+          {
             error: 'Security violation detected in image metadata',
             details: 'The image contains suspicious data that could affect AI processing.',
           },
@@ -164,7 +156,7 @@ export async function POST(request: Request) {
           riskScore: metadataCheck.riskScore,
         });
         return NextResponse.json(
-          { 
+          {
             error: 'Security violation detected in image metadata',
             details: metadataCheck.threats[0]?.description || 'Metadata validation failed',
           },
@@ -174,12 +166,12 @@ export async function POST(request: Request) {
     } else {
       // For text-based files, check content for malicious patterns
       const textExtensions = ['js', 'ts', 'jsx', 'tsx', 'py', 'html', 'txt', 'md', 'json', 'xml', 'yaml', 'yml', 'sql', 'sh', 'bat', 'ps1'];
-      
+
       if (textExtensions.includes(fileExtension)) {
         try {
           const textContent = await (file as File).text();
           const contentSecurityCheck = checkFileContent(file.name, textContent);
-          
+
           if (!contentSecurityCheck.safe) {
             console.warn(`[SECURITY] Blocked file with suspicious content from user ${session.user?.id}:`, {
               filename: file.name,
@@ -187,7 +179,7 @@ export async function POST(request: Request) {
               riskScore: contentSecurityCheck.riskScore,
             });
             return NextResponse.json(
-              { 
+              {
                 error: 'Security violation detected in file content',
                 details: contentSecurityCheck.threats[0]?.description || 'Content validation failed',
               },
