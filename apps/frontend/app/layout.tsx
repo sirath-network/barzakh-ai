@@ -17,9 +17,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/images/barzakh/logo-white.svg", type: "image/svg+xml" },
-      { url: "/images/barzakh/SirathLogo-192px.png", sizes: "192x192", type: "image/png" },
+      { url: "/images/barzakh/SirathLogo-192px.jpg", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/images/barzakh/SirathLogo-192px.png",
+    apple: "/images/barzakh/SirathLogo-192px.jpg",
   },
   openGraph: {
     title: "Barzakh AI",
