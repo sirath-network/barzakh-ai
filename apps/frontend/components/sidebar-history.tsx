@@ -127,6 +127,7 @@ const PureChatItem = ({
     chatId: chat.id,
     initialVisibility: chat.visibility,
   });
+  const router = useRouter();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState(chat.title);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -209,9 +210,14 @@ const PureChatItem = ({
         >
           <Link
             href={`/c/${chat.id}`}
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               setOpenMobile(false);
               onChatClick();
+              // Small delay to allow sidebar close animation to start smoothly
+              setTimeout(() => {
+                router.push(`/c/${chat.id}`);
+              }, 100);
             }}
             className="flex items-center gap-3 px-3 py-2.5 w-full min-w-0"
           >

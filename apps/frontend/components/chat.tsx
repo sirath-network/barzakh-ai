@@ -18,23 +18,31 @@ import { VisibilityType } from "./visibility-selector";
 import { toast } from "sonner";
 import { User } from "next-auth";
 import { InstallPrompt } from "./install-prompt";
-import { ArchiveRestore } from "lucide-react";
+import { ArchiveRestore, Loader2 } from "lucide-react";
 import { restoreChat } from "@/app/(chat)/actions";
 
 import { useView } from "@/context/view-context";
-import AccountSettingsPage from "@/components/settings/account/account-page";
-import EmailSettingsPage from "@/components/settings/email/email-page";
-import PasswordSettingsPage from "@/components/settings/password/password-page";
-import WalletSettingsPage from "@/components/settings/wallet/wallet-page";
-import BillingSettingsPage from "@/components/settings/billing/billing-page";
-import { ArchivedPage } from "@/components/settings/archived/archived-page";
-import TwoFactorSettingsPage from "@/components/settings/2fa/two-factor-page";
-import PlanDetailPage from "@/components/settings/plans/plan-detail-page";
 import { ArtifactProvider } from "@/context/artifact-context";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ArtifactViewer } from "./artifact-viewer";
 import { Overview } from "./overview";
 import { QuestionSuggestions } from "./Input/question-suggestions";
+import dynamic from "next/dynamic";
+
+const LoadingSettings = () => (
+  <div className="flex items-center justify-center h-16 w-full">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
+
+const AccountSettingsPage = dynamic(() => import("@/components/settings/account/account-page"), { loading: () => <LoadingSettings /> });
+const EmailSettingsPage = dynamic(() => import("@/components/settings/email/email-page"), { loading: () => <LoadingSettings /> });
+const PasswordSettingsPage = dynamic(() => import("@/components/settings/password/password-page"), { loading: () => <LoadingSettings /> });
+const WalletSettingsPage = dynamic(() => import("@/components/settings/wallet/wallet-page"), { loading: () => <LoadingSettings /> });
+const BillingSettingsPage = dynamic(() => import("@/components/settings/billing/billing-page"), { loading: () => <LoadingSettings /> });
+const ArchivedPage = dynamic(() => import("@/components/settings/archived/archived-page").then(mod => mod.ArchivedPage), { loading: () => <LoadingSettings /> });
+const TwoFactorSettingsPage = dynamic(() => import("@/components/settings/2fa/two-factor-page"), { loading: () => <LoadingSettings /> });
+const PlanDetailPage = dynamic(() => import("@/components/settings/plans/plan-detail-page"), { loading: () => <LoadingSettings /> });
 
 const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
   account: <AccountSettingsPage />,
