@@ -18,13 +18,13 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "any",
       },
       {
-        src: "/images/barzakh/SirathLogo-192px.png",
+        src: "/images/barzakh/SirathLogo-192px.jpg",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/images/barzakh/SirathLogo-512px.png",
+        src: "/images/barzakh/SirathLogo-512px.jpg",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
