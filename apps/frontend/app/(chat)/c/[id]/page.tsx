@@ -2,36 +2,17 @@ import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cache } from "react";
 
 import { auth } from "@/app/(auth)/auth";
-import { getChatById, getMessagesByChatId } from "@/lib/db/queries";
+import { getChatById as getChatByIdRaw, getMessagesByChatId } from "@/lib/db/queries";
 import { convertToUIMessages } from "@/lib/utils";
 import { DEFAULT_CHAT_MODEL } from "@barzakh/shared/lib/ai/models";
 
-const Chat = dynamic(() => import("@/components/chat").then((mod) => mod.Chat), {
-  loading: () => (
-    <div className="flex flex-col min-w-0 h-dvh bg-background">
-      <div className="flex items-center h-14 px-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="w-8 h-8 rounded-full bg-muted/50 animate-pulse" />
-        <div className="ml-4 w-32 h-5 rounded bg-muted/50 animate-pulse" />
-      </div>
-      <div className="flex-1 flex flex-col p-4 gap-6 overflow-hidden">
-        <div className="flex justify-end">
-          <div className="w-2/3 h-16 rounded-2xl rounded-tr-sm bg-muted/20 animate-pulse" />
-        </div>
-        <div className="flex justify-start">
-          <div className="w-2/3 h-32 rounded-2xl rounded-tl-sm bg-muted/10 animate-pulse" />
-        </div>
-        <div className="flex justify-end">
-          <div className="w-1/2 h-12 rounded-2xl rounded-tr-sm bg-muted/20 animate-pulse" />
-        </div>
-      </div>
-      <div className="p-4 w-full flex justify-center pb-8">
-        <div className="w-full max-w-3xl h-14 rounded-full bg-muted/20 animate-pulse" />
-      </div>
-    </div>
-  ),
-});
+// Cache getChatById to deduplicate between generateMetadata and Page
+const getChatById = cache(getChatByIdRaw);
+
+const Chat = dynamic(() => import("@/components/chat").then((mod) => mod.Chat));
 
 // Dynamic page title based on chat title
 export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {

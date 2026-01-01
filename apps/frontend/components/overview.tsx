@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "@/lib/framer-motion";
 import { useEffect, useState } from "react";
 import type { User } from "next-auth";
 
@@ -9,24 +8,6 @@ const getGreeting = () => {
   if (hour < 12) return "Good Morning";
   if (hour < 18) return "Good Afternoon";
   return "Good Evening";
-};
-
-const containerVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.2,
-      when: "beforeChildren",
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0 },
 };
 
 // Extended user type with username property
@@ -75,8 +56,8 @@ export const Overview = ({ user }: OverviewProps) => {
             <div className="flex flex-col gap-2 items-center sm:items-start">
               {/* Greeting line - matches h1 text-2xl sm:text-3xl */}
               <div className="h-7 sm:h-9 w-56 sm:w-72 rounded-lg bg-muted-foreground/30" />
-              {/* Subtitle line - matches p text-sm sm:text-base */}
-              <div className="h-4 sm:h-5 w-48 sm:w-64 rounded bg-muted-foreground/25" />
+              {/* Subtitle line - matches p text-sm sm:text-base "Welcome back! Let's make today productive." */}
+              <div className="h-4 sm:h-5 w-72 sm:w-80 rounded bg-muted-foreground/20" />
             </div>
           </div>
         </div>
@@ -85,18 +66,12 @@ export const Overview = ({ user }: OverviewProps) => {
   }
 
   return (
-    <motion.div
-      key="overview"
-      className="max-w-3xl mx-auto mb-6"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <div className="max-w-3xl mx-auto mb-6">
       <div className="p-4 sm:p-6">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-5 sm:text-left">
           {/* Avatar only appears if user is logged in and has username */}
           {showAvatar && (
-            <motion.div variants={itemVariants}>
+            <div>
               <div className="relative">
                 {userImage ? (
                   <img
@@ -117,26 +92,24 @@ export const Overview = ({ user }: OverviewProps) => {
                   </span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {/* Text Content */}
           <div className="flex flex-col">
-            <motion.h1
-              variants={itemVariants}
+            <h1
               className="text-2xl font-semibold font-gramatika sm:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-rose-400 dark:via-red-500 dark:to-rose-500"
             >
               {greeting}, {displayName}!
-            </motion.h1>
-            <motion.p
-              variants={itemVariants}
+            </h1>
+            <p
               className="mt-1 text-sm text-gray-400 sm:text-base"
             >
               Welcome back! Let's make today productive.
-            </motion.p>
+            </p>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

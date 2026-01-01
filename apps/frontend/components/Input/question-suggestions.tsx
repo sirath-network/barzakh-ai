@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useWindowSize } from "usehooks-ts";
 import { User } from "next-auth";
 import { cn } from "@barzakh/shared/lib/utils/utils";
-import { motion } from "@/lib/framer-motion";
 import { MessageCircleMore, Sparkles } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 
@@ -201,23 +200,14 @@ export const QuestionSuggestions = ({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2 }}
-      className="mb-6 w-full"
-    >
+    <div className="mb-6 w-full">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
         {suggestions.map((suggestion, index) => {
           const IconComponent = suggestion.icon as any;
           return (
-            <motion.button
+            <button
               key={suggestion.key}
               type="button"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
               onClick={() => handleSuggestionClick(suggestion)}
               className={cn(
                 "group flex items-center gap-3 cursor-pointer transition-all duration-200",
@@ -230,10 +220,10 @@ export const QuestionSuggestions = ({
               <span className="font-medium text-foreground/90 text-sm truncate flex-1 min-w-0">
                 {suggestion.title}
               </span>
-            </motion.button>
+            </button>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };

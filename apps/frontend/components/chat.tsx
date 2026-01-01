@@ -160,6 +160,12 @@ export function Chat({
   });
   const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent flash of content before hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // NEW: All scroll logic is now here
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -185,6 +191,19 @@ export function Chat({
       });
     }
   }, [messages.length, isAtBottom]);
+
+  // Auto-scroll to bottom on initial mount when there are messages
+  useEffect(() => {
+    if (isMounted && messages.length > 0) {
+      const el = chatContainerRef.current;
+      if (el) {
+        // Small delay to ensure content is rendered
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight;
+        });
+      }
+    }
+  }, [isMounted]); // Only run when mounted
 
   // Save attachments to localStorage whenever they change
   useEffect(() => {
@@ -230,7 +249,7 @@ export function Chat({
         el.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []); // Empty dependencies so it only runs once on mount
+  }, [isMounted]); // Re-run when mounted to attach scroll listener after render
 
   // Update document title dynamically when chat title changes (client-side)
   const chatTitle = view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.title : undefined;
@@ -270,6 +289,16 @@ export function Chat({
   const ChatHeaderAny = ChatHeader as any;
   const MessagesAny = Messages as any;
   const MultimodalInputAny = MultimodalInput as any;
+
+  // Show minimal loading state until mounted to prevent content flash
+  if (!isMounted) {
+    return (
+      <div className="flex flex-col min-w-0 h-dvh bg-background">
+        <div className="h-14 border-b border-border/40" />
+        <div className="flex-1" />
+      </div>
+    );
+  }
 
   return (
     <ArtifactProvider>

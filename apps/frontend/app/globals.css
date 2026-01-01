@@ -414,6 +414,7 @@
     font-style: normal;
     font-weight: 100 900;
     src: url(/fonts/geist.woff2) format("woff2");
+    font-display: swap;
   }
 
   @font-face {
@@ -421,6 +422,7 @@
     font-style: normal;
     font-weight: 100 900;
     src: url(/fonts/geist-mono.woff2) format("woff2");
+    font-display: swap;
   }
 
   @font-face {
@@ -428,6 +430,7 @@
     src: url('/fonts/gramatika_black.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
+    font-display: swap;
   }
 }
 
