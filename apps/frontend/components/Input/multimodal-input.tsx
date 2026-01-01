@@ -276,6 +276,18 @@ function PureMultimodalInput({
   onSubmitMessage?: () => void;
   disableSuggestions?: boolean;
 }) {
+  // Early return for read-only mode - ONLY for guests (not logged in)
+  // Logged-in users viewing shared chats should still be able to interact (fork the chat)
+  if (isReadonly && !user?.id) {
+    return (
+      <div className="flex items-center justify-center py-4 px-6">
+        <p className="text-sm text-muted-foreground text-center">
+          This is a shared conversation. Sign in to start your own chat.
+        </p>
+      </div>
+    );
+  }
+
   // Defensive fallback for messages to handle ai SDK v5 useChat hook behavior
   const safeMessages = messages ?? [];
 
@@ -1148,7 +1160,8 @@ function PureMultimodalInput({
                   />
                 </div>
                 <div className="flex flex-row gap-1 items-center">
-                  {!isReadonly && (
+                  {/* Show model selector unless user is a guest (not logged in) on a readonly chat */}
+                  {!(isReadonly && !user?.id) && (
                     <ModelSelector
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}

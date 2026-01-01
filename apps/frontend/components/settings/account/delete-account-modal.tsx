@@ -310,7 +310,7 @@ export default function DeleteAccountModal({
                       type="button"
                       onClick={sendEmailOtp}
                       disabled={isSendingOtp || otpCooldown > 0 || isDeleting}
-                      className="px-4 py-3 bg-gray-100 dark:bg-red-900/20 text-gray-700 dark:text-gray-300 rounded-xl font-medium text-sm hover:bg-gray-200 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      className="px-4 py-3 bg-red-500 dark:bg-red-600 text-white border border-red-600 dark:border-red-500 rounded-xl font-medium text-sm hover:bg-red-600 dark:hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     >
                       {isSendingOtp ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

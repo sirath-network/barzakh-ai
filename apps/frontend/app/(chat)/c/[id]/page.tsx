@@ -62,6 +62,11 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     }
   }
 
+  // Hide archived public/shared chats from non-owners (both guests and logged-in users)
+  if (chat.isArchived && session?.user?.id !== chat.userId) {
+    return notFound();
+  }
+
   const chatModelFromCookie = cookieStore.get("chat-model");
 
   if (!chatModelFromCookie) {
@@ -75,6 +80,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           isReadonly={session?.user?.id !== chat.userId || chat.isArchived}
           isArchived={chat.isArchived}
           user={session?.user}
+          isSharedChat={chat.visibility === 'public' && !!session?.user?.id && session.user.id !== chat.userId}
         />
       </>
     );
@@ -90,6 +96,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         isReadonly={session?.user?.id !== chat.userId || chat.isArchived}
         isArchived={chat.isArchived}
         user={session?.user}
+        isSharedChat={chat.visibility === 'public' && !!session?.user?.id && session.user.id !== chat.userId}
       />
     </>
   );

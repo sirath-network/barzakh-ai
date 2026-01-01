@@ -155,7 +155,7 @@ const ArchivedChatItem = ({
             </DropdownMenuItemAny>
             <DropdownMenuSeparatorAny className="bg-border" />
             <DropdownMenuItemAny
-              className="cursor-pointer rounded-lg m-1 text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
+              className="cursor-pointer rounded-lg m-1 text-red-500 hover:text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
               onSelect={() => onDelete(chat.id)}
             >
               <Trash2Any className="mr-3 h-4 w-4" />

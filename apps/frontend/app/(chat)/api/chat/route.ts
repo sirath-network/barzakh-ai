@@ -117,20 +117,74 @@ export async function POST(request: Request) {
   // --- Prepend History Context if ID is provided ---
   if (history_for_context_id) {
     try {
-      // SECURITY: Verify ownership of the context chat before accessing its messages
+      // SECURITY: Verify ownership OR public visibility of the context chat before accessing its messages
       const contextChat = await getChatById({ id: history_for_context_id });
-      if (!contextChat || contextChat.userId !== session.user.id) {
+      // Allow access if: user owns the chat OR the chat is public (shared chat forking)
+      const canAccessContext = contextChat && (
+        contextChat.userId === session.user.id ||
+        contextChat.visibility === 'public'
+      );
+      if (!canAccessContext) {
         return new Response("Unauthorized access to chat context", { status: 403 });
       }
 
       const dbMessages = await getMessagesByChatId({ id: history_for_context_id });
 
-      const contextMessages = dbMessages.map(msg => ({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content as any,
-        createdAt: msg.createdAt,
-      })) as any[];
+      // Filter out 'tool' role messages and clean assistant messages
+      // AI SDK doesn't support tool role or toolInvocations in context
+      // But we need to preserve image URLs for image generation context
+      const contextMessages = dbMessages
+        .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+        .map(msg => {
+          let cleanContent = msg.content;
+
+          // For assistant messages, extract text content and image URLs
+          if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+            const cleanedParts: any[] = [];
+
+            for (const part of msg.content as any[]) {
+              // Keep text parts
+              if (part.type === 'text' || typeof part === 'string') {
+                cleanedParts.push(part);
+              }
+              // Extract image URLs from tool-result parts and convert to image parts
+              else if (part.type === 'tool-result' && part.result) {
+                // Check if result contains image URLs (from createImage tool)
+                if (Array.isArray(part.result)) {
+                  for (const item of part.result) {
+                    if (item.url && typeof item.url === 'string' &&
+                      (item.url.includes('r2.barzakh') || item.url.includes('.png') || item.url.includes('.jpg') || item.url.includes('.webp'))) {
+                      // Add as image reference in text for context
+                      cleanedParts.push({
+                        type: 'text',
+                        text: `[Generated image: ${item.url}]`
+                      });
+                    }
+                  }
+                } else if (typeof part.result === 'object' && part.result.url) {
+                  cleanedParts.push({
+                    type: 'text',
+                    text: `[Generated image: ${part.result.url}]`
+                  });
+                }
+              }
+            }
+
+            if (cleanedParts.length > 0) {
+              cleanContent = cleanedParts;
+            } else {
+              // If no text content, use a summary
+              cleanContent = '[Previous assistant response]';
+            }
+          }
+
+          return {
+            id: msg.id,
+            role: msg.role,
+            content: cleanContent,
+            createdAt: msg.createdAt,
+          };
+        }) as any[];
 
       // Prepend historical messages to the current message list
       messages.unshift(...contextMessages);
@@ -364,12 +418,48 @@ export async function POST(request: Request) {
   // Get chain context from chat history
   const chatContext = extractChainContext(messages);
 
+  // Detect if conversation has image generation history
+  function hasImageGenerationHistory(msgs: typeof messages): boolean {
+    for (const msg of msgs) {
+      // Check for createImage tool calls or results
+      if (Array.isArray(msg.content)) {
+        for (const part of msg.content as any[]) {
+          // Check for tool calls to createImage
+          if (part.type === 'tool-call' && part.toolName === 'createImage') {
+            return true;
+          }
+          // Check for image URLs in tool results
+          if (part.type === 'tool-result' && part.result) {
+            const resultStr = JSON.stringify(part.result);
+            if (resultStr.includes('r2.barzakh') || resultStr.includes('ai-generated') || resultStr.includes('ai-images')) {
+              return true;
+            }
+          }
+          // Check for text references to generated images
+          if (part.type === 'text' && typeof part.text === 'string') {
+            if (part.text.includes('[Generated image:') || part.text.includes('r2.barzakh.tech/ai-images')) {
+              return true;
+            }
+          }
+        }
+      }
+      // Also check string content for image references
+      if (typeof msg.content === 'string' && msg.content.includes('[Generated image:')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const hasImageContext = hasImageGenerationHistory(messages);
+
   if (userMessageText && userMessageText.length > 0) {
     try {
       classificationResult = await classifyIntent(userMessageText, {
         fallbackToLLM: true,
         confidenceThreshold: 0.6,
         chatContext, // Pass the chain context for follow-up routing
+        hasImageContext, // Pass image context for image generation follow-ups
       });
 
       const detectedIntent = classificationResult.primaryIntent;
@@ -462,7 +552,13 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
 
   if (!chat) {
     const title = await generateTitleFromUserMessage({ message: userMessage });
-    await saveChat({ id, userId: session.user.id, title });
+    // Pass forkedFromChatId if this is a forked chat from a shared conversation
+    await saveChat({
+      id,
+      userId: session.user.id,
+      title,
+      forkedFromChatId: history_for_context_id,
+    });
   }
 
   // Clean user message content to restore original storage URLs before saving

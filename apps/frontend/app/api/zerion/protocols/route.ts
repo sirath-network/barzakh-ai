@@ -3,11 +3,8 @@ import { getZerionApiKey } from "@barzakh/shared/lib/utils/utils";
 import { auth } from "@/app/(auth)/auth";
 
 export async function GET(request: NextRequest) {
-  // SECURITY: Require authentication to prevent API key abuse
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // No auth required - this is public on-chain data
+  // Allows guests to view portfolio data in shared chats
 
   const searchParams = request.nextUrl.searchParams;
   const address = searchParams.get("address");
@@ -62,17 +59,17 @@ export async function GET(request: NextRequest) {
       // Count position types for debugging
       const positionTypes = new Map<string, number>();
       const protocolNames = new Set<string>();
-      
+
       data.data.forEach((position: any) => {
         const attrs = position.attributes || {};
         const positionType = attrs.position_type || position.type || 'unknown';
         const appMetadata = attrs.application_metadata;
         const protocolName = appMetadata?.name || attrs.protocol || 'Unknown';
         const chain = position.relationships?.chain?.data?.id || 'unknown';
-        
+
         positionTypes.set(positionType, (positionTypes.get(positionType) || 0) + 1);
         protocolNames.add(protocolName);
-        
+
       });
     }
 

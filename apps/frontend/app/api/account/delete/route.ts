@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     // Wallet-only users without email/password cannot delete without completing setup
     if (!dbUser.password || (!dbUser.email && !dbUser.twoFactorEnabled)) {
       return NextResponse.json({
-        error: "Cannot delete account: Please complete your account setup by setting a password and verifying your email. This is required to verify your identity before account deletion."
+        error: "Please complete your account setup by setting a password and verifying your email. This is required to verify your identity before account deletion."
       }, { status: 400 });
     }
 

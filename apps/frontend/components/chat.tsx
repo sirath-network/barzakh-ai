@@ -55,6 +55,7 @@ export function Chat({
   isReadonly,
   isArchived = false,
   user,
+  isSharedChat = false,
 }: {
   id: string;
   initialMessages: Array<Message>;
@@ -63,9 +64,23 @@ export function Chat({
   isReadonly: boolean;
   isArchived?: boolean;
   user?: User;
+  isSharedChat?: boolean;
 }) {
   const { mutate } = useSWRConfig();
   const { view, setView } = useView();
+
+  // For shared chats: generate a new ID for the forked chat, keep original for context
+  const [forkedChatId] = useState(() => isSharedChat ? generateUUID() : id);
+  const originalChatId = isSharedChat ? id : undefined;
+
+  // Use the forked ID for the actual chat operations
+  const activeChatId = forkedChatId;
+
+  // Determine effective readonly state:
+  // - If shared chat and user is logged in, they are forking it, so it's NOT readonly for them
+  // - If shared chat and no user (guest), it IS readonly
+  // - Otherwise use the passed prop
+  const effectiveIsReadonly = isSharedChat && user ? false : isReadonly;
 
   // Manage model state locally for dynamic updates without page reload
   const [currentModelId, setCurrentModelId] = useState(selectedChatModel);
@@ -95,14 +110,23 @@ export function Chat({
     stop,
     reload,
   } = useChat({
-    id,
-    body: { id, selectedChatModel: currentModelId },
+    id: activeChatId,
+    body: {
+      id: activeChatId,
+      selectedChatModel: currentModelId,
+      // Pass original chat ID for context when forking a shared chat  
+      ...(originalChatId && { history_for_context_id: originalChatId }),
+    },
     initialMessages,
     experimental_throttle: 250,
     sendExtraMessageFields: true,
     generateId: generateUUID,
     onFinish: () => {
       mutate("/api/history");
+      // Update URL to forked chat ID when user sends first message on shared chat
+      if (isSharedChat && typeof window !== 'undefined') {
+        window.history.replaceState({}, "", `/c/${activeChatId}`);
+      }
     },
     onError: (error: any) => {
       toast.error(error.message);
@@ -110,14 +134,14 @@ export function Chat({
   });
 
   const { data: votes } = useSWR<Array<Vote>>(
-    user && messages.length > 0 ? `/api/vote?chatId=${id}` : null,
+    user && messages.length > 0 ? `/api/vote?chatId=${activeChatId}` : null,
     fetcher
   );
   // Persist attachments in localStorage to survive page refreshes
   const [attachments, setAttachments] = useState<Array<Attachment>>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem(`attachments-${id}`);
+        const stored = localStorage.getItem(`attachments-${activeChatId}`);
         return stored ? JSON.parse(stored) : [];
       } catch (error) {
         console.error('Failed to parse stored attachments:', error);
@@ -158,12 +182,12 @@ export function Chat({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(`attachments-${id}`, JSON.stringify(attachments));
+        localStorage.setItem(`attachments-${activeChatId}`, JSON.stringify(attachments));
       } catch (error) {
         console.error('Failed to save attachments to localStorage:', error);
       }
     }
-  }, [attachments, id]);
+  }, [attachments, activeChatId]);
 
   // Effect to detect scroll position
   useEffect(() => {
@@ -244,8 +268,8 @@ export function Chat({
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeaderAny
           messages={messages}
-          chatId={id}
-          isReadonly={isReadonly}
+          chatId={activeChatId}
+          isReadonly={effectiveIsReadonly}
           user={user}
           title={
             view !== "chat"
@@ -296,12 +320,12 @@ export function Chat({
                   </div>
                   <div className="w-full">
                     <MultimodalInputAny
-                      chatId={id}
+                      chatId={activeChatId}
                       input={input}
                       setInput={setInput}
                       handleSubmit={handleSubmit}
                       isLoading={isLoading}
-                      isReadonly={isReadonly}
+                      isReadonly={effectiveIsReadonly}
                       selectedModelId={currentModelId}
                       onModelChange={setCurrentModelId}
                       stop={stop}
@@ -325,14 +349,14 @@ export function Chat({
               <>
                 <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col">
                   <MessagesAny
-                    chatId={id}
+                    chatId={activeChatId}
                     isLoading={isLoading}
                     votes={votes}
                     messages={messages}
                     setMessages={setMessages}
                     selectedGroup={selectedGroup}
                     reload={reload}
-                    isReadonly={isReadonly}
+                    isReadonly={effectiveIsReadonly}
                   />
                 </div>
                 <div className="flex-shrink-0">
@@ -354,12 +378,12 @@ export function Chat({
                       </div>
                     ) : (
                       <MultimodalInputAny
-                        chatId={id}
+                        chatId={activeChatId}
                         input={input}
                         setInput={setInput}
                         handleSubmit={handleSubmit}
                         isLoading={isLoading}
-                        isReadonly={isReadonly}
+                        isReadonly={effectiveIsReadonly}
                         selectedModelId={currentModelId}
                         onModelChange={setCurrentModelId}
                         stop={stop}

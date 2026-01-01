@@ -1,5 +1,4 @@
 import "server-only";
-// @ts-expect-error React 19 feature not available in @types/react v18
 import { cache } from 'react';
 
 import { genSaltSync, hashSync } from "bcrypt-ts";
@@ -315,10 +314,12 @@ export async function saveChat({
   id,
   userId,
   title,
+  forkedFromChatId,
 }: {
   id: string;
   userId: string;
   title: string;
+  forkedFromChatId?: string;
 }) {
   try {
     const now = new Date();
@@ -328,6 +329,7 @@ export async function saveChat({
       updatedAt: now,
       userId,
       title,
+      forkedFromChatId,
     });
   } catch (error) {
     console.error("Failed to save chat in database");
@@ -591,11 +593,45 @@ export async function updateChatUpdatedAt({ id }: { id: string }) {
 
 export async function getMessagesByChatId({ id }: { id: string }) {
   try {
-    return await db
-      .select()
-      .from(message)
-      .where(eq(message.chatId, id))
-      .orderBy(asc(message.createdAt));
+    let allMessages: Array<Message> = [];
+    let currentId: string | null = id;
+    let depth = 0;
+    const maxDepth = 5;
+    const seenIds = new Set<string>();
+
+    while (currentId && depth < maxDepth && !seenIds.has(currentId)) {
+      seenIds.add(currentId);
+
+      const chatRows = await db
+        .select({ forkedFromChatId: chat.forkedFromChatId })
+        .from(chat)
+        .where(eq(chat.id, currentId!));
+
+      const messages = await db
+        .select()
+        .from(message)
+        .where(eq(message.chatId, currentId!))
+        .orderBy(asc(message.createdAt));
+
+      const chatInfo = chatRows[0];
+
+      // Prepend messages from the current level (ancestors come later in loop but should be first in list)
+      // wait, loop goes: Leaf -> Parent -> Grandparent
+      // We want: [GrandparentMsgs, ParentMsgs, LeafMsgs]
+      // Iteration 1 (Leaf): allMessages = [LeafMsgs]
+      // Iteration 2 (Parent): allMessages = [ParentMsgs, ...LeafMsgs]
+      // Iteration 3 (Grandparent): allMessages = [GrandparentMsgs, ...ParentMsgs, ...LeafMsgs]
+      allMessages = [...messages, ...allMessages];
+
+      if (chatInfo && chatInfo.forkedFromChatId) {
+        currentId = chatInfo.forkedFromChatId;
+      } else {
+        currentId = null;
+      }
+      depth++;
+    }
+
+    return allMessages;
   } catch (error) {
     console.error("Failed to get messages by chat id from database", error);
     throw error;
