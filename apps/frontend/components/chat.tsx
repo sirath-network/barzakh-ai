@@ -285,7 +285,6 @@ export function Chat({
     setIsUnarchiving(true);
     try {
       await restoreChat({ chatId: id });
-      toast.success("Unarchived successfully");
       // Update local state immediately for better UX
       setIsCurrentlyArchived(false);
       // Refresh history cache and router data without full page reload

@@ -51,7 +51,8 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange }:
         throw new Error(result.error);
       }
 
-      // Success
+      // Success - disconnect wallet before redirecting (keep session clean)
+      disconnect();
       window.location.href = "/";
 
     } catch (error: any) {

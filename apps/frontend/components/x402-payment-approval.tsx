@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useAccount, useBalance, useSwitchChain, useSignTypedData } from "wagmi";
+import { useAccount, useBalance, useSwitchChain, useSignTypedData, useDisconnect, useSignMessage } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cronosTestnet } from "@/lib/wagmi";
 import { formatUnits } from "viem";
-import { CreditCard, Check, AlertCircle, Loader2, Sparkles, Zap, Crown } from "lucide-react";
+import { CreditCard, Check, AlertCircle, Loader2, Sparkles, Zap, Crown, ShieldCheck } from "lucide-react";
 
 // Type aliases for React 19 compatibility
 const ButtonAny = Button as any;
@@ -65,14 +65,16 @@ function usdToUsdcUnits(usdAmount: number): bigint {
 export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     const { address, isConnected, chain } = useAccount();
     const { switchChain } = useSwitchChain();
-    const { data: usdcBalance } = useBalance({
+    const { disconnect } = useDisconnect();
+    const { data: usdcBalance, isLoading: isLoadingBalance } = useBalance({
         address,
         token: USDC_TESTNET_ADDRESS,
         chainId: cronosTestnet.id
     });
 
-    const [step, setStep] = useState<"idle" | "ready" | "signing" | "settling" | "success" | "error">("idle");
+    const [step, setStep] = useState<"ready" | "verifying" | "signing" | "settling" | "success" | "error">("ready");
     const [errorMessage, setErrorMessage] = useState<string>("");
+    const [walletVerified, setWalletVerified] = useState(false);
     const [signedData, setSignedData] = useState<{
         signature: string;
         authorization: any;
@@ -89,6 +91,12 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     const [isCheckingSubscription, setIsCheckingSubscription] = useState(true);
 
     const { signTypedDataAsync, isPending: isSigning } = useSignTypedData();
+    const { signMessageAsync, isPending: isSigningMessage } = useSignMessage();
+
+    // Reset wallet verification when address changes
+    useEffect(() => {
+        setWalletVerified(false);
+    }, [address]);
 
     // Fetch current subscription on mount to prevent re-subscription from old chats
     useEffect(() => {
@@ -209,10 +217,53 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
     const usdcAmount = usdToUsdcUnits(payment.usdPrice);
 
-    // Prepare and sign EIP-3009 authorization
-    const handlePreparePayment = async () => {
-        if (!address) return;
-        setStep("ready");
+    // Verify wallet ownership before payment
+    const verifyWalletOwnership = async () => {
+        if (!isConnected || !address) {
+            return;
+        }
+
+        try {
+            setStep("verifying");
+
+            // 1. Get verification message from server
+            const nonceRes = await fetch(`/api/billing/x402/verify-wallet?address=${address}`);
+            if (!nonceRes.ok) {
+                throw new Error("Failed to get verification nonce");
+            }
+            const { message } = await nonceRes.json();
+
+            // 2. Sign the message to prove ownership
+            const signature = await signMessageAsync({ message });
+
+            // 3. Verify signature with server
+            const verifyRes = await fetch("/api/billing/x402/verify-wallet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ address, signature }),
+            });
+
+            if (!verifyRes.ok) {
+                const data = await verifyRes.json();
+                throw new Error(data.error || "Wallet verification failed");
+            }
+
+            // Success - wallet is verified
+            setWalletVerified(true);
+            setStep("ready");
+        } catch (error: any) {
+            // Handle user rejection
+            if (error.code === 4001 ||
+                error.name === 'UserRejectedRequestError' ||
+                error.message?.includes('User rejected')) {
+                setStep("ready");
+                return;
+            }
+
+            console.error("Wallet verification error:", error);
+            setErrorMessage(error.message || "Wallet verification failed");
+            setStep("error");
+        }
     };
 
     // Sign the EIP-3009 authorization
@@ -349,7 +400,10 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
             const data = await response.json();
             if (data.success) {
                 setStep("success");
-                toast.success("Subscription activated! 🎉");
+                // Disconnect wallet after 3 seconds (let user see success state first)
+                setTimeout(() => {
+                    disconnect();
+                }, 3000);
             } else {
                 throw new Error(data.error || "Settlement failed");
             }
@@ -406,7 +460,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
             </div>
 
             {/* Payment Info */}
-            {isConnected && !isWrongChain && step !== "idle" && (
+            {isConnected && !isWrongChain && (
                 <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Amount:</span>
@@ -429,16 +483,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                 </div>
             )}
 
-            {/* Status Messages - Only show for terminal states, not for button states */}
-
-            {step === "success" && (
-                <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <div className="flex items-center gap-2 text-green-500">
-                        <Check className="size-4" />
-                        <span className="text-sm font-medium">Payment successful! Subscription activated.</span>
-                    </div>
-                </div>
-            )}
+            {/* Status Messages */}
 
             {step === "error" && (
                 <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -463,20 +508,30 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                     >
                         Switch to Cronos Testnet
                     </ButtonAny>
-                ) : step === "idle" ? (
-                    <ButtonAny
-                        onClick={handlePreparePayment}
-                        className="w-full"
-                    >
-                        <CreditCard className="size-4 mr-2" />
-                        Pay with devUSDC.e
+                ) : step === "verifying" || isSigningMessage ? (
+                    <ButtonAny disabled className="w-full">
+                        <Loader2 className="size-4 mr-2 animate-spin" />
+                        Verifying wallet ownership...
                     </ButtonAny>
                 ) : step === "ready" ? (
                     <>
-                        {!hasEnoughBalance ? (
+                        {isLoadingBalance ? (
+                            <ButtonAny disabled className="w-full">
+                                <Loader2 className="size-4 mr-2 animate-spin" />
+                                Checking balance...
+                            </ButtonAny>
+                        ) : !hasEnoughBalance ? (
                             <ButtonAny disabled className="w-full" variant="destructive">
                                 <AlertCircle className="size-4 mr-2" />
                                 Insufficient devUSDC.e Balance
+                            </ButtonAny>
+                        ) : !walletVerified ? (
+                            <ButtonAny
+                                onClick={verifyWalletOwnership}
+                                className="w-full"
+                            >
+                                <ShieldCheck className="size-4 mr-2" />
+                                Verify Wallet & Proceed
                             </ButtonAny>
                         ) : (
                             <ButtonAny
@@ -499,13 +554,13 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                         Processing...
                     </ButtonAny>
                 ) : step === "success" ? (
-                    <ButtonAny disabled className="w-full bg-green-600">
-                        <Check className="size-4 mr-2" />
+                    <ButtonAny disabled className="w-full bg-emerald-500 hover:bg-emerald-500 font-semibold disabled:opacity-100" style={{ color: 'white' }}>
+                        <Check className="size-4 mr-2" style={{ color: 'white' }} />
                         Subscription Active
                     </ButtonAny>
                 ) : step === "error" ? (
                     <ButtonAny
-                        onClick={() => setStep("idle")}
+                        onClick={() => setStep("ready")}
                         variant="outline"
                         className="w-full"
                     >

@@ -54,6 +54,30 @@ export {
     x402TransferTools,
 } from "./x402-transfer";
 
+// Crypto.com AI Agent SDK (Natural Language Blockchain Queries)
+export {
+    queryCryptoComAI,
+    getCryptoComChainStats,
+    analyzeWalletWithAI,
+    cryptoComAIAgentTools,
+} from "./ai-agent-sdk";
+
+// Cronos zkEVM Direct Tools (bypasses AI Agent SDK for reliability)
+export {
+    getZkEVMBalance,
+    getZkEVMTransactionHistory,
+    getZkEVMTransaction,
+    getZkEVMTokenBalance,
+    getZkEVMGasPrice,
+    getZkEVMTokenTransfers,
+    getZkEVMInternalTxList,
+    getZkEVMContractABI,
+    getZkEVMContractSource,
+    getZkEVMTokenSupply,
+    getZkEVMBlockInfo,
+    cronosZkEVMTools,
+} from "./cronos-zkevm-tools";
+
 // Combined export of all Cronos tools for easy registration
 export const allCronosTools = {
     // CoinGecko Market Data (aggregated, more accurate)
@@ -69,13 +93,26 @@ export const allCronosTools = {
     getCronosMarketData: () => import("./market-data-mcp").then(m => m.getCronosMarketData),
     convertCrypto: () => import("./market-data-mcp").then(m => m.convertCrypto),
 
-    // Blockchain
+    // Blockchain (Cronos EVM)
     getCronosBalance: () => import("./cronos-tools").then(m => m.getCronosBalance),
     getCronosBlockInfo: () => import("./cronos-tools").then(m => m.getCronosBlockInfo),
     getCronosTransaction: () => import("./cronos-tools").then(m => m.getCronosTransaction),
     getCronosTokenBalance: () => import("./cronos-tools").then(m => m.getCronosTokenBalance),
     getCronosGasPrice: () => import("./cronos-tools").then(m => m.getCronosGasPrice),
     getCronosTransactionHistory: () => import("./cronos-tools").then(m => m.getCronosTransactionHistory),
+
+    // Cronos zkEVM (Direct API)
+    getZkEVMBalance: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMBalance),
+    getZkEVMTransactionHistory: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTransactionHistory),
+    getZkEVMTransaction: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTransaction),
+    getZkEVMTokenBalance: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTokenBalance),
+    getZkEVMGasPrice: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMGasPrice),
+    getZkEVMTokenTransfers: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTokenTransfers),
+    getZkEVMInternalTxList: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMInternalTxList),
+    getZkEVMContractABI: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMContractABI),
+    getZkEVMContractSource: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMContractSource),
+    getZkEVMTokenSupply: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTokenSupply),
+    getZkEVMBlockInfo: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMBlockInfo),
 
     // DEX
     getVVSSwapQuote: () => import("./vvs-swap").then(m => m.getVVSSwapQuote),
@@ -85,5 +122,10 @@ export const allCronosTools = {
     // x402 Payment Tools
     initiateX402Payment: () => import("./x402-transfer").then(m => m.initiateX402Payment),
     getSubscriptionInfo: () => import("./x402-transfer").then(m => m.getSubscriptionInfo),
+
+    // Crypto.com AI Agent SDK
+    queryCryptoComAI: () => import("./ai-agent-sdk").then(m => m.queryCryptoComAI),
+    getCryptoComChainStats: () => import("./ai-agent-sdk").then(m => m.getCryptoComChainStats),
+    analyzeWalletWithAI: () => import("./ai-agent-sdk").then(m => m.analyzeWalletWithAI),
 };
 

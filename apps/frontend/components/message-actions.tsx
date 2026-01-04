@@ -90,7 +90,6 @@ export function PureMessageActions({
               className="h-8 w-8 text-neutral-600 transition-colors hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
               onClick={async () => {
                 await copyToClipboard(message.content);
-                toast.success('Copied to clipboard!');
               }}
             >
               <CopyIconAny className="h-4 w-4" />

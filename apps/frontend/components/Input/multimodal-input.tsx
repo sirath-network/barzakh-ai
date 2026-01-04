@@ -988,7 +988,7 @@ function PureMultimodalInput({
               damping: 30,
               bounce: 0.25,
             }}
-            className="absolute left-1/2 transform -translate-x-1/2 -top-16 z-50"
+            className="absolute inset-x-0 mx-auto w-fit -top-14 z-50"
           >
             <button
               onClick={scrollMessagesToBottom}
