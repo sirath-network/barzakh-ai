@@ -338,7 +338,8 @@ flowchart LR
 
 | Chain | Tools | Key Capabilities |
 |-------|-------|------------------|
-| **Cronos** | 8 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info |
+| **Cronos EVM** | 12 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info, internal tx, logs |
+| **Cronos zkEVM** | 11 | zkCRO balance, tx history, token transfers, internal tx, contract ABI/source, token supply, block info |
 | **EVM (Generic)** | 6 | Etherscan, Zerion portfolio, ENS resolution, multi-chain wallet |
 | **Aptos** | 10 | Coin balance, resources, modules, ANS names, transactions |
 | **Solana** | 4 | Token balances, portfolio, market data |
@@ -348,6 +349,30 @@ flowchart LR
 | **Monad** | 3 | Next-gen EVM (testnet) |
 | **Wormhole** | 2 | Cross-chain bridge, guardian verification |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
+
+### Cronos zkEVM Direct Tools
+
+Direct API access to Cronos zkEVM (Chain ID 388) with dynamic 10k block range for reliability:
+
+```typescript
+// Available zkEVM Tools
+const zkevmTools = {
+  getZkEVMBalance,           // Native zkCRO balance (with RPC fallback)
+  getZkEVMTransactionHistory, // Transaction history (last 10k blocks)
+  getZkEVMTransaction,       // Transaction status by hash
+  getZkEVMTokenBalance,      // ERC-20 token balance
+  getZkEVMGasPrice,          // zkCRO price
+  getZkEVMTokenTransfers,    // ERC-20 transfer history
+  getZkEVMInternalTxList,    // Internal transactions
+  getZkEVMContractABI,       // Contract ABI (verified)
+  getZkEVMContractSource,    // Contract source code
+  getZkEVMTokenSupply,       // Token total supply
+  getZkEVMBlockInfo,         // Block information
+};
+
+// API: https://explorer-api.zkevm.cronos.org/api/v1
+// Requires: ZKEVM_CRONOS_EXPLORER_API_KEY
+```
 
 ### VVS Finance DEX Integration
 
@@ -371,8 +396,9 @@ const vvsTools = {
 ### Multi-Chain Integration Matrix
 
 | Chain | SDK | Network | RPC Provider | Capabilities |
-|-------|-----|---------|--------------|--------------| 
-| **Cronos** | `viem` + `ethers.js v6` | Mainnet + Testnet | Cronos RPC | EVM tx, CRC-20, VVS DEX |
+|-------|-----|---------|--------------|--------------|
+| **Cronos EVM** | `viem` + `ethers.js v6` | Mainnet + Testnet | Cronos RPC | EVM tx, CRC-20, VVS DEX |
+| **Cronos zkEVM** | Native fetch | Mainnet (388) | zkEVM Explorer API | zkCRO, ERC-20, internal tx |
 | **Ethereum** | `viem` + `ethers.js v6` | Mainnet | Infura/Alchemy | ENS, ERC-20/721/1155 |
 | **Polygon** | `viem` | PoS Mainnet | QuickNode | Low-cost tx, NFTs |
 | **Aptos** | `@aptos-labs/ts-sdk` | Mainnet | Aptos Fullnode | Move, ANS names |
@@ -640,10 +666,12 @@ barzakh-ai/
 │           │   ├── models.ts         # Model configurations
 │           │   ├── prompts.ts        # System prompts (58KB+)
 │           │   ├── intent-classifier.ts  # Chain-aware routing
-│           │   └── tools/            # 50+ blockchain tools
-│           │       ├── cronos/       # Cronos Explorer + VVS DEX
-│           │       │   ├── cronos-explorer.ts
-│           │       │   └── vvs-swap.ts
+│           │   └── tools/            # 65+ blockchain tools
+│           │       ├── cronos/       # Cronos EVM + zkEVM + VVS DEX
+│           │       │   ├── cronos-tools.ts        # Cronos EVM (12 tools)
+│           │       │   ├── cronos-zkevm-tools.ts  # Cronos zkEVM (11 tools)
+│           │       │   ├── vvs-swap.ts            # VVS Finance DEX
+│           │       │   └── ai-agent-sdk.ts        # AI Agent SDK wrapper
 │           │       ├── aptos/        # Aptos-specific
 │           │       ├── solana/       # Solana-specific
 │           │       ├── evm/          # EVM chains
@@ -723,6 +751,10 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 # x402 Crypto Payments
 CRONOS_RPC_URL=https://evm.cronos.org
+
+# Cronos Explorer APIs
+CRONOS_EXPLORER_API_KEY=...         # Cronos EVM Explorer
+ZKEVM_CRONOS_EXPLORER_API_KEY=...   # Cronos zkEVM Explorer
 
 # External APIs
 ZERION_API_KEY=...

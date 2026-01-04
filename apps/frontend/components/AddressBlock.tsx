@@ -16,7 +16,6 @@ export function AddressBlock({ address }: AddressBlockProps) {
     try {
       await navigator.clipboard.writeText(address);
       setIsCopied(true);
-      toast.success('Address copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000); // Reset ikon setelah 2 detik
     } catch (err) {
       toast.error('Failed to copy address.');

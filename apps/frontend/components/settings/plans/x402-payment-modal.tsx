@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, LogOut, AlertTriangle, Sparkles, ShieldCheck } from "lucide-react";
 import { formatUnits } from "viem";
-import { useAccount, useBalance, useSwitchChain, useSignTypedData, useSignMessage } from "wagmi";
+import { useAccount, useBalance, useSwitchChain, useSignTypedData, useSignMessage, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cronosTestnet } from "@/lib/wagmi";
 
@@ -59,6 +59,7 @@ export function X402PaymentModal({
   });
 
   const { switchChain } = useSwitchChain();
+  const { disconnect } = useDisconnect();
 
   const {
     signTypedDataAsync,
@@ -312,6 +313,8 @@ export function X402PaymentModal({
 
       if (settleRes.ok && settleData.success) {
         toast.success("Payment successful! Subscription activated.");
+        // Disconnect wallet immediately after success
+        disconnect();
         onSuccess();
         onClose();
       } else {

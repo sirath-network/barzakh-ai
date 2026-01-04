@@ -284,40 +284,56 @@
   scrollbar-width: none;  /* Firefox */
 }
 
+/* Thin scrollbar like ChatGPT - always visible */
 .custom-scrollbar::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+  height: 4px;
 }
 
 .custom-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  scrollbar-width: thin;  /* Firefox */
+  scrollbar-color: rgba(80, 80, 80, 0.6) transparent;
 }
 
 /* Track (background of scrollbar) */
 .custom-scrollbar::-webkit-scrollbar-track {
-  display: none;
+  background: transparent;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-track {
-  display: none;
+  background: transparent;
 }
 
-/* Scrollbar thumb (draggable part) */
+/* Scrollbar thumb - always visible, very thin */
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  display: none;
+  background-color: rgba(180, 180, 180, 0.4);
+  border-radius: 4px;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  display: none;
+  background-color: rgba(100, 100, 100, 0.6);
 }
 
-/* Thumb hover effect */
+/* Thumb hover effect - slightly brighter */
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  display: none;
+  background-color: rgba(150, 150, 150, 0.6);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  display: none;
+  background-color: rgba(130, 130, 130, 0.7);
+}
+
+/* Hide scrollbar on mobile - touch devices don't need it */
+@media (max-width: 768px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+    width: 0;
+  }
+  
+  .custom-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 }
 
 /* Firefox scrollbar styling */

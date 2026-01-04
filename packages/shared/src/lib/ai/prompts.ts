@@ -71,6 +71,24 @@ import {
   getSubscriptionInfo,
   getCurrentSubscriptionStatus,
 } from "./tools/cronos/x402-transfer";
+import {
+  queryCryptoComAI,
+  getCryptoComChainStats,
+  analyzeWalletWithAI,
+} from "./tools/cronos/ai-agent-sdk";
+import {
+  getZkEVMBalance,
+  getZkEVMTransactionHistory,
+  getZkEVMTransaction,
+  getZkEVMTokenBalance,
+  getZkEVMGasPrice,
+  getZkEVMTokenTransfers,
+  getZkEVMInternalTxList,
+  getZkEVMContractABI,
+  getZkEVMContractSource,
+  getZkEVMTokenSupply,
+  getZkEVMBlockInfo,
+} from "./tools/cronos/cronos-zkevm-tools";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
@@ -361,6 +379,22 @@ const groupTools = {
     // x402 Payment Tools
     "initiateX402Payment",
     "getSubscriptionInfo",
+    // Crypto.com AI Agent SDK
+    "queryCryptoComAI",
+    "getCryptoComChainStats",
+    "analyzeWalletWithAI",
+    // Cronos zkEVM Direct Tools
+    "getZkEVMBalance",
+    "getZkEVMTransactionHistory",
+    "getZkEVMTransaction",
+    "getZkEVMTokenBalance",
+    "getZkEVMGasPrice",
+    "getZkEVMTokenTransfers",
+    "getZkEVMInternalTxList",
+    "getZkEVMContractABI",
+    "getZkEVMContractSource",
+    "getZkEVMTokenSupply",
+    "getZkEVMBlockInfo",
   ] as const,
 } as const;
 
@@ -433,6 +467,22 @@ export const allTools = {
   initiateX402Payment,
   getSubscriptionInfo,
   getCurrentSubscriptionStatus,
+  // Crypto.com AI Agent SDK
+  queryCryptoComAI,
+  getCryptoComChainStats,
+  analyzeWalletWithAI,
+  // Cronos zkEVM Direct Tools
+  getZkEVMBalance,
+  getZkEVMTransactionHistory,
+  getZkEVMTransaction,
+  getZkEVMTokenBalance,
+  getZkEVMGasPrice,
+  getZkEVMTokenTransfers,
+  getZkEVMInternalTxList,
+  getZkEVMContractABI,
+  getZkEVMContractSource,
+  getZkEVMTokenSupply,
+  getZkEVMBlockInfo,
 };
 
 const groupPrompts = {

@@ -17,10 +17,24 @@ const CRONOS_EXPLORER_API = "https://explorer-api.cronos.org/mainnet/api/v2";
 const CRONOS_TESTNET_EXPLORER_API = "https://explorer-api.cronos.org/testnet/api/v2";
 
 /**
+ * Helper to get current block number from Cronos RPC
+ */
+async function getCurrentCronosBlock(testnet = false): Promise<number> {
+    const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+    const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
+    });
+    const data = await response.json();
+    return parseInt(data.result, 16);
+}
+
+/**
  * Get Cronos wallet balance
  */
 export const getCronosBalance = tool({
-    description: "Get CRO balance for a wallet address on Cronos blockchain. Supports both mainnet and testnet.",
+    description: "Get CRO balance for a wallet address on Cronos EVM (Chain ID 25). NOT for Cronos zkEVM. Supports both mainnet and testnet.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
         testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
@@ -137,7 +151,7 @@ export const getCronosBlockInfo = tool({
  * Get Cronos transaction details
  */
 export const getCronosTransaction = tool({
-    description: "Get details of a specific transaction on Cronos blockchain by transaction hash.",
+    description: "Get details of a specific transaction on Cronos EVM (Chain ID 25) by transaction hash. NOT for Cronos zkEVM.",
     parameters: z.object({
         txHash: z.string().describe("Transaction hash (0x... - must be 66 characters including 0x prefix)"),
         testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
@@ -402,16 +416,18 @@ export const getCronosGasPrice = tool({
 
 /**
  * Get Cronos transaction history for an address
+ * Note: Uses dynamic block range (last 10,000 blocks) for reliability
  */
 export const getCronosTransactionHistory = tool({
-    description: "Get transaction history for a wallet address on Cronos blockchain. Returns list of transactions including first transaction.",
+    description: "Get transaction history for a wallet address on Cronos blockchain. Returns list of transactions from last 10,000 blocks.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
         page: z.number().optional().describe("Page number (default: 1)"),
         limit: z.number().optional().describe("Number of transactions per page (default: 10, max: 100)"),
         sort: z.enum(["asc", "desc"]).optional().describe("Sort order by timestamp - 'asc' for oldest first, 'desc' for newest first (default: desc)"),
+        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 10000)"),
     }),
-    execute: async ({ address, page = 1, limit = 10, sort = "desc" }) => {
+    execute: async ({ address, page = 1, limit = 10, sort = "desc", blockRange = 10000 }) => {
         try {
             // Validate address format
             if (!address.startsWith("0x") || address.length !== 42) {
@@ -421,11 +437,15 @@ export const getCronosTransactionHistory = tool({
                 };
             }
 
-            const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
-            // Use official Cronos Explorer API v2 format
-            const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=${page}&offset=${Math.min(limit, 100)}&sort=${sort}${apiKey ? `&apikey=${apiKey}` : ""}`;
+            // Get current block number and calculate range
+            const currentBlock = await getCurrentCronosBlock();
+            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
 
-            console.log("Fetching Cronos transactions from:", apiUrl);
+            console.log(`[Cronos] Fetching txs from block ${startBlock} to ${currentBlock}`);
+
+            const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
+            const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=${page}&offset=${Math.min(limit, 100)}&sort=${sort}${apiKey ? `&apikey=${apiKey}` : ""}`;
+
             const response = await fetch(apiUrl);
 
             if (!response.ok) {
@@ -440,9 +460,10 @@ export const getCronosTransactionHistory = tool({
                     return {
                         address,
                         network: "Cronos Mainnet",
+                        blockRange: { from: startBlock, to: currentBlock },
                         transactions: [],
                         totalFound: 0,
-                        message: "No transactions found for this address",
+                        message: "No transactions found for this address in the last 10,000 blocks",
                     };
                 }
                 throw new Error(data.message || "Failed to fetch transaction history");
@@ -545,27 +566,31 @@ export const getCronosBalanceMulti = tool({
 
 /**
  * Get internal transactions for an address
+ * Note: Uses dynamic block range (last 10,000 blocks) for reliability
  */
 export const getCronosInternalTxList = tool({
-    description: "Get internal transactions (contract calls that transfer value) for a wallet address on Cronos.",
+    description: "Get internal transactions (contract calls that transfer value) for a wallet address on Cronos from last 10,000 blocks.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        startBlock: z.number().optional().describe("Starting block (default: 0)"),
-        endBlock: z.number().optional().describe("Ending block (default: 99999999)"),
         page: z.number().optional().describe("Page number"),
         limit: z.number().optional().describe("Results per page (max 100)"),
+        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 10000)"),
     }),
-    execute: async ({ address, startBlock = 0, endBlock = 99999999, page = 1, limit = 20 }) => {
+    execute: async ({ address, page = 1, limit = 20, blockRange = 10000 }) => {
         try {
+            // Get current block number and calculate range
+            const currentBlock = await getCurrentCronosBlock();
+            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+
             const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
-            const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=txlistinternal&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${Math.min(limit, 100)}${apiKey ? `&apikey=${apiKey}` : ""}`;
+            const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=txlistinternal&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=${page}&offset=${Math.min(limit, 100)}${apiKey ? `&apikey=${apiKey}` : ""}`;
 
             const response = await fetch(apiUrl);
             const data = await response.json();
 
             if (data.status !== "1" || !data.result) {
                 if (data.message === "No transactions found") {
-                    return { address, network: "Cronos Mainnet", internalTransactions: [], message: "No internal transactions found" };
+                    return { address, network: "Cronos Mainnet", blockRange: { from: startBlock, to: currentBlock }, internalTransactions: [], message: "No internal transactions found in last 10,000 blocks" };
                 }
                 throw new Error(data.message || "Failed to fetch internal transactions");
             }
@@ -989,19 +1014,23 @@ export const getCronosTxReceiptStatus = tool({
 
 /**
  * Get event logs
+ * Note: Uses dynamic block range (last 10,000 blocks) for reliability
  */
 export const getCronosLogs = tool({
-    description: "Get event logs from Cronos blockchain. Useful for tracking contract events, transfers, approvals, etc.",
+    description: "Get event logs from Cronos blockchain from last 10,000 blocks. Useful for tracking contract events, transfers, approvals, etc.",
     parameters: z.object({
         contractAddress: z.string().describe("Contract address to query logs from (0x...)"),
-        fromBlock: z.number().optional().describe("Starting block number"),
-        toBlock: z.number().optional().describe("Ending block number"),
         topic0: z.string().optional().describe("Event signature hash (e.g., Transfer event: 0xddf252ad...)"),
+        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 10000)"),
     }),
-    execute: async ({ contractAddress, fromBlock = 0, toBlock = 99999999, topic0 }) => {
+    execute: async ({ contractAddress, topic0, blockRange = 10000 }) => {
         try {
+            // Get current block number and calculate range
+            const currentBlock = await getCurrentCronosBlock();
+            const fromBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+
             const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
-            let apiUrl = `${CRONOS_EXPLORER_API}?module=logs&action=getLogs&address=${contractAddress}&fromBlock=${fromBlock}&toBlock=${toBlock}`;
+            let apiUrl = `${CRONOS_EXPLORER_API}?module=logs&action=getLogs&address=${contractAddress}&fromBlock=${fromBlock}&toBlock=${currentBlock}`;
             if (topic0) apiUrl += `&topic0=${topic0}`;
             if (apiKey) apiUrl += `&apikey=${apiKey}`;
 
@@ -1009,7 +1038,7 @@ export const getCronosLogs = tool({
             const data = await response.json();
 
             if (data.status !== "1" || !data.result) {
-                return { contractAddress, network: "Cronos Mainnet", logs: [], message: "No logs found" };
+                return { contractAddress, network: "Cronos Mainnet", blockRange: { from: fromBlock, to: currentBlock }, logs: [], message: "No logs found in last 10,000 blocks" };
             }
 
             const logs = data.result.slice(0, 20).map((log: any) => ({

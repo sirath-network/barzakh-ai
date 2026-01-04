@@ -284,7 +284,6 @@ const PureChatItem = ({
                 onSelect={() => {
                   const url = `${window.location.origin}/c/${chat.id}`;
                   navigator.clipboard.writeText(url);
-                  toast.success("Link copied to clipboard");
                 }}
               >
                 <span className="mr-2"><LinkIcon /></span>
@@ -440,8 +439,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       }
     }, false);
 
-    toast.success("Archived successfully");
-
     // Redirect immediately if viewing the archived chat
     if (shouldRedirect) {
       router.push("/");
@@ -478,8 +475,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           return history.filter((h) => h.id !== deleteId);
         }
       });
-
-      toast.success("Chat deleted successfully");
 
       // Dispatch event to clear chat state, then navigate smoothly
       if (shouldRedirect) {

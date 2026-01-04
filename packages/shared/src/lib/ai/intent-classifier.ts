@@ -282,17 +282,23 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
-    // Cronos-specific
+    // Cronos-specific (includes zkEVM)
     {
         intent: "cronos",
         patterns: [
             /\bcronos\b/i,
+            /\bzk\s*evm\b/i, // zkEVM
+            /\bzkevm\b/i, // zkEVM without space
+            /\bzkCRO\b/i, // zkCRO token
             /\bcro\s+(token|coin|balance|wallet|portfolio)\b/i,
             /\bcrypto\.com\s+(chain|defi)\b/i,
             /\bvvs\s+(finance|swap|dex)\b/i,
             /\b(portfolio|wallet|balance|holdings|track|show)\\b.*\bcronos\b/i,
             /\bcronos\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
             /\b(on|at|for)\s+cronos\b/i,
+            /\b(on|at|for)\s+zkevm\b/i,
+            /\b(transaction|balance|token|contract).*\bzkevm\b/i,
+            /\bzkevm.*\b(transaction|balance|token|contract)\b/i,
         ],
         keywords: [
             "cronos",
@@ -307,6 +313,18 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "at cronos",
             "cronos network",
             "cronos chain",
+            // zkEVM keywords
+            "zkevm",
+            "zk evm",
+            "zkEVM",
+            "zkCRO",
+            "cronos zkevm",
+            "on zkevm",
+            "zkevm balance",
+            "zkevm transaction",
+            "zkevm wallet",
+            "zkevm token",
+            "zkevm contract",
         ],
         priority: 95,
     },

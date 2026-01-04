@@ -106,7 +106,6 @@ export function ChatHeaderMenu({
             mutate("/api/history"); // Refresh sidebar history
             if (onTitleChange) onTitleChange(trimmedTitle);
             setIsRenameOpen(false);
-            toast.success("Chat renamed");
         } catch (error) {
             console.error("Failed to rename chat:", error);
             toast.error("Failed to rename chat");
@@ -117,7 +116,6 @@ export function ChatHeaderMenu({
 
     const handleArchive = async () => {
         // 1. Give immediate feedback and navigation
-        toast.success("Chat archived");
         router.push("/");
 
         // 2. Optimistic update (remove from local history list immediately)
@@ -153,7 +151,6 @@ export function ChatHeaderMenu({
             // Call the callback to update parent state immediately
             if (onUnarchive) onUnarchive();
             router.refresh();
-            toast.success("Chat unarchived");
         } catch (error) {
             console.error("Failed to unarchive chat:", error);
             toast.error("Failed to unarchive chat");
@@ -164,7 +161,6 @@ export function ChatHeaderMenu({
         try {
             await fetch(`/api/chat?id=${chatId}`, { method: "DELETE" });
             mutate("/api/history");
-            toast.success("Chat deleted successfully");
             // Dispatch event to clear chat state before navigation
             window.dispatchEvent(new CustomEvent("chat:reset"));
             router.push("/");
@@ -182,7 +178,6 @@ export function ChatHeaderMenu({
             await updateChatVisibility({ chatId, visibility: newVisibility });
             mutate("/api/history");
             mutate(`/api/chat?id=${chatId}`); // If there's a specific chat endpoint
-            toast.success(`Chat is now ${newVisibility}`);
         } catch (error) {
             console.error("Failed to update visibility:", error);
             toast.error("Failed to update visibility");
@@ -192,7 +187,6 @@ export function ChatHeaderMenu({
     const copyLink = () => {
         const url = `${window.location.origin}/c/${chatId}`;
         navigator.clipboard.writeText(url);
-        toast.success("Link copied to clipboard");
     };
 
     // Type assertion for components to avoid excessive 'any' usage in strict mode if needed, 
