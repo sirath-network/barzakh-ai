@@ -167,6 +167,20 @@ export function Chat({
     setIsMounted(true);
   }, []);
 
+  // Listen for chat reset event (triggered when deleting the current chat)
+  useEffect(() => {
+    const handleChatReset = () => {
+      setMessages([]);
+      setInput("");
+      setAttachments([]);
+    };
+
+    window.addEventListener("chat:reset", handleChatReset);
+    return () => {
+      window.removeEventListener("chat:reset", handleChatReset);
+    };
+  }, [setMessages, setInput]);
+
   // NEW: All scroll logic is now here
   const chatContainerRef = useRef<HTMLDivElement>(null);
 

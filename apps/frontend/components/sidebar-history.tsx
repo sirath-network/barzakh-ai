@@ -481,9 +481,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
 
       toast.success("Chat deleted successfully");
 
-      // Redirect after successful deletion if viewing the deleted chat
+      // Dispatch event to clear chat state, then navigate smoothly
       if (shouldRedirect) {
+        window.dispatchEvent(new CustomEvent("chat:reset"));
         router.push("/");
+        router.refresh();
       }
     } catch (error) {
       console.error("Failed to delete chat:", error);
