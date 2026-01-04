@@ -164,8 +164,11 @@ export function ChatHeaderMenu({
         try {
             await fetch(`/api/chat?id=${chatId}`, { method: "DELETE" });
             mutate("/api/history");
-            toast.success("Chat deleted");
+            toast.success("Chat deleted successfully");
+            // Dispatch event to clear chat state before navigation
+            window.dispatchEvent(new CustomEvent("chat:reset"));
             router.push("/");
+            router.refresh();
         } catch (error) {
             console.error("Failed to delete chat:", error);
             toast.error("Failed to delete chat");
