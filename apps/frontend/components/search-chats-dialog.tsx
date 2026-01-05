@@ -167,10 +167,17 @@ export function SearchChatsDialog({ isOpen, onClose }: SearchChatsDialogProps) {
     };
 
     const handleNewChat = () => {
-        router.push("/");
+        onClose();
         setOpenMobile(false);
         setView("chat");
-        onClose();
+
+        // Dispatch event to start a new chat with fresh ID
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('chat:new'));
+        }
+
+        // Use smooth client-side navigation
+        router.push('/');
     };
 
     if (!isOpen) return null;
