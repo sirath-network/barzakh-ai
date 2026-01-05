@@ -78,9 +78,11 @@ export function Chat({
   const { view, setView } = useView();
 
   // For shared chats: generate a new ID for the forked chat, keep original for context
-  // Now using a settable state to support client-side "new chat" functionality
-  const [activeChatId, setActiveChatId] = useState(() => isSharedChat ? generateUUID() : id);
+  const [forkedChatId] = useState(() => isSharedChat ? generateUUID() : id);
   const originalChatId = isSharedChat ? id : undefined;
+
+  // Use the forked ID for shared chats, otherwise use the server-provided ID directly
+  const activeChatId = isSharedChat ? forkedChatId : id;
 
   // Determine effective readonly state:
   // - If shared chat and user is logged in, they are forking it, so it's NOT readonly for them
@@ -165,29 +167,17 @@ export function Chat({
     setIsMounted(true);
   }, []);
 
-  // Listen for chat reset/new events
+  // Listen for chat reset event (triggered when deleting the current chat)
   useEffect(() => {
-    // Reset chat state (triggered when deleting the current chat)
     const handleChatReset = () => {
       setMessages([]);
       setInput("");
       setAttachments([]);
     };
 
-    // Start a new chat with fresh ID (triggered by "New Chat" button)
-    const handleNewChat = () => {
-      const newId = generateUUID();
-      setActiveChatId(newId);
-      setMessages([]);
-      setInput("");
-      setAttachments([]);
-    };
-
     window.addEventListener("chat:reset", handleChatReset);
-    window.addEventListener("chat:new", handleNewChat);
     return () => {
       window.removeEventListener("chat:reset", handleChatReset);
-      window.removeEventListener("chat:new", handleNewChat);
     };
   }, [setMessages, setInput]);
 
