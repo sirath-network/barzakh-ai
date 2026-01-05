@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
-import { 
-  Shield, 
-  ShieldCheck, 
-  ShieldX, 
-  QrCode, 
-  Copy, 
-  Eye, 
-  EyeOff, 
+import {
+  Shield,
+  ShieldCheck,
+  ShieldX,
+  QrCode,
+  Copy,
+  Eye,
+  EyeOff,
   Download,
   RefreshCw,
   AlertTriangle,
@@ -43,7 +43,7 @@ export default function TwoFactorSettingsPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
-  
+
   // Setup state
   const [setupData, setSetupData] = useState<SetupResponse | null>(null);
   const [verificationToken, setVerificationToken] = useState("");
@@ -62,7 +62,7 @@ export default function TwoFactorSettingsPage() {
     try {
       const response = await fetch("/api/2fa/status");
       const data = await response.json();
-      
+
       if (response.ok) {
         setStatus(data);
       } else {
@@ -82,9 +82,9 @@ export default function TwoFactorSettingsPage() {
       const response = await fetch("/api/2fa/setup", {
         method: "POST",
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setSetupData(data);
       } else {
@@ -116,9 +116,9 @@ export default function TwoFactorSettingsPage() {
           action: "enable",
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setStatus({ twoFactorEnabled: true, hasSecret: true });
         setBackupCodes(data.backupCodes);
@@ -153,9 +153,9 @@ export default function TwoFactorSettingsPage() {
           action: "disable",
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setStatus({ twoFactorEnabled: false, hasSecret: false });
         setVerificationToken("");
@@ -181,9 +181,9 @@ export default function TwoFactorSettingsPage() {
       const response = await fetch("/api/2fa/backup-codes", {
         method: "POST",
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
         setBackupCodes(data.backupCodes);
         setShowBackupCodes(true);
@@ -206,7 +206,7 @@ export default function TwoFactorSettingsPage() {
 
   const downloadBackupCodes = () => {
     const content = `Barzakh 2FA Backup Codes\n\nGenerated: ${new Date().toLocaleString()}\n\n${backupCodes.map((code, index) => `${index + 1}. ${code}`).join('\n')}\n\nKeep these codes safe and secure. Each code can only be used once.`;
-    
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -216,7 +216,7 @@ export default function TwoFactorSettingsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success("Backup codes downloaded");
   };
 
@@ -264,7 +264,7 @@ export default function TwoFactorSettingsPage() {
           </div>
         </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form Card */}
           <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
             <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
@@ -273,7 +273,7 @@ export default function TwoFactorSettingsPage() {
                 Add an extra layer of security to your account by requiring a code when you sign in.
               </p>
             </div>
-            
+
             <div className="p-4 md:p-8 space-y-6">
               {/* Status Section */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-muted/30 rounded-lg border border-border gap-4">
@@ -290,7 +290,7 @@ export default function TwoFactorSettingsPage() {
                       {status.twoFactorEnabled ? "2FA Enabled" : "2FA Disabled"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {status.twoFactorEnabled 
+                      {status.twoFactorEnabled
                         ? "Your account is protected with two-factor authentication"
                         : "Enable 2FA to secure your account"
                       }
@@ -368,9 +368,9 @@ export default function TwoFactorSettingsPage() {
                       Use your authenticator app (Google Authenticator, Authy, etc.) to scan this QR code:
                     </p>
                     <div className="flex justify-center">
-                      <img 
-                        src={setupData.qrCode} 
-                        alt="2FA QR Code" 
+                      <img
+                        src={setupData.qrCode}
+                        alt="2FA QR Code"
                         className="w-40 h-40 sm:w-48 sm:h-48 border border-border rounded-lg bg-white"
                       />
                     </div>

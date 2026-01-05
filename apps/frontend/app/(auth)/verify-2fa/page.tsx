@@ -29,14 +29,14 @@ function Verify2FAContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!token.trim()) {
       toast.error("Please enter your 2FA token");
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       if (context === "forgot_password") {
         // Handle forgot password 2FA verification
@@ -76,28 +76,28 @@ function Verify2FAContent() {
         const data = await response.json();
 
         if (response.ok) {
-        // Store the session token in localStorage temporarily
-        localStorage.setItem("sessionToken", data.sessionToken);
-        
-        // Create a session using NextAuth with the sessionToken as a special credential
-        const result = await signIn("credentials", {
-          email: data.user.email,
-          password: "", // Empty password since we're using sessionToken
-          sessionToken: data.sessionToken,
-          redirect: false,
-        });
+          // Store the session token in localStorage temporarily
+          localStorage.setItem("sessionToken", data.sessionToken);
 
-        if (result?.ok) {
-          // Clean up the temporary session token
-          localStorage.removeItem("sessionToken");
-          // Force session refresh to ensure user data is updated
-          await getSession();
-          toast.success("Login successful!");
-          router.push(callbackUrl);
-        } else {
-          console.error("SignIn result:", result);
-          toast.error("Session creation failed. Please try again.");
-        }
+          // Create a session using NextAuth with the sessionToken as a special credential
+          const result = await signIn("credentials", {
+            email: data.user.email,
+            password: "", // Empty password since we're using sessionToken
+            sessionToken: data.sessionToken,
+            redirect: false,
+          });
+
+          if (result?.ok) {
+            // Clean up the temporary session token
+            localStorage.removeItem("sessionToken");
+            // Force session refresh to ensure user data is updated
+            await getSession();
+            toast.success("Login successful!");
+            router.push(callbackUrl);
+          } else {
+            console.error("SignIn result:", result);
+            toast.error("Session creation failed. Please try again.");
+          }
         } else {
           toast.error(data.error || "Invalid 2FA token");
         }
@@ -164,7 +164,7 @@ function Verify2FAContent() {
                 Two-Factor Authentication
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                {context === "forgot_password" 
+                {context === "forgot_password"
                   ? "Enter your 2FA code to verify your identity for password reset"
                   : "Enter your 2FA code to sign in"
                 }
@@ -190,8 +190,8 @@ function Verify2FAContent() {
                   disabled={isLoading}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
-                  {isBackupCode 
-                    ? "Paste or type your 8-character backup code" 
+                  {isBackupCode
+                    ? "Paste or type your 8-character backup code"
                     : "Enter the 6-digit code from your authenticator app"
                   }
                 </p>

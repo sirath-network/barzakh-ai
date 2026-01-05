@@ -2,12 +2,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useTransition, useRef } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
-import { LazySpline } from "@/components/lazy-spline";
+import { Wallet } from "lucide-react";
 
 import { register, type RegisterActionState } from "../actions";
 import { AuthForm } from "@/components/auth-form";
@@ -15,6 +16,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { LogoGoogle } from "@/components/icons";
 import { WalletLoginButton } from "@/components/wallet-login-button";
 import { signIn } from "next-auth/react";
+
+import { SmoothVideoBackground } from "@/components/smooth-video-background";
 
 export default function Page() {
   const router = useRouter();
@@ -37,7 +40,7 @@ export default function Page() {
   // Handle Google OAuth with Turnstile verification
   const handleGoogleSignIn = () => {
     if (!turnstileToken) {
-      toast.error("Please complete the security verification first");
+      toast.error("Please wait for security verification");
       return;
     }
     setGoogleLoginInProgress(true);
@@ -124,7 +127,7 @@ export default function Page() {
 
     // Validate Turnstile token
     if (!currentFormData.get("cf-turnstile-response")) {
-      toast.error("Please complete the security check");
+      toast.error("Please wait for security verification");
       return;
     }
 
@@ -158,156 +161,165 @@ export default function Page() {
 
   const formVariants = {
     initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-    exit: { opacity: 0, y: -20, transition: { duration: 0.4 } },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
   };
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      {/* Left side - Brand banner */}
-      <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-        {/* 1. Spline 3D Background - Lazy loaded for better performance */}
-        <LazySpline
-          scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-          className="absolute inset-0"
+    <>
+      {/* Full-screen video background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+        <SmoothVideoBackground
+          src="/images/barzakh/banner/abs.webm"
+          className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110"
         />
-
-        {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-        {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-        {/* Gradien Bawah */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
-
-        {/* 3. Konten Teks (lapisan paling depan) */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative z-[10] pointer-events-none"
-        >
-          <img
-            alt="Brand Banner"
-            src="/images/barzakh/banner/sirath-banner.png"
-            className="w-48 h-auto mb-4 mx-auto"
-          />
-          <h1 className="text-3xl font-bold text-white">All Features. One Platform!</h1>
-          <p className="text-gray-200 mt-2 max-w-sm">
-            Unlock the future of blockchain insights with our intelligent AI search.
-          </p>
-        </motion.div>
+        {/* Dark overlay for better readability */}
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
-      {/* Right side - Form */}
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
-        <div className="mx-auto w-full max-w-md space-y-6">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={showOTPField ? "otp" : "register"}
-              variants={formVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              className="space-y-6"
-            >
-              <div className="space-y-2 text-center">
-                <img
-                  alt="Brand Banner"
-                  src="/images/barzakh/banner/sirath-banner.png"
-                  className="w-32 h-auto mx-auto lg:hidden"
-                />
-                <h1 className="text-3xl font-bold">
-                  {showOTPField ? "Verify Your Email" : "Create an Account"}
-                </h1>
-                <p className="text-muted-foreground">
-                  {showOTPField
-                    ? `Enter the code sent to ${email}`
-                    : "Get started for free."}
-                </p>
-                {showOTPField && (
-                  <p className="text-sm text-muted-foreground">
-                    We&apos;ve sent a code to your email
-                  </p>
-                )}
-                {showOTPField && (
-                  <div className="text-center mt-2">
-                    <button
-                      type="button"
-                      onClick={handleResendOTP}
-                      disabled={isPending}
-                      className="text-sm text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300 underline disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isPending ? "Sending..." : "Didn't receive the code? Resend"}
-                    </button>
-                  </div>
-                )}
-              </div>
+      {/* Centered card layout */}
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-[360px] md:max-w-[440px]"> {/* Responsive width */}
+          {/* Glass card with marble header */}
+          <div className="bg-zinc-900/90 backdrop-blur-xl overflow-hidden border border-zinc-800/50 shadow-2xl rounded-2xl">
+            {/* Marble header image */}
+            <div className="relative h-40 overflow-hidden"> {/* Reduced height */}
+              <Image
+                src="/images/barzakh/banner/marble.png"
+                alt="Decorative marble"
+                fill
+                priority
+                className="object-cover"
+                style={{ objectPosition: "50% 35%" }}
+              />
+              {/* Gradient fade */}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-transparent to-transparent" />
+            </div>
 
-              {!showOTPField && (
-                <div className="space-y-4 mb-4">
-                  <button
-                    onClick={handleGoogleSignIn}
-                    disabled={!turnstileToken || walletLoginInProgress || googleLoginInProgress}
-                    className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                    type="button"
-                  >
-                    <LogoGoogle className="mr-2 h-4 w-4" />
-                    {googleLoginInProgress ? "Redirecting..." : "Continue with Google"}
-                  </button>
-                  <WalletLoginButton
-                    turnstileToken={turnstileToken}
-                    disabled={googleLoginInProgress}
-                    onLoadingChange={setWalletLoginInProgress}
-                  />
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <form action={handleFormAction}>
-                <AuthForm
-                  defaultEmail={email}
-                  fieldErrors={state.fieldErrors}
-                  emailNeeded={!showOTPField}
-                  passwordNeeded={!showOTPField}
-                  showOTPField={showOTPField}
-                  emailLabel="Email"
-                  forgotPasswordNeeded={false}
-                  onTurnstileSuccess={handleTurnstileSuccess}
-                  turnstileToken={turnstileToken}
-                  turnstileRef={turnstileRef}
-                  onValidationChange={handleValidationChange}
+            {/* Card content */}
+            <div className="p-5 px-6 space-y-4">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={showOTPField ? "otp" : "register"}
+                  variants={formVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  className="space-y-3"
                 >
-                  <SubmitButton
-                    isSuccessful={isSuccessful}
-                    className="w-full"
-                    disabled={!isFormValid || isPending}
-                  >
-                    {isPending
-                      ? (showOTPField ? "Verifying..." : "Sending Code...")
-                      : (showOTPField ? "Verify & Create Account" : "Sign Up")
-                    }
-                  </SubmitButton>
-                </AuthForm>
-              </form>
-            </motion.div>
-          </AnimatePresence>
+                  <div className="text-center space-y-1">
+                    <h1 className="text-xl font-bold text-white">
+                      {showOTPField ? "Verify Email" : "Create Account"}
+                    </h1>
+                    <p className="text-zinc-500 text-xs">
+                      {showOTPField
+                        ? `Enter code sent to ${email}`
+                        : "Join us today for free."}
+                    </p>
+                    {showOTPField && (
+                      <div className="mt-1">
+                        <button
+                          type="button"
+                          onClick={handleResendOTP}
+                          disabled={isPending}
+                          className="text-xs text-zinc-500 hover:text-white transition-colors underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isPending ? "Sending..." : "Resend code"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="font-semibold underline underline-offset-4 hover:text-primary">
-              Sign In
-            </Link>
-          </p>
+                  {/* Register form */}
+                  <form action={handleFormAction}>
+                    <AuthForm
+                      defaultEmail={email}
+                      fieldErrors={state.fieldErrors}
+                      emailNeeded={!showOTPField}
+                      passwordNeeded={!showOTPField}
+                      showOTPField={showOTPField}
+                      emailLabel="Email"
+                      forgotPasswordNeeded={false}
+                      onTurnstileSuccess={handleTurnstileSuccess}
+                      turnstileToken={turnstileToken}
+                      turnstileRef={turnstileRef}
+                      onValidationChange={handleValidationChange}
+                      compact={true} // Enable compact mode
+                    >
+                      <SubmitButton
+                        isSuccessful={isSuccessful}
+                        className="w-full h-10 bg-white hover:bg-zinc-200 text-black font-medium transition-colors mt-1 text-sm rounded-md"
+                        disabled={!isFormValid || isPending}
+                      >
+                        {isPending
+                          ? (showOTPField ? "Verifying..." : "Sending...")
+                          : (showOTPField ? "Verify" : "Sign Up")
+                        }
+                      </SubmitButton>
+                    </AuthForm>
+                  </form>
+
+                  {!showOTPField && (
+                    <>
+                      {/* Divider */}
+                      <div className="relative py-1">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-zinc-800" />
+                        </div>
+                        <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-medium">
+                          <span className="bg-zinc-900 px-2 text-zinc-500">
+                            OR
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Social login buttons */}
+                      <div className="grid grid-cols-2 gap-3 pb-2">
+                        <button
+                          onClick={handleGoogleSignIn}
+                          disabled={!turnstileToken || walletLoginInProgress || googleLoginInProgress}
+                          className="w-full inline-flex h-10 items-center justify-center border border-zinc-800 bg-zinc-900/50 text-white transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                          type="button"
+                        >
+                          <LogoGoogle className="h-5 w-5" />
+                        </button>
+                        <WalletLoginButton
+                          turnstileToken={turnstileToken}
+                          disabled={googleLoginInProgress}
+                          onLoadingChange={setWalletLoginInProgress}
+                          className="w-full inline-flex h-10 items-center justify-center border border-zinc-800 bg-zinc-900/50 text-white transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                        >
+                          <Wallet className="h-5 w-5 text-white" />
+                        </WalletLoginButton>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Footer links */}
+              <div className="pt-0 text-center text-[10px] text-zinc-600 leading-tight">
+                <p>
+                  By clicking continue, you agree to our{" "}
+                  <Link href="/terms-of-service" className="text-zinc-500 hover:text-zinc-400 underline underline-offset-2">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy-policy" className="text-zinc-500 hover:text-zinc-400 underline underline-offset-2">
+                    Privacy Policy
+                  </Link>
+                </p>
+                <p className="mt-2 text-xs">
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-semibold text-zinc-400 hover:text-white transition-colors">
+                    Sign In
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
