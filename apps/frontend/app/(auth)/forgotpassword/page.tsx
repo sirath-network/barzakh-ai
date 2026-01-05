@@ -2,12 +2,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { motion } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
-import { LazySpline } from "@/components/lazy-spline";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -22,6 +22,8 @@ type OverlayState = {
   title?: string;
   message: string;
 };
+
+import { SmoothVideoBackground } from "@/components/smooth-video-background";
 
 export default function Page() {
   const router = useRouter();
@@ -108,7 +110,7 @@ export default function Page() {
       setOverlayState({
         status: "error",
         title: "Verification Required",
-        message: "Please complete the security verification before proceeding."
+        message: "Please wait for security verification to complete."
       });
       return;
     }
@@ -173,7 +175,7 @@ export default function Page() {
 
   const formVariants = {
     initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
   const closeOverlay = () => {
@@ -263,124 +265,117 @@ export default function Page() {
         )}
       </ActionResultOverlay>
 
-      <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Spline 3D Background - Lazy loaded for better performance */}
-          <LazySpline
-            scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-            className="absolute inset-0"
-          />
+      {/* Full-screen video background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+        <SmoothVideoBackground
+          src="/images/barzakh/banner/abs.webm"
+          className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110"
+        />
+        {/* Dark overlay for better readability */}
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
 
-          {/* 2. GRADIENT BLUR LAYER (NEW) */}
-          {/* Top Gradient - pointer events none so cursor can interact with Spline below */}
-          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-          {/* Bottom Gradient */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
-
-          {/* 3. Text Content (frontmost layer) */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative z-[10] pointer-events-none"
-          >
-            <img
-              alt="Brand Banner"
-              src="/images/barzakh/banner/sirath-banner.png"
-              className="w-48 h-auto mb-4 mx-auto"
-            />
-            <h1 className="text-3xl font-bold text-white">Forgot Password?</h1>
-            <p className="text-gray-200 mt-2 max-w-sm">
-              Don&apos;t worry. We&apos;ll send you a link to get back into your account.
-            </p>
-          </motion.div>
-        </div>
-
-        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
-          <motion.div
-            key="forgot-password-form"
-            variants={formVariants}
-            initial="initial"
-            animate="animate"
-            className="mx-auto w-full max-w-md space-y-8"
-          >
-            <div className="space-y-4 text-center">
-              <img
-                alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.png"
-                className="w-32 h-auto mx-auto lg:hidden"
+      {/* Centered card layout */}
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <motion.div
+          key="forgot-password-form"
+          variants={formVariants}
+          initial="initial"
+          animate="animate"
+          className="w-full max-w-[360px] md:max-w-[440px]"
+        >
+          {/* Glass card with marble header */}
+          <div className="bg-zinc-900/90 backdrop-blur-xl overflow-hidden border border-zinc-800/50 shadow-2xl rounded-2xl">
+            {/* Marble header image */}
+            <div className="relative h-40 overflow-hidden">
+              <Image
+                src="/images/barzakh/banner/marble.png"
+                alt="Decorative marble"
+                fill
+                priority
+                className="object-cover"
+                style={{ objectPosition: "50% 35%" }}
               />
-              <h1 className="text-3xl font-bold">
-                {showOTPField ? "Verify Your Email" : "Reset Password"}
-              </h1>
-              <p className="text-muted-foreground">
-                {showOTPField
-                  ? `Enter the code sent to ${email}`
-                  : "Enter your email to receive a verification code."
-                }
-              </p>
-              {showOTPField && (
-                <div className="text-center mt-2">
-                  <button
-                    type="button"
-                    onClick={handleResendOTP}
-                    disabled={isResending}
-                    className="text-sm text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300 underline disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isResending ? "Sending..." : "Didn't receive the code? Resend"}
-                  </button>
-                </div>
-              )}
+              {/* Gradient fade */}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-transparent to-transparent" />
             </div>
 
-            <form action={handleSubmit}>
-              <AuthForm
-                defaultEmail={email}
-                passwordNeeded={false}
-                emailNeeded={!showOTPField}
-                showOTPField={showOTPField}
-                emailLabel="Email"
-                fieldErrors={state.fieldErrors}
-                onTurnstileSuccess={handleTurnstileSuccess}
-                turnstileToken={turnstileToken}
-                turnstileRef={turnstileRef}
-                onValidationChange={handleValidationChange}
-              >
-                <SubmitButton
-                  isSuccessful={isSuccessful}
-                  className="w-full"
-                  disabled={!isFormValid || isSubmitting}
-                >
-                  {isSubmitting
-                    ? "Processing..."
-                    : showOTPField
-                      ? "Verify & Send Reset Link"
-                      : "Send Verification Code"
+            {/* Card content */}
+            <div className="p-5 px-6 space-y-4">
+              <div className="text-center space-y-1">
+                <h1 className="text-xl font-bold text-white">
+                  {showOTPField ? "Verify" : "Password Reset"}
+                </h1>
+                <p className="text-zinc-500 text-xs">
+                  {showOTPField
+                    ? `Enter code sent to ${email}`
+                    : "Enter your email to receive a code."
                   }
-                </SubmitButton>
-              </AuthForm>
-            </form>
+                </p>
+                {showOTPField && (
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      onClick={handleResendOTP}
+                      disabled={isResending}
+                      className="text-xs text-zinc-500 hover:text-white transition-colors underline disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isResending ? "Sending..." : "Didn't receive the code? Resend"}
+                    </button>
+                  </div>
+                )}
+              </div>
 
-            <div className="space-y-3">
-              <p className="text-center text-sm text-muted-foreground">
-                Remembered your password?{" "}
-                <Link
-                  href="/login"
-                  className="font-semibold underline underline-offset-4 hover:text-primary"
+              {/* Forgot password form */}
+              <form action={handleSubmit}>
+                <AuthForm
+                  defaultEmail={email}
+                  passwordNeeded={false}
+                  emailNeeded={!showOTPField}
+                  showOTPField={showOTPField}
+                  emailLabel="Email"
+                  fieldErrors={state.fieldErrors}
+                  onTurnstileSuccess={handleTurnstileSuccess}
+                  turnstileToken={turnstileToken}
+                  turnstileRef={turnstileRef}
+                  onValidationChange={handleValidationChange}
+                  compact={true}
                 >
-                  Sign In
-                </Link>
-              </p>
+                  <SubmitButton
+                    isSuccessful={isSuccessful}
+                    className="w-full h-10 bg-white hover:bg-zinc-200 text-black font-medium transition-colors mt-1 text-sm rounded-md"
+                    disabled={!isFormValid || isSubmitting}
+                  >
+                    {isSubmitting
+                      ? "Processing..."
+                      : showOTPField
+                        ? "Verify & Send Link"
+                        : "Send Code"
+                    }
+                  </SubmitButton>
+                </AuthForm>
+              </form>
 
-              <p className="text-center text-sm text-muted-foreground">
-                <Link href="/" className="underline underline-offset-4 hover:text-primary">
-                  &larr; Back to Home
-                </Link>
-              </p>
+              {/* Footer links */}
+              <div className="text-center text-[10px] text-zinc-600">
+                <p>
+                  Remembered your password?{" "}
+                  <Link
+                    href="/login"
+                    className="font-semibold text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                </p>
+                <p className="mt-2">
+                  <Link href="/login" className="hover:text-white transition-colors">
+                    ← Back to Login
+                  </Link>
+                </p>
+              </div>
             </div>
-
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* 2FA Verification Modal */}

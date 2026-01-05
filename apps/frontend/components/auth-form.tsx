@@ -24,6 +24,7 @@ export function AuthForm({
   turnstileToken,
   turnstileRef,
   onValidationChange,
+  compact = false,
 }: {
   children: React.ReactNode;
   defaultEmail?: string;
@@ -44,6 +45,7 @@ export function AuthForm({
   turnstileToken?: string;
   turnstileRef?: RefObject<TurnstileInstance>;
   onValidationChange?: (isValid: boolean) => void;
+  compact?: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
@@ -137,10 +139,10 @@ export function AuthForm({
 
   const handleResendClick = async () => {
     if (!onResendOTP || isResending) return;
-    
+
     setIsResending(true);
     setResendMessage("Sending new code...");
-    
+
     try {
       await onResendOTP();
       setResendMessage("New code sent successfully!");
@@ -157,7 +159,7 @@ export function AuthForm({
   };
 
   return (
-    <div className="flex flex-col gap-6 px-4 sm:px-16">
+    <div className={`flex flex-col ${compact ? 'gap-3' : 'gap-6'} px-0`}>
       {/* Hidden fields to preserve email and password during OTP verification */}
       {showOTPField && (
         <>
@@ -168,20 +170,23 @@ export function AuthForm({
 
       {emailNeeded && !showOTPField && (
         <div className="flex flex-col gap-2">
-          <LabelAny
-            htmlFor="email"
-            className="text-zinc-600 font-normal dark:text-zinc-400"
-          >
-            {emailLabel}
-          </LabelAny>
+          {!compact && (
+            <LabelAny
+              htmlFor="email"
+              className="text-zinc-600 font-normal dark:text-zinc-400"
+            >
+              {emailLabel}
+            </LabelAny>
+          )}
           <InputAny
             id="email"
             name="email"
-            className="bg-muted text-md md:text-sm"
+            className={`${compact ? 'bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 h-10' : 'bg-muted text-md md:text-sm'}`}
             type="text"
             autoComplete="email"
             required
             autoFocus
+            placeholder={compact ? "Email or Username" : ""}
             defaultValue={defaultEmail}
             onChange={handleEmailChange}
           />
@@ -195,19 +200,22 @@ export function AuthForm({
 
       {passwordNeeded && !showOTPField && (
         <div className="flex flex-col gap-2">
-          <LabelAny
-            htmlFor="password"
-            className="text-zinc-600 font-normal dark:text-zinc-400"
-          >
-            Password
-          </LabelAny>
+          {!compact && (
+            <LabelAny
+              htmlFor="password"
+              className="text-zinc-600 font-normal dark:text-zinc-400"
+            >
+              Password
+            </LabelAny>
+          )}
           <div className="relative">
             <InputAny
               id="password"
               name="password"
-              className="bg-muted text-md md:text-sm pr-10"
+              className={`${compact ? 'bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 h-10' : 'bg-muted text-md md:text-sm'} pr-10`}
               type={showPassword ? "text" : "password"}
               required
+              placeholder={compact ? "Password" : ""}
               onChange={handlePasswordChange}
             />
             <button
@@ -216,14 +224,14 @@ export function AuthForm({
               className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOffAny size={18} /> : <EyeAny size={18} />}
+              {showPassword ? <EyeOffAny size={16} /> : <EyeAny size={16} />}
             </button>
           </div>
           {forgotPasswordNeeded && (
             <div className="flex w-full justify-end">
               <Link
                 href="/forgotpassword"
-                className="text-xs underline text-black dark:text-white hover:text-blue-600"
+                className="text-xs text-zinc-400 hover:text-white"
               >
                 Forgot password?
               </Link>
@@ -239,19 +247,22 @@ export function AuthForm({
 
       {passwordConfirmNeeded && !showOTPField && (
         <div className="flex flex-col gap-2">
-          <LabelAny
-            htmlFor="passwordConfirm"
-            className="text-zinc-600 font-normal dark:text-zinc-400"
-          >
-            Confirm Password
-          </LabelAny>
+          {!compact && (
+            <LabelAny
+              htmlFor="passwordConfirm"
+              className="text-zinc-600 font-normal dark:text-zinc-400"
+            >
+              Confirm Password
+            </LabelAny>
+          )}
           <div className="relative">
             <InputAny
               id="passwordConfirm"
               name="passwordConfirm"
-              className="bg-muted text-md md:text-sm pr-10"
+              className={`${compact ? 'bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 h-10' : 'bg-muted text-md md:text-sm'} pr-10`}
               type={showPasswordConfirm ? "text" : "password"}
               required
+              placeholder={compact ? "Confirm Password" : ""}
               onChange={handlePasswordConfirmChange}
             />
             <button
@@ -260,7 +271,7 @@ export function AuthForm({
               className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
               tabIndex={-1}
             >
-              {showPasswordConfirm ? <EyeOffAny size={18} /> : <EyeAny size={18} />}
+              {showPasswordConfirm ? <EyeOffAny size={16} /> : <EyeAny size={16} />}
             </button>
           </div>
           {fieldErrors?.passwordConfirm?.map((error, i) => (
@@ -275,15 +286,17 @@ export function AuthForm({
         <>
           {/* Hidden input to submit OTP value with the form */}
           <input type="hidden" name="otp" value={otpValue} />
-          
+
           <div className="flex flex-col gap-2">
-            <LabelAny
-              htmlFor="otp"
-              className="text-zinc-600 font-normal dark:text-zinc-400 text-center"
-            >
-              Verification Code
-            </LabelAny>
-            <div className="flex justify-center">
+            {!compact && (
+              <LabelAny
+                htmlFor="otp"
+                className="text-zinc-600 font-normal dark:text-zinc-400 text-center"
+              >
+                Verification Code
+              </LabelAny>
+            )}
+            <div className={`flex justify-center ${compact ? 'mt-2' : ''}`}>
               <OTPInputAny
                 length={6}
                 value={otpValue}
@@ -291,49 +304,51 @@ export function AuthForm({
                 onComplete={handleOTPComplete}
               />
             </div>
-          {onResendOTP && (
-            <div className="flex flex-col gap-1">
-              <button
-                type="button"
-                onClick={handleResendClick}
-                disabled={isResending}
-                className={`text-sm text-orange-600 hover:text-orange-500 dark:text-orange-400 dark:hover:text-orange-300 text-left ${
-                  isResending ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                {isResending ? "Sending..." : "Resend code"}
-              </button>
-              {resendMessage && (
-                <p className={`text-xs ${
-                  resendMessage.includes("successfully") 
-                    ? "text-green-500" 
+            {onResendOTP && (
+              <div className="flex flex-col gap-1 items-center">
+                <button
+                  type="button"
+                  onClick={handleResendClick}
+                  disabled={isResending}
+                  className={`text-sm text-zinc-500 hover:text-white transition-colors ${isResending ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                >
+                  {isResending ? "Sending..." : "Resend code"}
+                </button>
+                {resendMessage && (
+                  <p className={`text-xs ${resendMessage.includes("successfully")
+                    ? "text-green-500"
                     : "text-red-500"
-                }`}>
-                  {resendMessage}
-                </p>
-              )}
-            </div>
-          )}
-          {fieldErrors?.otp?.map((error, i) => (
-            <p key={i} className="text-sm text-red-500 mt-1">
-              {error}
-            </p>
-          ))}
-        </div>
+                    }`}>
+                    {resendMessage}
+                  </p>
+                )}
+              </div>
+            )}
+            {fieldErrors?.otp?.map((error, i) => (
+              <p key={i} className="text-sm text-red-500 mt-1">
+                {error}
+              </p>
+            ))}
+          </div>
         </>
       )}
 
-      {/* Turnstile component - only render when Turnstile is being used */}
+      {/* Turnstile component - hidden but functional for security */}
       {onTurnstileSuccess && (
         <>
-          <div className="flex justify-center items-center w-full">
-            <TurnstileAny ref={turnstileRef} onTokenChange={handleTurnstileTokenChange} />
+          <div className="sr-only" aria-hidden="true">
+            <TurnstileAny
+              ref={turnstileRef}
+              onTokenChange={handleTurnstileTokenChange}
+              options={{ size: "invisible" }}
+            />
           </div>
           {/* Hidden input for Turnstile token */}
           <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />
         </>
       )}
-      
+
       {children}
     </div>
   );

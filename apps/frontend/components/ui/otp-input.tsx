@@ -51,6 +51,23 @@ export function OTPInput({
     }
   }, [value, length]);
 
+  // Auto-focus the next empty input when value changes
+  useEffect(() => {
+    // Find the first empty position or the position after the last filled one
+    const nextEmptyIndex = value.length < length ? value.length : length - 1;
+
+    // Only focus if the value just changed (not on initial render)
+    if (value.length > 0 && value.length < length) {
+      const nextInput = inputRefs.current[nextEmptyIndex];
+      if (nextInput && document.activeElement !== nextInput) {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          nextInput.focus();
+        }, 0);
+      }
+    }
+  }, [value, length]);
+
   // Auto-submit when all digits are entered (only once per complete entry)
   useEffect(() => {
     if (value.length === length && onComplete && !disabled && !hasAutoSubmitted) {
@@ -78,19 +95,20 @@ export function OTPInput({
   // The parent component should handle cleaning
 
   const handleChange = (index: number, char: string) => {
-    const cleanedChar = backupCode 
+    const cleanedChar = backupCode
       ? char.replace(/[^A-Za-z0-9_]/g, "").toUpperCase()
       : char.replace(/[^0-9]/g, "");
-    
+
     if (!cleanedChar && index < length) {
       // Delete: clear current and move to previous
       const newValue = value.split("");
       newValue[index] = "";
       onChange(newValue.join(""));
-      
-      if (inputRefs.current[index - 1]) {
+
+      // Small delay to ensure React state update completes before focus
+      setTimeout(() => {
         inputRefs.current[index - 1]?.focus();
-      }
+      }, 10);
       return;
     }
 
@@ -100,13 +118,45 @@ export function OTPInput({
     const updatedValue = newValue.join("").slice(0, length);
     onChange(updatedValue);
 
-    // Move to next input
-    if (cleanedChar && index < length - 1 && inputRefs.current[index + 1]) {
-      inputRefs.current[index + 1]?.focus();
+    // Move to next input with a small delay to ensure state update completes
+    if (cleanedChar && index < length - 1) {
+      setTimeout(() => {
+        inputRefs.current[index + 1]?.focus();
+      }, 10);
     }
   };
 
   const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
+    const key = e.key;
+
+    // Check if it's a valid character for input
+    const isValidChar = backupCode
+      ? /^[A-Za-z0-9_]$/.test(key)
+      : /^[0-9]$/.test(key);
+
+    // If current box already has a value and user types a valid character,
+    // move to next box and insert there (prevents maxLength blocking)
+    if (isValidChar && value[index] && index < length - 1) {
+      e.preventDefault();
+      const nextInput = inputRefs.current[index + 1];
+      if (nextInput) {
+        nextInput.focus();
+        // Insert the character into the next position
+        const cleanedChar = backupCode ? key.toUpperCase() : key;
+        const newValue = value.split("");
+        newValue[index + 1] = cleanedChar;
+        onChange(newValue.join("").slice(0, length));
+
+        // Move focus to the next-next input if available
+        if (index + 2 < length) {
+          setTimeout(() => {
+            inputRefs.current[index + 2]?.focus();
+          }, 10);
+        }
+      }
+      return;
+    }
+
     if (e.key === "Backspace" && !value[index] && index > 0) {
       // If current is empty and backspace is pressed, move to previous
       inputRefs.current[index - 1]?.focus();
@@ -127,7 +177,7 @@ export function OTPInput({
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text");
     const cleaned = cleanValue(pastedData);
-    
+
     if (cleaned) {
       onChange(cleaned);
       // Focus the last filled input or the last input
@@ -160,16 +210,16 @@ export function OTPInput({
   const getBoxClasses = () => {
     if (backupCode) {
       // Backup codes: smaller boxes with tighter spacing
-      return "w-9 h-10 sm:w-10 sm:h-12 text-base sm:text-lg";
+      return "w-7 h-8 min-[350px]:w-8 min-[350px]:h-10 sm:w-9 sm:h-11 text-sm sm:text-base";
     } else {
       // TOTP codes: slightly larger boxes
-      return "w-8 h-10 min-[350px]:w-9 min-[350px]:h-10 min-[375px]:w-11 min-[375px]:h-12 sm:w-12 sm:h-14 text-lg sm:text-xl";
+      return "w-8 h-10 min-[350px]:w-9 min-[350px]:h-10 min-[375px]:w-10 min-[375px]:h-11 sm:w-11 sm:h-12 text-lg sm:text-xl";
     }
   };
 
   return (
-    <div className="flex flex-col gap-3 w-fit mx-auto">
-      <div className={`flex gap-1 min-[350px]:gap-1.5 sm:gap-2 justify-center px-0 min-[350px]:px-2 ${className}`}>
+    <div className="flex flex-col gap-3 w-fit mx-auto overflow-hidden p-1">
+      <div className={`flex ${backupCode ? "gap-1 sm:gap-1.5 px-0" : "gap-1 min-[350px]:gap-1.5 sm:gap-2 px-0 min-[350px]:px-2"} justify-center ${className}`}>
         {Array.from({ length }).map((_, index) => (
           <input
             key={index}
@@ -180,12 +230,11 @@ export function OTPInput({
             inputMode={backupCode ? "text" : "numeric"}
             maxLength={1}
             value={value[index] || ""}
-            onChange={(e) => handleChange(index, e.target.value)}
-            onInput={(e) => handleInput(index, e)}
-            onKeyDown={(e) => handleKeyDown(index, e)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(index, e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => handleKeyDown(index, e)}
             onPaste={handlePaste}
             disabled={disabled}
-            className={`${getBoxClasses()} text-center font-semibold border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-200`}
+            className={`${getBoxClasses()} text-center font-semibold border border-zinc-700 rounded-lg focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 bg-zinc-800/50 text-white transition-colors duration-200 outline-none placeholder:text-zinc-600 block`}
             autoComplete="off"
           />
         ))}

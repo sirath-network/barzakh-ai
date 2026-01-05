@@ -4,7 +4,6 @@
 import { useActionState, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "@/lib/framer-motion";
-import { LazySpline } from "@/components/lazy-spline";
 import {
   verifyAndResetPassword,
   VerifyAndResetPasswordActionState,
@@ -13,8 +12,10 @@ import { toast } from "sonner";
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import Link from "next/link";
+import Image from "next/image";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
+import { SmoothVideoBackground } from "@/components/smooth-video-background";
 
 type OverlayState = {
   status: "success" | "error" | "idle";
@@ -76,7 +77,7 @@ export default function ResetPassword() {
 
   const formVariants = {
     initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
   return (
@@ -92,86 +93,83 @@ export default function ResetPassword() {
           </Button>
         )}
       </ActionResultOverlay>
-      <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Spline 3D Background - Lazy loaded for better performance */}
-          <LazySpline
-            scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-            className="absolute inset-0"
-          />
 
-          {/* 2. LAPISAN GRADIENT BLUR (BARU) */}
-          {/* Gradien Atas - pointer events none so cursor can interact with Spline below */}
-          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-          {/* Gradien Bawah */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
+      {/* Full-screen video background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+        <SmoothVideoBackground
+          src="/images/barzakh/banner/abs.webm"
+          className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110"
+        />
+        {/* Dark overlay for better readability */}
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
 
-          {/* 3. Konten Teks (lapisan paling depan) */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative z-[10] pointer-events-none"
-          >
-            <img
-              alt="Brand Banner"
-              src="/images/barzakh/banner/sirath-banner.png"
-              className="w-48 h-auto mb-4 mx-auto"
-            />
-            <h1 className="text-3xl font-bold text-white">Reset Your Password</h1>
-            <p className="text-gray-200 mt-2 max-w-sm">
-              Create a new, strong password to secure your account.
-            </p>
-          </motion.div>
-        </div>
-
-        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
-          <motion.div
-            key="reset-password-form"
-            variants={formVariants}
-            initial="initial"
-            animate="animate"
-            className="mx-auto w-full max-w-md space-y-8"
-          >
-            <div className="space-y-4 text-center">
-              <img
-                alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.png"
-                className="w-32 h-auto mx-auto lg:hidden"
+      {/* Centered card layout */}
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <motion.div
+          key="reset-password-form"
+          variants={formVariants}
+          initial="initial"
+          animate="animate"
+          className="w-full max-w-[360px] md:max-w-[440px]"
+        >
+          {/* Glass card with marble header */}
+          <div className="bg-zinc-900/90 backdrop-blur-xl overflow-hidden border border-zinc-800/50 shadow-2xl rounded-2xl">
+            {/* Marble header image */}
+            <div className="relative h-40 overflow-hidden">
+              <Image
+                src="/images/barzakh/banner/marble.png"
+                alt="Decorative marble"
+                fill
+                priority
+                className="object-cover"
+                style={{ objectPosition: "50% 35%" }}
               />
-              <h1 className="text-3xl font-bold">Set New Password</h1>
-              <p className="text-muted-foreground">
-                Enter and confirm your new password below.
-              </p>
+              {/* Gradient fade */}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-transparent to-transparent" />
             </div>
 
-            <form action={handleSubmit}>
-              <AuthForm
-                emailNeeded={false}
-                forgotPasswordNeeded={false}
-                passwordNeeded={true}
-                passwordConfirmNeeded={true}
-                fieldErrors={state.fieldErrors}
-                onValidationChange={handleValidationChange}
-              >
-                <SubmitButton
-                  isSuccessful={isSuccessful}
-                  className="w-full"
-                  disabled={!isFormValid}
+            {/* Card content */}
+            <div className="p-5 px-6 space-y-4">
+              <div className="text-center space-y-1">
+                <h1 className="text-xl font-bold text-white">Set Password</h1>
+                <p className="text-zinc-500 text-xs">
+                  Create a new password.
+                </p>
+              </div>
+
+              {/* Reset password form */}
+              <form action={handleSubmit}>
+                <AuthForm
+                  emailNeeded={false}
+                  forgotPasswordNeeded={false}
+                  passwordNeeded={true}
+                  passwordConfirmNeeded={true}
+                  fieldErrors={state.fieldErrors}
+                  onValidationChange={handleValidationChange}
+                  compact={true}
                 >
-                  Reset Password
-                </SubmitButton>
-              </AuthForm>
-            </form>
+                  <SubmitButton
+                    isSuccessful={isSuccessful}
+                    className="w-full h-10 bg-white hover:bg-zinc-200 text-black font-medium transition-colors mt-1 text-sm rounded-md"
+                    disabled={!isFormValid}
+                  >
+                    Reset Password
+                  </SubmitButton>
+                </AuthForm>
+              </form>
 
-            <p className="text-center text-sm text-muted-foreground">
-              <Link href="/login" className="underline underline-offset-4 hover:text-primary">
-                &larr; Back to Login
-              </Link>
-            </p>
-
-          </motion.div>
-        </div>
+              {/* Footer links */}
+              <div className="text-center text-[10px] text-zinc-600">
+                <p>
+                  <Link href="/login" className="hover:text-white transition-colors">
+                    ← Back to Login
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </>
   );

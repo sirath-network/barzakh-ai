@@ -262,8 +262,8 @@ export default function EmailSettingsPage() {
             <div className="p-6 md:p-8 space-y-6">
               {message.text && (
                 <div className={`p-4 rounded-lg border ${message.type === "success"
-                    ? "bg-emerald-500/10 border-emerald-500/20"
-                    : "bg-destructive/10 dark:bg-red-500/10 border-destructive/20 dark:border-red-500/20"
+                  ? "bg-emerald-500/10 border-emerald-500/20"
+                  : "bg-destructive/10 dark:bg-red-500/10 border-destructive/20 dark:border-red-500/20"
                   }`}>
                   <div className="flex items-center gap-3">
                     {message.type === "success" ? (
@@ -425,7 +425,7 @@ export default function EmailSettingsPage() {
                       onComplete={handleOTPComplete}
                     />
                     <p className="mt-2 text-sm text-muted-foreground text-center">
-                      Enter the 6-digit code from your email
+                      6-digit code from your email
                     </p>
                   </div>
 

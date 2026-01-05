@@ -11,9 +11,11 @@ interface WalletLoginButtonProps {
   turnstileToken?: string;
   disabled?: boolean;
   onLoadingChange?: (isLoading: boolean) => void;
+  className?: string;
+  children?: React.ReactNode;
 }
 
-export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange }: WalletLoginButtonProps) {
+export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, className, children }: WalletLoginButtonProps) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { openConnectModal } = useConnectModal();
@@ -105,13 +107,17 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange }:
 
   return (
     <button
-      className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+      className={className || "w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"}
       onClick={handleClick}
       disabled={isLoading || !turnstileToken || disabled}
       type="button"
     >
-      <Wallet className="mr-2 h-4 w-4" />
-      {isLoading ? "Signing in..." : "Continue with Wallet"}
+      {children || (
+        <>
+          <Wallet className="mr-2 h-4 w-4" />
+          {isLoading ? "Signing in..." : "Continue with Wallet"}
+        </>
+      )}
     </button>
   );
 }

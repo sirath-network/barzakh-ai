@@ -2,12 +2,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { motion } from "@/lib/framer-motion";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
-import { LazySpline } from "@/components/lazy-spline";
+import { Wallet } from "lucide-react";
 
 import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -25,6 +26,8 @@ type OverlayState = {
   title?: string;
   message: string;
 };
+
+import { SmoothVideoBackground } from "@/components/smooth-video-background";
 
 export default function Page() {
   const router = useRouter();
@@ -55,7 +58,7 @@ export default function Page() {
   // Handle Google OAuth with Turnstile verification
   const handleGoogleSignIn = () => {
     if (!turnstileToken) {
-      toast.error("Please complete the security verification first");
+      toast.error("Please wait for security verification");
       return;
     }
     setGoogleLoginInProgress(true);
@@ -93,7 +96,7 @@ export default function Page() {
 
   const formVariants = {
     initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
   const closeOverlay = () => {
@@ -192,85 +195,45 @@ export default function Page() {
         )}
       </ActionResultOverlay>
 
-      <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-        {/* --- CHANGES START HERE --- */}
-        <div className="relative hidden lg:flex lg:flex-col lg:items-center lg:justify-center p-8 text-center overflow-hidden">
-          {/* 1. Spline 3D Background - Lazy loaded for better performance */}
-          <LazySpline
-            scene="https://prod.spline.design/b-w9Ye7DE6uTcEKD/scene.splinecode"
-            className="absolute inset-0"
-          />
+      {/* Full-screen video background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden bg-black">
+        <SmoothVideoBackground
+          src="/images/barzakh/banner/abs.webm"
+          className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110"
+        />
+        {/* Dark overlay for better readability */}
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
 
-          {/* 2. GRADIENT BLUR LAYER (NEW) */}
-          {/* Top Gradient - pointer events none so cursor can interact with Spline below */}
-          <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent pointer-events-none z-[1]" />
-          {/* Bottom Gradient */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[1]" />
-
-          {/* 3. Text Content (frontmost layer) */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative z-[10] pointer-events-none" // Ensure content is above video and gradient, don't block Spline interactions
-          >
-            <img
-              alt="Brand Banner"
-              src="/images/barzakh/banner/sirath-banner.png"
-              className="w-48 h-auto mb-4 mx-auto"
-            />
-            <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-            <p className="text-gray-200 mt-2 max-w-sm">
-              Intelligent, focused AI search powering crypto and blockchain insights.
-            </p>
-          </motion.div>
-        </div>
-        {/* --- CHANGES END HERE --- */}
-
-        <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 h-screen lg:h-auto">
-          <motion.div
-            key="login-form"
-            variants={formVariants}
-            initial="initial"
-            animate="animate"
-            className="mx-auto w-full max-w-md space-y-6"
-          >
-            <div className="space-y-2 text-center">
-              <img
-                alt="Brand Banner"
-                src="/images/barzakh/banner/sirath-banner.png"
-                className="w-32 h-auto mx-auto lg:hidden"
+      {/* Centered card layout */}
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <motion.div
+          key="login-form"
+          variants={formVariants}
+          initial="initial"
+          animate="animate"
+          className="w-full max-w-[360px] md:max-w-[440px]" // Responsive width: Compact on mobile, wider on tablet/desktop
+        >
+          {/* Glass card with marble header */}
+          <div className="bg-zinc-900/90 backdrop-blur-xl overflow-hidden border border-zinc-800/50 shadow-2xl rounded-2xl">
+            {/* Marble header image - Compact height, no overlay text */}
+            <div className="relative h-40 overflow-hidden">
+              <Image
+                src="/images/barzakh/banner/marble.png"
+                alt="Decorative marble"
+                fill
+                priority
+                className="object-cover"
+                style={{ objectPosition: "50% 35%" }}
               />
-              <h1 className="text-3xl font-bold">Sign In</h1>
-              <p className="text-muted-foreground">
-                Enter your credentials to access your account.
-              </p>
+              {/* Gradient fade to blend into card body */}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-transparent to-transparent" />
             </div>
 
-            <div className="space-y-4">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={!turnstileToken || walletLoginInProgress || googleLoginInProgress}
-                className="w-full inline-flex h-10 items-center justify-center rounded-md border bg-background text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <LogoGoogle className="mr-2 h-4 w-4" />
-                {googleLoginInProgress ? "Redirecting..." : "Continue with Google"}
-              </button>
-              <WalletLoginButton
-                turnstileToken={turnstileToken}
-                disabled={googleLoginInProgress}
-                onLoadingChange={setWalletLoginInProgress}
-              />
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+            {/* Card content - Reduced padding and spacing */}
+            <div className="p-5 px-6 space-y-4">
+
+              {/* Login form */}
               <form onSubmit={handleSubmit}>
                 <AuthForm
                   defaultEmail={email}
@@ -278,36 +241,74 @@ export default function Page() {
                   turnstileToken={turnstileToken}
                   turnstileRef={turnstileRef}
                   onValidationChange={handleValidationChange}
+                  compact={true} // Enable compact mode
                 >
                   <SubmitButton
                     isSuccessful={false}
-                    className="w-full"
+                    className="w-full h-10 bg-white hover:bg-zinc-200 text-black font-medium transition-colors mt-1 text-sm rounded-md"
                     disabled={!isFormValid}
                   >
-                    Sign In
+                    Get Started
                   </SubmitButton>
                 </AuthForm>
               </form>
+
+              {/* Divider */}
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-zinc-800" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-medium">
+                  <span className="bg-zinc-900 px-2 text-zinc-500">
+                    OR
+                  </span>
+                </div>
+              </div>
+
+              {/* Social login buttons - Side by side icons at bottom */}
+              <div className="grid grid-cols-2 gap-3 pb-2">
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={!turnstileToken || walletLoginInProgress || googleLoginInProgress}
+                  className="w-full inline-flex h-10 items-center justify-center border border-zinc-800 bg-zinc-900/50 text-white transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                >
+                  <LogoGoogle className="h-5 w-5" />
+                </button>
+                <WalletLoginButton
+                  turnstileToken={turnstileToken}
+                  disabled={googleLoginInProgress}
+                  onLoadingChange={setWalletLoginInProgress}
+                  className="w-full inline-flex h-10 items-center justify-center border border-zinc-800 bg-zinc-900/50 text-white transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                >
+                  <Wallet className="h-5 w-5 text-white" />
+                </WalletLoginButton>
+              </div>
+
+              {/* Footer links */}
+              <div className="pt-0 text-center text-[10px] text-zinc-600 leading-tight">
+                <p>
+                  By clicking continue, you agree to our{" "}
+                  <Link href="/terms-of-service" className="text-zinc-500 hover:text-zinc-400 underline underline-offset-2">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy-policy" className="text-zinc-500 hover:text-zinc-400 underline underline-offset-2">
+                    Privacy Policy
+                  </Link>
+                </p>
+                <p className="mt-2 text-xs">
+                  Don&apos;t have an account?{" "}
+                  <Link
+                    href="/register"
+                    className="font-semibold text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                </p>
+              </div>
             </div>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                className="font-semibold underline underline-offset-4 hover:text-primary"
-              >
-                Sign Up
-              </Link>
-            </p>
-
-            <p className="text-center text-sm text-muted-foreground">
-              <Link href="/" className="underline underline-offset-4 hover:text-primary">
-                &larr; Back to Home
-              </Link>
-            </p>
-
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* 2FA Verification Modal */}
@@ -324,15 +325,15 @@ export default function Page() {
           }
         }}
       >
-        <DialogContent className="w-[92vw] max-w-md sm:max-w-lg p-4 sm:p-6 rounded-xl">
+        <DialogContent className="w-[95vw] max-w-[400px] p-5 rounded-xl overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl">Two-Factor Authentication</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-center">Two-Factor Authentication</DialogTitle>
             <DialogDescription className="text-center">
               {useBackupCode ? "Enter your 8-character backup code" : "Enter the 6-digit code from your authenticator app"}
               {twoFAEmail ? ` • ${twoFAEmail}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleTwoFAVerify} data-2fa-form className="space-y-4 sm:space-y-5">
+          <form onSubmit={handleTwoFAVerify} data-2fa-form className="space-y-4">
             <OTPInput
               length={useBackupCode ? 8 : 6}
               value={twoFAToken}
@@ -342,10 +343,10 @@ export default function Page() {
               autoFocus
               disabled={isVerifying2FA}
             />
-            <div className="flex items-center justify-center sm:justify-between">
+            <div className="flex items-center justify-center">
               <button
                 type="button"
-                className="text-sm sm:text-base text-red-600 hover:underline"
+                className="text-sm sm:text-base text-zinc-500 hover:text-white transition-colors"
                 onClick={() => {
                   setUseBackupCode(!useBackupCode);
                   setTwoFAToken("");
