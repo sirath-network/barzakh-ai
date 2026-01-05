@@ -64,13 +64,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     }
     setView('chat');
 
-    // Dispatch event to start a new chat with fresh ID (handled by Chat component)
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('chat:new'));
-    }
-
-    // Use smooth client-side navigation
+    // Use client-side navigation with refresh to ensure proper re-render
+    // This fixes the issue where old chat content persists after first click
     router.push('/');
+    router.refresh();
   };
 
   // 2. Define animation variants
