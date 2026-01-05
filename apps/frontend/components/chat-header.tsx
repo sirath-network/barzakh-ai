@@ -84,7 +84,12 @@ function PureChatHeader({
                   variant="ghost"
                   size="sm"
                   className="h-9 px-3 hover:bg-transparent transition-all duration-200"
-                  onClick={() => router.push("/")}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('chat:new'));
+                    }
+                    router.push('/');
+                  }}
                   aria-label="New Chat"
                 >
                   <span className="text-neutral-600 dark:text-neutral-400 hover:text-primary transition-colors duration-200">

@@ -57,12 +57,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const MonitorAny = Monitor as any;
 
   const handleNewChat = () => {
+    // Close mobile sidebar and reset sidebar view
     setOpenMobile(false);
     if (setSidebarView) {
       setSidebarView('history');
     }
     setView('chat');
-    router.push("/");
+
+    // Dispatch event to start a new chat with fresh ID (handled by Chat component)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('chat:new'));
+    }
+
+    // Use smooth client-side navigation
+    router.push('/');
   };
 
   // 2. Define animation variants
