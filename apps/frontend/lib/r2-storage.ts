@@ -66,10 +66,10 @@ export async function uploadToR2(
   }
 
   const client = getS3Client();
-  
+
   // Build the key (path in bucket)
   const key = options.folder ? `${options.folder}/${filename}` : filename;
-  
+
   // Convert data to Buffer if needed
   let body: Buffer;
   if (typeof data === 'string') {

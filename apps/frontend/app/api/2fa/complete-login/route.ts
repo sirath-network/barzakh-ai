@@ -4,9 +4,9 @@ import { db } from "@/lib/db/db";
 import { user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { authenticator } from "otplib";
-import { 
-  decrypt2FASecret, 
-  isEncrypted, 
+import {
+  decrypt2FASecret,
+  isEncrypted,
   findBackupCode,
   checkRateLimit,
   resetRateLimit
@@ -43,14 +43,14 @@ export async function POST(request: NextRequest) {
     // Rate limit: 5 attempts per 15 minutes per user
     const rateLimit = checkRateLimit(`2fa-complete:${userId}`, 5, 15 * 60 * 1000);
     if (!rateLimit.allowed) {
-      return NextResponse.json({ 
-        error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds` 
+      return NextResponse.json({
+        error: `Too many attempts. Try again in ${Math.ceil(rateLimit.resetIn / 1000)} seconds`
       }, { status: 429 });
     }
 
     // Get user from database
     const [dbUser] = await db.select().from(user).where(eq(user.id, userId));
-    
+
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Decrypt the secret if it's encrypted (backward compatible)
     let decryptedSecret: string;
     try {
-      decryptedSecret = isEncrypted(dbUser.twoFactorSecret) 
+      decryptedSecret = isEncrypted(dbUser.twoFactorSecret)
         ? decrypt2FASecret(dbUser.twoFactorSecret)
         : dbUser.twoFactorSecret;
     } catch (error) {
@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
     if (!verified && dbUser.backupCodes) {
       try {
         const backupCodes = JSON.parse(dbUser.backupCodes) as string[];
-        
+
         // Check if codes are hashed (contain $ from bcrypt) or plain
         const isHashed = backupCodes.length > 0 && backupCodes[0].startsWith('$');
-        
+
         if (isHashed) {
           // New hashed backup codes
           const codeIndex = findBackupCode(twoFactorToken, backupCodes);
@@ -121,14 +121,14 @@ export async function POST(request: NextRequest) {
     resetRateLimit(`2fa-complete:${userId}`);
 
     // Create final JWT token for session
-    const sessionToken = await new SignJWT({ 
-      userId: dbUser.id, 
+    const sessionToken = await new SignJWT({
+      userId: dbUser.id,
       email: dbUser.email,
       name: dbUser.name,
       image: dbUser.image,
       username: dbUser.username,
       tier: dbUser.tier,
-      type: "session" 
+      type: "session"
     })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("30d")

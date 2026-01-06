@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from "react";
 import type { User } from "next-auth";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "sonner";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Archive, ArchiveRestore, RotateCcw, Trash2, MoreHorizontal, ChevronDown, CircleArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useView } from "@/context/view-context";
@@ -171,6 +171,7 @@ const ArchivedChatItem = ({
 export function ArchivedPage({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
+  const router = useRouter();
   const { mutate: globalMutate } = useSWRConfig();
   const { setView } = useView();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -504,7 +505,11 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 <ButtonAny
                   variant="outline"
                   className="w-full justify-start gap-2 border-gray-200 dark:border-red-900/50 bg-white dark:bg-black/40 text-foreground hover:bg-gray-50 dark:hover:bg-red-900/30"
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => {
+                    setView('chat');
+                    router.push('/');
+                    router.refresh();
+                  }}
                 >
                   <CircleArrowLeftAny className="w-4 h-4" />
                   Back to Conversations

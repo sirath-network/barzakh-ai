@@ -37,6 +37,13 @@ export default function Page() {
   const [walletLoginInProgress, setWalletLoginInProgress] = useState(false);
   const [googleLoginInProgress, setGoogleLoginInProgress] = useState(false);
 
+  // Password visibility state for marble banner
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const handlePasswordVisibilityChange = (isVisible: boolean) => {
+    setIsPasswordVisible(isVisible);
+  };
+
   // Handle Google OAuth with Turnstile verification
   const handleGoogleSignIn = () => {
     if (!turnstileToken) {
@@ -185,10 +192,11 @@ export default function Page() {
             {/* Marble header image */}
             <div className="relative h-40 overflow-hidden"> {/* Reduced height */}
               <Image
-                src="/images/barzakh/banner/marble.png"
+                src={isPasswordVisible ? "/images/barzakh/banner/marble.png" : "/images/barzakh/banner/marble-origin.png"}
                 alt="Decorative marble"
                 fill
                 priority
+                sizes="(max-width: 768px) 100vw, 440px"
                 className="object-cover"
                 style={{ objectPosition: "50% 35%" }}
               />
@@ -243,6 +251,7 @@ export default function Page() {
                       onTurnstileSuccess={handleTurnstileSuccess}
                       turnstileToken={turnstileToken}
                       turnstileRef={turnstileRef}
+                      onPasswordVisibilityChange={handlePasswordVisibilityChange}
                       onValidationChange={handleValidationChange}
                       compact={true} // Enable compact mode
                     >
