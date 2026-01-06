@@ -9,8 +9,8 @@ export const config = {
   matcher: [
     "/",
     "/c/:id*",
-    "/api/:path*", 
-    "/login", 
+    "/api/:path*",
+    "/login",
     "/register"
   ],
 };

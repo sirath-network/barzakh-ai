@@ -115,8 +115,9 @@ export function ChatHeaderMenu({
     };
 
     const handleArchive = async () => {
-        // 1. Give immediate feedback and navigation
+        // 1. Give immediate feedback and navigation with refresh to ensure proper re-render
         router.push("/");
+        router.refresh();
 
         // 2. Optimistic update (remove from local history list immediately)
         mutate(

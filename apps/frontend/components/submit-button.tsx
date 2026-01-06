@@ -21,23 +21,23 @@ export function SubmitButton({
   disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const isLoading = pending || isSuccessful;
 
   return (
     <ButtonAny
       type={pending ? 'button' : 'submit'}
-      aria-disabled={pending || isSuccessful || disabled}
-      disabled={pending || isSuccessful || disabled}
+      aria-disabled={isLoading || disabled}
+      disabled={isLoading || disabled}
       className={`relative ${className}`}
     >
-      {children}
-
-      <AnimatePresence>
-        {(pending || isSuccessful) && (
+      <AnimatePresence mode="wait">
+        {isLoading ? (
           <motion.span
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            className="absolute right-4"
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-center"
           >
             <motion.div
               animate={{ rotate: 360 }}
@@ -50,11 +50,20 @@ export function SubmitButton({
               <LoaderIcon />
             </motion.div>
           </motion.span>
+        ) : (
+          <motion.span
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {children}
+          </motion.span>
         )}
       </AnimatePresence>
 
       <output aria-live="polite" className="sr-only">
-        {pending || isSuccessful ? 'Loading' : 'Submit form'}
+        {isLoading ? 'Loading' : 'Submit form'}
       </output>
     </ButtonAny>
   );

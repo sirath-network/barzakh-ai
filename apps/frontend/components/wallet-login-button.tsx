@@ -18,7 +18,7 @@ interface WalletLoginButtonProps {
 export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, className, children }: WalletLoginButtonProps) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
-  const { openConnectModal } = useConnectModal();
+  const { openConnectModal, connectModalOpen } = useConnectModal();
   const { disconnect } = useDisconnect();
   const [isLoading, setIsLoading] = useState(false);
   const [isInitiatingLogin, setIsInitiatingLogin] = useState(false);
@@ -98,6 +98,14 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
       performLogin(address);
     }
   }, [isInitiatingLogin, isConnected, address]);
+
+  // Reset isInitiatingLogin when modal is closed without connecting
+  useEffect(() => {
+    if (isInitiatingLogin && !connectModalOpen && !isConnected) {
+      // User closed the modal without connecting
+      setIsInitiatingLogin(false);
+    }
+  }, [connectModalOpen, isInitiatingLogin, isConnected]);
 
   // Notify parent of loading state changes (includes when wallet modal is open)
   useEffect(() => {

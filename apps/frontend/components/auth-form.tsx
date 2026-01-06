@@ -24,6 +24,7 @@ export function AuthForm({
   turnstileToken,
   turnstileRef,
   onValidationChange,
+  onPasswordVisibilityChange,
   compact = false,
 }: {
   children: React.ReactNode;
@@ -45,6 +46,7 @@ export function AuthForm({
   turnstileToken?: string;
   turnstileRef?: RefObject<TurnstileInstance>;
   onValidationChange?: (isValid: boolean) => void;
+  onPasswordVisibilityChange?: (isVisible: boolean) => void;
   compact?: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -220,7 +222,11 @@ export function AuthForm({
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() => {
+                const newValue = !showPassword;
+                setShowPassword(newValue);
+                onPasswordVisibilityChange?.(newValue);
+              }}
               className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
               tabIndex={-1}
             >
@@ -267,7 +273,11 @@ export function AuthForm({
             />
             <button
               type="button"
-              onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+              onClick={() => {
+                const newValue = !showPasswordConfirm;
+                setShowPasswordConfirm(newValue);
+                onPasswordVisibilityChange?.(newValue);
+              }}
               className="absolute inset-y-0 right-3 flex items-center text-zinc-500 hover:text-zinc-800 dark:hover:text-white"
               tabIndex={-1}
             >
@@ -334,16 +344,14 @@ export function AuthForm({
         </>
       )}
 
-      {/* Turnstile component - hidden but functional for security */}
+      {/* Turnstile component - invisible mode (requires Cloudflare dashboard set to Invisible) */}
       {onTurnstileSuccess && (
         <>
-          <div className="sr-only" aria-hidden="true">
-            <TurnstileAny
-              ref={turnstileRef}
-              onTokenChange={handleTurnstileTokenChange}
-              options={{ size: "invisible" }}
-            />
-          </div>
+          <TurnstileAny
+            ref={turnstileRef}
+            onTokenChange={handleTurnstileTokenChange}
+            options={{ size: "invisible" }}
+          />
           {/* Hidden input for Turnstile token */}
           <input type="hidden" name="cf-turnstile-response" value={turnstileToken || ""} />
         </>

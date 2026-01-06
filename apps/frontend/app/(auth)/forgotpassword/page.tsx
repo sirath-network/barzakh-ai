@@ -289,10 +289,11 @@ export default function Page() {
             {/* Marble header image */}
             <div className="relative h-40 overflow-hidden">
               <Image
-                src="/images/barzakh/banner/marble.png"
+                src="/images/barzakh/banner/marble-origin.png"
                 alt="Decorative marble"
                 fill
                 priority
+                sizes="(max-width: 768px) 100vw, 440px"
                 className="object-cover"
                 style={{ objectPosition: "50% 35%" }}
               />
@@ -393,15 +394,15 @@ export default function Page() {
           }
         }}
       >
-        <DialogContent className="w-[92vw] max-w-md sm:max-w-lg p-4 sm:p-6 rounded-xl">
+        <DialogContent className="w-[95vw] max-w-[400px] p-5 rounded-xl overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl">Two-Factor Authentication</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-bold text-center">Two-Factor Authentication</DialogTitle>
             <DialogDescription className="text-center">
               {useBackupCode ? "Enter your 8-character backup code" : "Enter the 6-digit code from your authenticator app"}
               {twoFAEmail ? ` • ${twoFAEmail}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleTwoFAVerify} data-2fa-form className="space-y-4 sm:space-y-5">
+          <form onSubmit={handleTwoFAVerify} data-2fa-form className="space-y-4">
             <OTPInput
               length={useBackupCode ? 8 : 6}
               value={twoFAToken}
@@ -411,10 +412,10 @@ export default function Page() {
               autoFocus
               disabled={isVerifying2FA}
             />
-            <div className="flex items-center justify-center sm:justify-between">
+            <div className="flex items-center justify-center">
               <button
                 type="button"
-                className="text-sm sm:text-base text-red-600 hover:underline"
+                className="text-sm sm:text-base text-zinc-500 hover:text-white transition-colors"
                 onClick={() => {
                   setUseBackupCode(!useBackupCode);
                   setTwoFAToken("");
