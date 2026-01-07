@@ -392,6 +392,7 @@ export default function TwoFactorSettingsPage() {
                       <div className="flex gap-1">
                         <button
                           onClick={() => setShowSecret(!showSecret)}
+                          tabIndex={-1}
                           className="p-2 text-muted-foreground hover:text-foreground"
                         >
                           {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

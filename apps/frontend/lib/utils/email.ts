@@ -172,8 +172,6 @@ async function sendEmail(
 
 export async function sendOTPEmail(email: string, otp: string) {
   try {
-    console.log(`📧 Attempting to send OTP email to ${email} via Resend`);
-    
     const html = generateEmailTemplate(
       "Your Verification Code",
       "Use this code to secure your account.",
@@ -181,10 +179,9 @@ export async function sendOTPEmail(email: string, otp: string) {
     );
 
     await sendEmail(email, "🔐 Your OTP - Barzakh AI", html);
-    console.log(`✅ OTP email sent successfully to ${email}`);
   } catch (error) {
     console.error("❌ Error sending OTP email:", error);
-    
+
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.message.includes("authentication") || error.message.includes("unauthorized")) {
@@ -195,15 +192,13 @@ export async function sendOTPEmail(email: string, otp: string) {
         throw new Error("Email domain not verified. Please verify your domain in Resend.");
       }
     }
-    
+
     throw new Error("OTP email sending failed");
   }
 }
 
 export async function sendResetEmail(email: string, resetUrl: string) {
   try {
-    console.log(`📧 Attempting to send reset email to ${email} via Resend`);
-    
     const html = generateEmailTemplate(
       "Reset Password Request",
       "One more step to secure your account.",
@@ -211,10 +206,9 @@ export async function sendResetEmail(email: string, resetUrl: string) {
     );
 
     await sendEmail(email, "🔑 Reset Your Password - Barzakh", html);
-    console.log(`✅ Reset email sent successfully to ${email}`);
   } catch (error) {
     console.error("❌ Error sending reset email:", error);
-    
+
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.message.includes("authentication") || error.message.includes("unauthorized")) {
@@ -225,7 +219,7 @@ export async function sendResetEmail(email: string, resetUrl: string) {
         throw new Error("Email domain not verified. Please verify your domain in Resend.");
       }
     }
-    
+
     throw new Error("Email sending failed");
   }
 }

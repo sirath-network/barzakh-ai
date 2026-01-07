@@ -70,7 +70,6 @@ function filterIncompleteToolCalls(messages: Array<Message>): Array<Message> {
       );
 
       if (hasIncompleteToolCalls) {
-        console.log('Filtering out message with incomplete tool calls:', message.id);
         return false;
       }
     }
@@ -196,9 +195,6 @@ export async function POST(request: Request) {
   }
   // --- End History Context Section ---
 
-  console.log("search groupe", group);
-
-  console.log("user session ", session.user);
   const users = await getUserById(session.user.id!);
   let user_info = users[0];
 
@@ -211,7 +207,6 @@ export async function POST(request: Request) {
     const now = new Date();
 
     if (periodEnd < now) {
-      console.log(`[X402] User ${user_info.id} subscription expired, downgrading now`);
       const freeLimit = Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10;
 
       // Import db and user schema for the update
@@ -407,7 +402,6 @@ export async function POST(request: Request) {
 
       for (const [chain, patterns] of Object.entries(chainPatterns)) {
         if (patterns.some(p => p.test(content))) {
-          console.log(`[CONTEXT] Found chain context "${chain}" in previous message`);
           return chain;
         }
       }
@@ -471,17 +465,6 @@ export async function POST(request: Request) {
       // This ensures image/coding prompts ALWAYS route correctly, even from chain-specific tools
       if (classificationResult.confidence >= 0.6 && (isDefaultGroup || isHighPriority)) {
         effectiveGroup = detectedIntent;
-        console.log(`[INTENT-ROUTER] Auto-routed to: ${effectiveGroup} (confidence: ${classificationResult.confidence.toFixed(2)}, method: ${classificationResult.classificationMethod})`);
-        console.log(`[INTENT-ROUTER] Indicators: ${classificationResult.indicators.join(', ')}`);
-        if (!isDefaultGroup && isHighPriority) {
-          console.log(`[INTENT-ROUTER] High-priority override: ${group} -> ${effectiveGroup}`);
-        }
-      } else if (classificationResult.confidence >= 0.6) {
-        // Not overriding because user explicitly selected a non-default group
-        // and the detected intent is not high-priority
-        console.log(`[INTENT-ROUTER] Detected ${detectedIntent} but keeping user-selected group: ${group}`);
-      } else {
-        console.log(`[INTENT-ROUTER] Low confidence (${classificationResult.confidence.toFixed(2)}), keeping group: ${group || 'search'}`);
       }
     } catch (classifyError) {
       console.error("[INTENT-ROUTER] Classification failed, using original group:", classifyError);
@@ -497,13 +480,6 @@ export async function POST(request: Request) {
     const groupConfig = await getGroupConfig(effectiveGroup);
     tools = [...(groupConfig?.tools || [])] as any[];
     systemPrompt = groupConfig?.systemPrompt || "";
-    console.log("Group config loaded:", {
-      originalGroup: group,
-      effectiveGroup,
-      autoRouted: effectiveGroup !== group,
-      tools: tools?.length,
-      hasSystemPrompt: !!systemPrompt
-    });
   } catch (error) {
     console.error("Failed to get group config:", error);
     // Continue with empty tools and system prompt
@@ -543,10 +519,6 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
   const effectiveModel = (effectiveGroup !== group && FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP])
     ? FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP]!
     : selectedChatModel;
-
-  if (effectiveModel !== selectedChatModel) {
-    console.log(`[INTENT-ROUTER] Model switched: ${selectedChatModel} → ${effectiveModel} (for ${effectiveGroup})`);
-  }
 
   const chat = await getChatById({ id });
 
@@ -640,8 +612,6 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
         console.error("Error in streamText:", error);
         // If still getting tool invocation error, try with fresh conversation
         if ((error as any).message?.includes("ToolInvocation must have a result")) {
-          console.log("Retrying with fresh conversation context...");
-
           // Only keep the latest user message for fresh start
           const freshMessages = [userMessage];
 

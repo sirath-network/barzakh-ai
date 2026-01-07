@@ -77,7 +77,7 @@ export default function Page() {
     } else if (state.status === "invalid_email") {
       turnstileRef.current?.reset();
       setTurnstileToken(""); // Clear the token on failure
-      setOverlayState({ status: "error", title: "Invalid Email", message: "The email address you entered is not valid." });
+      setOverlayState({ status: "error", title: "User Not Found", message: "The email or username you entered was not found." });
     } else if (state.status === "otp_sent") {
       setShowOTPField(true);
       setEmail(state.email || "");
@@ -310,7 +310,7 @@ export default function Page() {
                 <p className="text-zinc-500 text-xs">
                   {showOTPField
                     ? `Enter code sent to ${email}`
-                    : "Enter your email to receive a code."
+                    : "Enter your email or username to receive a code."
                   }
                 </p>
                 {showOTPField && (
@@ -334,13 +334,14 @@ export default function Page() {
                   passwordNeeded={false}
                   emailNeeded={!showOTPField}
                   showOTPField={showOTPField}
-                  emailLabel="Email"
+                  emailLabel="Email or Username"
                   fieldErrors={state.fieldErrors}
                   onTurnstileSuccess={handleTurnstileSuccess}
                   turnstileToken={turnstileToken}
                   turnstileRef={turnstileRef}
                   onValidationChange={handleValidationChange}
                   compact={true}
+                  forgotPasswordNeeded={false}
                 >
                   <SubmitButton
                     isSuccessful={isSuccessful}

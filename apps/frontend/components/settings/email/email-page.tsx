@@ -373,6 +373,7 @@ export default function EmailSettingsPage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
+                          tabIndex={-1}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
                           {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}

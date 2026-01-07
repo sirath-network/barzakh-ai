@@ -11,7 +11,7 @@ const RequestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Validate request body
     const validation = RequestSchema.safeParse(body);
     if (!validation.success) {
@@ -36,13 +36,11 @@ export async function POST(request: NextRequest) {
       const host = request.headers.get('host');
       const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1');
       const isVercel = process.env.VERCEL === '1'; // Running on Vercel
-      
+
       if (!isLocalhost && !isVercel) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
-
-    console.log(`📥 API received ${imageUrls.length} images to persist`);
 
     // Persist all images to Cloudflare R2 Storage
     const persistedUrls = await persistImagesToBlob(imageUrls);
@@ -57,7 +55,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in persist-image API:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to persist images',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

@@ -14,7 +14,6 @@ export async function persistImageToBlob(
   try {
     // If it's already an R2 URL, return it as-is
     if (isR2Url(imageUrl)) {
-      console.log('✅ Image already in R2 Storage:', imageUrl);
       return imageUrl;
     }
 
@@ -23,7 +22,6 @@ export async function persistImageToBlob(
 
     // Handle data URLs (base64 encoded images)
     if (imageUrl.startsWith('data:')) {
-      console.log('📥 Processing data URL for persistence...');
 
       const [header, data] = imageUrl.split(',');
       if (!header || !data) {
@@ -42,8 +40,6 @@ export async function persistImageToBlob(
       imageBuffer = bytes.buffer;
     } else {
       // Handle HTTP URLs
-      console.log('📥 Downloading temporary image for persistence:', imageUrl);
-
       const response = await fetch(imageUrl);
 
       if (!response.ok) {
@@ -69,8 +65,6 @@ export async function persistImageToBlob(
     // Generate a unique filename if not provided
     const finalFilename = filename || `ai-generated-${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
 
-    console.log(`📤 Uploading to Cloudflare R2 Storage: ${finalFilename}`);
-
     // Upload to Cloudflare R2 Storage
     const result = await uploadToR2(finalFilename, imageBuffer, {
       contentType: contentType,
@@ -78,13 +72,10 @@ export async function persistImageToBlob(
       cacheControl: 'public, max-age=31536000', // 1 year
     });
 
-    console.log('✅ Successfully persisted image to R2:', result.url);
-
     return result.url;
   } catch (error) {
-    console.error('❌ Failed to persist image to R2:', error);
+    console.error('Failed to persist image to R2:', error);
     // Return original URL as fallback
-    console.warn('⚠️ Falling back to original URL (may expire):', imageUrl);
     return imageUrl;
   }
 }
@@ -95,8 +86,6 @@ export async function persistImageToBlob(
  * @returns Array of permanent R2 URLs
  */
 export async function persistImagesToBlob(imageUrls: string[]): Promise<string[]> {
-  console.log(`🔄 Persisting ${imageUrls.length} images to Cloudflare R2 Storage...`);
-
   const results = await Promise.allSettled(
     imageUrls.map((url, index) =>
       persistImageToBlob(url, `ai-generated-${Date.now()}-${index}.png`)
@@ -112,9 +101,6 @@ export async function persistImagesToBlob(imageUrls: string[]): Promise<string[]
       return imageUrls[index];
     }
   });
-
-  const successCount = results.filter(r => r.status === 'fulfilled').length;
-  console.log(`✅ Successfully persisted ${successCount}/${imageUrls.length} images`);
 
   return persistedUrls;
 }

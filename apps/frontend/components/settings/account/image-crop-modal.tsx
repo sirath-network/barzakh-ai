@@ -29,7 +29,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
   // Smaller responsive canvas size
   const [canvasSize, setCanvasSize] = useState(240);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   const MIN_CROP_SIZE = 50;
   const MAX_CROP_SIZE = Math.min(canvasSize * 0.85, 250);
 
@@ -71,7 +71,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
       if (typeof window !== 'undefined') {
         const mobile = window.innerWidth < 768;
         setIsMobile(mobile);
-        
+
         if (mobile) {
           setCanvasSize(200); // Much smaller for mobile
         } else {
@@ -91,55 +91,52 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
     setLoadError(false);
 
     const img = new Image();
-    
+
     const isDataUrl = src.startsWith('data:');
     const isBlobUrl = src.startsWith('blob:');
     const isSameOrigin = src.startsWith('/') || src.startsWith(window.location.origin);
-    
+
     if (!isDataUrl && !isBlobUrl && !isSameOrigin) {
       img.crossOrigin = "anonymous";
     }
-    
+
     img.onload = () => {
-      console.log('Image loaded successfully');
       setImageElement(img);
       setImagePosition({ x: 0, y: 0 });
       setCropSize(MAX_CROP_SIZE);
       setScale(1);
       setIsLoading(false);
     };
-    
+
     img.onerror = (e) => {
       console.error('Image load error:', e);
-      
+
       if (img.crossOrigin) {
-        console.log('Retrying without CORS...');
         const retryImg = new Image();
-        
+
         retryImg.onload = () => {
-          console.log('Image loaded on retry');
           setImageElement(retryImg);
           setImagePosition({ x: 0, y: 0 });
           setCropSize(MAX_CROP_SIZE);
           setScale(1);
           setIsLoading(false);
         };
-        
+
         retryImg.onerror = () => {
           console.error('Retry failed');
           setIsLoading(false);
           setLoadError(true);
         };
-        
+
         retryImg.src = src;
       } else {
         setIsLoading(false);
         setLoadError(true);
       }
     };
-    
+
     img.src = src;
-    
+
     return () => {
       img.onload = null;
       img.onerror = null;
@@ -230,14 +227,14 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
 
     ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
-    ctx.arc(cropX + cropSize/2, cropY + cropSize/2, cropSize/2, 0, Math.PI * 2);
+    ctx.arc(cropX + cropSize / 2, cropY + cropSize / 2, cropSize / 2, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cropX + cropSize/2, cropY + cropSize/2, cropSize/2, 0, Math.PI * 2);
+    ctx.arc(cropX + cropSize / 2, cropY + cropSize / 2, cropSize / 2, 0, Math.PI * 2);
     ctx.stroke();
   };
 
@@ -271,14 +268,14 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
     const sourceSize = cropDisplaySize * scaleToOriginal;
 
     ctx.beginPath();
-    ctx.arc(previewSize/2, previewSize/2, previewSize/2, 0, Math.PI * 2);
+    ctx.arc(previewSize / 2, previewSize / 2, previewSize / 2, 0, Math.PI * 2);
     ctx.clip();
 
     ctx.clearRect(0, 0, previewSize, previewSize);
-    
+
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    
+
     try {
       ctx.drawImage(
         imageElement,
@@ -399,12 +396,12 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
     const sourceSize = cropDisplaySize * scaleToOriginal;
 
     ctx.beginPath();
-    ctx.arc(outputSize/2, outputSize/2, outputSize/2, 0, Math.PI * 2);
+    ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
     ctx.clip();
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    
+
     try {
       ctx.drawImage(
         imageElement,
@@ -422,7 +419,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
 
   const resetCrop = () => {
     if (!imageElement) return;
-    
+
     setScale(1);
     setImagePosition({ x: 0, y: 0 });
     setCropSize(MAX_CROP_SIZE);
@@ -436,7 +433,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
       <div className="bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl w-full max-w-sm sm:max-w-3xl shadow-2xl mx-2">
-        
+
         {/* Header - Compact for mobile */}
         <div className="flex items-center justify-between p-3 sm:p-5 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -462,11 +459,11 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
 
         <div className="p-3 sm:p-5">
           <div className="flex flex-col lg:grid lg:grid-cols-[auto,280px] gap-4 sm:gap-5">
-            
+
             {/* Canvas Area - Much smaller for mobile */}
             <div className="flex flex-col items-center">
               <div ref={containerRef} className="relative bg-zinc-50 dark:bg-zinc-950 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-zinc-200 dark:border-zinc-800">
-                
+
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-lg sm:rounded-xl z-10">
                     <div className="text-center">
@@ -475,7 +472,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
                     </div>
                   </div>
                 )}
-                
+
                 {loadError && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-lg sm:rounded-xl z-10">
                     <div className="text-center p-3 sm:p-4">
@@ -484,7 +481,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2 sm:mb-3 hidden sm:block">
                         Try uploading a new image
                       </p>
-                      <button 
+                      <button
                         onClick={() => fileInputRef.current?.click()}
                         className="text-xs px-2 py-1 sm:px-3 sm:py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
                       >
@@ -550,7 +547,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
 
             {/* Controls - Compact for mobile */}
             <div className="flex flex-col gap-3 sm:gap-5">
-              
+
               {/* Live Preview */}
               <div>
                 <label className="block text-sm font-medium text-zinc-900 dark:text-white mb-2 sm:mb-3">
@@ -578,7 +575,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
                     {Math.round(scale * 100)}%
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     onClick={zoomOut}
@@ -616,7 +613,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
                     {Math.round(cropSize)}px
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     onClick={decreaseSize}

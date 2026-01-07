@@ -40,7 +40,6 @@ export const Turnstile = forwardRef<TurnstileInstance, TurnstileComponentProps>(
     const handleRetry = useCallback(() => {
       if (retryCount < maxRetries) {
         const delay = retryDelay * Math.pow(1.5, retryCount); // Exponential backoff
-        console.log(`Turnstile: Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
 
         retryTimeoutRef.current = setTimeout(() => {
           setRetryCount(prev => prev + 1);
@@ -65,7 +64,6 @@ export const Turnstile = forwardRef<TurnstileInstance, TurnstileComponentProps>(
     }, [onTokenChange, handleRetry]);
 
     const handleExpire = useCallback(() => {
-      console.log("Turnstile: Token expired, resetting...");
       onTokenChange?.("");
       // Auto-reset on expire
       turnstileRef.current?.reset();
