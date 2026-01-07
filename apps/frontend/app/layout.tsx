@@ -6,13 +6,27 @@ import { SessionProvider } from "next-auth/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
-const baseUrl = "https://barzakh.framer.ai";
+const baseUrl = "https://chat.barzakh.tech";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
-  title: "Barzakh AI",
+  title: {
+    default: "Barzakh AI",
+    template: "%s - Barzakh AI",
+  },
   description:
     "Intelligent, focused AI search powering crypto and blockchain insights.",
+  keywords: [
+    "AI search",
+    "crypto insights",
+    "blockchain analysis",
+    "Barzakh AI",
+    "Web3 search",
+    "crypto intelligence",
+  ],
+  authors: [{ name: "Barzakh Team" }],
+  creator: "Barzakh Team",
+  publisher: "Barzakh Team",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -22,12 +36,13 @@ export const metadata: Metadata = {
     apple: "/images/barzakh/SirathLogo-192px.jpg",
   },
   openGraph: {
+    siteName: "Barzakh AI",
     title: "Barzakh AI",
     description:
       "Intelligent, focused AI search powering crypto and blockchain insights.",
     images: [
       {
-        url: `${baseUrl}/images/barzakh/preview/barzakh_preview_banner.png`,
+        url: "/images/barzakh/preview/barzakh_preview_banner.png",
         width: 1200,
         height: 630,
         alt: "Barzakh AI",
@@ -109,6 +124,22 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Barzakh AI",
+              url: baseUrl,
+              potentialAction: {
+                "@type": "SearchAction",
+                target: `${baseUrl}/search?q={search_term_string}`,
+                "query-input": "required name=search_term_string",
+              },
+            }),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: THEME_COLOR_SCRIPT,
