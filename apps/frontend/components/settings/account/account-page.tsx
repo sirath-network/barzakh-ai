@@ -103,9 +103,11 @@ export default function AccountSettingsPage() {
     }
 
     const controller = new AbortController();
-    setUsernameAvailability({ status: "checking", message: "Checking availability..." });
 
     const timeoutId = window.setTimeout(async () => {
+      // Only set checking state after debounce to prevent UI flicker while typing
+      setUsernameAvailability({ status: "checking", message: "Checking availability..." });
+
       try {
         const res = await fetch(`/api/settings?username=${encodeURIComponent(username)}`, {
           signal: controller.signal,
@@ -294,7 +296,7 @@ export default function AccountSettingsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
             <div className="flex items-center gap-3 mb-3 md:mb-4">
@@ -310,7 +312,7 @@ export default function AccountSettingsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form Card */}
-            <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+            <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-border">
                 <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Profile Information</h2>
                 <p className="text-muted-foreground text-sm">
@@ -362,7 +364,7 @@ export default function AccountSettingsPage() {
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isUploading}
-                          className="w-full sm:w-auto bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600/50 dark:to-red-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-red-700/50 dark:hover:to-red-800/50 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          className="w-full sm:w-auto bg-gray-800 text-white dark:bg-gradient-to-r dark:from-stone-600/50 dark:to-stone-700/50 px-4 py-2 rounded-lg hover:bg-gray-700 dark:hover:from-stone-700/50 dark:hover:to-stone-800/50 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           <Upload className="w-4 h-4" />
                           {isUploading ? "Uploading..." : "Upload Image"}
@@ -385,7 +387,7 @@ export default function AccountSettingsPage() {
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20"
+                        className="w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-stone-500 focus:border-transparent transition-all border-gray-300 dark:border-stone-800/50 bg-gray-50 dark:bg-black/20"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -405,9 +407,9 @@ export default function AccountSettingsPage() {
                         type="text"
                         value={username}
                         onChange={(e) => handleUsernameChange(e.target.value)}
-                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-red-500 focus:border-transparent transition-all ${username && !usernameValidation.isValid
-                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                          : 'border-gray-300 dark:border-red-900/50 bg-gray-50 dark:bg-black/20'
+                        className={`w-full pl-10 pr-3 py-3 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-stone-500 focus:border-transparent transition-all ${username && !usernameValidation.isValid
+                          ? 'border-red-500 bg-red-50 dark:bg-stone-800/20'
+                          : 'border-gray-300 dark:border-stone-800/50 bg-gray-50 dark:bg-black/20'
                           }`}
                         placeholder="Choose a username"
                       />
@@ -416,7 +418,7 @@ export default function AccountSettingsPage() {
                     {username && (
                       <>
                         {!usernameValidation.isValid ? (
-                          <div className="mt-2 text-sm text-red-600 dark:text-red-400">
+                          <div className="mt-2 text-sm text-red-600 dark:text-stone-400">
                             {usernameValidation.message}
                           </div>
                         ) : usernameAvailability.status !== "idle" ? (
@@ -425,7 +427,7 @@ export default function AccountSettingsPage() {
                               ? "text-emerald-600 dark:text-emerald-400"
                               : usernameAvailability.status === "checking"
                                 ? "text-gray-500 dark:text-gray-400"
-                                : "text-red-600 dark:text-red-400"
+                                : "text-red-600 dark:text-stone-400"
                               }`}
                           >
                             {usernameAvailability.message}
@@ -475,7 +477,7 @@ export default function AccountSettingsPage() {
                   </div>
                 </div>
 
-                <div className="p-6 md:p-8 border-t border-gray-200 dark:border-red-900/30 flex justify-end">
+                <div className="p-6 md:p-8 border-t border-gray-200 dark:border-stone-800/30 flex justify-end">
                   <button
                     type="submit"
                     disabled={
@@ -486,7 +488,7 @@ export default function AccountSettingsPage() {
                       usernameAvailability.status === "taken" ||
                       usernameAvailability.status === "checking"
                     }
-                    className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-red-700 dark:hover:to-red-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="bg-gray-800 text-white dark:bg-gradient-to-r dark:from-stone-600 dark:to-stone-700 px-6 py-3 rounded-lg hover:bg-gray-700 dark:hover:from-stone-700 dark:hover:to-stone-800 text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {isLoading ? (
                       <>
@@ -507,8 +509,8 @@ export default function AccountSettingsPage() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Profile Tips */}
-              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-                <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
+                <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
                   <h3 className="text-lg font-bold text-foreground mb-2">Profile Tips</h3>
                   <p className="text-muted-foreground text-sm">Create a great profile</p>
                 </div>
@@ -553,8 +555,8 @@ export default function AccountSettingsPage() {
               </div>
 
               {/* Account Security */}
-              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-                <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
+                <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
                   <h3 className="text-lg font-bold text-foreground mb-2">Account Security</h3>
                   <p className="text-muted-foreground text-sm">Keep your account safe</p>
                 </div>
@@ -592,12 +594,12 @@ export default function AccountSettingsPage() {
           </div>
 
           {/* Delete Account Section */}
-          <div className="mt-6 bg-red-50 dark:bg-red-900/20 rounded-xl md:rounded-2xl shadow-sm border border-red-200 dark:border-red-700/50 overflow-hidden backdrop-blur-sm">
+          <div className="mt-6 bg-red-50 dark:bg-stone-800/20 rounded-xl md:rounded-2xl shadow-sm border border-red-200 dark:border-stone-700/50 overflow-hidden backdrop-blur-sm">
             <div className="p-6 md:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-red-800 dark:text-red-300">Delete Account</h3>
-                  <p className="text-sm text-red-700 dark:text-red-200 mt-1">
+                  <h3 className="text-lg font-bold text-red-800 dark:text-stone-300">Delete Account</h3>
+                  <p className="text-sm text-red-700 dark:text-stone-200 mt-1">
                     Permanently delete your account and all associated data. This action is irreversible.
                   </p>
                 </div>
@@ -614,7 +616,7 @@ export default function AccountSettingsPage() {
           </div>
 
           {/* Help Section */}
-          <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+          <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 p-4 md:p-6 backdrop-blur-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>

@@ -464,7 +464,7 @@ export default function WalletSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-3 md:mb-4">
@@ -480,8 +480,8 @@ export default function WalletSettingsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
+            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
               <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Connected Wallet</h2>
               <p className="text-muted-foreground text-sm">
                 Connect your wallet to sign in with Web3.
@@ -789,8 +789,8 @@ export default function WalletSettingsPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Wallet Tips */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
                 <h3 className="text-lg font-bold text-foreground mb-2">Wallet Safety</h3>
                 <p className="text-muted-foreground text-sm">Keep your assets secure</p>
               </div>
@@ -826,8 +826,8 @@ export default function WalletSettingsPage() {
             </div>
 
             {/* Security Info */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-red-900/30">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
                 <h3 className="text-lg font-bold text-foreground mb-2">Web3 Features</h3>
                 <p className="text-muted-foreground text-sm">Why connect your wallet?</p>
               </div>
@@ -855,7 +855,7 @@ export default function WalletSettingsPage() {
           </div>
         </div>
 
-        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>

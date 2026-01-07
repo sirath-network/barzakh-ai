@@ -114,6 +114,13 @@ export function X402PaymentModal({
     setWalletVerified(false);
   }, [address]);
 
+  // Auto-close modal when wallet disconnects after verification/payment step
+  useEffect(() => {
+    if (isOpen && !isConnected && (step === "payment" || step === "verify" || walletVerified)) {
+      onClose();
+    }
+  }, [isConnected, isOpen, step, walletVerified, onClose]);
+
   // Step 1: Verify wallet ownership before payment
   const verifyWalletOwnership = async () => {
     if (!isConnected || !address) {
@@ -158,7 +165,6 @@ export function X402PaymentModal({
 
       // Success - wallet is verified
       setWalletVerified(true);
-      toast.success("Wallet ownership verified!");
 
       // Now proceed to init payment
       await initPayment();
@@ -460,14 +466,14 @@ export function X402PaymentModal({
                       {/* Connected wallet info */}
                       <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-full bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                          <div className="p-1.5 rounded-full bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400">
                             <Wallet className="h-3 w-3" />
                           </div>
                           <span className="text-sm font-medium">
                             {address?.slice(0, 6)}...{address?.slice(-4)}
                           </span>
                           {walletVerified && (
-                            <ShieldCheck className="h-4 w-4 text-green-500" />
+                            <ShieldCheck className="h-4 w-4 text-stone-500" />
                           )}
                         </div>
                         <ConnectButton.Custom>
@@ -508,12 +514,12 @@ export function X402PaymentModal({
           {step === "payment" && paymentData && (
             <div className="space-y-6">
               {/* Payment Details Card */}
-              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg space-y-4 border border-green-200 dark:border-green-800">
+              <div className="p-4 bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-800/40 dark:to-stone-700/30 rounded-lg space-y-4 border border-stone-300 dark:border-stone-500/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-green-700 dark:text-green-300">GASLESS PAYMENT</span>
+                    <span className="text-xs font-medium text-stone-700 dark:text-stone-200">GASLESS PAYMENT</span>
                   </div>
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-green-600/70">Cronos Testnet</span>
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-stone-500 dark:text-stone-400">Cronos Testnet</span>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -543,12 +549,12 @@ export function X402PaymentModal({
                       className="h-6 w-6 shrink-0 hover:bg-muted"
                       onClick={() => handleCopy(paymentData.displayInfo?.receiver)}
                     >
-                      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                      {copied ? <Check className="h-3 w-3 text-stone-500" /> : <Copy className="h-3 w-3" />}
                     </ButtonAny>
                   </div>
                 </div>
 
-                <p className="text-xs text-green-700 dark:text-green-300 bg-green-100/50 dark:bg-green-900/30 p-2 rounded">
+                <p className="text-xs text-stone-700 dark:text-stone-200 bg-stone-100/50 dark:bg-stone-700/40 p-2 rounded border border-stone-200 dark:border-stone-600/50">
                   {paymentData.displayInfo?.note}
                 </p>
               </div>
@@ -603,13 +609,13 @@ export function X402PaymentModal({
                     {/* Wallet Info with USDC Balance */}
                     <div className={`p-3 rounded-lg border transition-colors ${hasInsufficientBalance
                       ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
-                      : "bg-green-50/50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
+                      : "bg-stone-50/50 border-stone-200 dark:bg-stone-800/30 dark:border-stone-500/50"
                       }`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className={`p-1.5 rounded-full ${hasInsufficientBalance
                             ? "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"
-                            : "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
+                            : "bg-stone-100 text-stone-600 dark:bg-stone-700/60 dark:text-stone-300"
                             }`}>
                             <Wallet className="h-3.5 w-3.5" />
                           </div>
@@ -636,7 +642,7 @@ export function X402PaymentModal({
                           <div className="text-xs text-muted-foreground">USDC.e Balance</div>
                           <div className={`font-mono font-medium ${hasInsufficientBalance
                             ? "text-red-600 dark:text-red-400"
-                            : "text-green-600 dark:text-green-400"
+                            : "text-stone-700 dark:text-stone-200"
                             }`}>
                             {parseFloat(userUsdcBalance).toFixed(2)} USDC.e
                           </div>
@@ -654,7 +660,7 @@ export function X402PaymentModal({
                     <ButtonAny
                       onClick={handlePayment}
                       disabled={isSigningTypedData || hasInsufficientBalance || !isOnCorrectChain}
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      className="w-full bg-gradient-to-r from-stone-500 to-stone-600 hover:from-stone-600 hover:to-stone-700 dark:from-stone-300 dark:to-stone-400 dark:hover:from-stone-200 dark:hover:to-stone-300 text-white dark:text-stone-900 font-semibold shadow-lg"
                       size="lg"
                     >
                       {isSigningTypedData ? (

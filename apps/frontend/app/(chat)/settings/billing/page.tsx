@@ -18,17 +18,17 @@ export default function BillingPage() {
       toast.success("Payment successful! Your plan is now active.", {
         description: "Redirecting you to the homepage",
       });
-      
+
       // Immediate redirect
       router.push("/");
-      
+
       // Update session in background (optional)
       updateSession().catch(console.error);
     }
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900">
       <div className="max-w-5xl mx-auto py-6 md:py-10">
         <BillingSettingsPage />
       </div>

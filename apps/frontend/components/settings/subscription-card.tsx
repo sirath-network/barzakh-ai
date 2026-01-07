@@ -153,17 +153,17 @@ export function SubscriptionCard({
 
   const metadataPlanName = subscription?.metadata?.tier
     ? subscription.metadata.tier.charAt(0).toUpperCase() +
-      subscription.metadata.tier.slice(1)
+    subscription.metadata.tier.slice(1)
     : subscription?.metadata?.planId
-    ? subscription.metadata.planId.charAt(0).toUpperCase() +
+      ? subscription.metadata.planId.charAt(0).toUpperCase() +
       subscription.metadata.planId.slice(1)
-    : null;
+      : null;
   const formattedPlanName =
     subscription?.planName ??
     metadataPlanName ??
     (normalizedFallbackTier
       ? normalizedFallbackTier.charAt(0).toUpperCase() +
-        normalizedFallbackTier.slice(1)
+      normalizedFallbackTier.slice(1)
       : null) ??
     "Paid";
   const planChargeCopy = monthlyAmountText ?? cycleBillingText ?? null;
@@ -253,26 +253,25 @@ export function SubscriptionCard({
     : formatStatus(rawStatus);
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-visible backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-visible backdrop-blur-sm relative">
       <div className="p-8 space-y-3">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           Your Subscription
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
           {isSubscribed
-            ? `Currently on the ${formattedPlanName} plan${
-                planChargeCopy ? ` billed at ${planChargeCopy}` : ""
-              }.`
+            ? `Currently on the ${formattedPlanName} plan${planChargeCopy ? ` billed at ${planChargeCopy}` : ""
+            }.`
             : "Manage your plan, billing cycle, and subscription status."}
         </p>
       </div>
 
       <div className="relative min-h-[180px]">
         {isSubscribed ? (
-          <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-5">
+          <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 text-sm space-y-5">
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-300">Plan</span>
-              <span className="font-medium text-gray-800 dark:text-red-400">
+              <span className="font-medium text-gray-800 dark:text-stone-300">
                 {isLoadingState
                   ? "Loading..."
                   : formattedPlanName ?? "Custom Plan"}
@@ -297,13 +296,12 @@ export function SubscriptionCard({
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-300">Status</span>
               <span
-                className={`px-3 py-1 rounded-full border text-sm font-medium ${
-                  isCancellationScheduled
-                    ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/50"
-                    : rawStatus === "active" || rawStatus === "trialing"
+                className={`px-3 py-1 rounded-full border text-sm font-medium ${isCancellationScheduled
+                  ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/50"
+                  : rawStatus === "active" || rawStatus === "trialing"
                     ? "text-emerald-600 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-700/50"
                     : "text-rose-600 bg-rose-100 border-rose-200 dark:text-rose-300 dark:bg-rose-900/30 dark:border-rose-700/50"
-                }`}
+                  }`}
               >
                 {statusLabel}
               </span>
@@ -323,7 +321,7 @@ export function SubscriptionCard({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-red-900/30">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-stone-800/30">
               {isCancellationScheduled ? (
                 <button
                   onClick={handleResumeSubscription}
@@ -458,7 +456,7 @@ export function SubscriptionCard({
                 <button
                   onClick={handleManageSubscription}
                   disabled={isManagingPortal}
-                  className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-red-600 dark:to-red-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-stone-600 dark:to-stone-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isManagingPortal ? "Loading..." : "Manage Billing Portal"}
                 </button>
@@ -466,13 +464,13 @@ export function SubscriptionCard({
             </div>
           </div>
         ) : (
-          <div className="p-8 border-t border-gray-200 dark:border-red-900/30 space-y-6">
+          <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 space-y-6">
             <div className="text-center space-y-2">
             </div>
-            <div className="relative overflow-hidden rounded-3xl border border-dashed border-gray-300 dark:border-red-900/40 bg-white/40 dark:bg-black/40">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gray-400/10 via-transparent to-gray-500/20 dark:from-red-500/10 dark:via-transparent dark:to-red-900/20 blur-xl" />
+            <div className="relative overflow-hidden rounded-3xl border border-dashed border-gray-300 dark:border-stone-800/40 bg-white/40 dark:bg-black/40">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gray-400/10 via-transparent to-gray-500/20 dark:from-stone-500/10 dark:via-transparent dark:to-stone-900/20 blur-xl" />
               <div className="relative px-8 py-12 text-center space-y-5 backdrop-blur-md">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:text-red-200 dark:bg-red-800/30 shadow-inner dark:shadow-red-900/50">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:text-stone-200 dark:bg-stone-800/30 shadow-inner dark:shadow-stone-900/50">
                   <Lock className="h-7 w-7 animate-[pulse_2s_ease-in-out_infinite]" />
                 </div>
                 <div className="space-y-1.5">
@@ -483,7 +481,7 @@ export function SubscriptionCard({
                     Pick a subscription tier from the dedicated Plans &amp; Pricing section to unlock billing management and premium features.
                   </p>
                 </div>
-                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-red-300/80">
+                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-stone-400/80">
                   Data available after subscribing
                 </p>
               </div>
