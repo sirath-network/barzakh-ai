@@ -30,10 +30,8 @@ export async function GET(request: NextRequest) {
 
     // Fetch NFT collections
     // Reference: https://developers.zerion.io/reference/listwalletnftcollections
-    // Added page[size] to limit the response size and prevent timeouts for large wallets
-    const url = `https://api.zerion.io/v1/wallets/${address}/nft-collections/?currency=${currency}&page[size]=100`;
-
-    console.log(`Fetching NFT collections for ${address} from ${url}`);
+    // Added page[size] to limit the response size and best UX - large wallets can have huge collections
+    const url = `https://api.zerion.io/v1/wallets/${address}/nft-collections/?currency=${currency}&page[size]=12`;
 
     const response = await fetch(url, options);
 

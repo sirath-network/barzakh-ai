@@ -264,7 +264,6 @@ export function AIGeneratedImage({
               title: 'AI Generated Image',
               text: 'Download this AI generated image'
             });
-            console.log('📱 Successfully shared via Web Share API');
             return;
           }
         } catch (shareError) {
@@ -287,8 +286,6 @@ export function AIGeneratedImage({
       // Clean up blob URL after a delay
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
-      console.log('📱 Downloaded via blob URL method');
-
     } catch (error) {
       console.error('Mobile blob download failed:', error);
       // Fallback: Open image directly
@@ -309,8 +306,6 @@ export function AIGeneratedImage({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      console.log('📱 Opened download link for mobile:', imageUrl);
 
     } catch (error) {
       console.warn('Download link failed, opening in new tab:', error);
@@ -688,10 +683,6 @@ export function AIGeneratedImageCompact({
 
       // Check if it's a data URL (base64)
       if (imageUrl.startsWith('data:')) {
-        if (isMobileDevice) {
-          // Mobile: Skip Web Share API to avoid unwanted share popup
-          console.log('📱 Mobile detected - skipping Web Share API');
-        }
 
         // Fallback for data URLs
         const link = document.createElement('a');
@@ -736,7 +727,6 @@ export function AIGeneratedImageCompact({
                   title: 'AI Generated Image',
                   text: 'Download this AI generated image'
                 });
-                console.log('📱 Successfully shared via Web Share API');
                 return;
               }
             } catch (shareError) {

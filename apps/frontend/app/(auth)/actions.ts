@@ -30,7 +30,6 @@ const captureException = async (error: unknown) => {
 async function verifyTurnstile(token: string) {
   // Validate token format before making request
   if (!token || token.trim() === "" || token.length < 10) {
-    console.log("❌ Turnstile verification failed: Invalid token format");
     return false;
   }
 
@@ -52,12 +51,6 @@ async function verifyTurnstile(token: string) {
     );
 
     const data = await res.json();
-
-    if (!data.success) {
-      console.log("❌ Turnstile verification failed:", data);
-    } else {
-      console.log("✅ Turnstile verification successful");
-    }
 
     return data.success;
   } catch (error) {
@@ -331,11 +324,8 @@ export const register = async (
       return { status: "failed", timestamp };
     }
 
-    console.log('Registration attempt:', { email, hasOtp: !!otp });
-
     // If we're verifying OTP
     if (otp) {
-      console.log('Verifying OTP for:', email);
       const verified = await verifyOTP(email, otp);
 
       if (!verified) {
@@ -347,7 +337,6 @@ export const register = async (
         };
       }
 
-      console.log('Creating user account');
       const id = generateUUID();
       await createUser(id, email, password);
 
@@ -388,7 +377,6 @@ export const register = async (
       };
     }
 
-    console.log('Sending OTP to:', email);
     const otpCode = generateOTP();
     await saveOTP(email, otpCode);
     await sendOTPEmail(email, otpCode);
@@ -426,17 +414,13 @@ export const register = async (
 // Add this helper function to verify OTP
 async function verifyOTP(email: string, otp: string): Promise<boolean> {
   try {
-    console.log('Verifying OTP for:', email);
     const savedOTP = await getOTP(email);
 
     if (!savedOTP) {
-      console.log('No OTP found for email:', email);
       return false;
     }
 
-    console.log('Comparing OTPs - Saved:', savedOTP.otp, 'Received:', otp);
     if (savedOTP.otp !== otp) {
-      console.log('OTP mismatch');
       return false;
     }
 
@@ -444,13 +428,11 @@ async function verifyOTP(email: string, otp: string): Promise<boolean> {
     const expiryTime = new Date(savedOTP.createdAt.getTime() + 10 * 60 * 1000);
 
     if (now > expiryTime) {
-      console.log('OTP expired');
       await deleteOTP(email);
       return false;
     }
 
     await deleteOTP(email);
-    console.log('OTP verified successfully');
     return true;
   } catch (error) {
     console.error('OTP verification error:', error);
@@ -485,12 +467,9 @@ export async function forgotPassword(
     const otp = formData.get("otp") as string | null;
     const turnstileResponse = formData.get("cf-turnstile-response") as string;
 
-    console.log(`🔄 ForgotPassword action called - Input: ${emailOrUsername}, OTP: ${otp ? 'provided' : 'not provided'}`);
-
     const isTurnstileValid = await verifyTurnstile(turnstileResponse);
 
     if (!isTurnstileValid) {
-      console.log(`❌ Turnstile verification failed for ${emailOrUsername} - token may be expired or already used`);
       return {
         status: "failed",
         fieldErrors: {
@@ -518,7 +497,6 @@ export async function forgotPassword(
         };
       }
       resolvedEmail = byUsername[0].email!;
-      console.log(`📧 Resolved username '${emailOrUsername}' to email '${resolvedEmail}'`);
     }
 
     // Check if user exists
@@ -532,12 +510,9 @@ export async function forgotPassword(
 
     // If we're verifying OTP
     if (otp) {
-      console.log(`🔍 Verifying OTP for email: ${resolvedEmail}`);
       const verified = await verifyOTP(resolvedEmail, otp);
-      console.log(`✅ OTP verification result: ${verified}`);
 
       if (!verified) {
-        console.log(`❌ OTP verification failed for ${resolvedEmail}`);
         return {
           status: "invalid_data",
           fieldErrors: { otp: ["Invalid or expired OTP"] },
@@ -561,7 +536,6 @@ export async function forgotPassword(
         const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
         await sendResetEmail(resolvedEmail, resetUrl);
 
-        console.log(`🎉 Successfully completed OTP verification and reset email for ${resolvedEmail}`);
         return {
           status: "otp_verified",
           email: resolvedEmail
@@ -696,7 +670,6 @@ export async function verifyAndResetPassword(
     }
 
     if (tokens.expiry < new Date()) {
-      console.log("expired_token");
       return { status: "expired_token" };
     }
 
@@ -706,7 +679,7 @@ export async function verifyAndResetPassword(
 
     return { status: "success" };
   } catch (err) {
-    console.log("Error while running verifyAndResetPassword action = ", err);
+    console.error("verifyAndResetPassword error:", err);
     return { status: "failed" };
   }
 }

@@ -5,19 +5,20 @@ import {
 } from "@barzakh/shared/types/wallet-actions-response";
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Wallet, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  ChevronDown,
+  ChevronRight,
   Loader2,
   ArrowUpRight,
   ArrowDownRight,
   Layers,
   CreditCard,
   Landmark,
-  Activity
+  Activity,
+  ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "@/lib/framer-motion";
 
@@ -28,7 +29,7 @@ interface PortfolioProps {
 // Get chain logo from Zerion's CDN or cached icons
 const getChainLogo = (chain: string, iconUrl?: string): string => {
   if (iconUrl) return iconUrl;
-  
+
   const zerionChainIcons: Record<string, string> = {
     abstract: "https://chain-icons.s3.us-east-1.amazonaws.com/abstract.png",
     ape: "https://chain-icons.s3.us-east-1.amazonaws.com/apechain.png",
@@ -157,10 +158,11 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const [protocolPositions, setProtocolPositions] = useState<ProtocolPosition[]>([]);
   const [loadingProtocols, setLoadingProtocols] = useState(false);
   const [hasFetchedProtocols, setHasFetchedProtocols] = useState(false);
-  
+
   // NFT State
   const [showNfts, setShowNfts] = useState(false);
   const [nftCollections, setNftCollections] = useState<NftCollection[]>([]);
+  const [totalNftCollections, setTotalNftCollections] = useState<number>(0);
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [hasFetchedNfts, setHasFetchedNfts] = useState(false);
   const [nftPortfolioValue, setNftPortfolioValue] = useState<number>(0);
@@ -174,6 +176,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const ChevronRightAny = ChevronRight as any;
   const LayersAny = Layers as any;
   const ImageAny = Image as any;
+  const ExternalLinkAny = ExternalLink as any;
 
   if (!result || !result.attributes)
     return (
@@ -194,10 +197,10 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   // Calculate total DeFi value and Net Worth
   const totalDeFiValue = protocolPositions.reduce((acc, pos) => acc + pos.totalValue, 0);
   // Use fetched NFT portfolio value if available, otherwise fallback to sum of collections
-  const totalNftValue = nftPortfolioValue > 0 
-    ? nftPortfolioValue 
+  const totalNftValue = nftPortfolioValue > 0
+    ? nftPortfolioValue
     : nftCollections.reduce((acc, collection) => acc + (collection.estimatedValue || 0), 0);
-    
+
   const netWorth = (totalPositions || 0) + totalDeFiValue + totalNftValue;
 
   // Fetch protocol positions
@@ -218,21 +221,21 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
       const data = await response.json();
       const protocolMap = new Map<string, ProtocolPosition>();
-      
+
       if (!data.data || data.data.length === 0) {
         setProtocolPositions([]);
         return;
       }
-      
+
       data.data?.forEach((position: any) => {
         const attrs = position.attributes;
         if (!attrs.application_metadata?.name) return;
-        
+
         const protocol = attrs.application_metadata.name;
         const chain = position.relationships?.chain?.data?.id || 'unknown';
         const positionType = attrs.position_type || 'deposited';
         const key = `${protocol}-${chain}-${positionType}`;
-        
+
         if (!protocolMap.has(key)) {
           protocolMap.set(key, {
             protocol,
@@ -243,7 +246,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             chain,
           });
         }
-        
+
         const protocolPos = protocolMap.get(key)!;
         if (attrs.fungible_info) {
           protocolPos.tokens.push({
@@ -256,7 +259,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           protocolPos.totalValue += attrs.value || 0;
         }
       });
-      
+
       setProtocolPositions(Array.from(protocolMap.values()).sort((a, b) => b.totalValue - a.totalValue));
     } catch (error) {
       console.error('Error fetching protocol positions:', error);
@@ -306,18 +309,18 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       }
 
       const data = await response.json();
-      
+
       if (!data.data || data.data.length === 0) {
         setNftCollections([]);
         return;
       }
-      
+
       const collections: NftCollection[] = data.data.map((item: any) => {
         const attrs = item.attributes;
         const collectionInfo = attrs.collection_info;
         const amount = Number(attrs.nfts_count) || 0;
         const totalFloorPrice = attrs.total_floor_price || 0;
-        
+
         return {
           name: collectionInfo?.name || 'Unknown Collection',
           imageUrl: collectionInfo?.content?.icon?.url || collectionInfo?.content?.banner?.url,
@@ -327,8 +330,10 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           chain: item.relationships?.chain?.data?.id || 'unknown',
         };
       });
-      
-      setNftCollections(collections);
+
+      // Store total count but limit displayed collections to 12 for best UX
+      setTotalNftCollections(collections.length);
+      setNftCollections(collections.slice(0, 12));
     } catch (error) {
       console.error('Error fetching NFT collections:', error);
       setNftCollections([]);
@@ -346,7 +351,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         fetchProtocolPositions();
       }
     }
-    
+
     if (result.id && !hasFetchedNfts) {
       fetchNftCollections();
       fetchNftPortfolio();
@@ -383,7 +388,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         if (data.data?.[0]?.relationships?.chain?.data?.attributes?.icon_url) {
           setChainIcons(prev => ({ ...prev, [chain]: data.data[0].relationships.chain.data.attributes.icon_url }));
         }
-        
+
         const tokens: ChainTokenDetail[] = data.data?.map((position: any) => ({
           symbol: position.attributes?.fungible_info?.symbol || 'Unknown',
           name: position.attributes?.fungible_info?.name || 'Unknown Token',
@@ -393,7 +398,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           icon: position.attributes?.fungible_info?.icon?.url || undefined,
           change24h: position.attributes?.changes?.percent_1d // Attempt to get 24h change if available
         })) || [];
-        
+
         setChainTokens(prev => ({ ...prev, [chain]: tokens }));
       } catch (error) {
         console.error(`Error fetching tokens for ${chain}:`, error);
@@ -408,24 +413,24 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     <div className="w-full max-w-full space-y-4 font-sans">
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
+
         {/* Hero Card: Total Balance */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="md:col-span-2 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-zinc-100/50 dark:to-zinc-900/50 pointer-events-none" />
-          
+
           {/* Mini Sparkline Background Effect */}
           <div className="absolute bottom-0 left-0 right-0 h-24 opacity-10 pointer-events-none">
-             <svg viewBox="0 0 100 20" className="w-full h-full" preserveAspectRatio="none">
-               <path 
-                 d={isPositiveChange ? "M0 20 L0 15 Q20 18 40 10 T100 5 L100 20 Z" : "M0 20 L0 5 Q20 10 40 15 T100 18 L100 20 Z"} 
-                 fill={isPositiveChange ? "currentColor" : "currentColor"} 
-                 className={isPositiveChange ? "text-emerald-500" : "text-rose-500"}
-               />
-             </svg>
+            <svg viewBox="0 0 100 20" className="w-full h-full" preserveAspectRatio="none">
+              <path
+                d={isPositiveChange ? "M0 20 L0 15 Q20 18 40 10 T100 5 L100 20 Z" : "M0 20 L0 5 Q20 10 40 15 T100 18 L100 20 Z"}
+                fill={isPositiveChange ? "currentColor" : "currentColor"}
+                className={isPositiveChange ? "text-emerald-500" : "text-rose-500"}
+              />
+            </svg>
           </div>
 
           <div className="relative p-6 flex flex-col justify-between h-full">
@@ -435,7 +440,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
               </div>
               <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Balance</span>
             </div>
-            
+
             <div className="mt-4">
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white tabular-nums break-all">
@@ -447,13 +452,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                   </span>
                 )}
               </div>
-              
+
               {percentChange !== undefined && (
-                <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-sm font-medium ${
-                  isPositiveChange 
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                }`}>
+                <div className={`inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-sm font-medium ${isPositiveChange
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                  }`}>
                   {isPositiveChange ? <ArrowUpRightAny className="w-4 h-4" /> : <ArrowDownRightAny className="w-4 h-4" />}
                   <span className="tabular-nums">{Math.abs(percentChange).toFixed(2)}%</span>
                   <span className="text-xs opacity-70 ml-1">24h</span>
@@ -464,7 +468,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         </motion.div>
 
         {/* DeFi Protocols Summary Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           whileHover={{ scale: 1.01 }}
@@ -473,7 +477,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           onClick={toggleProtocols}
         >
           <div className="p-6 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
                 <LandmarkAny className="w-5 h-5" />
               </div>
@@ -484,17 +488,17 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Lending, Staking, Liquidity
             </p>
-            
+
             <div className="mt-auto pt-4">
-               <div className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status</div>
-               <div className="flex items-center gap-2 mt-1">
-                 <div className={`w-2 h-2 rounded-full ${protocolPositions.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
-                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                   {loadingProtocols || (!hasFetchedProtocols && (totalPositions || 0) > 0) ? 'Loading...' : 
-                    protocolPositions.length > 0 ? `${protocolPositions.length} Active Positions` : 
-                    'No Active Positions'}
-                 </span>
-               </div>
+              <div className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status</div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className={`w-2 h-2 rounded-full ${protocolPositions.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {loadingProtocols || (!hasFetchedProtocols && (totalPositions || 0) > 0) ? 'Loading...' :
+                    protocolPositions.length > 0 ? `${protocolPositions.length} Active Positions` :
+                      'No Active Positions'}
+                </span>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -502,7 +506,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         {/* DeFi Protocols Detail View (Collapsible) */}
         <AnimatePresence>
           {showProtocols && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -527,12 +531,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
                             {position.protocolIcon ? (
-                              <ImageAny 
-                                src={position.protocolIcon} 
-                                alt={position.protocol} 
-                                width={32} 
-                                height={32} 
-                                className="rounded-lg flex-shrink-0" 
+                              <ImageAny
+                                src={position.protocolIcon}
+                                alt={position.protocol}
+                                width={32}
+                                height={32}
+                                className="rounded-lg flex-shrink-0"
                                 unoptimized
                               />
                             ) : (
@@ -545,26 +549,25 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                               <div className="text-xs text-zinc-500 capitalize truncate">{position.chain}</div>
                             </div>
                           </div>
-                          <div className={`flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide border ${
-                            position.type === 'deposit' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                          <div className={`flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide border ${position.type === 'deposit' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
                             position.type === 'loan' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-                            'bg-blue-500/10 text-blue-600 border-blue-500/20'
-                          }`}>
+                              'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                            }`}>
                             {position.type}
                           </div>
                         </div>
-                        
+
                         <div className="space-y-3">
                           {position.tokens.map((token, tIdx) => (
                             <div key={tIdx} className="flex justify-between items-start">
                               <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-3">
                                 {token.icon ? (
-                                  <ImageAny 
-                                    src={token.icon} 
-                                    alt={token.symbol} 
-                                    width={20} 
-                                    height={20} 
-                                    className="rounded-full flex-shrink-0" 
+                                  <ImageAny
+                                    src={token.icon}
+                                    alt={token.symbol}
+                                    width={20}
+                                    height={20}
+                                    className="rounded-full flex-shrink-0"
                                     unoptimized
                                   />
                                 ) : (
@@ -607,7 +610,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         {/* Asset Lists by Chain */}
         <div className="col-span-1 md:col-span-2 space-y-4">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white px-1">Assets by Chain</h3>
-          
+
           {chains.map(([chain, value], index) => {
             const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
             const isExpanded = expandedChains[chain];
@@ -643,7 +646,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                       <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{percentage.toFixed(1)}% of portfolio</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
                     <div className="text-right">
                       <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
@@ -672,7 +675,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             <div className="col-span-3 text-right hidden sm:block">Price</div>
                             <div className="col-span-6 sm:col-span-4 text-right">Value</div>
                           </div>
-                          
+
                           {tokens.map((token, idx) => (
                             <motion.div
                               key={idx}
@@ -683,12 +686,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             >
                               <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
                                 {token.icon ? (
-                                  <ImageAny 
-                                    src={token.icon} 
-                                    alt={token.symbol} 
-                                    width={24} 
-                                    height={24} 
-                                    className="rounded-full" 
+                                  <ImageAny
+                                    src={token.icon}
+                                    alt={token.symbol}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
                                     unoptimized
                                   />
                                 ) : (
@@ -701,7 +704,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                                   <span className="text-xs text-zinc-500">{formatCrypto(token.balance)}</span>
                                 </div>
                               </div>
-                              
+
                               <div className="col-span-3 text-right hidden sm:block">
                                 <div className="text-sm text-zinc-900 dark:text-white tabular-nums">${formatCrypto(token.price)}</div>
                                 {/* Mini Sparkline Placeholder - Visual only since we lack history data */}
@@ -709,7 +712,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                                   <div className={`h-full w-2/3 rounded-full ${Math.random() > 0.5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                                 </div>
                               </div>
-                              
+
                               <div className="col-span-6 sm:col-span-4 text-right">
                                 <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatNumber(token.value)}</div>
                               </div>
@@ -728,7 +731,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         </div>
 
         {/* NFT Summary Card */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           whileHover={{ scale: 1.01 }}
@@ -745,22 +748,25 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 <ChevronDownAny className="w-5 h-5 text-zinc-400" />
               </div>
             </div>
-            
+
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">NFTs</h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Digital Collectibles
             </p>
-            
+
             <div className="mt-auto pt-4">
-               <div className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status</div>
-               <div className="flex items-center gap-2 mt-1">
-                 <div className={`w-2 h-2 rounded-full ${nftCollections.length > 0 ? 'bg-purple-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
-                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                   {loadingNfts || (!hasFetchedNfts && (totalPositions || 0) > 0) ? 'Loading...' : 
-                    nftCollections.length > 0 ? `${nftCollections.length} Collections` : 
-                    'No NFTs Found'}
-                 </span>
-               </div>
+              <div className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status</div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className={`w-2 h-2 rounded-full ${nftCollections.length > 0 ? 'bg-purple-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {loadingNfts || (!hasFetchedNfts && (totalPositions || 0) > 0) ? 'Loading...' :
+                    totalNftCollections > 0
+                      ? totalNftCollections > 12
+                        ? `12 of ${totalNftCollections} Collections`
+                        : `${totalNftCollections} Collections`
+                      : 'No NFTs Found'}
+                </span>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -768,7 +774,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         {/* NFT Detail View (Collapsible) */}
         <AnimatePresence>
           {showNfts && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -792,11 +798,11 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                       >
                         <div className="aspect-square relative rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3">
                           {collection.imageUrl ? (
-                            <ImageAny 
-                              src={collection.imageUrl} 
-                              alt={collection.name} 
-                              fill 
-                              className="object-cover" 
+                            <ImageAny
+                              src={collection.imageUrl}
+                              alt={collection.name}
+                              fill
+                              className="object-cover"
                               unoptimized
                             />
                           ) : (
@@ -808,16 +814,16 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             {collection.chain}
                           </div>
                         </div>
-                        
+
                         <div className="space-y-1">
                           <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate" title={collection.name}>{collection.name}</div>
                           <div className="text-xs text-zinc-500 truncate">{collection.amount} Items</div>
-                          
+
                           <div className="flex justify-between items-center pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800/50">
                             <span className="text-xs text-zinc-400">Floor</span>
                             <span className="text-xs font-medium text-zinc-900 dark:text-white">
-                              {collection.floorPrice 
-                                ? `${currency === 'usd' ? '$' : ''}${formatNumber(collection.floorPrice)}${currency !== 'usd' ? ` ${currency?.toUpperCase() || ''}` : ''}` 
+                              {collection.floorPrice
+                                ? `${currency === 'usd' ? '$' : ''}${formatNumber(collection.floorPrice)}${currency !== 'usd' ? ` ${currency?.toUpperCase() || ''}` : ''}`
                                 : '-'}
                             </span>
                           </div>
@@ -827,6 +833,22 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-zinc-500">No NFTs found.</div>
+                )}
+
+                {/* View full portfolio on Zerion link */}
+                {nftCollections.length > 0 && (
+                  <div className="text-center pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                    <a
+                      href={`https://app.zerion.io/${result.id}/nfts`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span>View full NFT portfolio on Zerion</span>
+                      <ExternalLinkAny className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 )}
               </div>
             </motion.div>

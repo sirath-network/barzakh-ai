@@ -35,8 +35,6 @@ export async function GET(request: NextRequest) {
     // Added page[size] to limit response size
     const url = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[positions]=only_complex&filter[trash]=only_non_trash&currency=${currency}&sort=value&page[size]=100`;
 
-    console.log(`Fetching protocol positions for ${address} from ${url}`);
-
     const response = await fetch(url, options);
 
     if (!response.ok) {
@@ -49,9 +47,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-
-    const totalFetched = data.data?.length || 0;
-    console.log(`Fetched ${totalFetched} protocol positions`);
 
     // With filter[positions]=only_complex, the API already returns ONLY DeFi positions
     // Log them for debugging
