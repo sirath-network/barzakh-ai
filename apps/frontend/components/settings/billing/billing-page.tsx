@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { IdCard  } from "lucide-react";
+import { IdCard } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
 
@@ -122,12 +122,12 @@ export default function BillingPage() {
     Boolean(invoicesData?.hasMore) && Boolean(invoicesData?.nextCursor);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-border flex-shrink-0">
-              <IdCard  className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <IdCard className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white leading-tight">Manage Subscription &amp; Payments</h1>
@@ -167,7 +167,7 @@ export default function BillingPage() {
           canGoNext={canGoNext}
         />
 
-        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-lg border border-gray-200 dark:border-red-900/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-lg border border-gray-200 dark:border-stone-800/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">

@@ -15,7 +15,7 @@ export function BillingAddressCard({
   isSubscribed,
 }: BillingAddressCardProps) {
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm relative">
       <div className="p-8">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           Billing Address
@@ -28,7 +28,7 @@ export function BillingAddressCard({
       <div className="relative">
         {isSubscribed && !isLoading ? (
           address ? (
-            <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-4">
+            <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 text-sm space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 dark:text-gray-300">Address</span>
                 <span className="font-medium text-gray-900 dark:text-white">
@@ -73,7 +73,7 @@ export function BillingAddressCard({
               </div>
             </div>
           ) : (
-            <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm text-center">
+            <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 text-sm text-center">
               <p className="text-gray-500 dark:text-gray-400">
                 No billing address on file. Please add one in the Stripe portal.
               </p>
@@ -81,7 +81,7 @@ export function BillingAddressCard({
           )
         ) : (
           <>
-            <div className="p-8 border-t border-gray-200 dark:border-red-900/30 text-sm space-y-4 blur-sm select-none pointer-events-none">
+            <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 text-sm space-y-4 blur-sm select-none pointer-events-none">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 dark:text-gray-300">Address</span>
                 <span className="font-medium text-gray-900 dark:text-white">
@@ -107,9 +107,9 @@ export function BillingAddressCard({
             <div className="absolute inset-0 flex items-center justify-center bg-gray-200/50 dark:bg-black/60 backdrop-blur-[1px]">
               <div className="text-center space-y-4 p-6">
                 <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-500 to-gray-600 dark:from-red-600 dark:to-red-700 rounded-full animate-pulse opacity-20"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-500 to-gray-600 dark:from-stone-600 dark:to-stone-700 rounded-full animate-pulse opacity-20"></div>
                   <div className="absolute inset-2 bg-gradient-to-r from-gray-400 to-gray-500 dark:from-red-500 dark:to-red-600 rounded-full animate-ping opacity-30"></div>
-                  <Lock className="w-8 h-8 text-gray-600 dark:text-red-400 relative z-10" />
+                  <Lock className="w-8 h-8 text-gray-600 dark:text-stone-400 relative z-10" />
                 </div>
 
                 <div className="space-y-2">

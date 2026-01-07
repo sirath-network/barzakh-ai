@@ -141,7 +141,7 @@ function Verify2FAContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-red-950 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Back Button */}
         <button
@@ -153,12 +153,12 @@ function Verify2FAContent() {
         </button>
 
         {/* Main Card */}
-        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-red-900/50 overflow-hidden backdrop-blur-sm">
+        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
           <div className="p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gray-100 dark:bg-red-800/50 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border border-gray-200 dark:border-red-700/50">
-                <Shield className="w-8 h-8 text-gray-600 dark:text-red-300" />
+              <div className="w-16 h-16 bg-gray-100 dark:bg-stone-800/50 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border border-gray-200 dark:border-stone-700/50">
+                <Shield className="w-8 h-8 text-gray-600 dark:text-stone-300" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 Two-Factor Authentication
@@ -200,7 +200,7 @@ function Verify2FAContent() {
               <button
                 type="submit"
                 disabled={isLoading || !token.trim()}
-                className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="w-full bg-stone-600 hover:bg-stone-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">
@@ -224,7 +224,7 @@ function Verify2FAContent() {
                     setToken(""); // Clear the input when switching modes
                     setHasAutoSubmitted(false); // Reset auto-submit flag
                   }}
-                  className="text-red-600 dark:text-red-400 hover:underline"
+                  className="text-stone-600 dark:text-stone-400 hover:underline"
                 >
                   {isBackupCode ? "Use TOTP code" : "Use backup code"}
                 </button>
