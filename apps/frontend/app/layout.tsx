@@ -49,7 +49,11 @@ export const metadata: Metadata = {
       },
     ],
   },
+  verification: {
+    google: "yrO-9W9IvQxX6fJmZ43bbEvI677am-rjjv7pZaOjG-M",
+  },
 };
+
 
 export const viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
