@@ -52,7 +52,7 @@ async function verifyTurnstile(token: string) {
     );
 
     const data = await res.json();
-    
+
     if (!data.success) {
       console.log("❌ Turnstile verification failed:", data);
     } else {
@@ -99,8 +99,9 @@ const registerSchema = z.object({
   "cf-turnstile-response": z.string(),
 });
 
+// For forgot password: accept either email or username; we'll resolve to email server-side
 const forgotPasswordSchema = z.object({
-  email: z.string().email(),
+  emailOrUsername: z.string().min(1, "Required"),
   "cf-turnstile-response": z.string(),
 });
 
@@ -283,26 +284,26 @@ const verifyOTPSchema = z.object({
 // Add this new action state type
 export interface VerifyOTPActionState {
   status:
-    | "idle"
-    | "in_progress"
-    | "success"
-    | "failed"
-    | "invalid_data"
-    | "invalid_otp"
-    | "otp_expired";
+  | "idle"
+  | "in_progress"
+  | "success"
+  | "failed"
+  | "invalid_data"
+  | "invalid_otp"
+  | "otp_expired";
 }
 
 export interface RegisterActionState {
   status:
-    | "idle"
-    | "in_progress"
-    | "success"
-    | "failed"
-    | "user_exists"
-    | "invalid_data"
-    | "too_small"
-    | "otp_sent"
-    | "otp_verified";
+  | "idle"
+  | "in_progress"
+  | "success"
+  | "failed"
+  | "user_exists"
+  | "invalid_data"
+  | "too_small"
+  | "otp_sent"
+  | "otp_verified";
   fieldErrors?: {
     email?: string[];
     password?: string[];
@@ -312,114 +313,114 @@ export interface RegisterActionState {
   timestamp?: number;
 }
 
-    // Modify the register action to handle OTP flow
-    export const register = async (
-      prevState: RegisterActionState,
-      formData: FormData
-    ): Promise<RegisterActionState> => {
-      const timestamp = Date.now();
-      try {
-        const email = formData.get("email") as string;
-        const password = formData.get("password") as string;
-        const otp = formData.get("otp") as string | null;
-        const turnstileResponse = formData.get("cf-turnstile-response") as string;
+// Modify the register action to handle OTP flow
+export const register = async (
+  prevState: RegisterActionState,
+  formData: FormData
+): Promise<RegisterActionState> => {
+  const timestamp = Date.now();
+  try {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const otp = formData.get("otp") as string | null;
+    const turnstileResponse = formData.get("cf-turnstile-response") as string;
 
-        const isTurnstileValid = await verifyTurnstile(turnstileResponse);
+    const isTurnstileValid = await verifyTurnstile(turnstileResponse);
 
-        if (!isTurnstileValid) {
-          return { status: "failed", timestamp };
-        }
+    if (!isTurnstileValid) {
+      return { status: "failed", timestamp };
+    }
 
-        console.log('Registration attempt:', { email, hasOtp: !!otp });
+    console.log('Registration attempt:', { email, hasOtp: !!otp });
 
-        // If we're verifying OTP
-        if (otp) {
-          console.log('Verifying OTP for:', email);
-          const verified = await verifyOTP(email, otp);
-          
-          if (!verified) {
-            return { 
-              status: "invalid_data",
-              fieldErrors: { otp: ["Invalid or expired OTP"] },
-              email,
-              timestamp
-            };
-          }
+    // If we're verifying OTP
+    if (otp) {
+      console.log('Verifying OTP for:', email);
+      const verified = await verifyOTP(email, otp);
 
-          console.log('Creating user account');
-          const id = generateUUID();
-          await createUser(id, email, password);
-          
-          return { 
-            status: "otp_verified",
-            email,
-            timestamp
-          };
-        }
-
-        // Initial submission - validate inputs, then send OTP
-        try {
-          registerSchema.parse({ 
-            email, 
-            password,
-            "cf-turnstile-response": turnstileResponse 
-          });
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            return {
-              status: "invalid_data",
-              fieldErrors: error.flatten().fieldErrors,
-              email,
-              timestamp
-            };
-          }
-          throw error;
-        }
-
-        // Check if user already exists BEFORE sending OTP
-        const existingUser = await getUser(email);
-        if (existingUser.length > 0) {
-            return {
-                status: "user_exists",
-                fieldErrors: { email: ["An account with this email already exists."] },
-                email,
-                timestamp
-            };
-        }
-
-        console.log('Sending OTP to:', email);
-        const otpCode = generateOTP();
-        await saveOTP(email, otpCode);
-        await sendOTPEmail(email, otpCode);
-
-        return { 
-          status: "otp_sent",
+      if (!verified) {
+        return {
+          status: "invalid_data",
+          fieldErrors: { otp: ["Invalid or expired OTP"] },
           email,
           timestamp
         };
-    } catch (error) {
-        console.error('Registration error:', error);
-        
-        // Handle potential duplicate key error during creation as a fallback
-        if (error instanceof Error && 'code' in error && error.code === '23505') {
-            return {
-                status: "user_exists",
-                fieldErrors: { email: ["An account with this email already exists."] },
-                timestamp
-            };
-        }
+      }
 
-        if (error instanceof z.ZodError) {
-        return {
-            status: "invalid_data",
-            fieldErrors: error.flatten().fieldErrors,
-            timestamp
-        };
-        }
-        
-        captureException(error).catch(console.error);
-        return { status: "failed", timestamp };
+      console.log('Creating user account');
+      const id = generateUUID();
+      await createUser(id, email, password);
+
+      return {
+        status: "otp_verified",
+        email,
+        timestamp
+      };
     }
+
+    // Initial submission - validate inputs, then send OTP
+    try {
+      registerSchema.parse({
+        email,
+        password,
+        "cf-turnstile-response": turnstileResponse
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return {
+          status: "invalid_data",
+          fieldErrors: error.flatten().fieldErrors,
+          email,
+          timestamp
+        };
+      }
+      throw error;
+    }
+
+    // Check if user already exists BEFORE sending OTP
+    const existingUser = await getUser(email);
+    if (existingUser.length > 0) {
+      return {
+        status: "user_exists",
+        fieldErrors: { email: ["An account with this email already exists."] },
+        email,
+        timestamp
+      };
+    }
+
+    console.log('Sending OTP to:', email);
+    const otpCode = generateOTP();
+    await saveOTP(email, otpCode);
+    await sendOTPEmail(email, otpCode);
+
+    return {
+      status: "otp_sent",
+      email,
+      timestamp
+    };
+  } catch (error) {
+    console.error('Registration error:', error);
+
+    // Handle potential duplicate key error during creation as a fallback
+    if (error instanceof Error && 'code' in error && error.code === '23505') {
+      return {
+        status: "user_exists",
+        fieldErrors: { email: ["An account with this email already exists."] },
+        timestamp
+      };
+    }
+
+    if (error instanceof z.ZodError) {
+      return {
+        status: "invalid_data",
+        fieldErrors: error.flatten().fieldErrors,
+        timestamp
+      };
+    }
+
+    captureException(error).catch(console.error);
+    return { status: "failed", timestamp };
+  }
 };
 
 // Add this helper function to verify OTP
@@ -427,7 +428,7 @@ async function verifyOTP(email: string, otp: string): Promise<boolean> {
   try {
     console.log('Verifying OTP for:', email);
     const savedOTP = await getOTP(email);
-    
+
     if (!savedOTP) {
       console.log('No OTP found for email:', email);
       return false;
@@ -441,7 +442,7 @@ async function verifyOTP(email: string, otp: string): Promise<boolean> {
 
     const now = new Date();
     const expiryTime = new Date(savedOTP.createdAt.getTime() + 10 * 60 * 1000);
-    
+
     if (now > expiryTime) {
       console.log('OTP expired');
       await deleteOTP(email);
@@ -459,15 +460,15 @@ async function verifyOTP(email: string, otp: string): Promise<boolean> {
 
 export interface ForgotPasswordActionState {
   status:
-    | "idle"
-    | "in_progress"
-    | "success"
-    | "failed"
-    | "invalid_data"
-    | "invalid_email"
-    | "otp_sent"
-    | "otp_verified"
-    | "requires_2fa";
+  | "idle"
+  | "in_progress"
+  | "success"
+  | "failed"
+  | "invalid_data"
+  | "invalid_email"
+  | "otp_sent"
+  | "otp_verified"
+  | "requires_2fa";
   email?: string;
   fieldErrors?: {
     email?: string[];
@@ -480,81 +481,103 @@ export async function forgotPassword(
   formData: FormData
 ): Promise<ForgotPasswordActionState> {
   try {
-    const email = formData.get("email") as string;
+    const emailOrUsername = formData.get("email") as string;
     const otp = formData.get("otp") as string | null;
     const turnstileResponse = formData.get("cf-turnstile-response") as string;
 
-    console.log(`🔄 ForgotPassword action called - Email: ${email}, OTP: ${otp ? 'provided' : 'not provided'}`);
+    console.log(`🔄 ForgotPassword action called - Input: ${emailOrUsername}, OTP: ${otp ? 'provided' : 'not provided'}`);
 
     const isTurnstileValid = await verifyTurnstile(turnstileResponse);
 
     if (!isTurnstileValid) {
-      console.log(`❌ Turnstile verification failed for ${email} - token may be expired or already used`);
-      return { 
+      console.log(`❌ Turnstile verification failed for ${emailOrUsername} - token may be expired or already used`);
+      return {
         status: "failed",
-        fieldErrors: { 
-          email: ["Security verification failed. Please refresh the page and try again."] 
+        fieldErrors: {
+          email: ["Security verification failed. Please refresh the page and try again."]
         }
       };
     }
 
+    // Resolve identifier to email (supports username, same pattern as login)
+    let resolvedEmail = emailOrUsername;
+    if (!emailOrUsername.includes("@")) {
+      // Username path - enforce lowercase a-z0-9 only
+      const isLowerAlnum = /^[a-z0-9]+$/.test(emailOrUsername);
+      if (!isLowerAlnum) {
+        return {
+          status: "invalid_email",
+          fieldErrors: { email: ["Invalid username format. Use lowercase letters and numbers only."] },
+        };
+      }
+      const byUsername = await getUserByUsername(emailOrUsername);
+      if (byUsername.length === 0) {
+        return {
+          status: "invalid_email",
+          fieldErrors: { email: ["User not found"] },
+        };
+      }
+      resolvedEmail = byUsername[0].email!;
+      console.log(`📧 Resolved username '${emailOrUsername}' to email '${resolvedEmail}'`);
+    }
+
     // Check if user exists
-    const user = await getUser(email);
+    const user = await getUser(resolvedEmail);
     if (user.length === 0) {
       return {
         status: "invalid_email",
-        fieldErrors: { email: ["Email not found"] },
+        fieldErrors: { email: ["User not found"] },
       };
     }
 
     // If we're verifying OTP
     if (otp) {
-      console.log(`🔍 Verifying OTP for email: ${email}`);
-      const verified = await verifyOTP(email, otp);
+      console.log(`🔍 Verifying OTP for email: ${resolvedEmail}`);
+      const verified = await verifyOTP(resolvedEmail, otp);
       console.log(`✅ OTP verification result: ${verified}`);
-      
+
       if (!verified) {
-        console.log(`❌ OTP verification failed for ${email}`);
-        return { 
+        console.log(`❌ OTP verification failed for ${resolvedEmail}`);
+        return {
           status: "invalid_data",
           fieldErrors: { otp: ["Invalid or expired OTP"] },
-          email
+          email: resolvedEmail
         };
       }
 
       // Check if user has 2FA enabled - if so, redirect to 2FA verification
       if (user[0].twoFactorEnabled) {
-        return { 
+        return {
           status: "requires_2fa",
-          email
+          email: resolvedEmail
         };
       }
 
       // OTP verified and no 2FA - send reset link
       try {
         const resetToken = nanoid(32);
-        await savePasswordResetToken(email, resetToken);
+        await savePasswordResetToken(resolvedEmail, resetToken);
 
         const resetUrl = `${process.env.PUBLIC_BASE_URL}/forgotpassword/${resetToken}`;
-        await sendResetEmail(email, resetUrl);
+        await sendResetEmail(resolvedEmail, resetUrl);
 
-        console.log(`🎉 Successfully completed OTP verification and reset email for ${email}`);
-        return { 
+        console.log(`🎉 Successfully completed OTP verification and reset email for ${resolvedEmail}`);
+        return {
           status: "otp_verified",
-          email
+          email: resolvedEmail
         };
       } catch (resetError) {
         console.error("Error sending reset email:", resetError);
         // If reset email sending fails, provide specific error
         if (resetError instanceof Error) {
-          if (resetError.message.includes("Email sending failed") || 
-              resetError.message.includes("Failed to authenticate") ||
-              resetError.message.includes("Unable to connect") ||
-              resetError.message.includes("timeout")) {
-            return { 
+          if (resetError.message.includes("Email sending failed") ||
+            resetError.message.includes("Failed to authenticate") ||
+            resetError.message.includes("Unable to connect") ||
+            resetError.message.includes("timeout")) {
+            return {
               status: "failed",
-              fieldErrors: { 
-                email: ["Failed to send password reset link. Please try again in a moment."] 
+              fieldErrors: {
+                email: ["Failed to send password reset link. Please try again in a moment."]
               }
             };
           }
@@ -563,18 +586,18 @@ export async function forgotPassword(
       }
     }
 
-    // Initial submission - validate email, then send OTP
+    // Initial submission - validate input format, then send OTP
     try {
-      forgotPasswordSchema.parse({ 
-        email, 
-        "cf-turnstile-response": turnstileResponse 
+      forgotPasswordSchema.parse({
+        emailOrUsername,
+        "cf-turnstile-response": turnstileResponse
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return {
           status: "invalid_data",
           fieldErrors: error.flatten().fieldErrors,
-          email
+          email: resolvedEmail
         };
       }
       throw error;
@@ -582,27 +605,27 @@ export async function forgotPassword(
 
     // Check if user has 2FA enabled - if so, redirect to 2FA verification
     if (user[0].twoFactorEnabled) {
-      return { 
+      return {
         status: "requires_2fa",
-        email
+        email: resolvedEmail
       };
     }
 
     // Send OTP for verification
     try {
       const otpCode = generateOTP();
-      await saveOTP(email, otpCode);
-      await sendOTPEmail(email, otpCode);
+      await saveOTP(resolvedEmail, otpCode);
+      await sendOTPEmail(resolvedEmail, otpCode);
 
-      return { 
+      return {
         status: "otp_sent",
-        email
+        email: resolvedEmail
       };
     } catch (otpError) {
       console.error("Error sending OTP:", otpError);
       // If email sending fails, clean up the saved OTP
       try {
-        await deleteOTP(email);
+        await deleteOTP(resolvedEmail);
       } catch (cleanupError) {
         console.error("Error cleaning up OTP:", cleanupError);
       }
@@ -610,32 +633,32 @@ export async function forgotPassword(
     }
   } catch (err) {
     console.error("Error while running forgotPassword action:", err);
-    
+
     // Provide more specific error information
     if (err instanceof Error) {
       if (err.message.includes("OTP email sending failed") || err.message.includes("Email sending failed")) {
-        return { 
+        return {
           status: "failed",
-          fieldErrors: { 
-            email: ["Failed to send verification code. Please try again in a moment."] 
+          fieldErrors: {
+            email: ["Failed to send verification code. Please try again in a moment."]
           }
         };
       }
     }
-    
+
     return { status: "failed" };
   }
 }
 
 export interface VerifyAndResetPasswordActionState {
   status:
-    | "idle"
-    | "in_progress"
-    | "success"
-    | "failed"
-    | "redirect_to_forgot_password"
-    | "expired_token"
-    | "invalid_data";
+  | "idle"
+  | "in_progress"
+  | "success"
+  | "failed"
+  | "redirect_to_forgot_password"
+  | "expired_token"
+  | "invalid_data";
   fieldErrors?: {
     password?: string[];
     passwordConfirm?: string[];
