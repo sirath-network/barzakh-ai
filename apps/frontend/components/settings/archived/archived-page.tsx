@@ -85,7 +85,7 @@ const ArchivedChatItem = ({
   setView: (view: any) => void;
 }) => {
   return (
-    <div className="group bg-white dark:bg-black/60 rounded-xl border border-gray-200 dark:border-stone-800/50 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden backdrop-blur-sm">
+    <div className="group bg-white dark:bg-black/60 rounded-xl border border-gray-200 dark:border-zinc-800/50 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden backdrop-blur-sm">
       <div className="relative flex items-center p-4">
         <Link
           href={`/c/${chat.id}`}
@@ -269,14 +269,14 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
+          <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
             {/* Header skeleton */}
-            <div className="p-8 border-b border-gray-200 dark:border-stone-800/30">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 dark:bg-stone-800/50 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-stone-700/50 animate-pulse">
-                  <ArchiveAny className="w-6 h-6 text-gray-600 dark:text-stone-300" />
+            <div className="p-8 border-b border-gray-200 dark:border-zinc-800/30">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="w-12 h-12 bg-gray-100 dark:bg-zinc-800/50 rounded-xl flex items-center justify-center shadow-lg border border-gray-200 dark:border-zinc-700/50 animate-pulse">
+                  <ArchiveAny className="w-6 h-6 text-gray-600 dark:text-zinc-300" />
                 </div>
                 <div className="space-y-2">
                   <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
@@ -289,7 +289,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
             <div className="p-8">
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white dark:bg-black/40 rounded-xl border border-gray-200 dark:border-stone-800/30 shadow-lg overflow-hidden backdrop-blur-sm">
+                  <div key={i} className="bg-white dark:bg-black/40 rounded-xl border border-gray-200 dark:border-zinc-800/30 shadow-lg overflow-hidden backdrop-blur-sm">
                     <div className="flex items-center p-4">
                       <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse flex-shrink-0"></div>
                       <div className="flex-1 ml-4 space-y-2">
@@ -309,7 +309,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="mb-6 md:mb-8">
@@ -326,8 +326,8 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
-            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
+          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Archived Chats</h2>
@@ -345,7 +345,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                       <DropdownMenuTriggerAny asChild>
                         <ButtonAny
                           variant="outline"
-                          className="h-9 px-3 border-gray-300 dark:border-stone-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800/30"
+                          className="h-9 px-3 border-gray-300 dark:border-zinc-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800/30"
                         >
                           {sortBy === 'newest' ? 'Newest First' : sortBy === 'oldest' ? 'Oldest First' : 'Alphabetical'}
                           <ChevronDownAny className="ml-2 h-4 w-4" />
@@ -353,7 +353,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                       </DropdownMenuTriggerAny>
                       <DropdownMenuContentAny
                         align="end"
-                        className="w-36 border border-gray-200 dark:border-stone-800/50 bg-white dark:bg-black/95 backdrop-blur-sm"
+                        className="w-36 border border-gray-200 dark:border-zinc-800/50 bg-white dark:bg-black/95 backdrop-blur-sm"
                       >
                         <DropdownMenuItemAny
                           onClick={() => setSortBy('newest')}
@@ -384,7 +384,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                       <DropdownMenuTriggerAny asChild>
                         <ButtonAny
                           variant="outline"
-                          className="h-9 px-3 border-gray-300 dark:border-stone-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800/30"
+                          className="h-9 px-3 border-gray-300 dark:border-zinc-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800/30"
                         >
                           {itemsPerPage}
                           <ChevronDownAny className="ml-2 h-4 w-4" />
@@ -392,7 +392,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                       </DropdownMenuTriggerAny>
                       <DropdownMenuContentAny
                         align="end"
-                        className="w-20 border border-gray-200 dark:border-stone-800/50 bg-white dark:bg-black/95 backdrop-blur-sm"
+                        className="w-20 border border-gray-200 dark:border-zinc-800/50 bg-white dark:bg-black/95 backdrop-blur-sm"
                       >
                         <DropdownMenuItemAny
                           onClick={() => handleItemsPerPageChange(10)}
@@ -446,7 +446,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-stone-800/30">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-zinc-800/30">
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
                       </p>
@@ -456,7 +456,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                           size="sm"
                           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                           disabled={currentPage === 1}
-                          className="h-9 px-3 border-gray-300 dark:border-stone-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="h-9 px-3 border-gray-300 dark:border-zinc-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800/30 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ChevronLeftAny className="h-4 w-4 mr-1" />
                           Previous
@@ -469,7 +469,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                           size="sm"
                           onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                           disabled={currentPage === totalPages}
-                          className="h-9 px-3 border-gray-300 dark:border-stone-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="h-9 px-3 border-gray-300 dark:border-zinc-800/50 bg-white dark:bg-black/20 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800/30 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Next
                           <ChevronRightAny className="h-4 w-4 ml-1" />
@@ -480,8 +480,8 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-stone-800/20 rounded-xl flex items-center justify-center mb-4 border border-gray-200 dark:border-stone-800/30">
-                    <ArchiveAny className="w-8 h-8 text-gray-400 dark:text-stone-400/60" />
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800/20 rounded-xl flex items-center justify-center mb-4 border border-gray-200 dark:border-zinc-800/30">
+                    <ArchiveAny className="w-8 h-8 text-gray-400 dark:text-zinc-400/60" />
                   </div>
                   <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
                     No archived conversations
@@ -497,14 +497,14 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                 <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
               </div>
               <div className="p-6 md:p-8 space-y-3">
                 <ButtonAny
                   variant="outline"
-                  className="w-full justify-start gap-2 border-gray-200 dark:border-stone-800/50 bg-white dark:bg-black/40 text-foreground hover:bg-gray-50 dark:hover:bg-stone-800/30"
+                  className="w-full justify-start gap-2 border-gray-200 dark:border-zinc-800/50 bg-white dark:bg-black/40 text-foreground hover:bg-gray-50 dark:hover:bg-zinc-800/30"
                   onClick={() => {
                     setView('chat');
                     router.push('/');
@@ -517,8 +517,8 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               </div>
             </div>
             {/* Archive Info */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                 <h3 className="text-lg font-bold text-foreground mb-2">About Archives</h3>
                 <p className="text-muted-foreground text-sm">How archiving works</p>
               </div>
@@ -556,7 +556,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
         </div>
 
         {/* Help Section */}
-        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>
@@ -586,7 +586,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               </AlertDialogDescriptionAny>
             </AlertDialogHeaderAny>
             <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-center gap-3 mt-6">
-              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border border-gray-300 dark:border-stone-800/50 hover:bg-gray-50 dark:hover:bg-stone-800/20 transition-colors duration-200 font-medium">
+              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border border-gray-300 dark:border-zinc-800/50 hover:bg-gray-50 dark:hover:bg-zinc-800/20 transition-colors duration-200 font-medium">
                 Cancel
               </AlertDialogCancelAny>
               <AlertDialogActionAny

@@ -272,7 +272,7 @@ export default function PlanDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4 md:mb-6">
@@ -287,7 +287,7 @@ export default function PlanDetailPage() {
 
         {/* Billing Cycle Selector */}
         <div className="flex justify-center mb-6 md:mb-8">
-          <div className="inline-flex bg-white/80 dark:bg-black/40 backdrop-blur-sm rounded-lg p-1 gap-1 border border-gray-200 dark:border-stone-800/50">
+          <div className="inline-flex bg-white/80 dark:bg-black/40 backdrop-blur-sm rounded-lg p-1 gap-1 border border-gray-200 dark:border-zinc-800/50">
             {(["monthly", "quarterly", "yearly"] as BillingCycle[]).map((cycle) => (
               <button
                 key={cycle}
@@ -325,14 +325,14 @@ export default function PlanDetailPage() {
                 key={plan.id}
                 className={`
                   bg-white dark:bg-black/80 rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-sm
-                  ${isExactCurrentPlan ? "border-gray-400 dark:border-stone-500" : "border-gray-200 dark:border-stone-800/50"}
-                  hover:border-gray-500 dark:hover:border-stone-500/50 transition-all
+                  ${isExactCurrentPlan ? "border-gray-400 dark:border-zinc-500" : "border-gray-200 dark:border-zinc-800/50"}
+                  hover:border-gray-500 dark:hover:border-zinc-500/50 transition-all
                 `}
               >
                 {/* Plan Icon/Illustration */}
-                <div className="p-4 sm:p-5 md:p-6 bg-black/40 dark:bg-black/60 flex items-center justify-center min-h-[180px] sm:min-h-[200px] md:min-h-[220px] relative overflow-hidden border-b border-gray-200 dark:border-stone-800/30">
+                <div className="p-4 sm:p-5 md:p-6 bg-black/40 dark:bg-black/60 flex items-center justify-center min-h-[180px] sm:min-h-[200px] md:min-h-[220px] relative overflow-hidden border-b border-gray-200 dark:border-zinc-800/30">
                   {/* subtle red glow overlay in dark mode */}
-                  <div className="absolute inset-0 pointer-events-none hidden dark:block bg-gradient-to-b from-stone-800/20 via-transparent to-transparent" />
+                  <div className="absolute inset-0 pointer-events-none hidden dark:block bg-gradient-to-b from-zinc-800/20 via-transparent to-transparent" />
                   <img
                     src={plan.image}
                     alt={plan.name}
@@ -384,8 +384,8 @@ export default function PlanDetailPage() {
                       className={`
                         w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
                         ${isExactCurrentPlan
-                          ? "bg-gray-100 dark:bg-stone-900/50 border-2 border-gray-400 dark:border-stone-500 text-gray-600 dark:text-stone-300 cursor-default shadow-[0_0_10px_rgba(156,163,175,0.5)] dark:shadow-none"
-                          : "bg-gray-800 dark:bg-gradient-to-r dark:from-stone-600 dark:to-stone-700 hover:bg-gray-700 dark:hover:from-stone-700 dark:hover:to-stone-800 text-white"
+                          ? "bg-gray-100 dark:bg-zinc-900/50 border-2 border-gray-400 dark:border-zinc-500 text-gray-600 dark:text-zinc-300 cursor-default shadow-[0_0_10px_rgba(156,163,175,0.5)] dark:shadow-none"
+                          : "bg-gray-800 dark:bg-gradient-to-r dark:from-zinc-600 dark:to-zinc-700 hover:bg-gray-700 dark:hover:from-zinc-700 dark:hover:to-zinc-800 text-white"
                         }
                       `}
                     >
@@ -412,10 +412,10 @@ export default function PlanDetailPage() {
                   )}
 
                   {/* Features */}
-                  <div className="space-y-2 sm:space-y-3 pt-3 md:pt-4 border-t border-gray-200 dark:border-stone-800/30">
+                  <div className="space-y-2 sm:space-y-3 pt-3 md:pt-4 border-t border-gray-200 dark:border-zinc-800/30">
                     {plan.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-stone-400 flex-shrink-0 mt-0.5" />
+                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-zinc-400 flex-shrink-0 mt-0.5" />
                         <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-sm flex items-center gap-1">
                           {feature}
                           {feature.includes("Comprehensive project analysis") && (

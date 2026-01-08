@@ -28,7 +28,7 @@ export default function BillingPage() {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900">
       <div className="max-w-5xl mx-auto py-6 md:py-10">
         <BillingSettingsPage />
       </div>

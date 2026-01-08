@@ -98,7 +98,7 @@ export const Overview = ({ user }: OverviewProps) => {
           {/* Text Content */}
           <div className="flex flex-col">
             <h1
-              className="text-2xl font-semibold font-gramatika sm:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-stone-200 dark:via-stone-300 dark:to-stone-400"
+              className="text-2xl font-semibold font-gramatika sm:text-3xl bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-zinc-200 dark:via-zinc-300 dark:to-zinc-400"
             >
               {greeting}, {displayName}!
             </h1>

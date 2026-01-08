@@ -172,9 +172,9 @@ function PureSendButton({
       <Button
         className={cn(
           "group rounded-xl p-2.5 h-fit w-fit relative",
-          "bg-transparent hover:bg-transparent text-gray-600 dark:text-stone-400",
-          "hover:text-gray-900 dark:hover:text-stone-200",
-          "disabled:text-gray-300 dark:disabled:text-stone-600",
+          "bg-transparent hover:bg-transparent text-gray-600 dark:text-zinc-400",
+          "hover:text-gray-900 dark:hover:text-zinc-200",
+          "disabled:text-gray-300 dark:disabled:text-zinc-600",
           "disabled:cursor-not-allowed",
           "transition-colors duration-200"
         )}

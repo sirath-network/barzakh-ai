@@ -14,6 +14,7 @@ overrides:
   prismjs: ^1.30.0
   nanoid: ^5.0.9
   qs: ^6.14.1
+  preact: '>=10.28.2'
 
 importers:
 
@@ -1341,8 +1342,8 @@ packages:
       jose: 6.1.3
       nodemailer: 7.0.11
       oauth4webapi: 3.8.3
-      preact: 10.24.3
-      preact-render-to-string: 6.5.11(preact@10.24.3)
+      preact: 10.28.2
+      preact-render-to-string: 6.5.11(preact@10.28.2)
     dev: false
 
   /@aws-crypto/crc32@5.2.0:
@@ -2190,7 +2191,7 @@ packages:
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
       ox: 0.6.9(typescript@5.6.3)(zod@3.25.76)
-      preact: 10.24.2
+      preact: 10.28.2
       viem: 2.41.2(typescript@5.6.3)(zod@3.25.76)
       zustand: 5.0.3(@types/react@18.3.12)(react@19.0.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -2217,7 +2218,7 @@ packages:
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
       ox: 0.6.9(typescript@5.6.3)(zod@3.25.76)
-      preact: 10.24.2
+      preact: 10.28.2
       viem: 2.41.2(typescript@5.6.3)(zod@3.25.76)
       zustand: 5.0.3(@types/react@19.0.0)(react@19.2.0)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -2452,7 +2453,7 @@ packages:
       eth-json-rpc-filters: 6.0.1
       eventemitter3: 5.0.1
       keccak: 3.0.4
-      preact: 10.28.1
+      preact: 10.28.2
       sha.js: 2.4.12
     transitivePeerDependencies:
       - supports-color
@@ -2464,7 +2465,7 @@ packages:
       '@noble/hashes': 1.7.2
       clsx: 1.2.1
       eventemitter3: 5.0.1
-      preact: 10.28.1
+      preact: 10.28.2
     dev: false
 
   /@coinbase/wallet-sdk@4.3.6(@types/react@18.3.12)(react@19.0.1)(typescript@5.6.3)(use-sync-external-store@1.4.0)(zod@3.25.76):
@@ -2475,7 +2476,7 @@ packages:
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
       ox: 0.6.9(typescript@5.6.3)(zod@3.25.76)
-      preact: 10.24.2
+      preact: 10.28.2
       viem: 2.41.2(typescript@5.6.3)(zod@3.25.76)
       zustand: 5.0.3(@types/react@18.3.12)(react@19.0.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -2497,7 +2498,7 @@ packages:
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
       ox: 0.6.9(typescript@5.6.3)(zod@3.25.76)
-      preact: 10.24.2
+      preact: 10.28.2
       viem: 2.41.2(typescript@5.6.3)(zod@3.25.76)
       zustand: 5.0.3(@types/react@19.0.0)(react@19.2.0)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -17723,8 +17724,8 @@ packages:
       nodemailer: 7.0.11
       oauth: 0.9.15
       openid-client: 5.7.1
-      preact: 10.28.1
-      preact-render-to-string: 5.2.6(preact@10.28.1)
+      preact: 10.28.2
+      preact-render-to-string: 5.2.6(preact@10.28.2)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
       uuid: 8.3.2
@@ -18904,33 +18905,25 @@ packages:
     engines: {node: '>=20'}
     dev: false
 
-  /preact-render-to-string@5.2.6(preact@10.28.1):
+  /preact-render-to-string@5.2.6(preact@10.28.2):
     resolution: {integrity: sha512-JyhErpYOvBV1hEPwIxc/fHWXPfnEGdRKxc8gFdAZ7XV4tlzyzG847XAyEZqoDnynP88akM4eaHcSOzNcLWFguw==}
     peerDependencies:
       preact: '>=10'
     dependencies:
-      preact: 10.28.1
+      preact: 10.28.2
       pretty-format: 3.8.0
     dev: true
 
-  /preact-render-to-string@6.5.11(preact@10.24.3):
+  /preact-render-to-string@6.5.11(preact@10.28.2):
     resolution: {integrity: sha512-ubnauqoGczeGISiOh6RjX0/cdaF8v/oDXIjO85XALCQjwQP+SB4RDXXtvZ6yTYSjG+PC1QRP2AhPgCEsM2EvUw==}
     peerDependencies:
       preact: '>=10'
     dependencies:
-      preact: 10.24.3
+      preact: 10.28.2
     dev: false
 
-  /preact@10.24.2:
-    resolution: {integrity: sha512-1cSoF0aCC8uaARATfrlz4VCBqE8LwZwRfLgkxJOQwAlQt6ayTmi0D9OF7nXid1POI5SZidFuG9CnlXbDfLqY/Q==}
-    dev: false
-
-  /preact@10.24.3:
-    resolution: {integrity: sha512-Z2dPnBnMUfyQfSQ+GBdsGa16hz35YmLmtTLhM169uW944hYL6xzTYkJjC07j+Wosz733pMWx0fgON3JNw1jJQA==}
-    dev: false
-
-  /preact@10.28.1:
-    resolution: {integrity: sha512-u1/ixq/lVQI0CakKNvLDEcW5zfCjUQfZdK9qqWuIJtsezuyG6pk9TWj75GMuI/EzRSZB/VAE43sNWWZfiy8psw==}
+  /preact@10.28.2:
+    resolution: {integrity: sha512-lbteaWGzGHdlIuiJ0l2Jq454m6kcpI1zNje6d8MlGAFlYvP2GO4ibnat7P74Esfz4sPTdM6UxtTwh/d3pwM9JA==}
 
   /prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
