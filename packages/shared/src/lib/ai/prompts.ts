@@ -93,6 +93,13 @@ import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
 import { createImage } from "./tools/create-image";
+// Relay Protocol Tools (Cross-chain Swaps & Bridging)
+import {
+  getRelaySupportedChains,
+  getRelayQuote,
+  getRelayBridgeQuote,
+  prepareRelayTransaction,
+} from "./tools/relay/relay-crosschain";
 import { tool } from "ai";
 import { z } from "zod";
 
@@ -290,6 +297,11 @@ const groupTools = {
     "ensToAddress",
     "translateTransactions",
     "defiLlama",
+    // Relay Protocol (Cross-chain Swaps & Bridging)
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -483,6 +495,11 @@ export const allTools = {
   getZkEVMContractSource,
   getZkEVMTokenSupply,
   getZkEVMBlockInfo,
+  // Relay Protocol Tools
+  getRelaySupportedChains,
+  getRelayQuote,
+  getRelayBridgeQuote,
+  prepareRelayTransaction,
 };
 
 const groupPrompts = {

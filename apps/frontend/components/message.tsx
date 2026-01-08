@@ -19,7 +19,7 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard } from "lucide-react";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
@@ -45,6 +45,7 @@ const WalletAny = Wallet as any;
 const FileTextAny = FileText as any;
 const FileImageAny = FileImage as any;
 const CreditCardAny = CreditCard as any;
+const ArrowRightLeftAny = ArrowRightLeft as any;
 const TooltipAny = Tooltip as any;
 const TooltipTriggerAny = TooltipTrigger as any;
 const TooltipContentAny = TooltipContent as any;
@@ -80,6 +81,11 @@ const toolIcons: Record<string, React.ElementType> = {
   // x402 Payment Tools
   initiateX402Payment: CreditCardAny,
   getSubscriptionInfo: FileTextAny,
+  // Relay Protocol Tools
+  getRelaySupportedChains: GlobeAny,
+  getRelayQuote: BarChart3Any,
+  getRelayBridgeQuote: BarChart3Any,
+  prepareRelayTransaction: ArrowRightLeftAny,
 };
 
 // HELPER: Small component to render each tool icon
@@ -104,8 +110,10 @@ import { ThinkingAnimation } from "./thinking-animation";
 import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
 import { generateStatusFromMessage } from "@/lib/status-generator";
 import { X402PaymentApproval } from "./x402-payment-approval";
+import { RelaySwapApproval } from "./relay-swap-approval";
 
 const X402PaymentApprovalAny = X402PaymentApproval as any;
+const RelaySwapApprovalAny = RelaySwapApproval as any;
 
 
 const PurePreviewMessage = ({
@@ -362,6 +370,10 @@ const PurePreviewMessage = ({
                       'getTokenBalances',
                       'createImage',
                       'initiateX402Payment',
+                      // Relay Protocol - all quote tools show UI
+                      'getRelayQuote',
+                      'getRelayBridgeQuote',
+                      'prepareRelayTransaction',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -403,6 +415,10 @@ const PurePreviewMessage = ({
                               </div>
                             ),
                             initiateX402Payment: <X402PaymentApprovalAny result={result} />,
+                            // Relay Protocol - all quote tools show UI with swap/bridge details
+                            getRelayQuote: <RelaySwapApprovalAny result={result} />,
+                            getRelayBridgeQuote: <RelaySwapApprovalAny result={result} />,
+                            prepareRelayTransaction: <RelaySwapApprovalAny result={result} />,
                           };
 
                           return (
