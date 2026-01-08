@@ -134,7 +134,7 @@ function AddPaymentMethodForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-xl border border-gray-200 dark:border-stone-800/40 p-4 bg-gray-50/60 dark:bg-black/40">
+      <div className="rounded-xl border border-gray-200 dark:border-zinc-800/40 p-4 bg-gray-50/60 dark:bg-black/40">
         <CardElement
           options={{
             hidePostalCode: true,
@@ -146,7 +146,7 @@ function AddPaymentMethodForm({
         <button
           type="submit"
           disabled={isSubmitting || !stripe || !isSubscribed}
-          className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-stone-600 dark:to-stone-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-zinc-600 dark:to-zinc-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Saving..." : "Save Payment Method"}
         </button>
@@ -219,7 +219,7 @@ export function PaymentMethodsCard({
   const isTemporarilyDisabled = true;
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm relative">
       {/* Blur overlay for temporarily disabled state */}
       {isTemporarilyDisabled && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-black/70 backdrop-blur-sm rounded-2xl">
@@ -247,7 +247,7 @@ export function PaymentMethodsCard({
 
       <div className="p-8 pt-0 space-y-6">
         {isLoading ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-stone-800/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
+          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-zinc-800/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
             Loading payment methods...
           </div>
         ) : hasMethods ? (
@@ -288,7 +288,7 @@ export function PaymentMethodsCard({
                   {otherMethods.map((pm) => (
                     <div
                       key={pm.id}
-                      className="flex items-center justify-between rounded-2xl border border-gray-200 dark:border-stone-800/40 bg-gray-50/60 dark:bg-black/40 px-4 py-3"
+                      className="flex items-center justify-between rounded-2xl border border-gray-200 dark:border-zinc-800/40 bg-gray-50/60 dark:bg-black/40 px-4 py-3"
                     >
                       <div>
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -308,7 +308,7 @@ export function PaymentMethodsCard({
                           !isSubscribed ||
                           Boolean(settingDefault)
                         }
-                        className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full border border-gray-300 dark:border-stone-800/40 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full border border-gray-300 dark:border-zinc-800/40 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {settingDefault === pm.id ? "Updating..." : "Set Default"}
                       </button>
@@ -319,7 +319,7 @@ export function PaymentMethodsCard({
             )}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-stone-800/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
+          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-zinc-800/30 p-6 text-center text-sm text-gray-500 dark:text-gray-300">
             No payment methods on file. Add a card below.
           </div>
         )}

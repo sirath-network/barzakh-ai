@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { SubscriptionSummary } from "@/types/billing";
@@ -253,7 +253,7 @@ export function SubscriptionCard({
     : formatStatus(rawStatus);
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-visible backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-visible backdrop-blur-sm relative">
       <div className="p-8 space-y-3">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           Your Subscription
@@ -268,10 +268,10 @@ export function SubscriptionCard({
 
       <div className="relative min-h-[180px]">
         {isSubscribed ? (
-          <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 text-sm space-y-5">
+          <div className="p-8 border-t border-gray-200 dark:border-zinc-800/30 text-sm space-y-5">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600 dark:text-gray-300">Plan</span>
-              <span className="font-medium text-gray-800 dark:text-stone-300">
+              <span className="text-gray-500">Tier</span>
+              <span className="font-medium text-gray-800 dark:text-zinc-300">
                 {isLoadingState
                   ? "Loading..."
                   : formattedPlanName ?? "Custom Plan"}
@@ -321,7 +321,7 @@ export function SubscriptionCard({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-stone-800/30">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-zinc-800/30">
               {isCancellationScheduled ? (
                 <button
                   onClick={handleResumeSubscription}
@@ -456,7 +456,7 @@ export function SubscriptionCard({
                 <button
                   onClick={handleManageSubscription}
                   disabled={isManagingPortal}
-                  className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-stone-600 dark:to-stone-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-6 py-3 rounded-lg bg-gray-900 text-white dark:bg-gradient-to-r dark:from-zinc-600 dark:to-zinc-700 font-semibold text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isManagingPortal ? "Loading..." : "Manage Billing Portal"}
                 </button>
@@ -464,13 +464,15 @@ export function SubscriptionCard({
             </div>
           </div>
         ) : (
-          <div className="p-8 border-t border-gray-200 dark:border-stone-800/30 space-y-6">
-            <div className="text-center space-y-2">
+          <div className="p-8 border-t border-gray-200 dark:border-zinc-800/30 space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <h3 className="font-semibold text-gray-900 dark:text-white">Upgrade Plan</h3>
             </div>
-            <div className="relative overflow-hidden rounded-3xl border border-dashed border-gray-300 dark:border-stone-800/40 bg-white/40 dark:bg-black/40">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gray-400/10 via-transparent to-gray-500/20 dark:from-stone-500/10 dark:via-transparent dark:to-stone-900/20 blur-xl" />
-              <div className="relative px-8 py-12 text-center space-y-5 backdrop-blur-md">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:text-stone-200 dark:bg-stone-800/30 shadow-inner dark:shadow-stone-900/50">
+            <div className="relative overflow-hidden rounded-3xl border border-dashed border-gray-300 dark:border-zinc-800/40 bg-white/40 dark:bg-black/40">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gray-400/10 via-transparent to-gray-500/20 dark:from-zinc-500/10 dark:via-transparent dark:to-zinc-900/20 blur-xl" />
+              <div className="relative p-6 flex flex-col items-center text-center space-y-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:text-zinc-200 dark:bg-zinc-800/30 shadow-inner dark:shadow-zinc-900/50">
                   <Lock className="h-7 w-7 animate-[pulse_2s_ease-in-out_infinite]" />
                 </div>
                 <div className="space-y-1.5">
@@ -481,7 +483,7 @@ export function SubscriptionCard({
                     Pick a subscription tier from the dedicated Plans &amp; Pricing section to unlock billing management and premium features.
                   </p>
                 </div>
-                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-stone-400/80">
+                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-zinc-400/80">
                   Data available after subscribing
                 </p>
               </div>

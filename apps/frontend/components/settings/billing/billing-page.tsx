@@ -122,7 +122,7 @@ export default function BillingPage() {
     Boolean(invoicesData?.hasMore) && Boolean(invoicesData?.nextCursor);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start sm:items-center gap-3">
@@ -167,7 +167,7 @@ export default function BillingPage() {
           canGoNext={canGoNext}
         />
 
-        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-lg border border-gray-200 dark:border-stone-800/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-black/80 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-white mb-1">

@@ -240,7 +240,7 @@ export default function TwoFactorSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-foreground">Loading 2FA settings...</p>
@@ -250,7 +250,7 @@ export default function TwoFactorSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-stone-950 dark:to-stone-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-3 md:mb-4">
@@ -266,8 +266,8 @@ export default function TwoFactorSettingsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
-            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
+          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
               <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Two-Factor Authentication</h2>
               <p className="text-muted-foreground text-sm">
                 Add an extra layer of security to your account by requiring a code when you sign in.
@@ -452,7 +452,7 @@ export default function TwoFactorSettingsPage() {
 
               {/* Disable Section */}
               {status.twoFactorEnabled && (
-                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-stone-700/50 rounded-xl p-4 md:p-6">
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-zinc-700/50 rounded-xl p-4 md:p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <ShieldX className="w-5 h-5 text-red-600 dark:text-red-400" />
                     <h3 className="font-semibold text-red-800 dark:text-red-300">Disable 2FA</h3>
@@ -536,8 +536,8 @@ export default function TwoFactorSettingsPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* 2FA Tips */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                 <h3 className="text-lg font-bold text-foreground mb-2">Security Tips</h3>
                 <p className="text-muted-foreground text-sm">Keep your account secure</p>
               </div>
@@ -582,8 +582,8 @@ export default function TwoFactorSettingsPage() {
             </div>
 
             {/* Security Info */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-stone-800/30">
+            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                 <h3 className="text-lg font-bold text-foreground mb-2">Why Enable 2FA?</h3>
                 <p className="text-muted-foreground text-sm">Benefits of two-factor authentication</p>
               </div>
@@ -621,7 +621,7 @@ export default function TwoFactorSettingsPage() {
         </div>
 
         {/* Help Section */}
-        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-stone-800/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>
@@ -640,11 +640,11 @@ export default function TwoFactorSettingsPage() {
       {/* Custom Confirmation Dialog */}
       {showDisableConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-black rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 max-w-md w-full mx-4 overflow-hidden">
+          <div className="bg-white dark:bg-black rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 max-w-md w-full mx-4 overflow-hidden">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-stone-800/30">
+            <div className="p-6 border-b border-gray-200 dark:border-zinc-800/30">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shadow-lg border border-red-200 dark:border-stone-700/50">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shadow-lg border border-red-200 dark:border-zinc-700/50">
                   <ShieldX className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
@@ -689,11 +689,11 @@ export default function TwoFactorSettingsPage() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-gray-200 dark:border-stone-800/30 bg-gray-50 dark:bg-black/80">
+            <div className="p-6 border-t border-gray-200 dark:border-zinc-800/30 bg-gray-50 dark:bg-black/80">
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setShowDisableConfirm(false)}
-                  className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-stone-800/30 px-4 py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-stone-800/20"
+                  className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-zinc-800/30 px-4 py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-zinc-800/20"
                 >
                   Cancel
                 </button>

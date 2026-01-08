@@ -466,14 +466,14 @@ export function X402PaymentModal({
                       {/* Connected wallet info */}
                       <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-full bg-stone-100 text-stone-600 dark:bg-stone-800/50 dark:text-stone-400">
+                          <div className="p-1.5 rounded-full bg-zinc-100 text-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-400">
                             <Wallet className="h-3 w-3" />
                           </div>
                           <span className="text-sm font-medium">
                             {address?.slice(0, 6)}...{address?.slice(-4)}
                           </span>
                           {walletVerified && (
-                            <ShieldCheck className="h-4 w-4 text-stone-500" />
+                            <ShieldCheck className="h-4 w-4 text-zinc-500" />
                           )}
                         </div>
                         <ConnectButton.Custom>
@@ -514,12 +514,12 @@ export function X402PaymentModal({
           {step === "payment" && paymentData && (
             <div className="space-y-6">
               {/* Payment Details Card */}
-              <div className="p-4 bg-gradient-to-br from-stone-50 to-stone-100 dark:from-stone-800/40 dark:to-stone-700/30 rounded-lg space-y-4 border border-stone-300 dark:border-stone-500/50">
+              <div className="p-4 bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-800/40 dark:to-zinc-700/30 rounded-lg space-y-4 border border-zinc-300 dark:border-zinc-500/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-stone-700 dark:text-stone-200">GASLESS PAYMENT</span>
+                    <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">GASLESS PAYMENT</span>
                   </div>
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-stone-500 dark:text-stone-400">Cronos Testnet</span>
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-zinc-500 dark:text-zinc-400">Cronos Testnet</span>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -549,12 +549,12 @@ export function X402PaymentModal({
                       className="h-6 w-6 shrink-0 hover:bg-muted"
                       onClick={() => handleCopy(paymentData.displayInfo?.receiver)}
                     >
-                      {copied ? <Check className="h-3 w-3 text-stone-500" /> : <Copy className="h-3 w-3" />}
+                      {copied ? <Check className="h-3 w-3 text-zinc-500" /> : <Copy className="h-3 w-3" />}
                     </ButtonAny>
                   </div>
                 </div>
 
-                <p className="text-xs text-stone-700 dark:text-stone-200 bg-stone-100/50 dark:bg-stone-700/40 p-2 rounded border border-stone-200 dark:border-stone-600/50">
+                <p className="text-xs text-zinc-700 dark:text-zinc-200 bg-zinc-100/50 dark:bg-zinc-700/40 p-2 rounded border border-zinc-200 dark:border-zinc-600/50">
                   {paymentData.displayInfo?.note}
                 </p>
               </div>
@@ -609,13 +609,13 @@ export function X402PaymentModal({
                     {/* Wallet Info with USDC Balance */}
                     <div className={`p-3 rounded-lg border transition-colors ${hasInsufficientBalance
                       ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
-                      : "bg-stone-50/50 border-stone-200 dark:bg-stone-800/30 dark:border-stone-500/50"
+                      : "bg-zinc-50/50 border-zinc-200 dark:bg-zinc-800/30 dark:border-zinc-500/50"
                       }`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className={`p-1.5 rounded-full ${hasInsufficientBalance
                             ? "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"
-                            : "bg-stone-100 text-stone-600 dark:bg-stone-700/60 dark:text-stone-300"
+                            : "bg-zinc-100 text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-300"
                             }`}>
                             <Wallet className="h-3.5 w-3.5" />
                           </div>
@@ -642,7 +642,7 @@ export function X402PaymentModal({
                           <div className="text-xs text-muted-foreground">USDC.e Balance</div>
                           <div className={`font-mono font-medium ${hasInsufficientBalance
                             ? "text-red-600 dark:text-red-400"
-                            : "text-stone-700 dark:text-stone-200"
+                            : "text-zinc-700 dark:text-zinc-200"
                             }`}>
                             {parseFloat(userUsdcBalance).toFixed(2)} USDC.e
                           </div>
@@ -660,7 +660,7 @@ export function X402PaymentModal({
                     <ButtonAny
                       onClick={handlePayment}
                       disabled={isSigningTypedData || hasInsufficientBalance || !isOnCorrectChain}
-                      className="w-full bg-gradient-to-r from-stone-500 to-stone-600 hover:from-stone-600 hover:to-stone-700 dark:from-stone-300 dark:to-stone-400 dark:hover:from-stone-200 dark:hover:to-stone-300 text-white dark:text-stone-900 font-semibold shadow-lg"
+                      className="w-full bg-gradient-to-r from-zinc-500 to-zinc-600 hover:from-zinc-600 hover:to-zinc-700 dark:from-zinc-300 dark:to-zinc-400 dark:hover:from-zinc-200 dark:hover:to-zinc-300 text-white dark:text-zinc-900 font-semibold shadow-lg"
                       size="lg"
                     >
                       {isSigningTypedData ? (

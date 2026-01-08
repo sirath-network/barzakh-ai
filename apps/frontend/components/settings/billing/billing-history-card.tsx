@@ -38,7 +38,7 @@ export function BillingHistoryCard({
   const isTemporarilyDisabled = true;
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-stone-800/50 overflow-hidden backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm relative">
       {/* Blur overlay for temporarily disabled state */}
       {isTemporarilyDisabled && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-black/70 backdrop-blur-sm rounded-2xl">
@@ -63,7 +63,7 @@ export function BillingHistoryCard({
               <button
                 onClick={onPreviousPage}
                 disabled={!canGoPrevious || isPaginating}
-                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-stone-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -73,7 +73,7 @@ export function BillingHistoryCard({
               <button
                 onClick={onNextPage}
                 disabled={!canGoNext || isPaginating}
-                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-stone-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -84,7 +84,7 @@ export function BillingHistoryCard({
 
       <div className="p-6 pt-0 overflow-x-auto">
         {isLoading ? (
-          <div className="border border-dashed border-gray-300 dark:border-stone-800/40 rounded-xl p-6 text-center text-sm text-gray-500 dark:text-gray-300">
+          <div className="border border-dashed border-gray-300 dark:border-zinc-800/40 rounded-xl p-6 text-center text-sm text-gray-500 dark:text-gray-300">
             Loading invoices...
           </div>
         ) : hasInvoices ? (
@@ -118,13 +118,12 @@ export function BillingHistoryCard({
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wide ${
-                            invoice.status === "paid"
+                          className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wide ${invoice.status === "paid"
                               ? "text-emerald-600 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-700/40"
                               : invoice.status === "open"
-                              ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/40"
-                              : "text-gray-600 bg-gray-100 border-gray-200 dark:text-gray-300 dark:bg-black/40 dark:border-stone-800/40"
-                          }`}
+                                ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/40"
+                                : "text-gray-600 bg-gray-100 border-gray-200 dark:text-gray-300 dark:bg-black/40 dark:border-zinc-800/40"
+                            }`}
                         >
                           {invoice.status?.toUpperCase() ?? "UNKNOWN"}
                         </span>
@@ -155,7 +154,7 @@ export function BillingHistoryCard({
               {data?.invoices.map((invoice) => (
                 <div
                   key={invoice.id}
-                  className="rounded-2xl border border-gray-200 dark:border-stone-800/40 bg-white/70 dark:bg-black/50 p-4 shadow-sm"
+                  className="rounded-2xl border border-gray-200 dark:border-zinc-800/40 bg-white/70 dark:bg-black/50 p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -167,13 +166,12 @@ export function BillingHistoryCard({
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[10px] font-semibold uppercase tracking-wide ${
-                        invoice.status === "paid"
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[10px] font-semibold uppercase tracking-wide ${invoice.status === "paid"
                           ? "text-emerald-600 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-700/40"
                           : invoice.status === "open"
-                          ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/40"
-                          : "text-gray-600 bg-gray-100 border-gray-200 dark:text-gray-300 dark:bg-black/40 dark:border-stone-800/40"
-                      }`}
+                            ? "text-amber-600 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-700/40"
+                            : "text-gray-600 bg-gray-100 border-gray-200 dark:text-gray-300 dark:bg-black/40 dark:border-zinc-800/40"
+                        }`}
                     >
                       {invoice.status?.toUpperCase() ?? "UNKNOWN"}
                     </span>
@@ -192,7 +190,7 @@ export function BillingHistoryCard({
                           href={invoice.invoicePdf ?? invoice.hostedInvoiceUrl ?? "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-semibold text-gray-700 hover:text-gray-500 dark:text-stone-300 dark:hover:text-red-200 underline decoration-dashed underline-offset-4"
+                          className="text-sm font-semibold text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-red-200 underline decoration-dashed underline-offset-4"
                         >
                           Download
                         </a>
@@ -208,7 +206,7 @@ export function BillingHistoryCard({
             </div>
           </div>
         ) : (
-          <div className="border border-dashed border-gray-300 dark:border-stone-800/40 rounded-xl p-6 text-center text-sm text-gray-500 dark:text-gray-300">
+          <div className="border border-dashed border-gray-300 dark:border-zinc-800/40 rounded-xl p-6 text-center text-sm text-gray-500 dark:text-gray-300">
             No invoices generated yet. Once you upgrade, your receipts will appear here.
           </div>
         )}
