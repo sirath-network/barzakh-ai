@@ -21,8 +21,8 @@ Barzakh AI has two deployment targets:
 
 | Application | Domain | Purpose |
 |-------------|--------|---------|
-| **Frontend** | `barzakh.ai` (or your domain) | Main web app + internal API routes |
-| **Backend** | `api.barzakh.ai` (or your domain) | External OpenAI-compatible API |
+| **Frontend** | `chat.barzakh.tech` | Main web app + internal API routes |
+| **Backend** | `staging.barzakh.tech` | External OpenAI-compatible API |
 
 ---
 
