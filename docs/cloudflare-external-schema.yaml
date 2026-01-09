@@ -1,0 +1,178 @@
+openapi: "3.0.3"
+info:
+  title: Barzakh AI API - External & Internal
+  version: "1.0.0"
+  description: External API proxies, webhooks, and internal cron endpoints.
+servers:
+  - url: https://chat.barzakh.tech
+    description: Frontend
+  - url: https://staging.barzakh.tech
+    description: Backend (Chat Completions)
+
+tags:
+  - name: Webhooks
+  - name: Internal
+  - name: External APIs
+  - name: Security
+  - name: Files
+
+paths:
+  # Webhooks & Cron (4 operations)
+  /api/webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      operationId: stripeWebhook
+      security: [{StripeSignature: []}]
+      responses:
+        "200":
+          description: OK
+  /api/messagelimitcron:
+    get:
+      tags: [Internal]
+      operationId: messageLimitCron
+      security: [{CronAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/cron/check-subscriptions:
+    get:
+      tags: [Internal]
+      operationId: checkSubscriptionsCron
+      security: [{CronAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/reset-limit:
+    post:
+      tags: [Account]
+      operationId: resetMessageLimit
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+
+  # Relay & Zerion (7 operations)
+  /api/relay/swap-tracking:
+    get:
+      tags: [External APIs]
+      operationId: checkSwapCompletion
+      responses:
+        "200":
+          description: OK
+    post:
+      tags: [External APIs]
+      operationId: markSwapCompleted
+      responses:
+        "200":
+          description: OK
+  /api/zerion/protocols:
+    get:
+      tags: [External APIs]
+      operationId: getZerionProtocols
+      responses:
+        "200":
+          description: OK
+  /api/zerion/positions:
+    get:
+      tags: [External APIs]
+      operationId: getZerionPositions
+      responses:
+        "200":
+          description: OK
+  /api/zerion/nft-collections:
+    get:
+      tags: [External APIs]
+      operationId: getZerionNftCollections
+      responses:
+        "200":
+          description: OK
+  /api/zerion/nfts:
+    get:
+      tags: [External APIs]
+      operationId: getZerionNfts
+      responses:
+        "200":
+          description: OK
+  /api/zerion/nft-portfolio:
+    get:
+      tags: [External APIs]
+      operationId: getZerionNftPortfolio
+      responses:
+        "200":
+          description: OK
+
+  # Chat Completions & Proxy Utilities (7 operations)
+  /api/chat/completions:
+    post:
+      tags: [Chat, Security]
+      operationId: createChatCompletion
+      security: [{BearerAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/completions:
+    post:
+      tags: [Chat]
+      operationId: createCompletion
+      security: [{BearerAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/set-model-cookie:
+    post:
+      tags: [Settings]
+      operationId: setModelCookie
+      responses:
+        "200":
+          description: OK
+  /api/proxy-file:
+    post:
+      tags: [Files]
+      operationId: proxyFile
+      responses:
+        "200":
+          description: OK
+  /api/files/upload:
+    post:
+      tags: [Files]
+      operationId: uploadFile
+      responses:
+        "200":
+          description: OK
+  /api/proxy-image:
+    post:
+      tags: [Files]
+      operationId: proxyImage
+      responses:
+        "200":
+          description: OK
+  /api/persist-image:
+    post:
+      tags: [Files]
+      operationId: persistImage
+      responses:
+        "200":
+          description: OK
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+    StripeSignature:
+      type: apiKey
+      in: header
+      name: stripe-signature
+    CronAuth:
+      type: apiKey
+      in: header
+      name: authorization
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: __Secure-authjs.session-token
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: {type: string}
