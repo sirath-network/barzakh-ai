@@ -390,6 +390,9 @@ importers:
       '@rainbow-me/rainbowkit':
         specifier: ^2.2.9
         version: 2.2.9(@tanstack/react-query@5.90.11)(@types/react@19.0.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.6.3)(viem@2.41.2)(wagmi@2.19.5)
+      '@relayprotocol/relay-sdk':
+        specifier: ^4.0.1
+        version: 4.0.1(viem@2.41.2)
       '@sentry/nextjs':
         specifier: ^9.11.0
         version: 9.11.0(@opentelemetry/context-async-hooks@1.30.1)(@opentelemetry/core@1.30.1)(@opentelemetry/instrumentation@0.57.2)(@opentelemetry/sdk-trace-base@1.30.1)(next@16.1.0)(react@19.2.0)(webpack@5.104.1)
@@ -781,6 +784,9 @@ importers:
       '@radix-ui/react-visually-hidden':
         specifier: ^1.1.0
         version: 1.1.0(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@19.0.1)(react@19.0.1)
+      '@relayprotocol/relay-sdk':
+        specifier: ^4.0.1
+        version: 4.0.1(viem@2.41.2)
       '@tavily/core':
         specifier: ^0.6.3
         version: 0.6.3
@@ -6789,6 +6795,17 @@ packages:
       - typescript
     dev: false
 
+  /@relayprotocol/relay-sdk@4.0.1(viem@2.41.2):
+    resolution: {integrity: sha512-9cHeUk0JKUAloHzlr6DoAcIDcTiIhGymNrHhQ6ms1JJ/1ubakWXVNDPLfTNQOXhlxkPW9vrnRbpJTv93R3kXkg==}
+    peerDependencies:
+      viem: '>=2.26.0'
+    dependencies:
+      axios: 1.13.2
+      viem: 2.41.2(typescript@5.6.3)(zod@3.25.76)
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
   /@reown/appkit-common@1.7.8(typescript@5.6.3)(zod@3.22.4):
     resolution: {integrity: sha512-ridIhc/x6JOp7KbDdwGKY4zwf8/iK8EYBl+HtWrruutSLwZyVi5P8WaZa+8iajL6LcDcDF7LoyLwMTym7SRuwQ==}
     dependencies:
@@ -9761,7 +9778,7 @@ packages:
     dependencies:
       '@babel/runtime': 7.28.4
       '@noble/curves': 1.9.7
-      '@noble/hashes': 1.4.0
+      '@noble/hashes': 1.8.0
       '@solana/buffer-layout': 4.0.1
       '@solana/codecs-numbers': 2.3.0(typescript@5.6.3)
       agentkeepalive: 4.6.0

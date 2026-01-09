@@ -19,14 +19,14 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
   const theme = useMemo(() => {
     const baseTheme = resolvedTheme === 'dark'
       ? darkTheme({
-        accentColor: '#ef4444', // Red accent to match app theme
+        accentColor: '#E3E0CD',
         accentColorForeground: 'white',
         borderRadius: 'medium',
         fontStack: 'system',
         overlayBlur: 'small',
       })
       : lightTheme({
-        accentColor: '#ef4444',
+        accentColor: '#E3E0CD',
         accentColorForeground: 'white',
         borderRadius: 'medium',
         fontStack: 'system',
@@ -42,7 +42,7 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
       locale="en-US"
       appInfo={{
         appName: 'Barzakh AI',
-        learnMoreUrl: 'https://barzakh.framer.ai',
+        learnMoreUrl: 'https://chat.barzakh.tech',
       }}
       modalSize="compact"
     >

@@ -61,11 +61,7 @@ import {
   getCronosContractABI,
   getCronosContractSource,
 } from "./tools/cronos/cronos-tools";
-import {
-  getVVSSwapQuote,
-  getVVSTokenList,
-  getVVSPoolInfo,
-} from "./tools/cronos/vvs-swap";
+// VVS swap removed - using Relay for all swaps
 import {
   initiateX402Payment,
   getSubscriptionInfo,
@@ -93,6 +89,13 @@ import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
 import { createImage } from "./tools/create-image";
+// Relay Protocol Tools (Cross-chain Swaps & Bridging)
+import {
+  getRelaySupportedChains,
+  getRelayQuote,
+  getRelayBridgeQuote,
+  prepareRelayTransaction,
+} from "./tools/relay/relay-crosschain";
 import { tool } from "ai";
 import { z } from "zod";
 
@@ -290,6 +293,11 @@ const groupTools = {
     "ensToAddress",
     "translateTransactions",
     "defiLlama",
+    // Relay Protocol (Cross-chain Swaps & Bridging)
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
   ] as const,
   wormhole: ["webSearch", "getWormholeApiData"] as const,
   creditcoin: [
@@ -373,9 +381,6 @@ const groupTools = {
     "getCronosTokenHolders",
     "getCronosContractABI",
     "getCronosContractSource",
-    "getVVSSwapQuote",
-    "getVVSTokenList",
-    "getVVSPoolInfo",
     // x402 Payment Tools
     "initiateX402Payment",
     "getSubscriptionInfo",
@@ -395,6 +400,11 @@ const groupTools = {
     "getZkEVMContractSource",
     "getZkEVMTokenSupply",
     "getZkEVMBlockInfo",
+    // Relay Protocol Cross-Chain Swaps (works for same-chain and cross-chain)
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
   ] as const,
 } as const;
 
@@ -460,9 +470,6 @@ export const allTools = {
   getCronosTokenHolders,
   getCronosContractABI,
   getCronosContractSource,
-  getVVSSwapQuote,
-  getVVSTokenList,
-  getVVSPoolInfo,
   // x402 Payment Tools
   initiateX402Payment,
   getSubscriptionInfo,
@@ -483,6 +490,11 @@ export const allTools = {
   getZkEVMContractSource,
   getZkEVMTokenSupply,
   getZkEVMBlockInfo,
+  // Relay Protocol Tools
+  getRelaySupportedChains,
+  getRelayQuote,
+  getRelayBridgeQuote,
+  prepareRelayTransaction,
 };
 
 const groupPrompts = {
@@ -528,7 +540,7 @@ const groupPrompts = {
   ## Ens lookup: If user enters a ENS name like 'somename.eth', use the ensToAddress tool to get the corresponding address. Format the final address as **bold**.
 
   ## Barzakh AI Subscriptions:
-  You have tools to help users subscribe to Barzakh AI premium plans:
+  You have tools to help users subscribe to Barzakh AI tier plans:
   - **initiateX402Payment**: Use when user wants to subscribe, upgrade, downgrade, or change their plan. Parameters: planId, billingCycle, currentTier, currentBillingCycle
   - **getSubscriptionInfo**: Use when user asks about subscription options/pricing without being ready to subscribe
   
@@ -1120,10 +1132,11 @@ Always assume information being asked is related to Cronos blockchain, if not to
 - **getCronosContractSource**: Get verified source code and compiler settings
 - **getCronosLogs**: Get event logs from contracts (transfers, approvals, etc.)
 
-## 6. VVS Finance DEX (Cronos's Leading DEX)
-- **getVVSSwapQuote**: Get swap quote for token pairs on VVS Finance (supports slippage)
-- **getVVSTokenList**: Get list of supported tokens on VVS Finance with prices and liquidity
-- **getVVSPoolInfo**: Get liquidity pool information (TVL, APR, volume)
+## 6. Relay Protocol Swaps (Cross-Chain & Same-Chain)
+- **getRelayQuote**: Get a quote for swapping any token to any token on Cronos or cross-chain (e.g., CRO to ETH on Optimism)
+- **getRelayBridgeQuote**: Get a quote for bridging native tokens between chains
+- **prepareRelayTransaction**: Prepare and execute a swap/bridge transaction via Relay
+- **getRelaySupportedChains**: Get list of supported chains and token support levels
 
 ## 7. x402 Subscription Payment Tools (Barzakh AI Subscriptions)
 - **initiateX402Payment**: Initiate a subscription payment for Barzakh AI. Use this when user wants to subscribe, upgrade, or renew a subscription. Parameters: planId ('pro' or 'ultimate'), billingCycle ('monthly', 'quarterly', 'yearly'). Returns a payment component for user approval.
@@ -1166,9 +1179,17 @@ Payment is made in devUSDC.e on Cronos Testnet (gasless EIP-3009 transfer).
 - "Track transfer events" → Use getCronosLogs with Transfer topic
 
 ## For DeFi/Swap Queries:
-- "Swap 100 CRO to VVS" → Use getVVSSwapQuote
-- "What tokens are on VVS?" → Use getVVSTokenList
-- "Show VVS-CRO pool info" → Use getVVSPoolInfo
+**CRITICAL: ALWAYS use the Relay Protocol tools for ANY swap or bridge request. NEVER just provide step-by-step instructions.**
+
+When user asks to swap tokens (e.g., "Swap 1M VVS to CRO", "Bridge CRO to Optimism", "Swap ETH for USDC"):
+1. Call getRelayQuote with the correct parameters
+2. The tool will return a swap approval component - let the user see it
+3. Do NOT write out manual DEX instructions
+
+Examples:
+- "Swap 100 CRO to VVS" → Call getRelayQuote with fromChainId=25, toChainId=25, fromToken="CRO", toToken="VVS"
+- "Swap 1M VVS to CRO" → Call getRelayQuote with fromChainId=25, toChainId=25, fromToken="VVS", toToken="CRO"
+- "Bridge CRO to Optimism" → Call getRelayQuote with fromChainId=25, toChainId=10, fromToken="CRO", toToken="ETH"
 
 ## Web Search:
 Use webSearch tool for general Cronos ecosystem questions, news, tutorials, and documentation.
