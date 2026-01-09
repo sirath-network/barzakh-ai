@@ -211,3 +211,14 @@ export const x402_transactions = pgTable("X402Transaction", {
 });
 
 export type X402Transaction = InferSelectModel<typeof x402_transactions>;
+
+// Relay Swap Tracking - prevents repeat swap execution
+export const relay_swap_tracking = pgTable("RelaySwapTracking", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").notNull().references(() => user.id),
+  swapRequestId: text("swapRequestId").notNull().unique(), // Hash of swap params
+  transactionHash: varchar("transactionHash", { length: 66 }), // Optional, for record keeping
+  completedAt: timestamp("completedAt").notNull().defaultNow(),
+});
+
+export type RelaySwapTracking = InferSelectModel<typeof relay_swap_tracking>;

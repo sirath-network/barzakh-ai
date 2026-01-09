@@ -1415,6 +1415,136 @@
         }
       }
     },
+    "/api/settings/wallet/bind/send-otp": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "sendWalletBindOTP",
+        "summary": "Send OTP for wallet binding verification",
+        "description": "Sends OTP to user's email for wallet binding without 2FA",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "maskedEmail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/unbind/send-otp": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "sendWalletUnbindOTP",
+        "summary": "Send OTP for wallet unbinding verification",
+        "description": "Sends OTP to user's email for wallet unbinding without 2FA",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "maskedEmail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/nonce": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getWalletNonce",
+        "summary": "Get nonce for wallet signature verification",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce message generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/chat": {
       "get": {
         "tags": [
@@ -1986,6 +2116,128 @@
         }
       }
     },
+    "/api/relay/swap-tracking": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "checkSwapCompletion",
+        "summary": "Check if a Relay swap has been completed",
+        "description": "Checks if a specific swap request has already been executed.\nUsed to prevent double-execution of the same swap.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "swapRequestId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Base64-encoded swap request identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Swap completion status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "transactionHash": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "markSwapCompleted",
+        "summary": "Mark a Relay swap as completed",
+        "description": "Records that a swap has been executed to prevent re-execution.\nIdempotent - calling multiple times will not create duplicate records.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "swapRequestId"
+                ],
+                "properties": {
+                  "swapRequestId": {
+                    "type": "string",
+                    "description": "Base64-encoded swap request identifier"
+                  },
+                  "transactionHash": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{64}$",
+                    "description": "Transaction hash of the executed swap"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Swap marked as completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "alreadyExists": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/zerion/protocols": {
       "get": {
         "tags": [
@@ -2012,6 +2264,180 @@
         "responses": {
           "200": {
             "description": "Protocols data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/zerion/positions": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionPositions",
+        "summary": "Get wallet token positions from Zerion",
+        "description": "Public on-chain data - no auth required for shared chats",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "chain",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Chain ID to filter positions"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token positions data"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/zerion/nft-collections": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionNftCollections",
+        "summary": "Get NFT collections from Zerion",
+        "description": "Public on-chain data - no auth required for shared chats",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT collections data (limited to 12)"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/zerion/nfts": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionNfts",
+        "summary": "Get NFT positions from Zerion",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT positions data"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/zerion/nft-portfolio": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionNftPortfolio",
+        "summary": "Get NFT portfolio overview from Zerion",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT portfolio data"
+          },
+          "202": {
+            "description": "Data is being prepared"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"

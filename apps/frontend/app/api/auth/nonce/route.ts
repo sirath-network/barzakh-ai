@@ -11,12 +11,13 @@ export async function GET(request: Request) {
   }
 
   const nonce = crypto.randomUUID();
+  const timestamp = Date.now();
   if (!process.env.AUTH_SECRET) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
   const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
 
-  const token = await new SignJWT({ nonce, address })
+  const token = await new SignJWT({ nonce, timestamp, address })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("5m")
@@ -29,5 +30,5 @@ export async function GET(request: Request) {
     maxAge: 300, // 5 minutes
   });
 
-  return NextResponse.json({ nonce });
+  return NextResponse.json({ nonce, timestamp });
 }

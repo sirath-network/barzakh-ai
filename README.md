@@ -406,6 +406,35 @@ const vvsTools = {
 | **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
 | **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
 
+### Relay Protocol Cross-Chain Swaps
+
+Barzakh AI integrates **Relay Protocol** for seamless cross-chain token swaps with optimized routes:
+
+```typescript
+// Available Relay Tools
+const relayTools = {
+  getRelaySwapQuote,      // Get optimal swap quote across chains
+  executeRelaySwap,       // Execute approved cross-chain swap
+  getRelaySupportedTokens // List supported tokens per chain
+};
+
+// Example: Cross-Chain Swap Quote
+{
+  fromChainId: 8453,        // Base
+  toChainId: 10,            // Optimism
+  fromToken: "0x...",       // ETH
+  toToken: "0x...",         // ETH
+  amount: "0.1",
+  // Returns: quote, route, fees, estimated time
+}
+```
+
+**Features:**
+- **15+ Supported Chains**: Ethereum, Base, Optimism, Arbitrum, Polygon, and more
+- **Swap Completion Tracking**: Prevents duplicate swaps with server-side persistence
+- **Optimized Routing**: Best rates via Relay's solver network
+- **MEV Protection**: Protected transactions via Relay infrastructure
+
 ---
 
 ## x402 Crypto Payment Protocol
@@ -799,8 +828,13 @@ Full OpenAPI 3.0 specification available in `/docs/cloudflare-api-schema.yaml`.
 | `/api/billing/x402/verify-wallet` | GET/POST | Wallet signature verification |
 | `/api/billing/x402/settle` | POST | Settle x402 payment |
 | `/api/billing/x402/verify` | POST | Verify transaction |
+| `/api/relay/swap-tracking` | GET/POST | Track swap completion status |
+| `/api/zerion/positions` | GET | Token positions by chain |
+| `/api/zerion/nft-collections` | GET | NFT collections (public) |
+| `/api/zerion/nft-portfolio` | GET | NFT portfolio overview |
+| `/api/wallet/verify-signature` | GET/POST | Unified wallet verification |
 | `/api/settings` | GET/PATCH | User settings |
-| `/api/settings/wallet/*` | * | Wallet binding |
+| `/api/settings/wallet/*` | * | Wallet binding/unbinding |
 | `/api/cron/check-subscriptions` | GET | x402 expiry check (cron) |
 
 ### Rate Limits

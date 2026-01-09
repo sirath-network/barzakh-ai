@@ -35,10 +35,10 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
       // 1. Get Nonce
       const nonceRes = await fetch(`/api/auth/nonce?address=${walletAddress}`);
       if (!nonceRes.ok) throw new Error("Failed to fetch nonce");
-      const { nonce } = await nonceRes.json();
+      const { nonce, timestamp } = await nonceRes.json();
 
       // 2. Sign Message
-      const message = `Barzakh AI wants you to sign in with your Ethereum account:\n${walletAddress}\n\nNonce: ${nonce}`;
+      const message = `Barzakh AI — Login\n\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
       const signature = await signMessageAsync({ message });
 
       // 3. Sign In

@@ -112,9 +112,11 @@ export const authOptions: NextAuthConfig = {
             return null;
           }
 
-          // Check if message contains the nonce
-          if (!message.includes(payload.nonce as string)) {
-            console.error("Invalid nonce in message");
+          // Check if message contains the nonce and matches format
+          const expectedMessage = `Barzakh AI — Login\n\nNonce: ${payload.nonce}\nTimestamp: ${payload.timestamp}`;
+
+          if (message !== expectedMessage) {
+            console.error("Invalid message format");
             return null;
           }
 

@@ -141,8 +141,8 @@ export function X402PaymentModal({
       setStep("verify");
       setIsLoading(true);
 
-      // 1. Get nonce from server
-      const nonceRes = await fetch(`/api/billing/x402/verify-wallet?address=${address}`);
+      // 1. Get nonce from unified wallet verification API
+      const nonceRes = await fetch(`/api/wallet/verify-signature?address=${address}`);
       if (!nonceRes.ok) {
         throw new Error("Failed to get verification nonce");
       }
@@ -152,7 +152,7 @@ export function X402PaymentModal({
       const signature = await signMessageAsync({ message });
 
       // 3. Verify signature with server
-      const verifyRes = await fetch("/api/billing/x402/verify-wallet", {
+      const verifyRes = await fetch("/api/wallet/verify-signature", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address, signature }),

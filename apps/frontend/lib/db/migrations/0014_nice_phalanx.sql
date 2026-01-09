@@ -1,0 +1,1 @@
+ALTER TABLE "RelaySwapTracking" ALTER COLUMN "swapRequestId" SET DATA TYPE text;

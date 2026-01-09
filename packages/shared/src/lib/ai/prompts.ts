@@ -540,7 +540,7 @@ const groupPrompts = {
   ## Ens lookup: If user enters a ENS name like 'somename.eth', use the ensToAddress tool to get the corresponding address. Format the final address as **bold**.
 
   ## Barzakh AI Subscriptions:
-  You have tools to help users subscribe to Barzakh AI premium plans:
+  You have tools to help users subscribe to Barzakh AI tier plans:
   - **initiateX402Payment**: Use when user wants to subscribe, upgrade, downgrade, or change their plan. Parameters: planId, billingCycle, currentTier, currentBillingCycle
   - **getSubscriptionInfo**: Use when user asks about subscription options/pricing without being ready to subscribe
   

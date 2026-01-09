@@ -1196,22 +1196,35 @@ function extractQuoteDetails(
         const details = quote.details || {};
         const fees = quote.fees || {};
 
+        const inputToken =
+            details.currencyIn?.currency?.symbol ||
+            details.currencyIn?.currency?.name ||
+            "Unknown";
+        const outputToken =
+            details.currencyOut?.currency?.symbol ||
+            details.currencyOut?.currency?.name ||
+            "Unknown";
+
+        let formattedRate = details.rate || "N/A";
+        if (details.rate) {
+            const rateVal = parseFloat(details.rate);
+            if (!isNaN(rateVal)) {
+                formattedRate = `1 ${inputToken} ≈ ${rateVal.toLocaleString(undefined, {
+                    maximumFractionDigits: 6,
+                })} ${outputToken}`;
+            }
+        }
+
         return {
             inputAmount: details.currencyIn?.amountFormatted || "N/A",
-            inputToken:
-                details.currencyIn?.currency?.symbol ||
-                details.currencyIn?.currency?.name ||
-                "Unknown",
+            inputToken,
             outputAmount: details.currencyOut?.amountFormatted || "N/A",
-            outputToken:
-                details.currencyOut?.currency?.symbol ||
-                details.currencyOut?.currency?.name ||
-                "Unknown",
-            rate: details.rate || "N/A",
+            outputToken,
+            rate: formattedRate,
             gasFee: fees.gas?.amountFormatted || "N/A",
             relayerFee: fees.relayer?.amountFormatted || "N/A",
             totalFee: fees.total?.amountFormatted || "N/A",
-            estimatedTime: quote.timeEstimate || "~1-2 minutes",
+            estimatedTime: quote.timeEstimate || "~2-5 seconds",
             steps: quote.steps?.length || 0,
         };
     } catch {

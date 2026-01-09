@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useAccount, useSwitchChain, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useSwitchChain, useSendTransaction, useSignMessage, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { parseEther } from "viem";
-import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Wallet } from "lucide-react";
+import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck } from "lucide-react";
 import { createClient } from "@relayprotocol/relay-sdk";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Type aliases for React 19 compatibility
 const ButtonAny = Button as any;
@@ -27,6 +28,7 @@ const CHAIN_NAMES: Record<number, string> = {
     288: "Boba",
     324: "zkSync Era",
     360: "Shape",
+    30: "Rootstock",
     466: "AppChain",
     480: "World Chain",
     690: "Redstone",
@@ -179,29 +181,81 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const { address, isConnected, chain } = useAccount();
     const { switchChain } = useSwitchChain();
     const { sendTransactionAsync, isPending: isSending } = useSendTransaction();
+    const { signMessageAsync } = useSignMessage();
+    const { disconnect } = useDisconnect();
 
-    const [step, setStep] = useState<"ready" | "switching" | "sending" | "confirming" | "success" | "error">("ready");
+    const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error">("ready");
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [txHash, setTxHash] = useState<string | null>(null);
     const [currentTxIndex, setCurrentTxIndex] = useState(0);
+    const [isVerified, setIsVerified] = useState(false);
+
+    // Swap tracking state
+    const [swapAlreadyCompleted, setSwapAlreadyCompleted] = useState(false);
+    const [isCheckingSwapStatus, setIsCheckingSwapStatus] = useState(true);
+    const [completedTxHash, setCompletedTxHash] = useState<string | null>(null);
 
     // Client-side execution state
     const [clientTransactions, setClientTransactions] = useState<RelayTransaction[]>([]);
     const [clientLoading, setClientLoading] = useState(false);
 
+    // Generate unique swap request ID from params
+    const swapRequestId = result.toolParams && result.timestamp
+        ? btoa(JSON.stringify({
+            fromChainId: result.toolParams.fromChainId,
+            toChainId: result.toolParams.toChainId,
+            fromToken: result.toolParams.fromToken,
+            toToken: result.toolParams.toToken,
+            amount: result.toolParams.amount,
+            timestamp: result.timestamp,
+        }))
+        : null;
+
+    // Check if swap was already completed (server-side persistence)
+    useEffect(() => {
+        const checkSwapCompletion = async () => {
+            if (!swapRequestId) {
+                setIsCheckingSwapStatus(false);
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/relay/swap-tracking?swapRequestId=${encodeURIComponent(swapRequestId)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.completed) {
+                        setSwapAlreadyCompleted(true);
+                        setCompletedTxHash(data.transactionHash || null);
+                        setStep("success");
+                    }
+                }
+            } catch (error) {
+                console.warn("Failed to check swap status:", error);
+            } finally {
+                setIsCheckingSwapStatus(false);
+            }
+        };
+
+        checkSwapCompletion();
+    }, [swapRequestId]);
+
     // Handle error results
     if (result.status === "error") {
         return (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 max-w-md">
-                <div className="flex items-center gap-2 text-red-500">
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 max-w-md w-full"
+            >
+                <div className="flex items-center gap-2 text-destructive">
                     <AlertCircle className="size-5" />
                     <span className="font-medium">Quote Error</span>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{result.error || result.details}</p>
+                <p className="mt-2 text-sm text-zinc-400">{result.error || result.details}</p>
                 {result.suggestion && (
-                    <p className="mt-2 text-xs text-muted-foreground italic">{result.suggestion}</p>
+                    <p className="mt-2 text-xs text-zinc-500 italic">{result.suggestion}</p>
                 )}
-            </div>
+            </motion.div>
         );
     }
 
@@ -217,15 +271,12 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     // Fetch executable transaction client-side if needed
     useEffect(() => {
         const fetchExecutableTx = async () => {
-            // If we have toolParams and connected wallet, but no transactions (or preview mode)
             if (isConnected && address && result.toolParams && processedTransactions.length === 0) {
                 setClientLoading(true);
                 try {
                     const client = createClient({
                         baseApiUrl: "https://api.relay.link"
                     });
-
-                    // console.log("Fetching Relay quote client-side...", result.toolParams);
 
                     const txQuote = await client.actions.getQuote({
                         chainId: result.toolParams.fromChainId,
@@ -238,11 +289,9 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         recipient: address
                     });
 
-                    // Transform transactions - Relay SDK returns tx data in item.data object
                     if (txQuote.steps) {
                         const txs = txQuote.steps.flatMap((step: any) =>
                             step.items.map((item: any) => {
-                                // Handle both direct tx format and nested format
                                 const txData = item.data || item;
                                 return {
                                     data: txData.data || "0x",
@@ -258,7 +307,6 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 } catch (err: any) {
                     console.error("Client-side quote fetch failed:", err);
                     setErrorMessage("Failed to prepare transaction. Please try again.");
-                    // Don't block UI entirely, let retry
                 } finally {
                     setClientLoading(false);
                 }
@@ -268,28 +316,48 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         fetchExecutableTx();
     }, [isConnected, address, result.toolParams, processedTransactions.length]);
 
+    // Reset verification when disconnected
+    useEffect(() => {
+        if (!isConnected) {
+            setIsVerified(false);
+        }
+    }, [isConnected]);
+
+    // Auto-disconnect on success
+    useEffect(() => {
+        if (step === "success") {
+            const timer = setTimeout(() => {
+                disconnect();
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [step, disconnect]);
+
     // If no quote or no transactions, show informational card
     if (!quote) {
         return (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 max-w-md">
-                <div className="flex items-center gap-2 text-primary mb-2">
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-zinc-800/50 bg-zinc-900/90 backdrop-blur-xl p-4 max-w-md w-full shadow-2xl"
+            >
+                <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200 mb-2">
                     <ArrowRightLeft className="size-5" />
-                    <span className="font-medium">Relay Protocol Quote</span>
+                    <span className="font-medium">Relay Protocol Swap</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                    {result.message || "Quote generated successfully. Connect wallet to execute."}
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    {result.message || "Initializing swap details..."}
                 </p>
-                {/* Show connect button if disconnected */}
                 {!isConnected && (
                     <div className="mt-4 flex justify-center">
                         <ConnectButton />
                     </div>
                 )}
-            </div>
+            </motion.div>
         );
     }
 
-    // Determine required chain for transaction - case-insensitive lookup
+    // Determine required chain for transaction
     const getChainIdFromName = (name: string): number | undefined => {
         const entry = Object.entries(CHAIN_NAMES).find(([_, n]) =>
             n.toLowerCase() === name?.toLowerCase()
@@ -297,9 +365,49 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         return entry ? parseInt(entry[0]) : undefined;
     };
 
-    // Use explicit Chain ID from toolParams if available, otherwise name lookup
     const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
     const isWrongChain = chain?.id !== requiredChainIdNum;
+
+    const handleVerify = async () => {
+        try {
+            setStep("verifying");
+
+            // 1. Get nonce from server
+            const nonceRes = await fetch(`/api/wallet/verify-signature?address=${address}`);
+            if (!nonceRes.ok) throw new Error("Failed to get verification nonce");
+            const { message } = await nonceRes.json();
+
+            // 2. Sign message
+            const signature = await signMessageAsync({ message });
+
+            // 3. Verify on server
+            const verifyRes = await fetch("/api/wallet/verify-signature", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ address, signature }),
+            });
+
+            if (!verifyRes.ok) {
+                const data = await verifyRes.json();
+                throw new Error(data.error || "Verification failed");
+            }
+
+            setIsVerified(true);
+            setStep("ready");
+        } catch (error: any) {
+            // Handle user rejection
+            if (error.code === 4001 ||
+                error?.name === 'UserRejectedRequestError' ||
+                error?.message?.includes('User rejected')) {
+                setStep("ready");
+                return;
+            }
+
+            console.error("Verification failed:", error);
+            setStep("ready");
+            toast.error(error.message || "Verification failed. Please try again.");
+        }
+    };
 
     // Execute swap
     const handleExecuteSwap = async () => {
@@ -309,13 +417,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         setErrorMessage("");
 
         try {
-            // Execute transactions sequentially
+            let lastTxHash: string | null = null;
             for (let i = 0; i < processedTransactions.length; i++) {
                 setCurrentTxIndex(i);
                 const tx = processedTransactions[i];
 
-                // If switch needed and not handled by outer button (e.g. multi-chain steps?)
-                // Usually Relay logic ensures we are on source chain
                 if (tx.chainId !== chain?.id && switchChain) {
                     await switchChain({ chainId: tx.chainId });
                 }
@@ -328,15 +434,27 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 });
 
                 setTxHash(hash);
-
-                // For simplicity, we just wait for the first/main tx hash to consider it "sent"
-                // Ideally we wait for receipt
+                lastTxHash = hash;
             }
 
             setStep("success");
-            toast.success("Transaction submitted!");
+
+            // Mark swap as completed (server-side persistence)
+            if (swapRequestId && lastTxHash) {
+                try {
+                    await fetch("/api/relay/swap-tracking", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            swapRequestId,
+                            transactionHash: lastTxHash,
+                        }),
+                    });
+                } catch (err) {
+                    console.warn("Failed to mark swap as completed:", err);
+                }
+            }
         } catch (error: any) {
-            // Handle user rejection
             if (error?.name === "UserRejectedRequestError" ||
                 error?.message?.includes("User rejected") ||
                 error?.code === 4001) {
@@ -350,10 +468,8 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     };
 
-    // Switch chain
     const handleSwitchChain = async () => {
         if (!requiredChainIdNum) return;
-
         setStep("switching");
         try {
             await switchChain?.({ chainId: requiredChainIdNum });
@@ -368,182 +484,294 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         : null;
 
     return (
-        <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4 md:p-6 max-w-md">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-primary/20">
-                    <ArrowRightLeft className="size-5 text-primary" />
-                </div>
-                <div>
-                    <h3 className="font-semibold text-lg">Cross-Chain Swap</h3>
-                    <p className="text-sm text-muted-foreground">via Relay Protocol</p>
-                </div>
-            </div>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="w-full max-w-md mx-auto"
+        >
+            <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900/90 backdrop-blur-xl shadow-2xl">
 
-            {/* Swap Details */}
-            <div className="space-y-3 mb-4">
-                {/* From */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                    <div>
-                        <p className="text-xs text-muted-foreground">From {sourceChain}</p>
-                        <p className="font-medium">{quote.inputAmount} {quote.inputToken}</p>
-                    </div>
-                </div>
+                {/* Marble Header Image */}
+                <div className="relative h-32 w-full overflow-hidden">
+                    <Image
+                        src="/images/barzakh/banner/marble-new.png"
+                        alt="Marble Texture"
+                        fill
+                        className="object-cover opacity-80"
+                        style={{ objectPosition: "50% 35%" }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/40 to-transparent" />
 
-                {/* Arrow */}
-                <div className="flex justify-center">
-                    <div className="p-1 rounded-full bg-muted border border-border">
-                        <ArrowRightLeft className="size-4 text-muted-foreground rotate-90" />
-                    </div>
-                </div>
-
-                {/* To */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                    <div>
-                        <p className="text-xs text-muted-foreground">To {destChain}</p>
-                        <p className="font-medium text-primary">{quote.outputAmount} {quote.outputToken}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Fee Info */}
-            {(quote.gasFee || quote.relayerFee || quote.estimatedTime) && (
-                <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border/50 space-y-1">
-                    {quote.rate && quote.rate !== "N/A" && (
-                        <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Rate:</span>
-                            <span className="font-mono">{quote.rate}</span>
+                    {/* Header Content on top of Marble */}
+                    <div className="absolute bottom-0 left-0 right-0 p-5 pb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/5 text-white">
+                                <ArrowRightLeft className="size-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-white">Cross-Chain Swap</h3>
+                                <p className="text-xs text-zinc-300 flex items-center gap-1">
+                                    via Relay Protocol <span className="w-1 h-1 rounded-full bg-green-500 inline-block" />
+                                </p>
+                            </div>
                         </div>
-                    )}
-                    {quote.totalFee && quote.totalFee !== "N/A" && (
-                        <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Total Fee:</span>
-                            <span className="font-mono">{quote.totalFee}</span>
-                        </div>
-                    )}
-                    {quote.estimatedTime && (
-                        <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Est. Time:</span>
-                            <span>{quote.estimatedTime}</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Status Messages */}
-            {step === "error" && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    <div className="flex items-center gap-2 text-red-500">
-                        <AlertCircle className="size-4" />
-                        <span className="text-sm">{errorMessage}</span>
-                    </div>
-                </div>
-            )}
-
-            {step === "success" && explorerUrl && (
-                <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-green-500">
-                            <Check className="size-4" />
-                            <span className="text-sm font-medium">Swap Executed!</span>
-                        </div>
-                        <a
-                            href={explorerUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                            View TX <ExternalLink className="size-3" />
-                        </a>
-                    </div>
-                </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="space-y-2">
-                {!isConnected ? (
-                    <div className="flex justify-center">
-                        <ConnectButton />
-                    </div>
-                ) : clientLoading ? (
-                    <ButtonAny disabled className="w-full" variant="outline">
-                        <Loader2 className="size-4 mr-2 animate-spin" />
-                        Preparing swap...
-                    </ButtonAny>
-                ) : isWrongChain ? (
-                    <ButtonAny
-                        onClick={handleSwitchChain}
-                        className="w-full"
-                        variant="outline"
-                        disabled={step === "switching"}
-                    >
-                        {step === "switching" ? (
-                            <>
-                                <Loader2 className="size-4 mr-2 animate-spin" />
-                                Switching...
-                            </>
-                        ) : (
-                            <>Switch to {CHAIN_NAMES[requiredChainIdNum!] || `Chain ${requiredChainIdNum}`}</>
+                        {step === "sending" && (
+                            <div className="px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
+                                <Loader2 className="size-3 animate-spin" /> Processing
+                            </div>
                         )}
-                    </ButtonAny>
-                ) : processedTransactions.length === 0 ? (
-                    <div className="p-3 rounded-lg bg-muted/50 border border-border text-center">
-                        <p className="text-sm text-muted-foreground">
-                            Waiting for quote...
-                        </p>
+                        {isVerified && step !== "sending" && step !== "success" && (
+                            <div className="px-2 py-1 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm shadow-sm">
+                                <ShieldCheck className="size-3" /> Verified
+                            </div>
+                        )}
                     </div>
-                ) : step === "ready" ? (
-                    <ButtonAny
-                        onClick={handleExecuteSwap}
-                        className="w-full bg-gradient-to-r from-primary to-primary/80"
-                    >
-                        <ArrowRightLeft className="size-4 mr-2" />
-                        {processedTransactions.length > 1
-                            ? `Execute Step ${currentTxIndex + 1}/${processedTransactions.length}`
-                            : "Execute Swap"}
-                    </ButtonAny>
-                ) : step === "sending" || isSending ? (
-                    <ButtonAny disabled className="w-full">
-                        <Loader2 className="size-4 mr-2 animate-spin" />
-                        Confirm in wallet...
-                    </ButtonAny>
-                ) : step === "confirming" ? (
-                    <ButtonAny disabled className="w-full">
-                        <Loader2 className="size-4 mr-2 animate-spin" />
-                        Waiting for confirmation...
-                    </ButtonAny>
-                ) : step === "success" ? (
-                    <ButtonAny disabled className="w-full bg-green-600 hover:bg-green-600 disabled:opacity-100">
-                        <Check className="size-4 mr-2" />
-                        Swap Complete
-                    </ButtonAny>
-                ) : step === "error" ? (
-                    <ButtonAny
-                        onClick={() => setStep("ready")}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        Try Again
-                    </ButtonAny>
-                ) : null}
-            </div>
-
-            {/* Instructions (if not client executed) */}
-            {result.instructions && result.instructions.length > 0 && step === "ready" && processedTransactions.length > 0 && !result.toolParams && (
-                <div className="mt-3 text-xs text-muted-foreground">
-                    <p className="font-medium mb-1">Instructions:</p>
-                    <ol className="list-decimal list-inside space-y-0.5">
-                        {result.instructions.map((instruction, i) => (
-                            <li key={i}>{instruction.replace(/^\d+\.\s*/, '')}</li>
-                        ))}
-                    </ol>
                 </div>
-            )}
 
-            {/* Footer */}
-            <p className="mt-3 text-xs text-muted-foreground text-center">
-                Powered by Relay Protocol • MEV Protected
-            </p>
-        </div>
+                {/* Main Content */}
+                <div className="p-5 pt-2 space-y-4">
+
+                    {/* INPUT CARD */}
+                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
+                                From {sourceChain}
+                            </p>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-4">
+                            <span className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-white truncate" title={quote.inputAmount}>
+                                {quote.inputAmount}
+                            </span>
+                            <span className="text-sm font-semibold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                                {quote.inputToken}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* DIVIDER */}
+                    <div className="relative h-4">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div>
+                        </div>
+                        <div className="absolute inset-0 flex justify-center">
+                            <span className="bg-white dark:bg-zinc-900 px-2 text-zinc-400 dark:text-zinc-500">
+                                <ArrowRightLeft className="size-4 rotate-90" />
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* OUTPUT CARD */}
+                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
+                                To {destChain}
+                            </p>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-4">
+                            <span className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-white truncate" title={quote.outputAmount}>
+                                {quote.outputAmount}
+                            </span>
+                            <span className="text-sm font-semibold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                                {quote.outputToken}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* INFO GRID */}
+                    <AnimatePresence>
+                        {(quote.rate || quote.estimatedTime || quote.totalFee) && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="grid grid-cols-2 gap-2 text-xs text-zinc-500 pt-2"
+                            >
+                                <div className="flex flex-col gap-1 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
+                                    <span className="opacity-70">Rate</span>
+                                    <span className="font-mono font-medium text-zinc-700 dark:text-zinc-300">{quote.rate}</span>
+                                </div>
+                                <div className="flex flex-col gap-1 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
+                                    <div className="flex items-center gap-1 opacity-70">
+                                        <Clock className="size-3" /> Est. Time
+                                    </div>
+                                    <span className="font-medium text-zinc-700 dark:text-zinc-300">{quote.estimatedTime || "~2-5 seconds"}</span>
+                                </div>
+
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* ERROR STATE */}
+                    <AnimatePresence>
+                        {step === "error" && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm flex items-center gap-2"
+                            >
+                                <AlertCircle className="size-4 shrink-0" />
+                                <span>{errorMessage}</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* SUCCESS STATE */}
+                    <AnimatePresence>
+                        {step === "success" && explorerUrl && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-3 rounded-lg bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-green-600 dark:text-green-500">
+                                        <Check className="size-4" />
+                                        <span className="text-sm font-medium">Swap Executed!</span>
+                                    </div>
+                                    <a
+                                        href={explorerUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors"
+                                    >
+                                        View Transaction <ExternalLink className="size-3" />
+                                    </a>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* ALREADY COMPLETED INFO */}
+                    {swapAlreadyCompleted && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50"
+                        >
+                            <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 flex-wrap">
+                                <Info className="size-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
+                                <span className="text-sm font-medium">Cross-Chain Swap Completed!</span>
+                                {completedTxHash && (
+                                    <a
+                                        href={`${BLOCK_EXPLORERS[requiredChainIdNum!] || "https://etherscan.io"}/tx/${completedTxHash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors"
+                                    >
+                                        View Transaction <ExternalLink className="size-3" />
+                                    </a>
+                                )}
+                            </div>
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 pl-6">
+                                Request a new quote for initiate another cross-chain swap
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {/* ACTIONS - Hide when swap completed */}
+                    {step !== "success" && !swapAlreadyCompleted && (
+                        <div className="pt-2">
+                            {!isConnected ? (
+                                <div className="flex justify-center w-full [&_button]:w-full">
+                                    <ConnectButton.Custom>
+                                        {({ openConnectModal, mounted }) => (
+                                            <ButtonAny
+                                                onClick={openConnectModal}
+                                                disabled={!mounted}
+                                                className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                            >
+                                                <Wallet className="size-4" />
+                                                Connect Wallet
+                                            </ButtonAny>
+                                        )}
+                                    </ConnectButton.Custom>
+                                </div>
+                            ) : isWrongChain ? (
+                                <ButtonAny
+                                    onClick={handleSwitchChain}
+                                    className="w-full h-11 bg-red-600 hover:bg-red-700 text-white"
+                                    variant="default"
+                                    disabled={step === "switching"}
+                                >
+                                    {step === "switching" ? (
+                                        <>
+                                            <Loader2 className="size-4 mr-2 animate-spin" />
+                                            Switching to {CHAIN_NAMES[requiredChainIdNum!] || `Chain ${requiredChainIdNum}`}...
+                                        </>
+                                    ) : (
+                                        <>Switch to {CHAIN_NAMES[requiredChainIdNum!] || `Chain ${requiredChainIdNum}`}</>
+                                    )}
+                                </ButtonAny>
+                            ) : clientLoading ? (
+                                <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400" variant="outline">
+                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                    Preparing Signature...
+                                </ButtonAny>
+                            ) : !isVerified ? (
+                                <ButtonAny
+                                    onClick={handleVerify}
+                                    disabled={step === "verifying"}
+                                    className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                >
+                                    {step === "verifying" ? (
+                                        <>
+                                            <Loader2 className="size-4 mr-2 animate-spin" />
+                                            Verifying Ownership...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShieldCheck className="size-4 mr-2" />
+                                            Verify Wallet
+                                        </>
+                                    )}
+                                </ButtonAny>
+                            ) : processedTransactions.length === 0 ? (
+                                <ButtonAny disabled className="w-full h-11 bg-zinc-800/50 text-zinc-500" variant="ghost">
+                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                    Fetching quote...
+                                </ButtonAny>
+                            ) : step === "ready" ? (
+                                <ButtonAny
+                                    onClick={handleExecuteSwap}
+                                    className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                                >
+                                    <ArrowRightLeft className="size-4 mr-2" />
+                                    {processedTransactions.length > 1
+                                        ? `Execute Step ${currentTxIndex + 1}/${processedTransactions.length}`
+                                        : "Execute Swap"}
+                                </ButtonAny>
+                            ) : step === "sending" || isSending ? (
+                                <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400">
+                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                    Confirm in wallet...
+                                </ButtonAny>
+                            ) : step === "confirming" ? (
+                                <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400">
+                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                    Broadcasting...
+                                </ButtonAny>
+                            ) : step === "error" ? (
+                                <ButtonAny
+                                    onClick={() => setStep("ready")}
+                                    variant="outline"
+                                    className="w-full h-11 border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+                                >
+                                    Try Again
+                                </ButtonAny>
+                            ) : null}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 text-center border-t border-zinc-200 dark:border-zinc-800/50">
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-600 font-semibold flex items-center justify-center gap-1.5">
+                        Powered by Relay <span className="w-0.5 h-0.5 bg-zinc-400 dark:bg-zinc-600 rounded-full" /> MEV Protected
+                    </p>
+                </div>
+            </div>
+        </motion.div>
     );
 }

@@ -444,6 +444,40 @@ export const getVVSPoolInfo = tool({
 });
 ```
 
+### Relay Protocol Cross-Chain Swaps
+
+Native integration with **Relay Protocol** enables cross-chain token swaps across 15+ networks:
+
+| Tool | Function |
+|------|----------|
+| `getRelaySwapQuote` | Get optimal cross-chain swap quotes |
+| `executeRelaySwap` | Execute approved cross-chain swap |
+| `getRelaySupportedTokens` | List supported tokens per chain |
+
+```typescript
+// Relay Swap Quote Tool (relay/index.ts)
+export const getRelaySwapQuote = tool({
+    description: "Get a cross-chain swap quote from Relay Protocol.",
+    parameters: z.object({
+        fromChainId: z.number().describe("Source chain ID"),
+        toChainId: z.number().describe("Destination chain ID"),
+        fromToken: z.string().describe("Source token address"),
+        toToken: z.string().describe("Destination token address"),
+        amount: z.string().describe("Amount to swap"),
+    }),
+    execute: async ({ fromChainId, toChainId, fromToken, toToken, amount }) => {
+        // Returns: { quote, route, fees, estimatedTime }
+    },
+});
+```
+
+**Supported Chains**: Ethereum, Base, Optimism, Arbitrum, Polygon, Avalanche, BNB Chain, Scroll, zkSync, Linea, Blast, Mode, Zora, and more.
+
+**Features**:
+- **Swap Completion Tracking**: Server-side persistence prevents duplicate swaps
+- **MEV Protection**: Transactions protected via Relay solver network
+- **Dynamic Decimals**: Automatic token decimal fetching from Relay Currencies API
+
 ### Tool Grouping by Intent
 
 Tools are dynamically selected based on classified intent:
