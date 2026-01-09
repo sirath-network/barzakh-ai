@@ -1213,7 +1213,7 @@ Use webSearch tool for general Cronos ecosystem questions, news, tutorials, and 
 - RPC: https://evm.cronos.org
 - Explorer API: https://explorer-api.cronos.org/mainnet/api/v2
 - Block Time: ~5-6 seconds
-- VVS Finance: Leading DEX on Cronos
+- Swaps: Use Relay Protocol for all token swaps (same-chain and cross-chain)
 `,
   coding: `You are an expert AI coding assistant and senior software engineer. Your primary function is to assist users with writing, debugging, refactoring, and understanding code across various programming languages and frameworks.
 

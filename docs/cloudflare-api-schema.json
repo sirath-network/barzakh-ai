@@ -13,10 +13,6 @@
     {
       "url": "https://chat.barzakh.tech",
       "description": "Frontend (Main Application)"
-    },
-    {
-      "url": "https://staging.barzakh.tech",
-      "description": "Backend (External API)"
     }
   ],
   "tags": [

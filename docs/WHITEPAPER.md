@@ -385,9 +385,6 @@ The platform provides **50+ specialized tools** across 12+ blockchain ecosystems
 | `getCronosTokenHolders` | Token holder analysis |
 | `getCronosContractABI` | Contract ABI retrieval |
 | `getCronosContractSource` | Verified source code |
-| `getVVSSwapQuote` | DEX swap quotes |
-| `getVVSPoolInfo` | Liquidity pool stats |
-| `getVVSTokenList` | Available tokens |
 | `initiateX402Payment` | Crypto subscriptions |
 
 #### Aptos Ecosystem Tools
@@ -411,38 +408,6 @@ The platform provides **50+ specialized tools** across 12+ blockchain ecosystems
 | `xSearch` | X/Twitter search |
 | `createImage` | Gemini 2.5 image gen |
 | `translateTransactions` | Human-readable TX |
-
-### VVS Finance DEX Integration
-
-Native integration with VVS Finance provides real-time DeFi intelligence on Cronos:
-
-```typescript
-// VVS Swap Quote Tool (vvs-swap.ts)
-export const getVVSSwapQuote = tool({
-    description: "Get a swap quote from VVS Finance DEX on Cronos.",
-    parameters: z.object({
-        inputToken: z.string().describe("Input token symbol (CRO, USDC, VVS)"),
-        outputToken: z.string().describe("Output token symbol"),
-        inputAmount: z.number().describe("Amount to swap"),
-    }),
-    execute: async ({ inputToken, outputToken, inputAmount }) => {
-        // Calculate price impact, route, and expected output
-        // Returns: { expectedOutput, priceImpact, route, gasCost }
-    },
-});
-
-// VVS Pool Info Tool
-export const getVVSPoolInfo = tool({
-    description: "Get liquidity pool information from VVS Finance.",
-    parameters: z.object({
-        token0: z.string().describe("First token symbol"),
-        token1: z.string().describe("Second token symbol"),
-    }),
-    execute: async ({ token0, token1 }) => {
-        // Returns: { reserves, tvl, apr, volume24h }
-    },
-});
-```
 
 ### Relay Protocol Cross-Chain Swaps
 
@@ -494,9 +459,6 @@ const groupTools = {
         "getCronosTokenHolders",
         "getCronosContractABI",
         "getCronosContractSource",
-        "getVVSSwapQuote",
-        "getVVSTokenList",
-        "getVVSPoolInfo",
         "initiateX402Payment",
         "getSubscriptionInfo",
     ],
