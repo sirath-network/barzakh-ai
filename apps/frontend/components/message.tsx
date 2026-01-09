@@ -75,9 +75,6 @@ const toolIcons: Record<string, React.ElementType> = {
   getCronosMarketData: BarChart3Any,
   getMarketOverview: BarChart3Any,
   getCryptoPrice: BarChart3Any,
-  getVVSSwapQuote: BarChart3Any,
-  getVVSTokenList: BarChart3Any,
-  getVVSPoolInfo: BarChart3Any,
   // x402 Payment Tools
   initiateX402Payment: CreditCardAny,
   getSubscriptionInfo: FileTextAny,
@@ -802,9 +799,6 @@ const PurePreviewMessage = ({
                                     getCronosMarketData: "Market Data",
                                     getMarketOverview: "Market Overview",
                                     getCryptoPrice: "Crypto Price",
-                                    getVVSSwapQuote: "VVS Quote",
-                                    getVVSTokenList: "VVS Tokens",
-                                    getVVSPoolInfo: "VVS Pool",
                                     // x402 Payment Tools
                                     initiateX402Payment: "x402 Payment",
                                     getSubscriptionInfo: "Subscription Info",

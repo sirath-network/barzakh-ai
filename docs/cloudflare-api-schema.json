@@ -1,0 +1,3555 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Barzakh AI API",
+    "version": "1.0.0",
+    "description": "API schema for Barzakh AI platform.\nThis schema is used by Cloudflare API Shield to validate incoming requests.\n",
+    "contact": {
+      "name": "Barzakh Support",
+      "url": "https://barzakh.tech/contact"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://chat.barzakh.tech",
+      "description": "Frontend (Main Application)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and 2FA endpoints"
+    },
+    {
+      "name": "Billing",
+      "description": "Subscription and payment management"
+    },
+    {
+      "name": "Chat",
+      "description": "Chat and AI completion endpoints"
+    },
+    {
+      "name": "Account",
+      "description": "User account management"
+    },
+    {
+      "name": "Settings",
+      "description": "User settings and preferences"
+    },
+    {
+      "name": "Files",
+      "description": "File upload and image handling"
+    },
+    {
+      "name": "Webhooks",
+      "description": "External service webhooks"
+    },
+    {
+      "name": "Security",
+      "description": "AI security and threat protection. All endpoints are protected against:\n- Polyglot/Metadata Image attacks\n- Sponge Attacks (DoS via expensive computation)\n- Model Extraction & Inversion attempts\n- Adversarial Input attacks (homoglyphs, invisible chars, RTL)\n- Prompt Injection (direct and indirect via external content)\n"
+    }
+  ],
+  "paths": {
+    "/api/auth/callback/{provider}": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "authCallback",
+        "summary": "OAuth callback handler",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "google",
+                "credentials"
+              ]
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect after authentication"
+          }
+        }
+      }
+    },
+    "/api/auth/signin": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "getSignIn",
+        "summary": "Get sign in page",
+        "responses": {
+          "200": {
+            "description": "Sign in page"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "postSignIn",
+        "summary": "Sign in with credentials",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sign in successful"
+          }
+        }
+      }
+    },
+    "/api/auth/signout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "signOut",
+        "summary": "Sign out user",
+        "responses": {
+          "200": {
+            "description": "Sign out successful"
+          }
+        }
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "getSession",
+        "summary": "Get current session",
+        "responses": {
+          "200": {
+            "description": "Session data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/nonce": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "getNonce",
+        "summary": "Get nonce for wallet authentication",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "nonce": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/auth/resend-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "resendOtp",
+        "summary": "Resend OTP code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent"
+          }
+        }
+      }
+    },
+    "/api/2fa/temp-login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "tempLogin",
+        "summary": "Temporary login for 2FA setup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TempLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Temporary token issued"
+          }
+        }
+      }
+    },
+    "/api/2fa/complete-login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "completeLogin",
+        "summary": "Complete login with 2FA code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Complete2FARequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login completed"
+          }
+        }
+      }
+    },
+    "/api/2fa/forgot-password-verify": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "forgotPasswordVerify",
+        "summary": "Verify forgot password with 2FA",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPassword2FARequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification successful"
+          }
+        }
+      }
+    },
+    "/api/billing/subscription": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "getSubscription",
+        "summary": "Get current subscription",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/create-checkout-session": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "createCheckoutSession",
+        "summary": "Create Stripe checkout session",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/manage-subscription": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "manageSubscription",
+        "summary": "Open Stripe customer portal",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Portal URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/cancel-subscription": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "cancelSubscription",
+        "summary": "Cancel current subscription",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cancelImmediately": {
+                    "type": "boolean",
+                    "description": "Whether to cancel the subscription immediately"
+                  },
+                  "cancelAtPeriodEnd": {
+                    "type": "boolean",
+                    "description": "Whether to cancel at the end of the billing period"
+                  },
+                  "subscriptionId": {
+                    "type": "string",
+                    "description": "Specific subscription ID to cancel"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription cancelled"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/payment-methods": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "getPaymentMethods",
+        "summary": "Get saved payment methods",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment methods list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentMethodsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/create-setup-intent": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "createSetupIntent",
+        "summary": "Create setup intent for new payment method",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Setup intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clientSecret": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/invoices": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "getInvoices",
+        "summary": "Get billing history",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          },
+          {
+            "name": "starting_after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoicesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/update-subscription": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "updateSubscription",
+        "summary": "Update existing Stripe subscription",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No active subscription found"
+          }
+        }
+      }
+    },
+    "/api/billing/x402/subscribe": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "x402Subscribe",
+        "summary": "Initiate x402 crypto payment for subscription",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/X402SubscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "402": {
+            "description": "Payment required with crypto payment details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/X402PaymentDetailsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/billing/x402/verify": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "x402Verify",
+        "summary": "Verify x402 crypto payment transaction",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/X402VerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          },
+          "409": {
+            "description": "Block not found yet (retryable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "BLOCK_NOT_FOUND"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/x402/verify-wallet": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "getPaymentWalletNonce",
+        "summary": "Get nonce for payment wallet verification",
+        "description": "Generates a unique nonce/message for the user to sign with their wallet.\nThis is for payment verification only - does NOT save the wallet address to the account.\nDifferent from /api/settings/wallet/bind which permanently links a wallet.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "Ethereum-compatible wallet address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce message generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Message to sign with wallet"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "description": "Seconds until nonce expires"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "verifyPaymentWallet",
+        "summary": "Verify wallet signature for payment",
+        "description": "Verifies the signature from the user's wallet for payment purposes.\nThis does NOT save the wallet address to the account - it only verifies\nownership for the current payment transaction.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address",
+                  "signature"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{40}$",
+                    "description": "Ethereum-compatible wallet address"
+                  },
+                  "signature": {
+                    "type": "string",
+                    "description": "Signature of the nonce message"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet verified for payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "walletAddress": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Invalid session or nonce mismatch"
+          }
+        }
+      }
+    },
+    "/api/billing/x402/settle": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "x402Settle",
+        "summary": "Settle x402 crypto payment on-chain",
+        "description": "Settles a signed x402 payment on-chain via the Cronos Facilitator.\nThis verifies the payment signature and executes the transfer.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/X402SettleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment settled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "txHash": {
+                      "type": "string",
+                      "description": "Transaction hash of the settlement"
+                    },
+                    "blockNumber": {
+                      "type": "integer",
+                      "description": "Block number of the settlement"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "description": "Settlement failed"
+          }
+        }
+      }
+    },
+    "/api/wallet/verify-signature": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "getWalletSignatureMessage",
+        "summary": "Get message to sign for wallet verification",
+        "description": "Generates a unique nonce/message for the user to sign with their wallet.\nThis is used to verify wallet ownership before crypto payments.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$",
+              "description": "Ethereum-compatible wallet address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signature message generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletSignatureMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "verifyWalletSignature",
+        "summary": "Verify wallet signature and link to account",
+        "description": "Verifies the signature from the user's wallet and links the wallet\naddress to the user's account for future crypto payments.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletVerifySignatureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet verified and linked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletVerifySignatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Invalid session or nonce mismatch"
+          }
+        }
+      }
+    },
+    "/api/account/delete": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "deleteAccount",
+        "summary": "Delete user account with re-authentication",
+        "description": "Deletes the user account permanently. Requires re-authentication:\n- Password is always required\n- If 2FA is enabled, twoFactorToken is required\n- If 2FA is not enabled, emailOtp is required (request via /api/account/delete/send-otp)\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "User's current password (always required)"
+                  },
+                  "twoFactorToken": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^[0-9]{6}$",
+                    "description": "6-digit TOTP code (required if 2FA enabled)"
+                  },
+                  "emailOtp": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^[0-9]{6}$",
+                    "description": "6-digit email OTP code (required if 2FA not enabled)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "Re-authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "requiresAuth": {
+                      "type": "boolean"
+                    },
+                    "has2FA": {
+                      "type": "boolean"
+                    },
+                    "userEmail": {
+                      "type": "string",
+                      "description": "Masked email for display"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/account/delete/send-otp": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "sendAccountDeleteOTP",
+        "summary": "Send OTP for account deletion verification",
+        "description": "Sends an OTP code to the user's email for account deletion verification.\nOnly available for users without 2FA enabled. Rate limited to 3 requests per 10 minutes.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "maskedEmail": {
+                      "type": "string",
+                      "description": "Masked email address for display"
+                    },
+                    "remaining": {
+                      "type": "integer",
+                      "description": "Remaining OTP requests allowed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "2FA enabled or no email associated"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/changes-email/request-email-change": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "requestEmailChange",
+        "summary": "Request email change",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "newEmail"
+                ],
+                "properties": {
+                  "newEmail": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification email sent"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/changes-email/verify-email-change": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "verifyEmailChange",
+        "summary": "Verify email change with code",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^[0-9]{6}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email changed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getSettings",
+        "summary": "Get user settings",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "updateSettings",
+        "summary": "Update user settings",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/bind": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "bindWallet",
+        "summary": "Bind Web3 wallet to account",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address",
+                  "signature",
+                  "message"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{40}$"
+                  },
+                  "signature": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Required for re-authentication"
+                  },
+                  "twoFactorToken": {
+                    "type": "string",
+                    "description": "Required if 2FA enabled"
+                  },
+                  "emailOtp": {
+                    "type": "string",
+                    "description": "Required if 2FA not enabled"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet bound successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Wallet already connected to another account"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/unbind": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "unbindWallet",
+        "summary": "Unbind Web3 wallet from account",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "Required for verification"
+                  },
+                  "twoFactorToken": {
+                    "type": "string",
+                    "description": "Required if 2FA enabled"
+                  },
+                  "emailOtp": {
+                    "type": "string",
+                    "description": "Required if 2FA not enabled"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet unbound successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/bind/send-otp": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "sendWalletBindOTP",
+        "summary": "Send OTP for wallet binding verification",
+        "description": "Sends OTP to user's email for wallet binding without 2FA",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "maskedEmail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/unbind/send-otp": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "sendWalletUnbindOTP",
+        "summary": "Send OTP for wallet unbinding verification",
+        "description": "Sends OTP to user's email for wallet unbinding without 2FA",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "maskedEmail": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/api/settings/wallet/nonce": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "getWalletNonce",
+        "summary": "Get nonce for wallet signature verification",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nonce message generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "getChats",
+        "summary": "Get user chats",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chats list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "deleteChat",
+        "summary": "Delete a chat",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/files/upload": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "uploadFile",
+        "summary": "Upload a file",
+        "description": "Uploads a file using multipart/form-data.\nRequest body validation is not supported by Cloudflare API Shield.\nProtection is handled via session authentication and server-side validation.\n\n**Security Protection:**\n- Polyglot attack detection (PHP, JS, Shell, ELF, PE, Java embedded in images)\n- Metadata injection scanning (EXIF, XMP, Comments with malicious content)\n- LLM token detection in metadata fields\n- File signature validation\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "File rejected due to security concerns (polyglot/metadata attack detected)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityBlockResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "description": "File too large"
+          }
+        }
+      }
+    },
+    "/api/proxy-image": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "proxyImage",
+        "summary": "Proxy external image",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Proxied image data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/persist-image": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "persistImage",
+        "summary": "Persist image to storage",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "maxLength": 2048
+                  },
+                  "filename": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image persisted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/history": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "getHistory",
+        "summary": "Get chat history",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/history/archived": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "getArchivedHistory",
+        "summary": "Get archived chat history",
+        "description": "Returns list of archived conversations for the authenticated user",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived history list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Chat"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/vote": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "getVotes",
+        "summary": "Get votes for a chat",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Votes list"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "voteMessage",
+        "summary": "Vote on a message",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId",
+                  "messageId",
+                  "type"
+                ],
+                "properties": {
+                  "chatId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "messageId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "up",
+                      "down"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vote recorded"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/set-model-cookie": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
+        "operationId": "setModelCookie",
+        "summary": "Set chat model cookie",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cookie set"
+          }
+        }
+      }
+    },
+    "/api/proxy-file": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "proxyFile",
+        "summary": "Proxy external file",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fileUrl"
+                ],
+                "properties": {
+                  "fileUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Domain not allowed"
+          }
+        }
+      }
+    },
+    "/api/webhooks/stripe": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "stripeWebhook",
+        "summary": "Stripe webhook handler",
+        "security": [
+          {
+            "StripeSignature": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed"
+          },
+          "400": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
+    "/api/messagelimitcron": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "operationId": "messageLimitCron",
+        "summary": "Reset daily message limits",
+        "security": [
+          {
+            "CronAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Limits reset"
+          }
+        }
+      }
+    },
+    "/api/cron/check-subscriptions": {
+      "get": {
+        "tags": [
+          "Internal"
+        ],
+        "operationId": "checkSubscriptionsCron",
+        "summary": "Check and downgrade expired x402 subscriptions",
+        "description": "Cron job that runs every 6 hours to check for expired x402 subscriptions\nand downgrade users to the free tier. Requires CRON_SECRET authorization.\n",
+        "security": [
+          {
+            "CronAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription check completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "checked": {
+                      "type": "integer",
+                      "description": "Number of expired subscriptions found"
+                    },
+                    "downgraded": {
+                      "type": "integer",
+                      "description": "Number of users downgraded"
+                    },
+                    "errors": {
+                      "type": "integer",
+                      "description": "Number of errors during processing"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/reset-limit": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "resetMessageLimit",
+        "summary": "Reset user's daily message limit",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message limit reset successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/api/relay/swap-tracking": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "checkSwapCompletion",
+        "summary": "Check if a Relay swap has been completed",
+        "description": "Checks if a specific swap request has already been executed.\nUsed to prevent double-execution of the same swap.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "swapRequestId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Base64-encoded swap request identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Swap completion status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "completedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "transactionHash": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "markSwapCompleted",
+        "summary": "Mark a Relay swap as completed",
+        "description": "Records that a swap has been executed to prevent re-execution.\nIdempotent - calling multiple times will not create duplicate records.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "swapRequestId"
+                ],
+                "properties": {
+                  "swapRequestId": {
+                    "type": "string",
+                    "description": "Base64-encoded swap request identifier"
+                  },
+                  "transactionHash": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{64}$",
+                    "description": "Transaction hash of the executed swap"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Swap marked as completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "alreadyExists": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/zerion/protocols": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionProtocols",
+        "summary": "Get DeFi protocols from Zerion",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Protocols data"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/zerion/positions": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionPositions",
+        "summary": "Get wallet token positions from Zerion",
+        "description": "Public on-chain data - no auth required for shared chats",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "chain",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Chain ID to filter positions"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token positions data"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/zerion/nft-collections": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionNftCollections",
+        "summary": "Get NFT collections from Zerion",
+        "description": "Public on-chain data - no auth required for shared chats",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT collections data (limited to 12)"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/zerion/nfts": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionNfts",
+        "summary": "Get NFT positions from Zerion",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT positions data"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/zerion/nft-portfolio": {
+      "get": {
+        "tags": [
+          "External APIs"
+        ],
+        "operationId": "getZerionNftPortfolio",
+        "summary": "Get NFT portfolio overview from Zerion",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "usd"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT portfolio data"
+          },
+          "202": {
+            "description": "Data is being prepared"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/chat/completions": {
+      "post": {
+        "tags": [
+          "Chat",
+          "Security"
+        ],
+        "operationId": "createChatCompletion",
+        "summary": "Create chat completion (OpenAI-compatible)",
+        "description": "Creates a chat completion with AI security protection.\n\n**Security Protection:**\n- Prompt injection detection (direct attacks in user messages)\n- Sponge attack detection (token bombing, nested structures, expensive computation)\n- Model extraction/inversion attempt detection\n- Adversarial input detection (homoglyphs, invisible characters, RTL override)\n- Risk score calculation (blocked if >= 50)\n\n**External Content Protection:**\n- Web search results are sanitized for indirect injection\n- Scraped content is scanned for LLM manipulation tokens\n- Hidden instructions in HTML comments/metadata are removed\n",
+        "servers": [
+          {
+            "url": "https://staging.barzakh.tech"
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionResponse"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events stream"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/completions": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "operationId": "createCompletion",
+        "summary": "Create completion (legacy)",
+        "servers": [
+          {
+            "url": "https://staging.barzakh.tech"
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completion response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "SessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Secure-authjs.session-token",
+        "description": "NextAuth.js session cookie"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key as Bearer token"
+      },
+      "StripeSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "stripe-signature",
+        "description": "Stripe webhook signature"
+      },
+      "CronAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "authorization",
+        "description": "Cron job authorization"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Authentication required",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Request blocked by security protection",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SecurityBlockResponse"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Limit": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Remaining": {
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "X-RateLimit-Reset": {
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "SecurityBlockResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "description": "Response returned when request is blocked by AI security protection",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Request blocked due to security concerns"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "AI_SECURITY_BLOCKED",
+              "POLYGLOT_DETECTED",
+              "SPONGE_ATTACK_DETECTED",
+              "MODEL_ATTACK_DETECTED",
+              "ADVERSARIAL_INPUT_DETECTED",
+              "PROMPT_INJECTION_DETECTED",
+              "INDIRECT_INJECTION_DETECTED"
+            ],
+            "description": "Security threat code"
+          },
+          "riskScore": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Calculated risk score (blocked if >= 50)"
+          },
+          "threats": {
+            "type": "array",
+            "description": "List of detected threat types",
+            "items": {
+              "$ref": "#/components/schemas/AIThreatType"
+            }
+          }
+        }
+      },
+      "AIThreatType": {
+        "type": "object",
+        "description": "Detected AI security threat",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "polyglot_php",
+              "polyglot_script",
+              "polyglot_shell",
+              "polyglot_elf",
+              "polyglot_pe",
+              "polyglot_java",
+              "metadata_exif_script",
+              "metadata_xmp_script",
+              "metadata_comment_script",
+              "metadata_llm_tokens",
+              "sponge_token_bombing",
+              "sponge_nested_structure",
+              "sponge_expensive_computation",
+              "sponge_repetitive_pattern",
+              "model_extraction_attempt",
+              "model_inversion_attempt",
+              "pii_extraction_attempt",
+              "training_data_extraction",
+              "adversarial_homoglyph",
+              "adversarial_invisible_char",
+              "adversarial_rtl_override",
+              "adversarial_zero_width",
+              "prompt_injection_direct",
+              "prompt_injection_indirect",
+              "jailbreak_attempt"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "SignInRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "turnstileToken": {
+            "type": "string"
+          }
+        }
+      },
+      "TempLoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        }
+      },
+      "Complete2FARequest": {
+        "type": "object",
+        "required": [
+          "tempToken",
+          "code"
+        ],
+        "properties": {
+          "tempToken": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "pattern": "^[0-9]{6}$"
+          }
+        }
+      },
+      "ForgotPassword2FARequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "code"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        }
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "name": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string",
+                "format": "uri"
+              },
+              "tier": {
+                "type": "string",
+                "enum": [
+                  "free",
+                  "pro",
+                  "ultimate"
+                ]
+              }
+            }
+          },
+          "expires": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Chat": {
+        "type": "object",
+        "description": "A chat conversation",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "isArchived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "canceled",
+                  "past_due",
+                  "trialing"
+                ]
+              },
+              "currentPeriodEnd": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "cancelAtPeriodEnd": {
+                "type": "boolean"
+              },
+              "plan": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "month",
+                      "quarter",
+                      "year"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CheckoutRequest": {
+        "type": "object",
+        "required": [
+          "priceId"
+        ],
+        "properties": {
+          "priceId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "successUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "cancelUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "CheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentMethodsResponse": {
+        "type": "object",
+        "properties": {
+          "paymentMethods": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "card": {
+                  "type": "object",
+                  "properties": {
+                    "brand": {
+                      "type": "string"
+                    },
+                    "last4": {
+                      "type": "string"
+                    },
+                    "expMonth": {
+                      "type": "integer"
+                    },
+                    "expYear": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "defaultPaymentMethodId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InvoicesResponse": {
+        "type": "object",
+        "properties": {
+          "invoices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "created": {
+                  "type": "integer"
+                },
+                "invoicePdf": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SettingsUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50,
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "currentPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateSubscriptionRequest": {
+        "type": "object",
+        "required": [
+          "priceId"
+        ],
+        "properties": {
+          "priceId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "subscriptionId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "prorationBehavior": {
+            "type": "string",
+            "enum": [
+              "create_prorations",
+              "none",
+              "always_invoice"
+            ],
+            "default": "create_prorations"
+          },
+          "paymentMethodId": {
+            "type": "string",
+            "maxLength": 100
+          }
+        }
+      },
+      "UpdateSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "priceId": {
+                "type": "string",
+                "nullable": true
+              },
+              "cancelAtPeriodEnd": {
+                "type": "boolean"
+              },
+              "currentPeriodEnd": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "X402SubscribeRequest": {
+        "type": "object",
+        "required": [
+          "planId",
+          "billingCycle"
+        ],
+        "properties": {
+          "planId": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "ultimate"
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "yearly"
+            ]
+          }
+        }
+      },
+      "X402PaymentDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "paymentDetails": {
+            "type": "object",
+            "properties": {
+              "chainId": {
+                "type": "integer",
+                "description": "Chain ID (338 for Cronos Testnet)"
+              },
+              "chainName": {
+                "type": "string",
+                "description": "Human readable chain name"
+              },
+              "receiver": {
+                "type": "string",
+                "pattern": "^0x[a-fA-F0-9]{40}$",
+                "description": "Wallet address to send payment to"
+              },
+              "amount": {
+                "type": "string",
+                "description": "Amount of TCRO to send"
+              },
+              "currency": {
+                "type": "string",
+                "description": "Currency symbol (TCRO)"
+              },
+              "token": {
+                "type": "string",
+                "nullable": true,
+                "description": "Token contract address (null for native token)"
+              },
+              "isNativeToken": {
+                "type": "boolean",
+                "description": "Whether this is a native token transfer"
+              },
+              "usdPrice": {
+                "type": "number",
+                "description": "USD price of the plan"
+              },
+              "croUsdPrice": {
+                "type": "number",
+                "description": "Current CRO/USD exchange rate"
+              }
+            }
+          }
+        }
+      },
+      "X402VerifyRequest": {
+        "type": "object",
+        "required": [
+          "transactionHash",
+          "planId"
+        ],
+        "properties": {
+          "transactionHash": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{64}$"
+          },
+          "planId": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "ultimate"
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "yearly"
+            ],
+            "default": "monthly"
+          }
+        }
+      },
+      "X402SettleRequest": {
+        "type": "object",
+        "required": [
+          "paymentHeader",
+          "paymentRequirements",
+          "planId"
+        ],
+        "properties": {
+          "paymentHeader": {
+            "type": "string",
+            "description": "Base64-encoded x402 payment header with signature"
+          },
+          "paymentRequirements": {
+            "type": "object",
+            "description": "Payment requirements from the subscribe response",
+            "properties": {
+              "scheme": {
+                "type": "string"
+              },
+              "network": {
+                "type": "string"
+              },
+              "maxAmountRequired": {
+                "type": "string"
+              },
+              "asset": {
+                "type": "string"
+              },
+              "receiver": {
+                "type": "string"
+              },
+              "resource": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "planId": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "ultimate"
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "quarterly",
+              "yearly"
+            ],
+            "default": "monthly"
+          }
+        }
+      },
+      "WalletSignatureMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message to sign with the wallet"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Seconds until the nonce expires"
+          }
+        }
+      },
+      "WalletVerifySignatureRequest": {
+        "type": "object",
+        "required": [
+          "address",
+          "signature"
+        ],
+        "properties": {
+          "address": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$",
+            "description": "Ethereum-compatible wallet address"
+          },
+          "signature": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]+$",
+            "description": "Signature from the wallet"
+          }
+        }
+      },
+      "WalletVerifySignatureResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "walletAddress": {
+            "type": "string",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        }
+      },
+      "FileUploadResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        }
+      },
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "selectedChatModel": {
+            "type": "string",
+            "enum": [
+              "gpt-4o",
+              "gpt-4o-mini",
+              "gpt-4-turbo",
+              "claude-sonnet",
+              "claude-haiku",
+              "gemini-2.0-flash",
+              "gemini-1.5-pro",
+              "deepseek-chat"
+            ],
+            "default": "gpt-4o-mini"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "search",
+              "on_chain",
+              "coding",
+              "creditcoin",
+              "vana",
+              "wormhole",
+              "flow",
+              "zeta",
+              "sei",
+              "monad",
+              "solana",
+              "imagine",
+              "aptos"
+            ],
+            "default": "search"
+          },
+          "stream": {
+            "type": "boolean",
+            "default": true
+          },
+          "max_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32768
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "system",
+              "user",
+              "assistant"
+            ]
+          },
+          "content": {
+            "oneOf": [
+              {
+                "type": "string",
+                "maxLength": 100000
+              },
+              {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "$ref": "#/components/schemas/ContentPart"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "ContentPart": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 10000
+          }
+        }
+      },
+      "ChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "enum": [
+              "chat.completion",
+              "chat.completion.chunk"
+            ]
+          },
+          "created": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "system_fingerprint": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "message": {
+                  "$ref": "#/components/schemas/ChatMessage"
+                },
+                "delta": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "finish_reason": {
+                  "type": "string",
+                  "enum": [
+                    "stop",
+                    "length",
+                    "tool_calls",
+                    "content_filter",
+                    null
+                  ],
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "prompt_tokens": {
+                "type": "integer"
+              },
+              "completion_tokens": {
+                "type": "integer"
+              },
+              "total_tokens": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

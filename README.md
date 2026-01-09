@@ -374,30 +374,11 @@ const zkevmTools = {
 // Requires: ZKEVM_CRONOS_EXPLORER_API_KEY
 ```
 
-### VVS Finance DEX Integration
-
-```typescript
-// Available VVS Tools
-const vvsTools = {
-  getVVSSwapQuote,    // Swap quotes between tokens
-  getVVSTokenList,    // Available tokens
-  getVVSPoolInfo,     // Liquidity pool info
-};
-
-// Example: Swap Quote
-{
-  inputToken: "CRO",
-  outputToken: "USDC",
-  inputAmount: 100,
-  // Returns: expectedOutput, priceImpact, route
-}
-```
-
 ### Multi-Chain Integration Matrix
 
 | Chain | SDK | Network | RPC Provider | Capabilities |
 |-------|-----|---------|--------------|--------------|
-| **Cronos EVM** | `viem` + `ethers.js v6` | Mainnet + Testnet | Cronos RPC | EVM tx, CRC-20, VVS DEX |
+| **Cronos EVM** | `viem` + `ethers.js v6` | Mainnet + Testnet | Cronos RPC | EVM tx, CRC-20, Relay Swaps |
 | **Cronos zkEVM** | Native fetch | Mainnet (388) | zkEVM Explorer API | zkCRO, ERC-20, internal tx |
 | **Ethereum** | `viem` + `ethers.js v6` | Mainnet | Infura/Alchemy | ENS, ERC-20/721/1155 |
 | **Polygon** | `viem` | PoS Mainnet | QuickNode | Low-cost tx, NFTs |

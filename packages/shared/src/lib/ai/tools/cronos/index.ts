@@ -5,7 +5,7 @@
  * - Market Data MCP (real-time prices)
  * - CoinGecko Market Data (aggregated, accurate prices)
  * - Cronos Blockchain Tools (wallet, blocks, transactions)
- * - VVS Finance DEX (swaps, liquidity)
+ * - Relay Protocol (cross-chain swaps)
  */
 
 // Market Data from Crypto.com MCP
@@ -38,13 +38,7 @@ export {
     cronosBlockchainTools,
 } from "./cronos-tools";
 
-// VVS Finance DEX Tools
-export {
-    getVVSSwapQuote,
-    getVVSTokenList,
-    getVVSPoolInfo,
-    vvsSwapTools,
-} from "./vvs-swap";
+// VVS Finance DEX removed - using Relay Protocol for all swaps
 
 // x402 Payment Tools (AI-initiated subscription payments)
 export {
@@ -114,10 +108,6 @@ export const allCronosTools = {
     getZkEVMTokenSupply: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTokenSupply),
     getZkEVMBlockInfo: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMBlockInfo),
 
-    // DEX
-    getVVSSwapQuote: () => import("./vvs-swap").then(m => m.getVVSSwapQuote),
-    getVVSTokenList: () => import("./vvs-swap").then(m => m.getVVSTokenList),
-    getVVSPoolInfo: () => import("./vvs-swap").then(m => m.getVVSPoolInfo),
 
     // x402 Payment Tools
     initiateX402Payment: () => import("./x402-transfer").then(m => m.initiateX402Payment),
