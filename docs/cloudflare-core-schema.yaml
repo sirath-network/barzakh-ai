@@ -1,0 +1,383 @@
+openapi: "3.0.3"
+info:
+  title: Barzakh AI API - Core
+  version: "1.0.0"
+  description: Core application endpoints for Barzakh AI.
+servers:
+  - url: https://chat.barzakh.tech
+    description: Frontend (Main Application)
+
+tags:
+  - name: Authentication
+  - name: Billing
+  - name: Account
+  - name: Settings
+  - name: Chat
+
+paths:
+  # Authentication & 2FA (10 operations)
+  /api/auth/callback/{provider}:
+    get:
+      tags: [Authentication]
+      operationId: authCallback
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, credentials]
+      responses:
+        "302":
+          description: Redirect
+  /api/auth/signin:
+    get:
+      tags: [Authentication]
+      operationId: getSignIn
+      responses:
+        "200":
+          description: OK
+    post:
+      tags: [Authentication]
+      operationId: postSignIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: OK
+  /api/auth/signout:
+    post:
+      tags: [Authentication]
+      operationId: signOut
+      responses:
+        "200":
+          description: OK
+  /api/auth/session:
+    get:
+      tags: [Authentication]
+      operationId: getSession
+      responses:
+        "200":
+          description: OK
+  /api/auth/nonce:
+    get:
+      tags: [Authentication]
+      operationId: getNonce
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+  /api/auth/resend-otp:
+    post:
+      tags: [Authentication]
+      operationId: resendOtp
+      responses:
+        "200":
+          description: OK
+  /api/2fa/temp-login:
+    post:
+      tags: [Authentication]
+      operationId: tempLogin
+      responses:
+        "200":
+          description: OK
+  /api/2fa/complete-login:
+    post:
+      tags: [Authentication]
+      operationId: completeLogin
+      responses:
+        "200":
+          description: OK
+  /api/2fa/forgot-password-verify:
+    post:
+      tags: [Authentication]
+      operationId: forgotPasswordVerify
+      responses:
+        "200":
+          description: OK
+
+  # Billing & X402 (13 operations)
+  /api/billing/subscription:
+    get:
+      tags: [Billing]
+      operationId: getSubscription
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/create-checkout-session:
+    post:
+      tags: [Billing]
+      operationId: createCheckoutSession
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/manage-subscription:
+    post:
+      tags: [Billing]
+      operationId: manageSubscription
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/cancel-subscription:
+    post:
+      tags: [Billing]
+      operationId: cancelSubscription
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/payment-methods:
+    get:
+      tags: [Billing]
+      operationId: getPaymentMethods
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/create-setup-intent:
+    post:
+      tags: [Billing]
+      operationId: createSetupIntent
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/invoices:
+    get:
+      tags: [Billing]
+      operationId: getInvoices
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/update-subscription:
+    post:
+      tags: [Billing]
+      operationId: updateSubscription
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/x402/subscribe:
+    post:
+      tags: [Billing]
+      operationId: x402Subscribe
+      security: [{SessionAuth: []}]
+      responses:
+        "402":
+          description: Payment Required
+  /api/billing/x402/verify:
+    post:
+      tags: [Billing]
+      operationId: x402Verify
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/x402/verify-wallet:
+    get:
+      tags: [Billing]
+      operationId: getPaymentWalletNonce
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+    post:
+      tags: [Billing]
+      operationId: verifyPaymentWallet
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/billing/x402/settle:
+    post:
+      tags: [Billing]
+      operationId: x402Settle
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+
+  # Wallet & Account (6 operations)
+  /api/wallet/verify-signature:
+    get:
+      tags: [Account]
+      operationId: getWalletSignatureMessage
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+    post:
+      tags: [Account]
+      operationId: verifyWalletSignature
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/account/delete:
+    post:
+      tags: [Account]
+      operationId: deleteAccount
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/account/delete/send-otp:
+    post:
+      tags: [Account]
+      operationId: sendAccountDeleteOTP
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/changes-email/request-email-change:
+    post:
+      tags: [Account]
+      operationId: requestEmailChange
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/changes-email/verify-email-change:
+    post:
+      tags: [Account]
+      operationId: verifyEmailChange
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+
+  # Settings (7 operations)
+  /api/settings:
+    get:
+      tags: [Settings]
+      operationId: getSettings
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+    patch:
+      tags: [Settings]
+      operationId: updateSettings
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/settings/wallet/bind:
+    post:
+      tags: [Settings]
+      operationId: bindWallet
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/settings/wallet/unbind:
+    post:
+      tags: [Settings]
+      operationId: unbindWallet
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/settings/wallet/bind/send-otp:
+    post:
+      tags: [Settings]
+      operationId: sendWalletBindOTP
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/settings/wallet/unbind/send-otp:
+    post:
+      tags: [Settings]
+      operationId: sendWalletUnbindOTP
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/settings/wallet/nonce:
+    get:
+      tags: [Settings]
+      operationId: getWalletNonce
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+
+  # Chat & History (6 operations)
+  /api/chat:
+    get:
+      tags: [Chat]
+      operationId: getChats
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+    delete:
+      tags: [Chat]
+      operationId: deleteChat
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/history:
+    get:
+      tags: [Chat]
+      operationId: getHistory
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/history/archived:
+    get:
+      tags: [Chat]
+      operationId: getArchivedHistory
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+  /api/vote:
+    get:
+      tags: [Chat]
+      operationId: getVotes
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+    patch:
+      tags: [Chat]
+      operationId: voteMessage
+      security: [{SessionAuth: []}]
+      responses:
+        "200":
+          description: OK
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: __Secure-authjs.session-token
+  schemas:
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string}
+    Error:
+      type: object
+      properties:
+        error: {type: string}
