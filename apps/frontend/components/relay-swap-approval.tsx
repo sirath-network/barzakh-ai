@@ -253,7 +253,6 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             })
                         );
 
-                        console.log("Mapped transactions:", txs);
                         setClientTransactions(txs);
                     }
                 } catch (err: any) {
@@ -320,14 +319,6 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 if (tx.chainId !== chain?.id && switchChain) {
                     await switchChain({ chainId: tx.chainId });
                 }
-
-                console.log("Debug: Submitting transaction", {
-                    to: tx.to,
-                    value: tx.value,
-                    chainId: tx.chainId,
-                    hasData: !!tx.data,
-                    dataPreview: typeof tx.data === 'string' ? tx.data.substring(0, 20) + "..." : typeof tx.data
-                });
 
                 const hash = await sendTransactionAsync({
                     to: tx.to as `0x${string}`,

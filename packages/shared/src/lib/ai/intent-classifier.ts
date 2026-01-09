@@ -330,11 +330,41 @@ const INTENT_PATTERNS: IntentPattern[] = [
     },
 
     // =========================================================================
+    // CROSS-CHAIN SWAP/BRIDGE (Priority 97 - Higher than chain-specific)
+    // When user wants to swap/bridge BETWEEN chains, use on_chain (Relay tools)
+    // Must be checked BEFORE chain-specific patterns to catch "swap CRO from Cronos to ETH Optimism"
+    // =========================================================================
+    {
+        intent: "on_chain",
+        patterns: [
+            // Cross-chain swap patterns with chain names on both sides
+            /\b(swap|bridge|transfer|send)\b.*\b(from|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|mainnet|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb)\b.*\b(to|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|mainnet|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb)\b/i,
+            // Inverted pattern: chain to chain with swap/bridge in middle
+            /\b(cronos|optimism|arbitrum|base|polygon|ethereum|linea|scroll|zksync|blast)\b.*\b(to|into)\b.*\b(cronos|optimism|arbitrum|base|polygon|ethereum|linea|scroll|zksync|blast)\b/i,
+            // Token with amount + from chain + to chain pattern
+            /\b\d+(\.\d+)?\s*(cro|eth|usdc|usdt|matic|avax|bnb)\b.*\b(from|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum)\b.*\b(to|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum)\b/i,
+        ],
+        keywords: [
+            "cronos to optimism",
+            "cronos to arbitrum",
+            "cronos to base",
+            "cronos to ethereum",
+            "optimism to cronos",
+            "arbitrum to cronos",
+            "swap cro to eth",
+            "bridge cro to",
+            "from cronos to",
+        ],
+        priority: 97, // Higher than chain-specific (95) to catch cross-chain swaps
+    },
+
+    // =========================================================================
     // GENERIC ON-CHAIN (Priority 90 - lower than chain-specific)
     // Only used when no specific chain is mentioned
     // =========================================================================
 
     // On-Chain / Blockchain - generic blockchain queries (EVM/Ethereum by default)
+    // Includes Relay Protocol cross-chain swap/bridge operations
     {
         intent: "on_chain",
         patterns: [
@@ -345,6 +375,12 @@ const INTENT_PATTERNS: IntentPattern[] = [
             /\b(defi|nft|token|erc-?20|erc-?721)\b.*\b(balance|holdings|position)\b/i,
             /\btransaction\s+(history|details|hash)\b/i,
             /\b(ethereum|eth|evm)\b.*\b(portfolio|wallet|balance)\b/i,
+            // Relay cross-chain swap/bridge patterns
+            /\b(swap|bridge|transfer)\b.*\b(from|to)\b.*\b(chain|network|L2|optimism|arbitrum|base|polygon|ethereum|mainnet)\b/i,
+            /\b(cross[-\s]?chain|cross[-\s]?network)\b.*\b(swap|bridge|transfer)\b/i,
+            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai)\b.*\b(to|from|on)\b/i,
+            /\b\$?\d+(\.\d+)?\s*(worth|of|in)?\s*(eth|usdc|usdt|dai|weth|wbtc)\b.*\b(to|from|on)\b/i,
+            /\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode)\b.*\b(to|from)\b.*\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|ethereum)\b/i,
         ],
         keywords: [
             "portfolio",
@@ -360,6 +396,29 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "bridge",
             "ethereum",
             "eth balance",
+            // Relay cross-chain keywords
+            "cross-chain swap",
+            "cross-chain bridge",
+            "cross chain",
+            "bridge eth",
+            "swap eth",
+            "bridge usdc",
+            "swap usdc",
+            "from optimism",
+            "from arbitrum",
+            "from base",
+            "to optimism",
+            "to arbitrum",
+            "to base",
+            "to ethereum",
+            "to polygon",
+            "optimism to arbitrum",
+            "arbitrum to base",
+            "base to ethereum",
+            "L2 bridge",
+            "L2 swap",
+            "relay swap",
+            "relay bridge",
         ],
         priority: 90,
     },
@@ -495,7 +554,7 @@ function classifyByPatterns(message: string): IntentClassification | null {
 async function classifyByLLM(message: string, chatContext?: string | null): Promise<IntentClassification> {
     const intentCategories = `
 - "imagine": Image generation requests (create, draw, generate images)
-- "on_chain": Blockchain/crypto queries (wallets, portfolios, tokens, transactions, DeFi)
+- "on_chain": Blockchain/crypto queries (wallets, portfolios, tokens, transactions, DeFi, cross-chain swaps, bridges between L2s like Optimism/Arbitrum/Base/Polygon)
 - "aptos": Aptos blockchain specific queries
 - "sei": Sei network specific queries
 - "solana": Solana blockchain specific queries

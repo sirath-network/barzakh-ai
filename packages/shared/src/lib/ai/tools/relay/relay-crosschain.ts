@@ -266,6 +266,8 @@ const TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
         USDT: "0x66e428c3f67a68878562e79A0234c1F83c208770",
         WETH: "0xe44Fd7fCb2b1581822D0c862B68222998a0c299a",
         WBTC: "0x062E66477Faf219F25D27dCED647BF57C3107d52",
+        VVS: "0x2D03bECE6747ADC00E1a131BBA1469C15fD11e03",
+        WCRO: "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23",
     },
 };
 
@@ -378,7 +380,6 @@ function initializeRelayClient(): void {
             ),
         });
         isClientInitialized = true;
-        console.log("[Relay] Client initialized successfully");
     } catch (error) {
         console.error("[Relay] Failed to initialize client:", error);
         throw error;
@@ -431,15 +432,19 @@ async function fetchRelayQuoteDirectly(params: {
     return response.json();
 }
 
-// Cache for chain token data from Relay API
-const chainTokenCache: Map<number, { tokens: Record<string, string>; timestamp: number }> = new Map();
+// Cache for chain token data from Relay API (includes decimals)
+interface TokenInfo {
+    address: string;
+    decimals: number;
+}
+const chainTokenCache: Map<number, { tokens: Record<string, TokenInfo>; timestamp: number }> = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Fetch token info for a chain from Relay API and cache it
- * Returns a map of symbol -> address
+ * Returns a map of symbol -> {address, decimals}
  */
-async function fetchChainTokens(chainId: number): Promise<Record<string, string>> {
+async function fetchChainTokens(chainId: number): Promise<Record<string, TokenInfo>> {
     // Check cache first
     const cached = chainTokenCache.get(chainId);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -447,50 +452,60 @@ async function fetchChainTokens(chainId: number): Promise<Record<string, string>
     }
 
     try {
-        const response = await fetch("https://api.relay.link/chains");
+        // Use the Currencies API (POST /currencies/v1) which returns all supported tokens
+        const response = await fetch("https://api.relay.link/currencies/v1", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ chainIds: [chainId] }),
+        });
+
         if (!response.ok) {
-            console.warn(`[Relay] Failed to fetch chains: ${response.status}`);
+            console.warn(`[Relay] Failed to fetch currencies: ${response.status}`);
             return {};
         }
 
-        const data = await response.json();
-        const chain = data.chains?.find((c: any) => c.id === chainId);
+        const currencies = await response.json();
 
-        if (!chain) {
-            console.warn(`[Relay] Chain ${chainId} not found in API response`);
+        if (!Array.isArray(currencies) || currencies.length === 0) {
+            console.warn(`[Relay] No currencies found for chain ${chainId}`);
             return {};
         }
 
-        const tokens: Record<string, string> = {};
+        const tokens: Record<string, TokenInfo> = {};
 
-        // Add native currency
-        if (chain.currency?.symbol && chain.currency?.address) {
-            tokens[chain.currency.symbol.toUpperCase()] = chain.currency.address;
-        }
-
-        // Add featured tokens
-        for (const token of chain.featuredTokens || []) {
-            if (token.symbol && token.address) {
-                tokens[token.symbol.toUpperCase()] = token.address;
-            }
-        }
-
-        // Add ERC20 currencies
-        for (const token of chain.erc20Currencies || []) {
-            if (token.symbol && token.address) {
-                tokens[token.symbol.toUpperCase()] = token.address;
+        // The API returns an array where each item is itself an array containing one token object
+        // Structure: [[{token1}], [{token2}], ...]
+        for (const item of currencies) {
+            // Each item is an array containing one token object
+            const token = Array.isArray(item) ? item[0] : item;
+            if (token && token.symbol && token.address) {
+                tokens[token.symbol.toUpperCase()] = {
+                    address: token.address,
+                    decimals: token.decimals ?? 18, // Default to 18 if not specified
+                };
             }
         }
 
         // Cache the result
         chainTokenCache.set(chainId, { tokens, timestamp: Date.now() });
-        console.log(`[Relay] Cached ${Object.keys(tokens).length} tokens for chain ${chainId}`);
 
         return tokens;
     } catch (error) {
         console.error(`[Relay] Error fetching chain tokens:`, error);
         return {};
     }
+}
+
+/**
+ * Get token decimals for a token on a specific chain
+ * Returns 18 as default if not found
+ */
+async function getTokenDecimals(tokenSymbol: string, chainId: number): Promise<number> {
+    const tokens = await fetchChainTokens(chainId);
+    const tokenInfo = tokens[tokenSymbol.toUpperCase()];
+    return tokenInfo?.decimals ?? 18; // Default to 18 decimals
 }
 
 /**
@@ -615,15 +630,34 @@ export const getRelaySupportedChains = tool({
 export const getRelayQuote = tool({
     description: `Get a quote for cross-chain swap or bridge using Relay Protocol.
 Supports swapping any token on any supported chain to any other token on any chain.
-Most major chains (Ethereum, Optimism, Arbitrum, Base, etc.) have tokenSupport: "All" - meaning any token with DEX liquidity works.
+Most major chains (Ethereum, Optimism, Arbitrum, Base, Cronos, etc.) have tokenSupport: "All" - meaning any token with DEX liquidity works.
 
 **SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "0.5$" and the tool will automatically convert to the token amount.
 
-Examples:
-- Swap $0.5 worth of ETH on Ethereum to USDC on Arbitrum
-- Bridge $10 of USDC from Polygon to Base
-- Swap 0.001 ETH on Optimism to ETH on Arbitrum
-- Bridge $5 worth of native token from Cronos to Ethereum`,
+**IMPORTANT - ASK FOR CLARIFICATION when user request is incomplete:**
+
+1. **Missing source chain**: If user says "Swap ETH to USDC" without specifying source chain, ASK: "Which chain is your ETH on? (e.g., Ethereum, Optimism, Arbitrum, Base, Cronos)"
+
+2. **Missing destination chain**: If user says "Swap 10 VVS to Optimism" without destination token, ASK: "What token would you like to receive on Optimism? (e.g., ETH, USDC, USDT)"
+
+3. **Missing destination token**: If user says "Bridge from Base" without destination token, ASK: "What token do you want to bridge, and to which chain?"
+
+4. **Same-chain swap**: If user says "Swap 1M VVS to CRO" and both are on Cronos, use this tool with fromChainId = toChainId = 25 (Cronos). Relay supports same-chain swaps too!
+
+5. **Ambiguous chain reference**: If user says "swap to mainnet", ASK: "Which mainnet? Ethereum, Cronos, or another chain?"
+
+**DO NOT call this tool until you have ALL of:**
+- Source chain (fromChainId)
+- Destination chain (toChainId) - can be same as source for same-chain swaps
+- Source token (fromToken)
+- Destination token (toToken)
+- Amount (can be token amount or USD amount)
+
+Examples of COMPLETE requests:
+- "Swap $0.5 worth of ETH on Ethereum to USDC on Arbitrum"
+- "Bridge $10 USDC from Polygon to Base"
+- "Swap 0.001 ETH on Optimism to ETH on Arbitrum"
+- "Swap 100 CRO from Cronos to ETH on Optimism"`,
     parameters: z.object({
         fromChainId: z
             .number()
@@ -729,22 +763,16 @@ Examples:
                     priceUsed: conversion.priceUsed,
                     originalUSD: parsedAmount.value,
                 };
-                console.log(
-                    `[Relay] Converted $${parsedAmount.value} USD to ${actualAmount} ${fromToken} (price: $${conversion.priceUsed})`
-                );
             } else {
                 actualAmount = parsedAmount.value.toString();
             }
 
-            // Convert amount to smallest unit (assuming 18 decimals, will be adjusted by SDK)
-            const decimals = fromTokenAddress === NATIVE_TOKEN ? 18 : 6; // Assume 6 for stables
-            const amountInSmallestUnit = (
-                parseFloat(actualAmount) * Math.pow(10, decimals)
+            // Get token decimals from Currencies API (cached)
+            const decimals = await getTokenDecimals(fromToken, fromChainId);
+            // Use BigInt to ensure integer output (API requires pattern "^[0-9]+$")
+            const amountInSmallestUnit = BigInt(
+                Math.floor(parseFloat(actualAmount) * Math.pow(10, decimals))
             ).toString();
-
-            console.log(
-                `[Relay] Getting quote: ${actualAmount} ${fromToken} on chain ${fromChainId} -> ${toToken} on chain ${toChainId}`
-            );
 
             // Use direct API call instead of SDK (SDK v4.0.1 uses outdated /quote/v2 endpoint)
             const quote = await fetchRelayQuoteDirectly({
@@ -813,15 +841,28 @@ Examples:
  * Get a quote specifically for native token bridging
  */
 export const getRelayBridgeQuote = tool({
-    description: `Get a quote for bridging native tokens (ETH, MATIC, etc.) between chains using Relay Protocol.
-This is optimized for simple native token bridges.
+    description: `Get a quote for bridging native tokens (ETH, MATIC, CRO, etc.) between chains using Relay Protocol.
+This is optimized for simple native token bridges (same token on both chains).
 
-**SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "0.5$".
+**SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "$0.5".
 
-Examples:
-- Bridge $5 worth of ETH from Ethereum to Optimism
-- Bridge 0.5 ETH from Ethereum to Optimism
-- Bridge $10 of native token from Arbitrum to Base`,
+**IMPORTANT - ASK FOR CLARIFICATION when user request is incomplete:**
+
+1. **Missing source chain**: If user says "Bridge ETH to Optimism" without source chain, ASK: "Which chain is your ETH on? (Ethereum, Arbitrum, Base?)"
+
+2. **Missing destination chain**: If user says "Bridge 0.1 ETH from Ethereum" without destination, ASK: "Which chain do you want to bridge to?"
+
+3. **Missing amount**: If user says "Bridge ETH from Ethereum to Optimism", ASK: "How much ETH would you like to bridge?"
+
+**DO NOT call this tool until you have ALL of:**
+- Source chain (fromChainId)
+- Destination chain (toChainId)
+- Amount (can be token amount or USD amount)
+
+Examples of COMPLETE requests:
+- "Bridge $5 worth of ETH from Ethereum to Optimism"
+- "Bridge 0.5 ETH from Ethereum to Optimism"
+- "Bridge $10 of native token from Arbitrum to Base"`,
     parameters: z.object({
         fromChainId: z.number().describe("Source chain ID"),
         toChainId: z.number().describe("Destination chain ID"),
@@ -880,18 +921,12 @@ Examples:
                     priceUsed: conversion.priceUsed,
                     originalUSD: parsedAmount.value,
                 };
-                console.log(
-                    `[Relay] Converted $${parsedAmount.value} USD to ${actualAmount} native token (price: $${conversion.priceUsed})`
-                );
             } else {
                 actualAmount = parsedAmount.value.toString();
             }
 
-            const amountWei = (parseFloat(actualAmount) * 1e18).toFixed(0);
-
-            console.log(
-                `[Relay] Getting bridge quote: ${actualAmount} native token from chain ${fromChainId} -> chain ${toChainId}`
-            );
+            // Use BigInt to ensure integer output (API requires pattern "^[0-9]+$")
+            const amountWei = BigInt(Math.floor(parseFloat(actualAmount) * 1e18)).toString();
 
             // Use direct API call instead of SDK (SDK v4.0.1 uses outdated /quote/v2 endpoint)
             const quote = await fetchRelayQuoteDirectly({
@@ -1031,16 +1066,15 @@ Examples:
                     priceUsed: conversion.priceUsed,
                     originalUSD: parsedAmount.value,
                 };
-                console.log(
-                    `[Relay] Converted $${parsedAmount.value} USD to ${actualAmount} ${fromToken} (price: $${conversion.priceUsed})`
-                );
             } else {
                 actualAmount = parsedAmount.value.toString();
             }
 
-            const decimals = fromTokenAddress === NATIVE_TOKEN ? 18 : 6;
-            const amountInSmallestUnit = (
-                parseFloat(actualAmount) * Math.pow(10, decimals)
+            // Get token decimals from Currencies API (cached)
+            const decimals = await getTokenDecimals(fromToken, fromChainId);
+            // Use BigInt to ensure integer output (API requires pattern "^[0-9]+$")
+            const amountInSmallestUnit = BigInt(
+                Math.floor(parseFloat(actualAmount) * Math.pow(10, decimals))
             ).toString();
 
             const quote = await client.actions.getQuote({
@@ -1134,8 +1168,7 @@ async function resolveTokenAddressAsync(token: string, chainId: number): Promise
         const apiTokens = await fetchChainTokens(chainId);
         const upperSymbol = token.toUpperCase();
         if (apiTokens[upperSymbol]) {
-            console.log(`[Relay] Resolved ${token} to ${apiTokens[upperSymbol]} via API`);
-            return apiTokens[upperSymbol];
+            return apiTokens[upperSymbol].address;
         }
     }
 
