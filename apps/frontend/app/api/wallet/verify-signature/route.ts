@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
   // Generate a unique nonce
   const nonce = `Barzakh AI — Ownership Verification\n\nNonce: ${crypto.randomUUID()}\nTimestamp: ${Date.now()}`;
-  
+
   // Store nonce with user ID
   nonceStore.set(address, {
     nonce,
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     userId: session.user.id,
   });
 
-  return NextResponse.json({ 
+  return NextResponse.json({
     message: nonce,
     expiresIn: NONCE_TTL / 1000, // seconds
   });
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { address, signature } = await request.json();
+  const { address, signature, bindWallet = true } = await request.json();
 
   if (!address || !signature) {
     return NextResponse.json({ error: "Address and signature are required" }, { status: 400 });
@@ -93,22 +93,32 @@ export async function POST(request: Request) {
     // Clear the used nonce
     nonceStore.delete(normalizedAddress);
 
-    // Update user's wallet address in the database
-    await db
-      .update(user)
-      .set({ walletAddress: address })
-      .where(eq(user.id, session.user.id));
+    // Only bind wallet to account if explicitly requested (for login/registration flows)
+    // For swap verification, we just confirm ownership without binding
+    if (bindWallet) {
+      await db
+        .update(user)
+        .set({ walletAddress: address })
+        .where(eq(user.id, session.user.id));
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Wallet verified and linked to your account",
+      return NextResponse.json({
+        success: true,
+        message: "Wallet verified and linked to your account",
+        walletAddress: address,
+      });
+    }
+
+    // Verification-only mode (no wallet binding)
+    return NextResponse.json({
+      success: true,
+      message: "Wallet ownership verified",
       walletAddress: address,
     });
   } catch (error: any) {
     console.error("Signature verification error:", error);
-    return NextResponse.json({ 
-      error: "Signature verification failed", 
-      details: error.message 
+    return NextResponse.json({
+      error: "Signature verification failed",
+      details: error.message
     }, { status: 400 });
   }
 }

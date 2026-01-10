@@ -380,11 +380,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
             // 2. Sign message
             const signature = await signMessageAsync({ message });
 
-            // 3. Verify on server
+            // 3. Verify on server (without binding wallet to account)
             const verifyRes = await fetch("/api/wallet/verify-signature", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ address, signature }),
+                body: JSON.stringify({ address, signature, bindWallet: false }),
             });
 
             if (!verifyRes.ok) {
@@ -623,10 +623,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="p-3 rounded-lg bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20"
+                                className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800/50"
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-green-600 dark:text-green-500">
+                                    <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
                                         <Check className="size-4" />
                                         <span className="text-sm font-medium">Swap Executed!</span>
                                     </div>

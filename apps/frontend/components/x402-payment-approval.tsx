@@ -286,7 +286,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                     {/* Footer */}
                     <div className="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 text-center border-t border-zinc-200 dark:border-zinc-800/50">
                         <p className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-600 font-semibold">
-                            Barzakh AI Premium
+                            Barzakh AI
                         </p>
                     </div>
                 </div>
@@ -318,11 +318,11 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
             // 2. Sign the message to prove ownership
             const signature = await signMessageAsync({ message });
 
-            // 3. Verify signature with server
+            // 3. Verify signature with server (without binding wallet to account)
             const verifyRes = await fetch("/api/wallet/verify-signature", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ address, signature }),
+                body: JSON.stringify({ address, signature, bindWallet: false }),
             });
 
             if (!verifyRes.ok) {
