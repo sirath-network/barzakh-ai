@@ -295,7 +295,7 @@ export default function PlanDetailPage() {
                 className={`
                   px-3 sm:px-4 md:px-6 py-2 rounded-md text-xs sm:text-sm font-semibold uppercase transition-all
                   ${billingCycle === cycle
-                    ? "bg-black/60 dark:bg-black/80 text-white dark:text-white"
+                    ? "bg-gray-900 dark:bg-black/80 text-white dark:text-white shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-transparent"
                   }
                 `}
@@ -330,7 +330,7 @@ export default function PlanDetailPage() {
                 `}
               >
                 {/* Plan Icon/Illustration */}
-                <div className="p-4 sm:p-5 md:p-6 bg-black/40 dark:bg-black/60 flex items-center justify-center min-h-[180px] sm:min-h-[200px] md:min-h-[220px] relative overflow-hidden border-b border-gray-200 dark:border-zinc-800/30">
+                <div className="p-4 sm:p-5 md:p-6 bg-gray-100 dark:bg-black/60 flex items-center justify-center min-h-[180px] sm:min-h-[200px] md:min-h-[220px] relative overflow-hidden border-b border-gray-200 dark:border-zinc-800/30">
                   {/* subtle red glow overlay in dark mode */}
                   <div className="absolute inset-0 pointer-events-none hidden dark:block bg-gradient-to-b from-zinc-800/20 via-transparent to-transparent" />
                   <img
@@ -385,7 +385,7 @@ export default function PlanDetailPage() {
                         w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all
                         ${isExactCurrentPlan
                           ? "bg-gray-100 dark:bg-zinc-900/50 border-2 border-gray-400 dark:border-zinc-500 text-gray-600 dark:text-zinc-300 cursor-default shadow-[0_0_10px_rgba(156,163,175,0.5)] dark:shadow-none"
-                          : "bg-gray-800 dark:bg-gradient-to-r dark:from-zinc-600 dark:to-zinc-700 hover:bg-gray-700 dark:hover:from-zinc-700 dark:hover:to-zinc-800 text-white"
+                          : "bg-gray-900 dark:bg-zinc-100 hover:bg-gray-800 dark:hover:bg-white text-white dark:text-zinc-900 shadow-lg shadow-black/5 dark:shadow-white/5"
                         }
                       `}
                     >
@@ -394,7 +394,7 @@ export default function PlanDetailPage() {
                   ) : (
                     <button
                       disabled
-                      className="w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-700"
+                      className="w-full py-2.5 sm:py-3 rounded-lg font-semibold uppercase text-xs sm:text-sm transition-all bg-gray-200 dark:bg-zinc-800/50 text-gray-600 dark:text-zinc-400 border border-gray-300 dark:border-zinc-700/50"
                     >
                       EXPLORE FOR FREE
                     </button>
