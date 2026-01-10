@@ -187,7 +187,7 @@ export function AuthForm({
             type="text"
             autoComplete="email"
             required
-            placeholder={compact ? "Email or Username" : ""}
+            placeholder={compact ? emailLabel : ""}
             defaultValue={defaultEmail}
             onChange={handleEmailChange}
           />

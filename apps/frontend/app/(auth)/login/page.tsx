@@ -296,7 +296,7 @@ export default function Page() {
               {/* Footer links */}
               <div className="pt-0 text-center text-[10px] text-zinc-600 leading-tight">
                 <p>
-                  By clicking continue, you agree to our{" "}
+                  By continuing you agree to our{" "}
                   <Link href="/terms-of-service" className="text-zinc-500 hover:text-zinc-400 underline underline-offset-2">
                     Terms of Service
                   </Link>{" "}
