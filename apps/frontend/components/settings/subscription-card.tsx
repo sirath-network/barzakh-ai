@@ -465,10 +465,6 @@ export function SubscriptionCard({
           </div>
         ) : (
           <div className="p-8 border-t border-gray-200 dark:border-zinc-800/30 space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Upgrade Plan</h3>
-            </div>
             <div className="relative overflow-hidden rounded-3xl border border-dashed border-gray-300 dark:border-zinc-800/40 bg-white/40 dark:bg-black/40">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gray-400/10 via-transparent to-gray-500/20 dark:from-zinc-500/10 dark:via-transparent dark:to-zinc-900/20 blur-xl" />
               <div className="relative p-6 flex flex-col items-center text-center space-y-4">
