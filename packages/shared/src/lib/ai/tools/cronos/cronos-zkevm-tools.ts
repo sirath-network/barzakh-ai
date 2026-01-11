@@ -28,6 +28,7 @@ import { z } from "zod";
 
 // Cronos zkEVM Explorer API base URL
 const ZKEVM_EXPLORER_API = "https://explorer-api.zkevm.cronos.org/api/v1";
+const ZKEVM_EXPLORER_TABLE = "https://explorer.zkevm.cronos.org/table";
 const ZKEVM_RPC = "https://mainnet.zkevm.cronos.org";
 
 /**
@@ -57,6 +58,41 @@ async function zkevmApiRequest(module: string, action: string, params: Record<st
     const data = await response.json();
     return data;
 }
+
+/**
+ * Helper to fetch ERC-20 token balances from zkEVM Explorer's internal table endpoint
+ * This endpoint returns the full token list in __NEXT_DATA__ JSON embedded in HTML
+ */
+async function fetchZkEVMTokenBalances(address: string): Promise<any[]> {
+    const url = `${ZKEVM_EXPLORER_TABLE}/erc20TokenBalance?address=${address}&p=1&ps=500`;
+    console.log(`[zkEVM Token] Fetching token balances from explorer table: ${url}`);
+
+    const response = await fetch(url, {
+        headers: {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "User-Agent": "Mozilla/5.0 (compatible; BarzakhAI/1.0)",
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch token balances: ${response.status}`);
+    }
+
+    const html = await response.text();
+
+    // Extract __NEXT_DATA__ JSON from HTML
+    const nextDataMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+    if (!nextDataMatch) {
+        throw new Error("Could not find __NEXT_DATA__ in explorer response");
+    }
+
+    const nextData = JSON.parse(nextDataMatch[1]);
+    const tokens = nextData.props?.pageProps?.data?.result || [];
+
+    console.log(`[zkEVM Token] Found ${tokens.length} tokens from explorer`);
+    return tokens;
+}
+
 
 /**
  * Get native token balance on Cronos zkEVM
@@ -492,6 +528,158 @@ export const getZkEVMBlockInfo = tool({
     },
 });
 
+/**
+ * Get list of ERC-20 tokens held by an address on Cronos zkEVM
+ * Uses the explorer's internal table endpoint for complete token list
+ */
+export const getZkEVMTokenList = tool({
+    description: "Get list of all ERC-20 tokens held by a wallet address on Cronos zkEVM (Chain ID 388) with their balances.",
+    parameters: z.object({
+        address: z.string().describe("Wallet address (0x...)"),
+    }),
+    execute: async ({ address }) => {
+        try {
+            if (!address.startsWith("0x") || address.length !== 42) {
+                return { error: "Invalid address format", details: "Address must be 0x followed by 40 hex characters" };
+            }
+
+            // Fetch token balances from explorer's table endpoint (most reliable method)
+            console.log(`[zkEVM TokenList] Fetching tokens for ${address}`);
+
+            const rawTokens = await fetchZkEVMTokenBalances(address);
+
+            const tokens = rawTokens.map((token: any) => {
+                const decimals = parseInt(token.decimals || "18");
+                const rawBalance = token.balance || "0";
+                const balance = parseFloat(rawBalance) / Math.pow(10, decimals);
+                return {
+                    contractAddress: token.tokenAddress,
+                    name: token.tokenName || "Unknown",
+                    symbol: token.tokenSymbol || "???",
+                    decimals,
+                    balance,
+                    balanceFormatted: balance.toFixed(6),
+                    rawBalance,
+                };
+            }).filter((t: any) => t.balance > 0.000001); // Filter dust
+
+            tokens.sort((a: any, b: any) => b.balance - a.balance);
+
+            return {
+                address,
+                network: "Cronos zkEVM Mainnet",
+                chainId: 388,
+                tokenCount: tokens.length,
+                tokens,
+                timestamp: new Date().toISOString(),
+                explorerUrl: `https://explorer.zkevm.cronos.org/address/${address}?tab=tokens`,
+            };
+        } catch (error: any) {
+            console.error("[zkEVM TokenList] Error:", error);
+            return {
+                error: "Failed to fetch zkEVM token list",
+                details: error.message,
+                explorerUrl: `https://explorer.zkevm.cronos.org/address/${address}?tab=tokens`,
+                hint: "You can view the full token list on the zkEVM Explorer using the link above.",
+            };
+        }
+    },
+});
+
+
+
+/**
+ * Get complete portfolio for a Cronos zkEVM address (native zkCRO + all tokens)
+ */
+export const getZkEVMPortfolio = tool({
+    description: "Get complete portfolio for a Cronos zkEVM wallet address including native zkCRO balance and all ERC-20 token holdings. This is the best tool for viewing a wallet's full holdings on Cronos zkEVM (Chain ID 388).",
+    parameters: z.object({
+        address: z.string().describe("Wallet address (0x...)"),
+    }),
+    execute: async ({ address }) => {
+        try {
+            if (!address.startsWith("0x") || address.length !== 42) {
+                return { error: "Invalid address format", details: "Address must be 0x followed by 40 hex characters" };
+            }
+
+            // 1. Get native zkCRO balance
+            let balanceWei: bigint;
+            try {
+                const balanceData = await zkevmApiRequest("account", "getBalance", { address });
+                const balanceStr = typeof balanceData.result === 'object' ? balanceData.result.balance : balanceData.result;
+                balanceWei = BigInt(balanceStr || "0");
+            } catch (apiError) {
+                // Fallback to RPC
+                const rpcResponse = await fetch(ZKEVM_RPC, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBalance", params: [address, "latest"], id: 1 }),
+                });
+                const rpcData = await rpcResponse.json();
+                balanceWei = BigInt(rpcData.result || "0");
+            }
+
+            const balanceZkCRO = Number(balanceWei) / 1e18;
+
+            // 2. Get ERC-20 tokens from explorer's table endpoint
+            let tokens: any[] = [];
+            let tokenFetchError: string | null = null;
+
+            try {
+                console.log(`[zkEVM Portfolio] Fetching tokens for ${address}`);
+                const rawTokens = await fetchZkEVMTokenBalances(address);
+
+                tokens = rawTokens.map((token: any) => {
+                    const decimals = parseInt(token.decimals || "18");
+                    const rawBalance = token.balance || "0";
+                    const balance = parseFloat(rawBalance) / Math.pow(10, decimals);
+                    return {
+                        contractAddress: token.tokenAddress,
+                        name: token.tokenName || "Unknown",
+                        symbol: token.tokenSymbol || "???",
+                        decimals,
+                        balance,
+                        balanceFormatted: balance.toFixed(6),
+                    };
+                }).filter((t: any) => t.balance > 0.000001);
+
+                tokens.sort((a: any, b: any) => b.balance - a.balance);
+                console.log(`[zkEVM Portfolio] Got ${tokens.length} tokens`);
+            } catch (e: any) {
+                console.error("[zkEVM Portfolio] Error fetching tokens:", e);
+                tokenFetchError = e.message;
+            }
+
+            return {
+                address,
+                network: "Cronos zkEVM Mainnet",
+                chainId: 388,
+                nativeBalance: {
+                    symbol: "zkCRO",
+                    wei: balanceWei.toString(),
+                    balance: balanceZkCRO,
+                    formatted: `${balanceZkCRO.toFixed(4)} zkCRO`,
+                },
+                tokenCount: tokens.length,
+                tokens,
+                ...(tokenFetchError && { tokenFetchWarning: `Token fetch had issues: ${tokenFetchError}. Showing partial results.` }),
+                timestamp: new Date().toISOString(),
+                explorerUrl: `https://explorer.zkevm.cronos.org/address/${address}?tab=tokens`,
+            };
+        } catch (error: any) {
+            console.error("[zkEVM Portfolio] Error:", error);
+            return {
+                error: "Failed to fetch zkEVM portfolio",
+                details: error.message,
+                explorerUrl: `https://explorer.zkevm.cronos.org/address/${address}?tab=tokens`,
+                hint: "You can view the full portfolio on zkEVM Explorer using the link above.",
+            };
+        }
+    },
+});
+
+
+
 // Export all zkEVM tools
 export const cronosZkEVMTools = {
     getZkEVMBalance,
@@ -505,4 +693,6 @@ export const cronosZkEVMTools = {
     getZkEVMContractSource,
     getZkEVMTokenSupply,
     getZkEVMBlockInfo,
+    getZkEVMTokenList,
+    getZkEVMPortfolio,
 };

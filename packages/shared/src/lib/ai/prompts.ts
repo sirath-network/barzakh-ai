@@ -84,6 +84,8 @@ import {
   getZkEVMContractSource,
   getZkEVMTokenSupply,
   getZkEVMBlockInfo,
+  getZkEVMTokenList,
+  getZkEVMPortfolio,
 } from "./tools/cronos/cronos-zkevm-tools";
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
@@ -400,6 +402,8 @@ const groupTools = {
     "getZkEVMContractSource",
     "getZkEVMTokenSupply",
     "getZkEVMBlockInfo",
+    "getZkEVMTokenList",
+    "getZkEVMPortfolio",
     // Relay Protocol Cross-Chain Swaps (works for same-chain and cross-chain)
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -490,6 +494,8 @@ export const allTools = {
   getZkEVMContractSource,
   getZkEVMTokenSupply,
   getZkEVMBlockInfo,
+  getZkEVMTokenList,
+  getZkEVMPortfolio,
   // Relay Protocol Tools
   getRelaySupportedChains,
   getRelayQuote,
