@@ -164,7 +164,7 @@ export const getCryptoComChainStats = tool({
  * Execute a wallet analysis query using AI Agent SDK
  */
 export const analyzeWalletWithAI = tool({
-    description: "Analyze a wallet address on Cronos using Crypto.com AI Agent SDK. Use this for ALL Cronos zkEVM wallet analysis.",
+    description: "Analyze a wallet address on Cronos using Crypto.com AI Agent SDK. NOTE: For token holdings and portfolio on zkEVM, use getZkEVMPortfolio or getZkEVMTokenList instead - this tool only returns native balance.",
     parameters: z.object({
         address: z.string().describe("Wallet address to analyze (0x...)"),
         network: z.enum(["CRONOS_MAINNET", "CRONOS_TESTNET", "CRONOS_ZKEVM_MAINNET", "CRONOS_ZKEVM_TESTNET"])

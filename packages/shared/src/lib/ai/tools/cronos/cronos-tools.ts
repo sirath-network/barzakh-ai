@@ -13,8 +13,15 @@ const CRONOS_MAINNET_RPC = "https://evm.cronos.org";
 const CRONOS_TESTNET_RPC = "https://evm-t3.cronos.org";
 
 // Cronos Explorer API (official)
-const CRONOS_EXPLORER_API = "https://explorer-api.cronos.org/mainnet/api/v2";
-const CRONOS_TESTNET_EXPLORER_API = "https://explorer-api.cronos.org/testnet/api/v2";
+// v1 API - uses query parameter style (?module=account&action=txlist)
+const CRONOS_EXPLORER_API_V1 = "https://cronos.org/explorer/api";
+const CRONOS_TESTNET_EXPLORER_API_V1 = "https://cronos.org/explorer/testnet/api";
+// v2 API - uses RESTful endpoints (/addresses/{hash}/tokens)
+const CRONOS_EXPLORER_API_V2 = "https://explorer-api.cronos.org/mainnet/api/v2";
+const CRONOS_TESTNET_EXPLORER_API_V2 = "https://explorer-api.cronos.org/testnet/api/v2";
+
+// Alias for backwards compatibility
+const CRONOS_EXPLORER_API = CRONOS_EXPLORER_API_V1;
 
 /**
  * Helper to get current block number from Cronos RPC
@@ -688,41 +695,115 @@ export const getCronosTokenList = tool({
     }),
     execute: async ({ address }) => {
         try {
+            // Try v1 API first (works without API key)
             const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
-            const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=tokenlist&address=${address}${apiKey ? `&apikey=${apiKey}` : ""}`;
+            const v1ApiUrl = `${CRONOS_EXPLORER_API}?module=account&action=tokenlist&address=${address}${apiKey ? `&apikey=${apiKey}` : ""}`;
+            console.log(`[Cronos] Fetching tokens via v1 API: ${v1ApiUrl}`);
 
-            const response = await fetch(apiUrl);
+            const response = await fetch(v1ApiUrl);
             const data = await response.json();
 
-            if (data.status !== "1" || !data.result) {
-                if (data.message === "No tokens found") {
-                    return { address, network: "Cronos Mainnet", tokens: [], message: "No tokens found" };
-                }
-                throw new Error(data.message || "Failed to fetch token list");
+            if (data.status === "1" && data.result && Array.isArray(data.result)) {
+                // Filter to only ERC-20 tokens and map the data
+                const tokens = data.result
+                    .filter((token: any) => token.type === "ERC-20")
+                    .map((token: any) => {
+                        const decimals = parseInt(token.decimals || "18");
+                        const balance = parseFloat(token.balance || "0") / Math.pow(10, decimals);
+                        return {
+                            contractAddress: token.contractAddress,
+                            name: token.name || "Unknown",
+                            symbol: token.symbol || "???",
+                            decimals,
+                            balance: balance.toFixed(6),
+                            type: token.type || "ERC-20",
+                        };
+                    })
+                    // Filter out dust (tokens with very small balance)
+                    .filter((t: any) => parseFloat(t.balance) > 0.000001);
+
+                return {
+                    address,
+                    network: "Cronos Mainnet",
+                    chainId: 25,
+                    tokenCount: tokens.length,
+                    tokens,
+                    timestamp: new Date().toISOString(),
+                    explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+                };
             }
 
-            const tokens = data.result.map((token: any) => ({
-                contractAddress: token.contractAddress,
-                name: token.name,
-                symbol: token.symbol,
-                decimals: parseInt(token.decimals),
-                balance: (parseFloat(token.balance) / Math.pow(10, parseInt(token.decimals))).toFixed(6),
-                type: token.type,
-            }));
+            // If v1 failed but we have API key, try v2 REST API
+            if (apiKey) {
+                console.log("[Cronos] v1 API failed, trying v2 API with API key");
+                const v2ApiUrl = `${CRONOS_EXPLORER_API_V2}/addresses/${address}/tokens?type=ERC-20`;
 
-            return {
-                address,
-                network: "Cronos Mainnet",
-                chainId: 25,
-                tokenCount: tokens.length,
-                tokens,
-                timestamp: new Date().toISOString(),
-            };
+                const v2Response = await fetch(v2ApiUrl, {
+                    headers: {
+                        "Accept": "application/json",
+                        "Authorization": `Bearer ${apiKey}`,
+                    },
+                });
+
+                if (v2Response.ok) {
+                    const v2Data = await v2Response.json();
+
+                    if (v2Data && v2Data.items && Array.isArray(v2Data.items)) {
+                        const tokens = v2Data.items.map((item: any) => {
+                            const token = item.token || item;
+                            const decimals = parseInt(token.decimals || "18");
+                            const rawBalance = item.value || "0";
+                            const formattedBalance = (parseFloat(rawBalance) / Math.pow(10, decimals)).toFixed(6);
+
+                            return {
+                                contractAddress: token.address,
+                                name: token.name || "Unknown",
+                                symbol: token.symbol || "???",
+                                decimals,
+                                balance: formattedBalance,
+                                type: token.type || "ERC-20",
+                                iconUrl: token.icon_url || null,
+                            };
+                        }).filter((t: any) => parseFloat(t.balance) > 0.000001);
+
+                        return {
+                            address,
+                            network: "Cronos Mainnet",
+                            chainId: 25,
+                            tokenCount: tokens.length,
+                            tokens,
+                            timestamp: new Date().toISOString(),
+                            explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+                        };
+                    }
+                }
+            }
+
+            // If no results from API, return empty
+            if (data.message === "No tokens found" || (data.status === "1" && data.result?.length === 0)) {
+                return {
+                    address,
+                    network: "Cronos Mainnet",
+                    tokens: [],
+                    tokenCount: 0,
+                    message: "No tokens found",
+                    explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+                };
+            }
+
+            throw new Error(data.message || "Failed to fetch token list");
         } catch (error: any) {
-            return { error: "Failed to fetch token list", details: error.message };
+            console.error("[Cronos] Error fetching token list:", error);
+            return {
+                error: "Failed to fetch token list",
+                details: error.message,
+                explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+                hint: "You can view the full token list on the Cronos Explorer using the link above.",
+            };
         }
     },
 });
+
 
 /**
  * Get blocks mined by an address (for validators)
@@ -1232,6 +1313,136 @@ export const getCronosContractSource = tool({
     },
 });
 
+/**
+ * Get complete portfolio for a Cronos address (native CRO + all tokens)
+ */
+export const getCronosPortfolio = tool({
+    description: "Get complete portfolio for a Cronos wallet address including native CRO balance and all CRC-20 token holdings. This is the best tool for viewing a wallet's full holdings on Cronos.",
+    parameters: z.object({
+        address: z.string().describe("Wallet address (0x...)"),
+    }),
+    execute: async ({ address }) => {
+        try {
+            // Fetch native CRO balance using RPC
+            const rpcResponse = await fetch(CRONOS_MAINNET_RPC, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "eth_getBalance",
+                    params: [address, "latest"],
+                    id: 1,
+                }),
+            });
+
+            const rpcData = await rpcResponse.json();
+            const balanceWei = BigInt(rpcData.result || 0);
+            const balanceCRO = Number(balanceWei) / 1e18;
+
+            // Fetch token list using v1 API first (works without API key)
+            const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
+            const v1ApiUrl = `${CRONOS_EXPLORER_API}?module=account&action=tokenlist&address=${address}${apiKey ? `&apikey=${apiKey}` : ""}`;
+            console.log(`[Cronos Portfolio] Fetching tokens via v1 API: ${v1ApiUrl}`);
+
+            let tokens: any[] = [];
+            let tokenFetchError: string | null = null;
+
+            try {
+                const v1Response = await fetch(v1ApiUrl);
+                const v1Data = await v1Response.json();
+
+                if (v1Data.status === "1" && v1Data.result && Array.isArray(v1Data.result)) {
+                    tokens = v1Data.result
+                        .filter((token: any) => token.type === "ERC-20")
+                        .map((token: any) => {
+                            const decimals = parseInt(token.decimals || "18");
+                            const balance = parseFloat(token.balance || "0") / Math.pow(10, decimals);
+                            return {
+                                contractAddress: token.contractAddress,
+                                name: token.name || "Unknown",
+                                symbol: token.symbol || "???",
+                                decimals,
+                                balance,
+                                balanceFormatted: balance.toFixed(6),
+                                type: token.type || "ERC-20",
+                            };
+                        })
+                        .filter((t: any) => t.balance > 0.000001); // Filter dust
+                }
+
+                // If v1 failed and we have API key, try v2
+                if (tokens.length === 0 && apiKey) {
+                    console.log("[Cronos Portfolio] v1 returned no tokens, trying v2 API with API key");
+                    const v2ApiUrl = `${CRONOS_EXPLORER_API_V2}/addresses/${address}/tokens?type=ERC-20`;
+                    const v2Response = await fetch(v2ApiUrl, {
+                        headers: {
+                            "Accept": "application/json",
+                            "Authorization": `Bearer ${apiKey}`,
+                        },
+                    });
+
+                    if (v2Response.ok) {
+                        const v2Data = await v2Response.json();
+
+                        if (v2Data && v2Data.items && Array.isArray(v2Data.items)) {
+                            tokens = v2Data.items.map((item: any) => {
+                                const token = item.token || item;
+                                const decimals = parseInt(token.decimals || "18");
+                                const rawBalance = item.value || "0";
+                                const formattedBalance = parseFloat(rawBalance) / Math.pow(10, decimals);
+
+                                return {
+                                    contractAddress: token.address,
+                                    name: token.name || "Unknown",
+                                    symbol: token.symbol || "???",
+                                    decimals,
+                                    balance: formattedBalance,
+                                    balanceFormatted: formattedBalance.toFixed(6),
+                                    type: token.type || "ERC-20",
+                                    iconUrl: token.icon_url || null,
+                                };
+                            }).filter((t: any) => t.balance > 0.000001);
+                        }
+                    }
+                }
+            } catch (e: any) {
+                console.error("[Cronos Portfolio] Error fetching tokens:", e);
+                tokenFetchError = e.message;
+            }
+
+            // Sort tokens by balance (descending)
+            tokens.sort((a, b) => b.balance - a.balance);
+
+            return {
+                address,
+                network: "Cronos Mainnet",
+                chainId: 25,
+                nativeBalance: {
+                    symbol: "CRO",
+                    wei: balanceWei.toString(),
+                    balance: balanceCRO,
+                    formatted: `${balanceCRO.toFixed(4)} CRO`,
+                },
+                tokenCount: tokens.length,
+                tokens: tokens.slice(0, 50), // Limit to top 50 tokens for display
+                hasMoreTokens: tokens.length > 50,
+                ...(tokenFetchError && { tokenFetchWarning: `Token fetch had issues: ${tokenFetchError}. Showing partial results.` }),
+                timestamp: new Date().toISOString(),
+                explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+            };
+        } catch (error: any) {
+            console.error("[Cronos Portfolio] Error:", error);
+            return {
+                error: "Failed to fetch Cronos portfolio",
+                details: error.message,
+                explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+                hint: "You can view the full portfolio on Cronos Explorer using the link above.",
+            };
+        }
+    },
+});
+
+
 // Export all Cronos blockchain tools
 export const cronosBlockchainTools = {
     getCronosBalance,
@@ -1258,4 +1469,5 @@ export const cronosBlockchainTools = {
     getCronosTokenHolders,
     getCronosContractABI,
     getCronosContractSource,
+    getCronosPortfolio,
 };

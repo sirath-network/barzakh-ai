@@ -35,6 +35,8 @@ export {
     getCronosTokenBalance,
     getCronosGasPrice,
     getCronosTransactionHistory,
+    getCronosTokenList,
+    getCronosPortfolio,
     cronosBlockchainTools,
 } from "./cronos-tools";
 
@@ -69,6 +71,8 @@ export {
     getZkEVMContractSource,
     getZkEVMTokenSupply,
     getZkEVMBlockInfo,
+    getZkEVMTokenList,
+    getZkEVMPortfolio,
     cronosZkEVMTools,
 } from "./cronos-zkevm-tools";
 
@@ -94,6 +98,8 @@ export const allCronosTools = {
     getCronosTokenBalance: () => import("./cronos-tools").then(m => m.getCronosTokenBalance),
     getCronosGasPrice: () => import("./cronos-tools").then(m => m.getCronosGasPrice),
     getCronosTransactionHistory: () => import("./cronos-tools").then(m => m.getCronosTransactionHistory),
+    getCronosTokenList: () => import("./cronos-tools").then(m => m.getCronosTokenList),
+    getCronosPortfolio: () => import("./cronos-tools").then(m => m.getCronosPortfolio),
 
     // Cronos zkEVM (Direct API)
     getZkEVMBalance: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMBalance),
@@ -107,6 +113,8 @@ export const allCronosTools = {
     getZkEVMContractSource: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMContractSource),
     getZkEVMTokenSupply: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTokenSupply),
     getZkEVMBlockInfo: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMBlockInfo),
+    getZkEVMTokenList: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMTokenList),
+    getZkEVMPortfolio: () => import("./cronos-zkevm-tools").then(m => m.getZkEVMPortfolio),
 
 
     // x402 Payment Tools
