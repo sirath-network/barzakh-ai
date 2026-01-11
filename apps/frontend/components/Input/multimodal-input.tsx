@@ -35,26 +35,6 @@ import {
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 import { QuestionSuggestions } from "./question-suggestions";
 
-// =====================================================================
-// START OF MODIFIED CODE
-// =====================================================================
-
-// Chain-specific groups - these do NOT force a model, user can choose any
-const CHAIN_FORCED_GROUPS: ReadonlyArray<SearchGroupId> = [
-  "on_chain",
-  "wormhole",
-  "sei",
-  "creditcoin",
-  "vana",
-  "flow",
-  "zeta",
-  "aptos",
-  "monad",
-  "solana",
-] as const;
-
-// Only coding and imagine force a specific model
-// Chain-specific tools use the user's selected model
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
   coding: "chat-model-claude",
   imagine: "chat-model-large",
@@ -82,11 +62,6 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
 
   throw new Error("Base64 conversion is not supported in this environment.");
 };
-// =====================================================================
-// END OF MODIFIED CODE
-// =====================================================================
-
-
 
 function PureAttachmentsButton({
   fileInputRef,

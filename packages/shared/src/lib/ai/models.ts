@@ -54,7 +54,7 @@ export const chatModels: Array<ChatModel> = [
   {
     id: "chat-model-glm",
     name: "GLM 4.7",
-    description: "glm-4.7 model for experimental tasks",
+    description: "GLM model for experimental tasks",
   },
   {
     id: "chat-model-claude",

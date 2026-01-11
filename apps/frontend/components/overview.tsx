@@ -56,7 +56,7 @@ export const Overview = ({ user }: OverviewProps) => {
             <div className="flex flex-col gap-2 items-center sm:items-start">
               {/* Greeting line - matches h1 text-2xl sm:text-3xl */}
               <div className="h-7 sm:h-9 w-56 sm:w-72 rounded-lg bg-muted-foreground/30" />
-              {/* Subtitle line - matches p text-sm sm:text-base "Welcome back! Let's make today productive." */}
+              {/* Subtitle line - matches p text-sm sm:text-base */}
               <div className="h-4 sm:h-5 w-72 sm:w-80 rounded bg-muted-foreground/20" />
             </div>
           </div>
