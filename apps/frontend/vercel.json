@@ -17,10 +17,6 @@
         {
             "path": "/api/messagelimitcron",
             "schedule": "0 0 * * *"
-        },
-        {
-            "path": "/api/cron/check-subscriptions",
-            "schedule": "0 */6 * * *"
         }
     ]
 }
