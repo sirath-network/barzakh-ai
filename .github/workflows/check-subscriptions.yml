@@ -1,0 +1,22 @@
+name: Check Subscriptions
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-subscriptions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger subscription check
+        run: |
+          curl -X GET "${{ secrets.FRONTEND_URL }}/api/cron/check-subscriptions" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --fail \
+            --silent \
+            --show-error
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
