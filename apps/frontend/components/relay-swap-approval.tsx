@@ -652,7 +652,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         >
                             <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 flex-wrap">
                                 <Info className="size-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                                <span className="text-sm font-medium">Cross-Chain Swap Completed!</span>
+                                <span className="text-sm font-medium">Swap Completed!</span>
                                 {completedTxHash && (
                                     <a
                                         href={`${BLOCK_EXPLORERS[requiredChainIdNum!] || "https://etherscan.io"}/tx/${completedTxHash}`}
@@ -665,7 +665,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 )}
                             </div>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 pl-6">
-                                Request a new quote for initiate another cross-chain swap
+                                Request a new quote for initiate another swap
                             </p>
                         </motion.div>
                     )}

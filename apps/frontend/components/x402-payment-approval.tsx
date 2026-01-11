@@ -641,7 +641,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                                         Checking balance...
                                     </ButtonAny>
                                 ) : !hasEnoughBalance ? (
-                                    <ButtonAny disabled className="w-full h-11 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/30">
+                                    <ButtonAny disabled className="w-full h-11 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-100 border border-red-200 dark:border-red-700/50 disabled:opacity-100">
                                         <AlertCircle className="size-4 mr-2" />
                                         Insufficient devUSDC.e Balance
                                     </ButtonAny>
