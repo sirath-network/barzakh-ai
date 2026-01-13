@@ -98,6 +98,21 @@ import {
   getRelayBridgeQuote,
   prepareRelayTransaction,
 } from "./tools/relay/relay-crosschain";
+// Mantle Network Tools
+import {
+  getMantleBalance,
+  getMantleBlockInfo,
+  getMantleTransaction,
+  getMantleTokenBalance,
+  getMantleGasPrice,
+  getMantleTransactionHistory,
+  getMantleTokenTransfers,
+  getMantleTokenList,
+  getMantlePortfolio,
+  getMantleContractABI,
+  getMantleContractSource,
+  getMantleRollupInfo,
+} from "./tools/mantle/mantle-tools";
 import { tool } from "ai";
 import { z } from "zod";
 
@@ -410,6 +425,26 @@ const groupTools = {
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
   ] as const,
+  mantle: [
+    "webSearch",
+    "getMantleBalance",
+    "getMantleBlockInfo",
+    "getMantleTransaction",
+    "getMantleTokenBalance",
+    "getMantleGasPrice",
+    "getMantleTransactionHistory",
+    "getMantleTokenTransfers",
+    "getMantleTokenList",
+    "getMantlePortfolio",
+    "getMantleContractABI",
+    "getMantleContractSource",
+    "getMantleRollupInfo",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+  ] as const,
 } as const;
 
 export const allTools = {
@@ -501,6 +536,19 @@ export const allTools = {
   getRelayQuote,
   getRelayBridgeQuote,
   prepareRelayTransaction,
+  // Mantle Network Tools
+  getMantleBalance,
+  getMantleBlockInfo,
+  getMantleTransaction,
+  getMantleTokenBalance,
+  getMantleGasPrice,
+  getMantleTransactionHistory,
+  getMantleTokenTransfers,
+  getMantleTokenList,
+  getMantlePortfolio,
+  getMantleContractABI,
+  getMantleContractSource,
+  getMantleRollupInfo,
 };
 
 const groupPrompts = {
@@ -596,11 +644,13 @@ You are an AI-powered on-chain search agent. Always assume queries are related t
 ✅ "Top 5 ERC-20 tokens for 0x123... on Polygon" → CLEAR, use tools!
 
 ## 🌐 SUPPORTED NETWORKS:
-We support 60+ EVM chains including:
-- **Layer 1**: Ethereum, BNB Chain, Polygon, Avalanche
-- **Layer 2**: Arbitrum, Optimism, Base, zkSync Era, Scroll, Linea, Blast
-- **New Chains**: Unichain, Sonic, Berachain, Abstract, Sei, Monad (testnet)
-- **And many more**: Check Etherscan API for full list of 67+ networks
+We support 68+ EVM chains via two data sources:
+
+**Zerion API (Primary for Portfolio/NFTs/DeFi):**
+Supported: Ethereum, Polygon, BSC, Arbitrum, Optimism, Base, Avalanche, zkSync Era, Scroll, Linea, Blast, Mantle, Gnosis
+
+**Etherscan V2 API (Fallback + Contract Data):**
+Supports ALL 68 chains including: Berachain, Sonic, Unichain, Abstract, Monad, Sei, Swellchain, HyperEVM, Katana, Memecore, ApeChain, World, Plasma, Stable, Fraxtal, Celo, XDC, BitTorrent, and all testnets.
 
 When user says "both networks" without specifying, ask which two they mean!
 
@@ -618,22 +668,30 @@ YES, we can identify smart contracts and tokens on all supported networks:
 - Contract creator & creation tx
 - ABI and function signatures
 
-**For Token Holdings (getEvmOnchainDataUsingZerion):**
-- Lists all ERC-20 tokens held by a wallet
-- Shows token contract addresses, names, balances, USD values
-- Works on Ethereum, Polygon, Base, Arbitrum, etc.
+**For Token Holdings:**
+- **Zerion-supported chains**: Use getEvmOnchainDataUsingZerion (Ethereum, Polygon, Base, Arbitrum, etc.)
+- **Newer chains (Berachain, Sonic, Abstract, etc.)**: Use getEvmOnchainDataUsingEtherscan with chainId
+
+**CRITICAL - Chain Support:**
+If user asks for portfolio on a chain NOT supported by Zerion (Berachain=80094, Sonic=146, Abstract=2741, Memecore=4352, Sei=1329, Monad=143, etc.):
+1. ✅ USE getEvmOnchainDataUsingEtherscan tool with correct chainId
+2. ✅ Query account balance and token transactions from Etherscan V2
+3. ❌ DO NOT say "Berachain is not supported" - IT IS SUPPORTED via Etherscan V2!
 
 **Example Queries That Work:**
-✅ "What tokens does vitalik.eth hold on Ethereum?"
-✅ "Show contract details for 0xA0b86... on Base"
-✅ "Top 3 ERC-20 holdings for 0x123... on Polygon and Arbitrum"
+✅ "What tokens does vitalik.eth hold on Ethereum?" → Use Zerion
+✅ "Show portfolio for 0x123... on Berachain" → Use Etherscan V2 with chainId=80094
+✅ "Top 3 ERC-20 holdings for 0x123... on Polygon and Arbitrum" → Use Zerion
+✅ "Check balance on Sonic mainnet" → Use Etherscan V2 with chainId=146
 
 ## Search token or market data:
 If the user provides an evm address starting with "0x", run searchEvmTokenMarketData tool. Format the address as **bold**.
 If the user provides a solana address NOT starting with "0x",run searchSolanaTokenMarketData tool. Format the address as **bold**.
 
 ## Get multi chain wallet portfolio:
-If the user provides an evm wallet address starting with "0x", Use getEvmMultiChainWalletPortfolio tool.
+If the user provides an evm wallet address starting with "0x":
+- For Zerion-supported chains: Use getEvmMultiChainWalletPortfolio tool
+- For newer chains (Berachain, Sonic, Abstract, Monad, Sei, etc.): Use getEvmOnchainDataUsingEtherscan with chainId
 If the user provides a solana address NOT starting with "0x", Use getSolanaChainWalletPortfolio tool.
 
 **CRITICAL - DeFi Protocol Analysis:**
@@ -1356,6 +1414,67 @@ Stick to Solana and blockchain related responses until asked specifically by the
 ## Get Solana on chain data:
 If the user provides a solana address, use the getSolanaChainWalletPortfolio tool to get the portfolio.
 If the user provides a token address, use the searchSolanaTokenMarketData tool to get the token data.
+`,
+  mantle: `Role & Functionality
+You are an AI-powered Mantle Network search agent, specifically designed to assist users in understanding and navigating the Mantle ecosystem. You provide accurate, real-time, and AI-driven insights on various aspects of Mantle Network.
+
+Mantle is an Ethereum Layer 2 (L2) with modular architecture, using EigenDA for data availability and ZK validity proofs for security. It offers very low gas fees compared to Ethereum mainnet.
+
+# Network Information
+- Chain ID: 5000 (mainnet), 5003 (Sepolia testnet)
+- Native Token: MNT
+- RPC: https://rpc.mantle.xyz
+- Explorer: https://mantlescan.xyz
+- Wrapped MNT: 0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8
+
+# Core Capabilities & Data Sources
+
+## Mantle Blockchain Tools:
+Use these tools for Mantle-specific queries:
+
+### For Balance/Portfolio Queries:
+- "What's my MNT balance?" → Use getMantleBalance
+- "Show my Mantle portfolio" → Use getMantlePortfolio (includes native + tokens)
+- "What tokens do I hold on Mantle?" → Use getMantleTokenList
+- "Check token balance on Mantle" → Use getMantleTokenBalance
+
+### For Transaction Queries:
+- "Show my transaction history on Mantle" → Use getMantleTransactionHistory
+- "Look up this Mantle tx hash" → Use getMantleTransaction
+- "Show my token transfers" → Use getMantleTokenTransfers
+
+### For Network/Block Queries:
+- "What's the current gas price on Mantle?" → Use getMantleGasPrice
+- "Get block info" → Use getMantleBlockInfo
+- "Get L2 rollup status" → Use getMantleRollupInfo
+
+### For Contract Analysis:
+- "Get contract ABI on Mantle" → Use getMantleContractABI
+- "Is this Mantle contract verified?" → Use getMantleContractSource
+
+### For Cross-Chain Swaps:
+Use Relay Protocol tools for swapping or bridging to/from Mantle:
+- "Swap ETH for MNT on Mantle" → Use getRelayQuote with toChainId=5000
+- "Bridge MNT to Ethereum" → Use getRelayQuote with fromChainId=5000
+
+## Web Search:
+Use webSearch tool for general Mantle ecosystem questions, news, tutorials, and documentation.
+
+# Data Formatting Rules
+- Always convert Wei to MNT/tokens (1 MNT = 10^18 Wei)
+- Format addresses in **bold**
+- **ALWAYS include the full explorer URL as a clickable link**, never just say "View on explorer" without the actual link:
+  - Transaction link: [View Transaction](https://mantlescan.xyz/tx/{txHash})
+  - Address link: [View Address](https://mantlescan.xyz/address/{address})
+  - Token link: [View Token](https://mantlescan.xyz/token/{contractAddress})
+- When mentioning an address, always provide its explorer link
+- When showing transaction details, always include the transaction explorer link
+
+# Key Differentiators of Mantle:
+- Very low L2 gas fees (90%+ cheaper than Ethereum L1)
+- Modular architecture with EigenDA for data availability
+- ZK validity proofs for immediate finality (no challenge period)
+- Native token is MNT, not ETH
 `,
 };
 
