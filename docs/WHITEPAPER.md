@@ -864,8 +864,8 @@ erDiagram
 | Tier | Price Range | Features |
 |------|-------------|----------|
 | **Free** | $0 | 10 messages/day, basic blockchain queries, limited tools |
-| **Pro** | $9.99-$89.99/day | 50-150 messages, all blockchain tools, priority support, VVS DEX |
-| **Ultimate** | $19.99-$179.99/day | 250-500 messages, GPT-5.x & Claude, all frontier models, API access |
+| **Pro** | $20-$240 | 50-150 messages, all blockchain tools, priority support, VVS DEX |
+| **Ultimate** | $250-$2400 | 250-500 messages, GPT-5.x & Claude, all frontier models, API access |
 
 #### Payment Methods
 
