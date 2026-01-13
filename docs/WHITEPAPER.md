@@ -39,7 +39,7 @@
 **Barzakh AI** is an enterprise-grade, multi-model AI platform that revolutionizes blockchain analytics and DeFi interaction through intelligent orchestration. Built as a production-ready Turborepo monorepo with Next.js 16.1 and React 19, the platform uniquely combines:
 
 - **Multi-Model AI Fusion**: Orchestrates GPT-5.x, Claude Opus 4.5, GLM 4.7, and 6+ frontier models with intelligent intent-based routing
-- **50+ Blockchain Tools**: Native integrations across 12+ blockchain ecosystems (Cronos, Ethereum, Aptos, Solana, Flow, SEI, Zeta, Monad)
+- **50+ Blockchain Tools**: Native integrations across 13+ blockchain ecosystems (Cronos, Mantle, Ethereum, Aptos, Solana, Flow, SEI, Zeta, Monad)
 - **x402 Gasless Payments**: Revolutionary EIP-3009 implementation enabling zero-gas cryptocurrency subscriptions on Cronos
 - **VVS DEX Integration**: Real-time swap quotes, liquidity pool analysis, and DeFi intelligence from VVS Finance
 - **Enterprise Security**: 5-layer defense architecture with prompt injection defense, 2FA, and wallet authentication
@@ -50,7 +50,7 @@ The platform processes blockchain queries through a sophisticated intent classif
 
 | Metric | Value |
 |--------|-------|
-| Blockchain Chains Supported | 12+ |
+| Blockchain Chains Supported | 13+ |
 | AI Models Integrated | 6+ |
 | Blockchain Tools | 50+ |
 | System Prompt Size | 69KB+ |
@@ -127,9 +127,9 @@ flowchart TB
     
     subgraph Layer5["Layer 5: Blockchain Tools"]
         Cronos["Cronos VVS DEX"]
+        Mantle["Mantle L2"]
         EVM["EVM Ethereum/Polygon"]
         Aptos["Aptos Move"]
-        Flow["Flow Cadence"]
         SEI["SEI Cosmos SDK"]
         Solana["Solana RPC"]
         Zeta["Zeta ZetaVM"]
@@ -409,6 +409,24 @@ The platform provides **50+ specialized tools** across 12+ blockchain ecosystems
 | `createImage` | Gemini 2.5 image gen |
 | `translateTransactions` | Human-readable TX |
 
+#### Mantle Network Ecosystem Tools
+
+Native L2 support for **Mantle Network** (Chain ID: 5000) with comprehensive portfolio tracking and transaction analysis:
+
+| Tool | Function |
+|------|----------|
+| `getMantleBalance` | Native MNT balance |
+| `getMantlePortfolio` | Complete portfolio with tokens |
+| `getMantleTokenList` | ERC-20 token holdings |
+| `getMantleTokenBalance` | Specific token balance |
+| `getMantleTransactionHistory` | Transaction history with token details |
+| `getMantleTokenTransfers` | Token transfer events |
+| `getMantleBlockInfo` | Block data |
+| `getMantleGasPrice` | Current gas oracle |
+| `getMantleContractABI` | Contract ABI retrieval |
+| `getMantleContractSource` | Verified source code |
+| `getMantleRollupInfo` | L2 rollup status |
+
 ### Relay Protocol Cross-Chain Swaps
 
 Native integration with **Relay Protocol** enables cross-chain token swaps across 15+ networks:
@@ -436,7 +454,7 @@ export const getRelaySwapQuote = tool({
 });
 ```
 
-**Supported Chains**: Ethereum, Base, Optimism, Arbitrum, Polygon, Avalanche, BNB Chain, Scroll, zkSync, Linea, Blast, Mode, Zora, and more.
+**Supported Chains**: Ethereum, Base, Optimism, Arbitrum, Polygon, Avalanche, BNB Chain, Scroll, zkSync, Linea, Blast, Mode, Zora, **Mantle**, and more.
 
 **Features**:
 - **Swap Completion Tracking**: Server-side persistence prevents duplicate swaps
@@ -469,6 +487,18 @@ const groupTools = {
         "aptosNames",
         "getAptosPortfolio",
         "defiLlama",
+    ],
+    mantle: [
+        "webSearch",
+        "getMantleBalance",
+        "getMantlePortfolio",
+        "getMantleTokenList",
+        "getMantleTransactionHistory",
+        "getMantleTokenTransfers",
+        "getMantleGasPrice",
+        "getMantleBlockInfo",
+        "getMantleContractABI",
+        "getRelayQuote",
     ],
     // ... 10+ more chain groups
 };
@@ -582,8 +612,8 @@ export const initiateX402Payment = tool({
 
 | Plan | Monthly | Quarterly | Yearly |
 |------|---------|-----------|--------|
-| **Pro** | $9.99 USDC | $24.99 USDC | $89.99 USDC |
-| **Ultimate** | $19.99 USDC | $49.99 USDC | $179.99 USDC |
+| **Pro** | $25 USDC | $66 USDC | $240 USDC |
+| **Ultimate** | $250 USDC | $660 USDC | $2400 USDC |
 
 ### Message Limits by Tier
 
