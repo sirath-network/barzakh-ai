@@ -202,7 +202,8 @@ export type SearchGroupId =
   | "solana"
   | "imagine"
   | "aptos"
-  | "cronos";
+  | "cronos"
+  | "mantle";
 
 // Explicit type for search groups to avoid portable type inference issues with LucideIcon
 interface SearchGroupItem {
@@ -243,18 +244,18 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: "",
   },
   {
-    id: "cronos",
-    name: "Cronos",
-    description: "Everything Cronos. Search, transactions and more",
+    id: "mantle",
+    name: "Mantle",
+    description: "Everything Mantle. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/cronos/cronos-logo.png",
+    img: "/images/icon/mantle/mantle-logo.png",
   },
   {
-    id: "sei",
-    name: "Sei",
-    description: "Everything Sei. Search, transactions and more",
+    id: "aptos",
+    name: "Aptos",
+    description: "Everything Aptos. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/sei/sei-logo.png",
+    img: "/images/icon/aptos/aptos-logo.png",
   },
   {
     id: "wormhole",
@@ -263,6 +264,13 @@ export const searchGroups: readonly SearchGroupItem[] = [
       "Everything Wormhole. Search, transactions and more",
     icon: Network,
     img: "/images/icon/wormhole/wormhole-logo.png",
+  },
+  {
+    id: "cronos",
+    name: "Cronos",
+    description: "Everything Cronos. Search, transactions and more",
+    icon: Network,
+    img: "/images/icon/cronos/cronos-logo.png",
   },
   {
     id: "creditcoin",
@@ -279,13 +287,6 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: "/images/icon/vana/vana-icon-black.png",
   },
   {
-    id: "flow",
-    name: "Flow",
-    description: "Everything Flow. Search, transactions and more",
-    icon: Network,
-    img: "/images/icon/flow/flow-logo.png",
-  },
-  {
     id: "zeta",
     name: "Zeta",
     description: "Everything Zeta. Search, transactions and more",
@@ -293,12 +294,19 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: "/images/icon/zeta/zetachain-logo.png",
   },
   {
-    id: "aptos",
-    name: "Aptos",
-    description: "Everything Aptos. Search, transactions and more",
+    id: "flow",
+    name: "Flow",
+    description: "Everything Flow. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/aptos/aptos-logo.png",
+    img: "/images/icon/flow/flow-logo.png",
   },
+  {
+    id: "sei",
+    name: "Sei",
+    description: "Everything Sei. Search, transactions and more",
+    icon: Network,
+    img: "/images/icon/sei/sei-logo.png",
+  }
   // {
   // id: "monad",
   // name: "Monad",

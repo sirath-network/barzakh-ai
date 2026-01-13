@@ -329,6 +329,35 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
+    // Mantle-specific (L2 on Ethereum)
+    {
+        intent: "mantle",
+        patterns: [
+            /\bmantle\b/i,
+            /\bmnt\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bmantle\s+(network|chain|l2|layer\s*2|wallet|portfolio)\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\bmantle\b/i,
+            /\bmantle\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\b(on|at|for)\s+mantle\b/i,
+            /\bmantlescan\b/i,
+        ],
+        keywords: [
+            "mantle",
+            "mnt token",
+            "mantle network",
+            "mantle chain",
+            "mantle l2",
+            "mantle layer 2",
+            "mantle wallet",
+            "mantle portfolio",
+            "on mantle",
+            "mantlescan",
+            "mantle balance",
+            "mantle transaction",
+        ],
+        priority: 95,
+    },
+
     // =========================================================================
     // CROSS-CHAIN SWAP/BRIDGE (Priority 97 - Higher than chain-specific)
     // When user wants to swap/bridge BETWEEN chains, use on_chain (Relay tools)
@@ -566,6 +595,7 @@ async function classifyByLLM(message: string, chatContext?: string | null): Prom
 - "flow": Flow blockchain specific queries
 - "wormhole": Wormhole bridge specific queries
 - "monad": Monad network specific queries
+- "mantle": Mantle Network L2 specific queries (MNT token, mantlescan)
 - "multimodal": Image analysis or file reading requests
 - "search": General web search, questions, information lookup
 `;
@@ -594,6 +624,7 @@ async function classifyByLLM(message: string, chatContext?: string | null): Prom
                     "flow",
                     "wormhole",
                     "monad",
+                    "mantle",
                     "multimodal",
                     "search",
                 ]),
@@ -651,7 +682,7 @@ function patternMatchedDifferentTopic(patternResult: IntentClassification | null
 }
 
 // Groups that support context persistence (chain-specific + imagine)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.

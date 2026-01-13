@@ -7,8 +7,6 @@ import {
   loadOpenAPI,
 } from "../../../utils/openapi";
 import { etherscanBaseURL, defaultChainId } from "./constant";
-import { groq } from "@ai-sdk/groq";
-import { translateTransactions } from "../translate-transactions";
 
 // Helper function to fetch supported chains
 async function fetchSupportedChains() {
@@ -27,13 +25,21 @@ async function fetchSupportedChains() {
       { chainname: "Arbitrum One Mainnet", chainid: "42161" },
       { chainname: "OP Mainnet", chainid: "10" },
       { chainname: "Avalanche C-Chain", chainid: "43114" },
+      { chainname: "Mantle Mainnet", chainid: "5000" },
+      { chainname: "Linea Mainnet", chainid: "59144" },
+      { chainname: "Blast Mainnet", chainid: "81457" },
+      { chainname: "Scroll Mainnet", chainid: "534352" },
+      { chainname: "Sonic Mainnet", chainid: "146" },
+      { chainname: "Berachain Mainnet", chainid: "80094" },
+      { chainname: "Sei Mainnet", chainid: "1329" },
+      { chainname: "Gnosis", chainid: "100" },
     ];
   }
 }
 
 export const getEvmOnchainDataUsingEtherscan = tool({
   description:
-    "Get real-time data from Ethereum-based blockchains using Etherscan API V2. Supports 67+ chains including Ethereum, Polygon, BSC, Base, Arbitrum, Optimism, Avalanche, and many more.",
+    "Get real-time data from 68+ EVM blockchains using Etherscan API V2. Supports Ethereum, Polygon, BSC, Base, Arbitrum, Optimism, Avalanche, Mantle, Linea, Blast, Scroll, Sonic, Berachain, Sei, Abstract, Unichain, Monad, and many more chains including their testnets.",
   parameters: z.object({
     userQuery: z.string().describe("Query of user."),
     chainId: z.number().optional().describe("Chain ID for Etherscan API V2. If not specified, will be auto-detected from the query or default to 1 (Ethereum Mainnet)."),
@@ -58,52 +64,148 @@ export const getEvmOnchainDataUsingEtherscan = tool({
       if (!detectedChainId && userQuery) {
         const query = userQuery.toLowerCase();
 
-        // Chain detection patterns
-        if (query.includes('polygon') || query.includes('matic')) {
-          detectedChainId = 137;
-          console.log("🔍 Detected chain from query: Polygon (137)");
-        } else if (query.includes('bsc') || query.includes('bnb') || query.includes('binance')) {
-          detectedChainId = 56;
-          console.log("🔍 Detected chain from query: BSC (56)");
-        } else if (query.includes('base')) {
-          detectedChainId = 8453;
-          console.log("🔍 Detected chain from query: Base (8453)");
-        } else if (query.includes('arbitrum')) {
-          detectedChainId = 42161;
-          console.log("🔍 Detected chain from query: Arbitrum (42161)");
-        } else if (query.includes('optimism') || query.includes(' op ')) {
-          detectedChainId = 10;
-          console.log("🔍 Detected chain from query: Optimism (10)");
-        } else if (query.includes('avalanche') || query.includes('avax')) {
-          detectedChainId = 43114;
-          console.log("🔍 Detected chain from query: Avalanche (43114)");
-        } else if (query.includes('linea')) {
-          detectedChainId = 59144;
-          console.log("🔍 Detected chain from query: Linea (59144)");
-        } else if (query.includes('blast')) {
-          detectedChainId = 81457;
-          console.log("🔍 Detected chain from query: Blast (81457)");
-        } else if (query.includes('zksync')) {
-          detectedChainId = 324;
-          console.log("🔍 Detected chain from query: zkSync (324)");
-        } else if (query.includes('scroll')) {
-          detectedChainId = 534352;
-          console.log("🔍 Detected chain from query: Scroll (534352)");
-        } else if (query.includes('sonic')) {
-          detectedChainId = 146;
-          console.log("🔍 Detected chain from query: Sonic (146)");
-        } else if (query.includes('berachain') || query.includes('bera')) {
-          detectedChainId = 80094;
-          console.log("🔍 Detected chain from query: Berachain (80094)");
-        } else if (query.includes('unichain')) {
-          detectedChainId = 130;
-          console.log("🔍 Detected chain from query: Unichain (130)");
-        } else if (query.includes('mantle')) {
-          detectedChainId = 5000;
-          console.log("🔍 Detected chain from query: Mantle (5000)");
-        } else if (query.includes('sei')) {
-          detectedChainId = 1329;
-          console.log("🔍 Detected chain from query: Sei (1329)");
+        // Comprehensive chain detection patterns for all 68 Etherscan V2 supported chains
+        const chainPatterns: [RegExp, number, string][] = [
+          // Ethereum
+          [/\b(ethereum|eth mainnet)\b/i, 1, "Ethereum Mainnet"],
+          [/\bsepolia\b/i, 11155111, "Sepolia Testnet"],
+          [/\bholesky\b/i, 17000, "Holesky Testnet"],
+          [/\bhoodi\b(?!.*frax)(?!.*taiko)/i, 560048, "Hoodi Testnet"],
+
+          // BNB/BSC
+          [/\b(bsc|bnb|binance)\b/i, 56, "BNB Smart Chain"],
+          [/\b(bsc|bnb|binance).*testnet\b/i, 97, "BNB Testnet"],
+          [/\bopbnb\b/i, 204, "opBNB Mainnet"],
+          [/\bopbnb.*testnet\b/i, 5611, "opBNB Testnet"],
+
+          // Polygon
+          [/\b(polygon|matic)\b(?!.*amoy)/i, 137, "Polygon Mainnet"],
+          [/\b(polygon|matic).*amoy\b/i, 80002, "Polygon Amoy Testnet"],
+
+          // Base
+          [/\bbase\b(?!.*sepolia)/i, 8453, "Base Mainnet"],
+          [/\bbase.*sepolia\b/i, 84532, "Base Sepolia"],
+
+          // Arbitrum
+          [/\barbitrum\b(?!.*nova)(?!.*sepolia)/i, 42161, "Arbitrum One"],
+          [/\barbitrum.*nova\b/i, 42170, "Arbitrum Nova"],
+          [/\barbitrum.*sepolia\b/i, 421614, "Arbitrum Sepolia"],
+
+          // Linea
+          [/\blinea\b(?!.*sepolia)/i, 59144, "Linea Mainnet"],
+          [/\blinea.*sepolia\b/i, 59141, "Linea Sepolia"],
+
+          // Blast
+          [/\bblast\b(?!.*sepolia)/i, 81457, "Blast Mainnet"],
+          [/\bblast.*sepolia\b/i, 168587773, "Blast Sepolia"],
+
+          // Optimism
+          [/\b(optimism|op mainnet)\b(?!.*sepolia)/i, 10, "OP Mainnet"],
+          [/\b(optimism|op).*sepolia\b/i, 11155420, "OP Sepolia"],
+
+          // Avalanche
+          [/\b(avalanche|avax)\b(?!.*fuji)/i, 43114, "Avalanche C-Chain"],
+          [/\b(avalanche|avax).*fuji\b/i, 43113, "Avalanche Fuji"],
+
+          // BitTorrent
+          [/\b(bittorrent|bttc)\b(?!.*testnet)/i, 199, "BitTorrent Chain"],
+          [/\b(bittorrent|bttc).*testnet\b/i, 1029, "BitTorrent Testnet"],
+
+          // Celo
+          [/\bcelo\b(?!.*sepolia)/i, 42220, "Celo Mainnet"],
+          [/\bcelo.*sepolia\b/i, 11142220, "Celo Sepolia"],
+
+          // Fraxtal
+          [/\b(fraxtal|frax)\b(?!.*hoodi)/i, 252, "Fraxtal Mainnet"],
+          [/\bfrax.*hoodi\b/i, 2523, "Fraxtal Hoodi"],
+
+          // Gnosis
+          [/\b(gnosis|xdai)\b/i, 100, "Gnosis"],
+
+          // Mantle
+          [/\bmantle\b(?!.*sepolia)/i, 5000, "Mantle Mainnet"],
+          [/\bmantle.*sepolia\b/i, 5003, "Mantle Sepolia"],
+
+          // Memecore
+          [/\bmemecore\b(?!.*testnet)/i, 4352, "Memecore Mainnet"],
+          [/\bmemecore.*testnet\b/i, 43521, "Memecore Testnet"],
+
+          // Moonbeam/Moonriver
+          [/\bmoonbeam\b/i, 1284, "Moonbeam"],
+          [/\bmoonriver\b/i, 1285, "Moonriver"],
+          [/\bmoonbase\b/i, 1287, "Moonbase Alpha"],
+
+          // Scroll
+          [/\bscroll\b(?!.*sepolia)/i, 534352, "Scroll Mainnet"],
+          [/\bscroll.*sepolia\b/i, 534351, "Scroll Sepolia"],
+
+          // Taiko
+          [/\btaiko\b(?!.*hoodi)/i, 167000, "Taiko Mainnet"],
+          [/\btaiko.*hoodi\b/i, 167013, "Taiko Hoodi"],
+
+          // XDC
+          [/\bxdc\b(?!.*apothem)/i, 50, "XDC Mainnet"],
+          [/\b(xdc.*apothem|apothem)\b/i, 51, "XDC Apothem"],
+
+          // ApeChain
+          [/\bapechain\b(?!.*curtis)/i, 33139, "ApeChain Mainnet"],
+          [/\b(apechain.*curtis|curtis)\b/i, 33111, "ApeChain Curtis"],
+
+          // World
+          [/\bworld\b(?!.*sepolia)/i, 480, "World Mainnet"],
+          [/\bworld.*sepolia\b/i, 4801, "World Sepolia"],
+
+          // Sonic
+          [/\bsonic\b(?!.*testnet)/i, 146, "Sonic Mainnet"],
+          [/\bsonic.*testnet\b/i, 14601, "Sonic Testnet"],
+
+          // Unichain
+          [/\bunichain\b(?!.*sepolia)/i, 130, "Unichain Mainnet"],
+          [/\bunichain.*sepolia\b/i, 1301, "Unichain Sepolia"],
+
+          // Abstract
+          [/\babstract\b(?!.*sepolia)/i, 2741, "Abstract Mainnet"],
+          [/\babstract.*sepolia\b/i, 11124, "Abstract Sepolia"],
+
+          // Berachain
+          [/\b(berachain|bera)\b(?!.*bepolia|.*testnet)/i, 80094, "Berachain Mainnet"],
+          [/\b(berachain|bera).*(bepolia|testnet)\b/i, 80069, "Berachain Bepolia"],
+
+          // Swellchain
+          [/\b(swellchain|swell)\b(?!.*testnet)/i, 1923, "Swellchain Mainnet"],
+          [/\b(swellchain|swell).*testnet\b/i, 1924, "Swellchain Testnet"],
+
+          // Monad
+          [/\bmonad\b(?!.*testnet)/i, 143, "Monad Mainnet"],
+          [/\bmonad.*testnet\b/i, 10143, "Monad Testnet"],
+
+          // HyperEVM
+          [/\bhyperevm\b/i, 999, "HyperEVM Mainnet"],
+
+          // Katana
+          [/\bkatana\b(?!.*bokuto)/i, 747474, "Katana Mainnet"],
+          [/\b(katana.*bokuto|bokuto)\b/i, 737373, "Katana Bokuto"],
+
+          // Sei
+          [/\bsei\b(?!.*testnet)/i, 1329, "Sei Mainnet"],
+          [/\bsei.*testnet\b/i, 1328, "Sei Testnet"],
+
+          // Stable
+          [/\bstable\b(?!.*testnet)/i, 988, "Stable Mainnet"],
+          [/\bstable.*testnet\b/i, 2201, "Stable Testnet"],
+
+          // Plasma
+          [/\bplasma\b(?!.*testnet)/i, 9745, "Plasma Mainnet"],
+          [/\bplasma.*testnet\b/i, 9746, "Plasma Testnet"],
+        ];
+
+        // Check each pattern
+        for (const [pattern, chainId, chainName] of chainPatterns) {
+          if (pattern.test(query)) {
+            detectedChainId = chainId;
+            console.log(`🔍 Detected chain from query: ${chainName} (${chainId})`);
+            break;
+          }
         }
       }
 
