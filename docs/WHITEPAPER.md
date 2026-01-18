@@ -265,12 +265,18 @@ const cometai = createOpenAI({
 
 export const myProvider = customProvider({
   languageModels: {
-    "chat-model-small": openai("gpt-4o"),
-    "chat-model-large": openai("gpt-4.1-2025-04-14"),
-    "chat-model-gigantic": cometai("gpt-5.1"),
-    "chat-model-colossal": cometai("gpt-5.2"),
-    "chat-model-claude": cometai("claude-opus-4-5-20251101-thinking"),
-    "chat-model-glm": cometai("glm-4.7"),
+    "openai-gpt-4o": openai("gpt-4o"),
+    "openai-gpt-4.1": openai("gpt-4.1-2025-04-14"),
+    "openai-gpt-5.1": cometai("gpt-5.1"),
+    "openai-gpt-5.2": cometai("gpt-5.2"),
+    "anthropic-opus-4.5": cometai("claude-opus-4-5-20251101-thinking"),
+    "anthropic-haiku-4.5": cometai("claude-haiku-4-5-20251001"),
+    "google-gemini-3-flash": cometai("gemini-3-flash"),
+    "google-gemini-2.5-flash-preview": cometai("gemini-2.5-flash-preview-09-2025"),
+    "xai-grok-4.1-fast": cometai("grok-4-1-fast-non-reasoning"),
+    "zai-glm-4.7": cometai("glm-4.7"),
+    "deepseek-v3.2": cometai("deepseek-v3.2"),
+    "deepseek-v3-250324": cometai("deepseek-v3-250324"),
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
@@ -281,12 +287,18 @@ export const myProvider = customProvider({
 
 | Model ID | Display Name | Provider | Strength | Use Case |
 |----------|--------------|----------|----------|----------|
-| `chat-model-small` | **GPT 4o** | OpenAI | Speed | Fast queries, simple tasks |
-| `chat-model-large` | **GPT 4.1** | OpenAI | Reasoning | Multi-step analysis |
-| `chat-model-gigantic` | **GPT 5.1** | CometAPI | Frontier | Complex blockchain analysis |
-| `chat-model-colossal` | **GPT 5.2** | CometAPI | Advanced | Research-grade tasks |
-| `chat-model-glm` | **GLM 4.7** | CometAPI | Multilingual | broad coverage |
-| `chat-model-claude` | **Claude Opus 4.5 Thinking** | CometAPI | Deep Analysis | Code generation, extended reasoning |
+| `openai-gpt-4o` | **GPT 4o** | OpenAI | Speed | Fast queries, simple tasks |
+| `openai-gpt-4.1` | **GPT 4.1** | OpenAI | Reasoning | Multi-step analysis |
+| `openai-gpt-5.1` | **GPT 5.1** | CometAPI | Frontier | Complex blockchain analysis |
+| `openai-gpt-5.2` | **GPT 5.2** | CometAPI | Advanced | Research-grade tasks |
+| `zai-glm-4.7` | **GLM 4.7** | CometAPI | Multilingual | broad coverage |
+| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | CometAPI | Speed | Fast, lightweight tasks |
+| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | CometAPI | Deep Analysis | Code generation, extended reasoning |
+| `google-gemini-3-flash` | **Gemini 3 Flash** | CometAPI | Speed | Fast Gemini responses |
+| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | Preview | Experimental tasks |
+| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | Speed | Fast reasoning |
+| `deepseek-v3.2` | **DeepSeek V3.2** | CometAPI | Reasoning | Complex reasoning |
+| `deepseek-v3-250324` | **DeepSeek V3 (March 2025)** | CometAPI | Analysis | Complex analysis |
 
 ### Intent Classification System
 
@@ -359,8 +371,8 @@ Certain intents require specific models for optimal results:
 
 ```typescript
 export const FORCED_MODEL_BY_GROUP = {
-    coding: "chat-model-claude",    // Claude for code generation
-    imagine: "chat-model-large",    // GPT-4.1 for image prompts
+    coding: "anthropic-opus-4.5",    // Claude for code generation
+    imagine: "openai-gpt-4.1",    // GPT-4.1 for image prompts
     // Chain tools use user-selected model
 };
 ```

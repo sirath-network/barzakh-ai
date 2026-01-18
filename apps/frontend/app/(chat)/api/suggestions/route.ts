@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await generateText({
-      model: myProvider.languageModel("chat-model-large"),
+      model: myProvider.languageModel("openai-gpt-4.1"),
       prompt: `
         Translate the following JSON array of objects into the language with code "${mainLang}".
         Do not change the keys ("title", "subtitle"). Only translate the string values.

@@ -35,6 +35,7 @@ interface ModelSelectorProps {
   className?: string;
   onModelSelect?: (modelId: string) => void; // Optional callback untuk parent component
   disabled?: boolean; // Add disabled prop
+  allowedModels?: readonly string[]; // Filter to only show these model IDs
 }
 
 interface ModelOptionListProps {
@@ -42,6 +43,7 @@ interface ModelOptionListProps {
   onSelect: (model: ChatModel) => void;
   searchQuery?: string;
   isDropdown?: boolean;
+  allowedModels?: readonly string[]; // Filter to only show these model IDs
 }
 
 const useModelSearch = (models: ChatModel[], query: string) => {
@@ -65,6 +67,8 @@ const getModelIconBaseName = (model?: ChatModel | null): string | null => {
   if (source.includes("gpt") || source.includes("openai")) return "GPT";
   if (source.includes("grok")) return "Grok";
   if (source.includes("glm")) return "GLM";
+  if (source.includes("gemini")) return "Gemini";
+  if (source.includes("deepseek")) return "Deepseek";
 
   return null;
 };
@@ -74,8 +78,13 @@ const ModelOptionList = ({
   onSelect,
   searchQuery = "",
   isDropdown = false,
+  allowedModels,
 }: ModelOptionListProps) => {
-  const filteredModels = useModelSearch(chatModels, searchQuery);
+  // First filter by allowed models if specified, then by search query
+  const baseModels = allowedModels
+    ? chatModels.filter(m => allowedModels.includes(m.id))
+    : chatModels;
+  const filteredModels = useModelSearch(baseModels, searchQuery);
   const { resolvedTheme } = useTheme();
   const isDarkTheme = resolvedTheme === "dark";
 
@@ -207,13 +216,14 @@ export function ModelSelector({
   className,
   onModelSelect,
   disabled = false,
+  allowedModels,
   ...buttonProps
 }: ModelSelectorProps & React.ComponentProps<any>) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const { width } = useWindowSize();
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout>(null);
   const { resolvedTheme } = useTheme();
   const isDarkTheme = resolvedTheme === "dark";
 
@@ -360,6 +370,7 @@ export function ModelSelector({
               "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               "data-[state=open]:bg-muted/50 data-[state=open]:text-foreground",
               "disabled:opacity-50 disabled:cursor-not-allowed",
+              "!outline-none !ring-0 !ring-offset-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0",
               className
             )}
             title={selectedChatModel?.name}
@@ -430,6 +441,7 @@ export function ModelSelector({
               onSelect={handleSelect}
               searchQuery={searchQuery}
               isDropdown
+              allowedModels={allowedModels}
             />
           </div>
         </DropdownMenuContentAny>
@@ -454,6 +466,7 @@ export function ModelSelector({
                   selectedModelId={selectedModelId}
                   onSelect={handleSelect}
                   searchQuery={searchQuery}
+                  allowedModels={allowedModels}
                 />
               </div>
             </div>

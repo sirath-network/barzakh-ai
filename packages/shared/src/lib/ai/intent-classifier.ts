@@ -17,8 +17,8 @@ import { z } from "zod";
 // ============================================================================
 
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
-    coding: "chat-model-claude",
-    imagine: "chat-model-large",
+    // coding now allows user to select from a subset of models
+    imagine: "openai-gpt-4.1",
     // Chain-specific tools removed - they can use any model the user selects
 };
 
@@ -608,7 +608,7 @@ async function classifyByLLM(message: string, chatContext?: string | null): Prom
 
     try {
         const { object } = await generateObject({
-            model: myProvider.languageModel("chat-model-small"),
+            model: myProvider.languageModel("openai-gpt-4o"),
             schema: z.object({
                 primaryIntent: z.enum([
                     "imagine",

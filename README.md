@@ -275,14 +275,20 @@ sequenceDiagram
 
 | Model ID | Display Name | Provider | Backend Model | Use Case |
 |----------|--------------|----------|---------------|----------|
-| `chat-model-small` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
-| `chat-model-large` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
-| `chat-model-gigantic` | **GPT 5.1** ⭐ | CometAPI | `gpt-5.1` | Experimental, next-gen |
-| `chat-model-colossal` | **GPT 5.2** | CometAPI | `gpt-5.2` | Experimental, advanced |
-| `chat-model-glm` | **GLM 4.7** | CometAPI | `glm-4.7` | Multilingual |
-| `chat-model-claude` | **Claude Opus 4.5 Thinking** | CometAPI | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
+| `openai-gpt-4o` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
+| `openai-gpt-4.1` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
+| `openai-gpt-5.1` | **GPT 5.1** ⭐ | CometAPI | `gpt-5.1` | Experimental, next-gen |
+| `openai-gpt-5.2` | **GPT 5.2** | CometAPI | `gpt-5.2` | Experimental, advanced |
+| `zai-glm-4.7` | **GLM 4.7** | CometAPI | `glm-4.7` | Multilingual |
+| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | CometAPI | `claude-haiku-4-5-20251001` | Fast, lightweight Claude |
+| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | CometAPI | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
+| `google-gemini-3-flash` | **Gemini 3 Flash** | CometAPI | `gemini-3-flash` | Fast Gemini responses |
+| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | `gemini-2.5-flash-preview-09-2025` | Preview Gemini tasks |
+| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | `grok-4-1-fast-non-reasoning` | Fast reasoning |
+| `deepseek-v3.2` | **DeepSeek V3.2** | CometAPI | `deepseek-v3.2` | Reasoning tasks |
+| `deepseek-v3-250324` | **DeepSeek V3 (March 2025)** | CometAPI | `deepseek-v3-250324` | Complex analysis |
 
-> ⭐ **Default Model:** GPT 5.1 (`chat-model-gigantic`)
+> ⭐ **Default Model:** GPT 5.1 (`openai-gpt-5.1`)
 
 ### Image Generation
 

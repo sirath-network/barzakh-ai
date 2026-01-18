@@ -4,12 +4,18 @@ import { auth } from "@/app/(auth)/auth";
 
 // Valid model names - must match models defined in packages/shared/src/lib/ai/models.ts
 const VALID_MODELS = [
-  "chat-model-small",
-  "chat-model-large",
-  "chat-model-claude",
-  "chat-model-colossal",
-  "chat-model-glm",
-  "chat-model-gigantic",
+  "openai-gpt-4o",
+  "openai-gpt-4.1",
+  "anthropic-opus-4.5",
+  "anthropic-haiku-4.5",
+  "openai-gpt-5.2",
+  "zai-glm-4.7",
+  "openai-gpt-5.1",
+  "google-gemini-3-flash",
+  "google-gemini-2.5-flash-preview",
+  "xai-grok-4.1-fast",
+  "deepseek-v3.2",
+  "deepseek-v3-250324",
   "title-model",
 ];
 

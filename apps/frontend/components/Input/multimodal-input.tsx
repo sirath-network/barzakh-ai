@@ -36,13 +36,22 @@ import type { Chat as ChatHistory } from "@/lib/db/schema";
 import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId, string>> = {
-  coding: "chat-model-claude",
-  imagine: "chat-model-large",
+  // coding now allows user to select from CODING_ALLOWED_MODELS
+  imagine: "openai-gpt-4.1",
 };
 
-// Only lock model selector for coding and imagine
+// Models allowed for coding tools - subset of all models
+export const CODING_ALLOWED_MODELS: readonly string[] = [
+  "anthropic-opus-4.5",
+  "anthropic-haiku-4.5",
+  "deepseek-v3-250324",
+  "deepseek-v3.2",
+  "openai-gpt-4.1",
+  "google-gemini-3-flash",
+] as const;
+
+// Only lock model selector for imagine (coding now allows selection from allowed list)
 const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId> = new Set([
-  "coding",
   "imagine",
 ]);
 
@@ -1113,6 +1122,11 @@ function PureMultimodalInput({
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}
                       disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
+                      allowedModels={
+                        selectedGroup === "coding"
+                          ? CODING_ALLOWED_MODELS
+                          : undefined
+                      }
                     />
                   )}
                 </div>

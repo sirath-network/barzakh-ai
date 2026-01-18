@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       model: model
     } = validatedData;
 
-    myProvider.languageModel("chat-model-large")
+    myProvider.languageModel("openai-gpt-4.1")
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"
     );

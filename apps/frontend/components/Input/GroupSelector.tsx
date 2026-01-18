@@ -310,6 +310,7 @@ export const GroupSelector = ({
               "h-9 rounded-full transition-all duration-200",
               "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               "data-[state=open]:bg-muted/50 data-[state=open]:text-foreground",
+              "!outline-none !ring-0 !ring-offset-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0",
               disabled && "opacity-50 cursor-not-allowed",
               isDefault ? "px-3 w-auto" : "w-9 px-0 justify-center"
             )}

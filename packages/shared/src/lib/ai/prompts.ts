@@ -1483,7 +1483,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "chat-model-small") {
+  if (selectedChatModel === "openai-gpt-4o") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

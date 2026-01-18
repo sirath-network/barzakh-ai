@@ -357,13 +357,19 @@ components:
         selectedChatModel:
           type: string
           enum:
-            - chat-model-small      # GPT 4o
-            - chat-model-large      # GPT 4.1
-            - chat-model-gigantic   # GPT 5.1
-            - chat-model-colossal   # GPT 5.2
-            - chat-model-glm        # GLM 4.7
-            - chat-model-claude     # Claude Opus 4.5 Thinking
-          default: chat-model-gigantic
+            - openai-gpt-4o      # GPT 4o
+            - openai-gpt-4.1      # GPT 4.1
+            - openai-gpt-5.1   # GPT 5.1
+            - openai-gpt-5.2   # GPT 5.2
+            - zai-glm-4.7        # GLM 4.7
+            - anthropic-haiku-4.5    # Claude Haiku 4.5
+            - anthropic-opus-4.5     # Claude Opus 4.5 Thinking
+            - google-gemini-3-flash  # Gemini 3 Flash
+            - google-gemini-2.5-flash-preview  # Gemini 2.5 Flash Preview
+            - xai-grok-4.1-fast  # Grok 4.1 Fast
+            - deepseek-v3.2      # DeepSeek V3.2
+            - deepseek-v3-250324 # DeepSeek V3 (March 2025)
+          default: openai-gpt-5.1
         group:
           type: string
           enum:
