@@ -65,3 +65,24 @@ export interface InvoicesResponse {
   prevCursor: string | null;
 }
 
+// X402 Crypto Payment Types
+export interface X402TransactionSummary {
+  id: string;
+  planId: string;
+  planName: string;
+  billingCycle: string;
+  amountCents: number;
+  currency: string;
+  chainId: number;
+  chainName: string;
+  transactionHash: string;
+  explorerUrl: string | null;
+  status: string;
+  createdAt: number; // Unix timestamp
+}
+
+export interface X402TransactionsResponse {
+  transactions: X402TransactionSummary[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}

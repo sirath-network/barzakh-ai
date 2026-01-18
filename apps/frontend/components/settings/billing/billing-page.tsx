@@ -14,6 +14,7 @@ import type {
   InvoicesResponse,
   PaymentMethodsResponse,
   SubscriptionResponse,
+  X402TransactionsResponse,
 } from "@/types/billing";
 
 interface CursorState {
@@ -30,14 +31,29 @@ export default function BillingPage() {
     index: 0,
   });
 
+  // X402 transactions pagination state
+  const [x402Pagination, setX402Pagination] = useState<{
+    history: CursorState[];
+    index: number;
+  }>({
+    history: [{}],
+    index: 0,
+  });
+
+
   useEffect(() => {
     setInvoicePagination({
+      history: [{}],
+      index: 0,
+    });
+    setX402Pagination({
       history: [{}],
       index: 0,
     });
   }, [session?.user?.id]);
 
   const currentCursor = invoicePagination.history[invoicePagination.index] ?? {};
+  const currentX402Cursor = x402Pagination.history[x402Pagination.index] ?? {};
 
   const {
     data: subscriptionData,
@@ -74,6 +90,26 @@ export default function BillingPage() {
     isLoading: loadingInvoices,
     isValidating: validatingInvoices,
   } = useSWR<InvoicesResponse>(invoicesKey, fetcher);
+
+  // Build x402 transactions key with pagination
+  const x402Key = useMemo(() => {
+    if (!session) return null;
+    const params = new URLSearchParams();
+    params.set("limit", "10");
+
+    if (currentX402Cursor.starting_after) {
+      params.set("starting_after", currentX402Cursor.starting_after);
+    }
+
+    return `/api/billing/x402/transactions?${params.toString()}`;
+  }, [session, currentX402Cursor.starting_after]);
+
+  // Fetch x402 crypto transactions with pagination
+  const {
+    data: x402Data,
+    isLoading: loadingX402,
+    isValidating: validatingX402,
+  } = useSWR<X402TransactionsResponse>(x402Key, fetcher);
 
   const subscription = subscriptionData?.subscription ?? null;
   const paymentMethods = paymentMethodsData?.paymentMethods;
@@ -116,10 +152,42 @@ export default function BillingPage() {
     });
   };
 
+  // X402 pagination handlers
+  const handleNextX402Page = () => {
+    if (!x402Data?.hasMore || !x402Data?.nextCursor) return;
+    const nextCursor = x402Data.nextCursor;
+    setX402Pagination((prev) => {
+      const trimmedHistory = prev.history.slice(0, prev.index + 1);
+      trimmedHistory.push({ starting_after: nextCursor });
+      return {
+        history: trimmedHistory,
+        index: prev.index + 1,
+      };
+    });
+  };
+
+  const handlePreviousX402Page = () => {
+    setX402Pagination((prev) => {
+      if (prev.index === 0) {
+        return prev;
+      }
+      return {
+        history: prev.history,
+        index: prev.index - 1,
+      };
+    });
+  };
+
   const isPaginatingInvoices = validatingInvoices && !loadingInvoices;
   const canGoPrevious = invoicePagination.index > 0;
   const canGoNext =
     Boolean(invoicesData?.hasMore) && Boolean(invoicesData?.nextCursor);
+
+  // X402 pagination state
+  const isPaginatingX402 = validatingX402 && !loadingX402;
+  const canGoPreviousX402 = x402Pagination.index > 0;
+  const canGoNextX402 =
+    Boolean(x402Data?.hasMore) && Boolean(x402Data?.nextCursor);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
@@ -159,12 +227,18 @@ export default function BillingPage() {
 
         <BillingHistoryCard
           data={invoicesData}
-          isLoading={loadingInvoices && !invoicesData}
+          x402Data={x402Data}
+          isLoading={(loadingInvoices && !invoicesData) || (loadingX402 && !x402Data)}
           onNextPage={handleNextInvoicesPage}
           onPreviousPage={handlePreviousInvoicesPage}
           isPaginating={isPaginatingInvoices}
           canGoPrevious={canGoPrevious}
           canGoNext={canGoNext}
+          onNextX402Page={handleNextX402Page}
+          onPreviousX402Page={handlePreviousX402Page}
+          isPaginatingX402={isPaginatingX402}
+          canGoPreviousX402={canGoPreviousX402}
+          canGoNextX402={canGoNextX402}
         />
 
         <div className="bg-white dark:bg-black/80 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
