@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { allTools, getGroupConfig } from "@barzakh/shared/src/lib/ai/prompts";
-import { generateUUID } from "@barzakh/shared/src/lib/utils/utils";
+import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
+import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 import { openai } from "@ai-sdk/openai";
-import { myProvider } from "@barzakh/shared/src/lib/ai/models";
+import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { smoothStream, streamText, generateText } from "ai";
 import {
   PromptRequestSchema,

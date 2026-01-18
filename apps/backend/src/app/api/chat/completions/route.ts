@@ -1,11 +1,11 @@
-import { allTools, getGroupConfig } from "@barzakh/shared/src/lib/ai/prompts";
-import { generateUUID } from "@barzakh/shared/src/lib/utils/utils";
+import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
+import { generateUUID } from "@barzakh/shared/lib/utils/utils";
 import { openai } from "@ai-sdk/openai";
-import { myProvider } from "@barzakh/shared/src/lib/ai/models";
+import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { smoothStream, streamText, generateText } from "ai";
 import { PromptRequestSchema, ChatCompletionStreaming } from "./type";
 import { z } from "zod";
-import { fetchImageAsBase64 } from "@barzakh/shared/src/lib/ai/utils/fetch-image-as-base64";
+import { fetchImageAsBase64 } from "@barzakh/shared/lib/ai/utils/fetch-image-as-base64";
 
 export async function POST(request: Request) {
   try {
@@ -105,11 +105,11 @@ export async function POST(request: Request) {
         const imageUrls = lastMessage.content
           .filter((part: any) => part.type === "image" && part.image)
           .map((part: any) => part.image);
-        
+
         // Extract original storage URLs (R2 or Vercel Blob) from the message text
         const textParts = lastMessage.content.filter((part: any) => part.type === "text");
         let originalVercelUrls: string[] = [];
-        
+
         for (const textPart of textParts) {
           if (textPart.type === 'text' && textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
             const match = textPart.text.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING: ([^\]]+)\]/);
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
             }
           }
         }
-        
+
         console.log("Image URLs received in API:", imageUrls);
         console.log("Image URL sources:", imageUrls.map(url => {
           if (url.includes('r2.barzakh.tech')) return 'Cloudflare R2 Storage';
@@ -129,13 +129,13 @@ export async function POST(request: Request) {
           if (url.includes('storage.googleapis.com')) return 'Google Cloud Storage';
           return 'Unknown';
         }));
-        
+
         if (imageUrls.length > 0) {
           // Check if URLs are from our storage (R2 or legacy Vercel Blob)
           const r2Urls = imageUrls.filter(url => url.includes('r2.barzakh.tech'));
           const vercelBlobUrls = imageUrls.filter(url => url.includes('blob.vercel-storage.com'));
           const googleAUrls = imageUrls.filter(url => url.includes('generativelanguage.googleapis.com'));
-          
+
           if (r2Urls.length > 0) {
             console.log("✅ Found Cloudflare R2 Storage URLs - these are persistent for editing");
             console.log("R2 URLs:", r2Urls);
