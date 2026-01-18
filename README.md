@@ -277,7 +277,7 @@ sequenceDiagram
 |----------|--------------|----------|---------------|----------|
 | `openai-gpt-4o` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
 | `openai-gpt-4.1` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
-| `openai-gpt-5.1` | **GPT 5.1** ⭐ | CometAPI | `gpt-5.1` | Experimental, next-gen |
+| `openai-gpt-5.1` | **GPT 5.1** | CometAPI | `gpt-5.1` | Experimental, next-gen |
 | `openai-gpt-5.2` | **GPT 5.2** | CometAPI | `gpt-5.2` | Experimental, advanced |
 | `zai-glm-4.7` | **GLM 4.7** | CometAPI | `glm-4.7` | Multilingual |
 | `anthropic-haiku-4.5` | **Claude Haiku 4.5** | CometAPI | `claude-haiku-4-5-20251001` | Fast, lightweight Claude |
@@ -288,7 +288,7 @@ sequenceDiagram
 | `deepseek-v3.2` | **DeepSeek V3.2** | CometAPI | `deepseek-v3.2` | Reasoning tasks |
 | `deepseek-v3-250324` | **DeepSeek V3 (March 2025)** | CometAPI | `deepseek-v3-250324` | Complex analysis |
 
-> ⭐ **Default Model:** GPT 5.1 (`openai-gpt-5.1`)
+> ⭐ **Default Model:** GPT 5.1 (`google-gemini-2.5-flash-preview`)
 
 ### Image Generation
 
