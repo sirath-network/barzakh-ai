@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       model: model
     } = validatedData;
 
-    myProvider.languageModel("openai-gpt-4.1")
+    myProvider.languageModel("gemini-2.5-flash-preview-09-2025")
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"
     );

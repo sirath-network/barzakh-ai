@@ -572,6 +572,7 @@ const groupPrompts = {
   Use webSearch tool for searching the web for any information the user asks.
   Pass 2-3 queries in one call.
   Specify the year or "latest" in queries to fetch recent information when needed.
+  For crypto/tech topics, ALWAYS include one query targeting x.com (e.g. "bitcoin price site:x.com") to get social sentiment.
 
 ## Search token or market data (for crypto/blockchain queries):
   If the user provides an evm address, starting with "0x", run searchEvmTokenMarketData tool. Remember to format the address as **bold**.

@@ -47,7 +47,7 @@ function getNextApiKey(): string | undefined {
 
 export const webSearch = tool({
   description:
-    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. IMPORTANT: For crypto/blockchain/token queries, ALWAYS use ALL THREE topic types ['general', 'news', 'finance'] to get comprehensive results from different sources. This ensures you find both news articles and financial data.",
+    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. IMPORTANT: For crypto/blockchain/token queries, ALWAYS use ALL THREE topic types ['general', 'news', 'finance'] to get comprehensive results from different sources. This ensures you find both news articles and financial data. For social sentiment or latest updates, ALWAYS include a specific query targeting x.com (e.g., 'query site:x.com') in the 'queries' array.",
   parameters: z.object({
     queries: z.array(
       z.string().describe("Array of search queries. Do NOT include specific years like '2025' or '2026' - let the search find the most relevant results. Use 'latest' or 'upcoming' for time-sensitive queries instead of hardcoded years.")
@@ -59,7 +59,7 @@ export const webSearch = tool({
           .describe("Array of maximum number of results to return per query.")
       )
       .optional()
-      .default([10]),
+      .default([5]),
     topics: z
       .array(
         z
@@ -93,7 +93,7 @@ export const webSearch = tool({
   }),
   execute: async ({
     queries,
-    maxResults = [10],
+    maxResults = [5],
     topics = ["general", "news", "finance"],
     searchDepth = ["advanced"],
     timeRange = "week",
@@ -248,12 +248,38 @@ export const webSearch = tool({
       }
     }
 
+    // Execute all searches in parallel (Web + News)
     console.log(`Executing ${searchCombinations.length} searches (${queries.length} queries × ${topics.length} topics)...`);
 
-    // Execute all searches in parallel
-    const allSearchResults = await Promise.all(
+    const tavilySearchPromise = Promise.all(
       searchCombinations.map(({ query, topic, index }) => searchWithRetry(query, topic, index))
     );
+
+    let newsSearchPromise: Promise<any> = Promise.resolve(null);
+    if (topics.includes("news")) {
+      console.log("Starting News searches in parallel...");
+      const newsSearchPromises = queries.map(async (query) => {
+        try {
+          console.log(`Searching News for: ${query}`);
+          const result = await newsSearch.execute({ query }, { toolCallId: 'internal-call', messages: [] });
+          console.log(`News search completed for: ${query}`);
+          return result;
+        } catch (error) {
+          console.error(`News search failed for query "${query}":`, error);
+          return {
+            error: "News search failed for this query",
+            articles: [],
+          };
+        }
+      });
+      newsSearchPromise = Promise.all(newsSearchPromises);
+    }
+
+    // Await both sets of searches concurrently
+    const [allSearchResults, newsSearchResults] = await Promise.all([
+      tavilySearchPromise,
+      newsSearchPromise
+    ]);
 
     // Group results by query and merge/deduplicate
     const groupedResults: Record<string, {
@@ -282,6 +308,7 @@ export const webSearch = tool({
 
       // Deduplicate results by URL
       for (const r of result.results) {
+        if (group.results.length >= 10) break; // Cap results at 10 per query to prevent context explosion
         if (!group.seenUrls.has(r.url)) {
           group.seenUrls.add(r.url);
           group.results.push(r);
@@ -306,29 +333,6 @@ export const webSearch = tool({
       // Include the best answer (first non-empty one from all topic searches)
       answer: data.answers.find(a => a && a.length > 0) || null,
     }));
-
-    let newsSearchResults: any = null;
-    if (topics.includes("news")) {
-      console.log("Starting News searches sequentially...");
-      newsSearchResults = [];
-
-      // Execute News searches SEQUENTIALLY to avoid rate limits
-      for (const query of queries) {
-        try {
-          console.log(`Searching News for: ${query}`);
-          const result = await newsSearch.execute({ query }, { toolCallId: 'internal-call', messages: [] });
-          newsSearchResults.push(result);
-          console.log(`News search completed for: ${query}`);
-        } catch (error) {
-          console.error(`News search failed for query "${query}":`, error);
-          // Push empty result to maintain array structure
-          newsSearchResults.push({
-            error: "News search failed for this query",
-            articles: [],
-          });
-        }
-      }
-    }
 
     console.log("WEB SEARCH COMPLETED =======");
 

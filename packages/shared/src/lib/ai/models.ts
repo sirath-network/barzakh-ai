@@ -20,15 +20,23 @@ const normalizedFetch: typeof fetch = async (url, options) => {
   const transformedStream = new ReadableStream({
     async start(controller) {
       try {
+        let buffer = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
+            if (buffer.trim()) {
+              controller.enqueue(encoder.encode(buffer));
+            }
             controller.close();
             break;
           }
 
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          buffer += chunk;
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ""; // Keep the last partial line in the buffer
+
           const transformedLines: string[] = [];
 
           for (const line of lines) {
@@ -42,11 +50,14 @@ const normalizedFetch: typeof fetch = async (url, options) => {
                   if (parsed.choices) {
                     for (const choice of parsed.choices) {
                       if (choice.delta?.tool_calls) {
-                        for (const toolCall of choice.delta.tool_calls) {
+                        choice.delta.tool_calls.forEach((toolCall: any, index: number) => {
                           if (toolCall.type === null) {
                             toolCall.type = "function";
                           }
-                        }
+                          if (toolCall.index === undefined) {
+                            toolCall.index = index;
+                          }
+                        });
                       }
                     }
                   }
@@ -62,7 +73,9 @@ const normalizedFetch: typeof fetch = async (url, options) => {
             }
           }
 
-          controller.enqueue(encoder.encode(transformedLines.join('\n')));
+          if (transformedLines.length > 0) {
+            controller.enqueue(encoder.encode(transformedLines.join('\n') + '\n'));
+          }
         }
       } catch (error) {
         controller.error(error);

@@ -256,140 +256,17 @@ export async function POST(request: Request) {
       delete options.maxTokens;
     }
 
-    if (!StreamingTrue) {
-      // NON STREAMING
-      const result = await generateText(options);
-
-      const responseMessage = {
-        id: generateUUID(),
-        object: "chat.completion",
-        created: Math.floor(Date.now() / 1000),
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: "assistant",
-              content: result.text,
-              refusal: null,
-              annotations: [],
-            },
-            logprobs: null,
-            finish_reason: result.finishReason,
-          },
-        ],
-        model,
-        system_fingerprint: system_fingerprint,
-        usage: { ...result.usage },
-        service_tier: null,
-      };
-
-      return new Response(JSON.stringify(responseMessage), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // STREAMING
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          // Send the initial message with role
-          const initialMessage: ChatCompletionStreaming = {
-            id: generateUUID(),
-            object: "chat.completion.chunk",
-            created: Math.floor(Date.now() / 1000),
-            model,
-            system_fingerprint: system_fingerprint,
-            choices: [
-              {
-                index: 0,
-                delta: {
-                  role: "assistant",
-                },
-                finish_reason: null,
-              },
-            ],
-          };
-
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(initialMessage)}\n\n`)
-          );
-
-          const result = streamText({
-            ...options,
-            onChunk: async ({ chunk }) => {
-              console.log("onChunk = ", chunk);
-            },
-            experimental_transform: smoothStream({ chunking: "word" }),
-          });
-
-          const streamId = generateUUID(); // Keep a consistent ID for the stream
-
-          for await (const chunk of result.textStream) {
-            console.log("chunk = ", chunk);
-            const message: ChatCompletionStreaming = {
-              id: streamId,
-              object: "chat.completion.chunk",
-              created: Math.floor(Date.now() / 1000),
-              model,
-              system_fingerprint: system_fingerprint,
-              choices: [
-                {
-                  index: 0,
-                  delta: {
-                    content: chunk,
-                  },
-                  finish_reason: null,
-                },
-              ],
-            };
-
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(message)}\n\n`)
-            );
-          }
-
-          // Send the final chunk with finish_reason
-          const stopMessage: ChatCompletionStreaming = {
-            id: streamId,
-            object: "chat.completion.chunk",
-            created: Math.floor(Date.now() / 1000),
-            model,
-            system_fingerprint: system_fingerprint,
-            choices: [
-              {
-                index: 0,
-                delta: {},
-                finish_reason: "stop",
-              },
-            ],
-          };
-
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(stopMessage)}\n\n`)
-          );
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-          controller.close();
-        } catch (error) {
-          console.error("Streaming error:", error);
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ error: "Internal Server Error" })}\n\n`
-            )
-          );
-          controller.close();
-        }
+    const result = streamText({
+      ...options,
+      onChunk: async ({ chunk }) => {
+        console.log("onChunk = ", chunk);
       },
+      experimental_transform: smoothStream({ chunking: "word" }),
     });
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    // Simply return the data stream response
+    // The toDataStreamResponse() method handles formatting for the Vercel AI SDK
+    return result.toDataStreamResponse();
   } catch (error) {
     if (error instanceof z.ZodError) {
       return new Response(
