@@ -515,10 +515,10 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
   systemPrompt = systemPrompt + userSubscriptionContext;
 
   // Select appropriate model based on routed group
-  // When auto-routing, use the model configured for that group
-  const effectiveModel = (effectiveGroup !== group && FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP])
-    ? FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP]!
-    : selectedChatModel;
+  // ALWAYS use forced model if the effectiveGroup has one defined, regardless of how we got here
+  // This ensures image tools always use appropriate models even when user manually selects a group
+  const groupForcedModel = FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP];
+  const effectiveModel = groupForcedModel || selectedChatModel;
 
   const chat = await getChatById({ id });
 

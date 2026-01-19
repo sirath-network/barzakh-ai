@@ -19,6 +19,8 @@ import { z } from "zod";
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
     // coding now allows user to select from a subset of models
     imagine: "openai-gpt-4.1",
+    // multimodal requires a vision-capable model for image analysis
+    multimodal: "google-gemini-2.5-flash-preview",
     // Chain-specific tools removed - they can use any model the user selects
 };
 
