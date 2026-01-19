@@ -285,8 +285,7 @@ sequenceDiagram
 | `google-gemini-3-flash` | **Gemini 3 Flash** | CometAPI | `gemini-3-flash` | Fast Gemini responses |
 | `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | `gemini-2.5-flash-preview-09-2025` | Preview Gemini tasks |
 | `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | `grok-4-1-fast-non-reasoning` | Fast reasoning |
-| `deepseek-v3.2` | **DeepSeek V3.2** | CometAPI | `deepseek-v3.2` | Reasoning tasks |
-| `deepseek-v3-250324` | **DeepSeek V3 (March 2025)** | CometAPI | `deepseek-v3-250324` | Complex analysis |
+
 
 > ⭐ **Default Model:** GPT 5.1 (`google-gemini-2.5-flash-preview`)
 

@@ -367,8 +367,6 @@ components:
             - google-gemini-3-flash  # Gemini 3 Flash
             - google-gemini-2.5-flash-preview  # Gemini 2.5 Flash Preview
             - xai-grok-4.1-fast  # Grok 4.1 Fast
-            - deepseek-v3.2      # DeepSeek V3.2
-            - deepseek-v3-250324 # DeepSeek V3 (March 2025)
           default: openai-gpt-5.1
         group:
           type: string

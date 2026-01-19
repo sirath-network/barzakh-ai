@@ -68,7 +68,7 @@ const getModelIconBaseName = (model?: ChatModel | null): string | null => {
   if (source.includes("grok")) return "Grok";
   if (source.includes("glm")) return "GLM";
   if (source.includes("gemini")) return "Gemini";
-  if (source.includes("deepseek")) return "Deepseek";
+
 
   return null;
 };

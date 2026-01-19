@@ -46,8 +46,7 @@ const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string
 export const CODING_ALLOWED_MODELS: readonly string[] = [
   "anthropic-opus-4.5",
   "anthropic-haiku-4.5",
-  "deepseek-v3-250324",
-  "deepseek-v3.2",
+
   "openai-gpt-4.1",
   "google-gemini-3-flash",
 ] as const;

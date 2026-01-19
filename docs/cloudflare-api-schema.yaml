@@ -2224,15 +2224,17 @@ components:
         selectedChatModel:
           type: string
           enum:
-            - gpt-4o
-            - gpt-4o-mini
-            - gpt-4-turbo
-            - claude-sonnet
-            - claude-haiku
-            - gemini-2.0-flash
-            - gemini-1.5-pro
-            - deepseek-chat
-          default: gpt-4o-mini
+            - openai-gpt-4o
+            - openai-gpt-4.1
+            - openai-gpt-5.1
+            - openai-gpt-5.2
+            - anthropic-opus-4.5
+            - anthropic-haiku-4.5
+            - google-gemini-3-flash
+            - google-gemini-2.5-flash-preview
+            - xai-grok-4.1-fast
+            - zai-glm-4.7
+          default: openai-gpt-4o
         group:
           type: string
           enum:

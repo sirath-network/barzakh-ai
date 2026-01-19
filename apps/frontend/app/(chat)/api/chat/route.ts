@@ -1,7 +1,6 @@
 import {
   type Message,
   createDataStreamResponse,
-  smoothStream,
   streamText,
 } from "ai";
 import { auth } from "@/app/(auth)/auth";
@@ -554,6 +553,36 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
   // Get safe active tools
   const safeActiveTools = getSafeActiveTools(tools, selectedChatModel);
 
+  // Wrap webSearch to enforce single execution per request
+  let hasWebSearchExecuted = false;
+  const wrappedTools = {
+    ...allTools,
+    webSearch: {
+      ...allTools.webSearch,
+      execute: async (args: any, context: any) => {
+        if (hasWebSearchExecuted) {
+          console.log("[WebSearch] Blocked redundant execution");
+          // Return empty result structured correctly for the MultiSearch component
+          return {
+            web: [],
+            x: [],
+            // Add a summary for the LLM to understand why
+            summary: "Search already completed. Refrained from searching again."
+          };
+        }
+
+        hasWebSearchExecuted = true;
+        try {
+          return await allTools.webSearch.execute(args, context);
+        } catch (error) {
+          // If search fails, allow retrying
+          hasWebSearchExecuted = false;
+          throw error;
+        }
+      }
+    }
+  };
+
   return createDataStreamResponse({
     execute: (dataStream) => {
       try {
@@ -561,12 +590,11 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
           model: myProvider.languageModel(effectiveModel),
           system: systemPrompt,
           messages: cleanedMessages, // Use cleaned messages
-          maxSteps: 5,
+          maxSteps: 4,
           maxRetries: 3, // Retry up to 3 times on failure
           experimental_activeTools: safeActiveTools,
-          experimental_transform: smoothStream({ chunking: "word" }),
           experimental_generateMessageId: generateUUID,
-          tools: allTools,
+          tools: wrappedTools,
           onFinish: async ({ response, reasoning }) => {
             if (session.user?.id) {
               try {
@@ -619,12 +647,11 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
             model: myProvider.languageModel(effectiveModel),
             system: systemPrompt,
             messages: freshMessages,
-            maxSteps: 5,
+            maxSteps: 4,
             maxRetries: 3, // Retry up to 3 times on failure
             experimental_activeTools: safeActiveTools,
-            experimental_transform: smoothStream({ chunking: "word" }),
             experimental_generateMessageId: generateUUID,
-            tools: allTools,
+            tools: wrappedTools,
             onFinish: async ({ response, reasoning }) => {
               if (session.user?.id) {
                 try {

@@ -14,8 +14,7 @@ const VALID_MODELS = [
   "google-gemini-3-flash",
   "google-gemini-2.5-flash-preview",
   "xai-grok-4.1-fast",
-  "deepseek-v3.2",
-  "deepseek-v3-250324",
+
   "title-model",
 ];
 

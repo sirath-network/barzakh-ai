@@ -112,6 +112,49 @@ import { RelaySwapApproval } from "./relay-swap-approval";
 const X402PaymentApprovalAny = X402PaymentApproval as any;
 const RelaySwapApprovalAny = RelaySwapApproval as any;
 
+// Helper to remove AI preamble narration when tools are used
+// This filters out phrases like "I'll search for..." that create bad UX
+const filterPreambleContent = (content: string, hasTools: boolean): string => {
+  if (!hasTools || !content) return content;
+
+  // Preamble patterns that should be removed when tools are used
+  // These patterns match common AI narration before tool calls
+  const preamblePatterns = [
+    // "I'll search/look/find/check" patterns
+    /^I'll\s+(search|look|find|check|get|fetch|retrieve|analyze|query|pull|grab|locate).+?\.\s*/gi,
+    // "Let me search/look" patterns  
+    /^Let\s+me\s+(search|look|find|check|get|fetch|retrieve|analyze|query|pull|grab|locate).+?\.\s*/gi,
+    // "Searching for..." patterns (progressive tense)
+    /^(Searching|Looking|Finding|Checking|Getting|Fetching|Retrieving|Analyzing|Querying|Pulling).+?\.\s*/gi,
+    // "I will search..." patterns
+    /^I\s+will\s+(search|look|find|check|get|fetch|retrieve|analyze|query|pull|grab|locate).+?\.\s*/gi,
+    // "I'm going to search..." patterns
+    /^I'm\s+(going\s+to\s+)?(search|look|find|check|get|fetch|retrieve|analyze|query|pull|grab|locate).+?\.\s*/gi,
+    // "I am searching..." patterns
+    /^I\s+am\s+(searching|looking|finding|checking|getting|fetching|retrieving|analyzing|querying).+?\.\s*/gi,
+    // "I need to search..." patterns
+    /^I\s+(need|want|have)\s+to\s+(search|look|find|check|get|fetch|retrieve|analyze).+?\.\s*/gi,
+    // "To answer this..." patterns
+    /^To\s+(answer|find|get|check|determine).+?\.\s*/gi,
+    // "First, let me..." patterns
+    /^(First|Now),?\s+(let\s+me|I'll|I\s+will).+?\.\s*/gi,
+    // Generic "I'll" + action that ends with period
+    /^I('ll|\s+will)\s+[^.]{5,150}\.\s*\n?/gi,
+    // "Based on..." intro that leads to tool call  
+    /^Based\s+on\s+(your|the)\s+(question|query|request).+?(I'll|let me|I will).+?\.\s*/gi,
+  ];
+
+  let filtered = content;
+  for (const pattern of preamblePatterns) {
+    filtered = filtered.replace(pattern, '');
+  }
+
+  // Also remove any leading newlines after filtering
+  filtered = filtered.replace(/^\s*\n+/, '');
+
+  return filtered.trim();
+};
+
 
 const PurePreviewMessage = ({
   chatId,
@@ -206,7 +249,23 @@ const PurePreviewMessage = ({
   };
 
   const completedTools = message.toolInvocations?.filter(
-    (tool) => tool.state === "result"
+    (tool) => {
+      if (tool.state !== "result") return false;
+
+      // Filter out blocked web searches
+      if (tool.toolName === 'webSearch') {
+        const toolResult = (tool as any).result;
+        const isWebEmpty = !toolResult?.web || toolResult.web.length === 0;
+        const isXEmpty = !toolResult?.x || toolResult.x.length === 0;
+        const isBlocked = toolResult?.summary === "Search already completed. Refrained from searching again.";
+
+        if ((isWebEmpty && isXEmpty) || isBlocked) {
+          return false;
+        }
+      }
+
+      return true;
+    }
   );
 
   const pendingTools = message.toolInvocations?.filter(
@@ -344,16 +403,30 @@ const PurePreviewMessage = ({
 
                   {/* === TOP SECTION: ONLY WEB SEARCH RESULTS === */}
                   {webSearchResults && webSearchResults.length > 0 && (
-                    webSearchResults.map(tool => (
-                      <motion.div
-                        key={tool.toolCallId}
-                        initial={isPreloaded ? false : { opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: isPreloaded ? 0 : 0.3 }}
-                      >
-                        <MultiSearchAny result={tool.result} args={tool.args} />
-                      </motion.div>
-                    ))
+                    webSearchResults.map(tool => {
+                      // Skip rendering if results are empty (blocked redundant search)
+                      const toolResult = (tool as any).result;
+                      const isWebEmpty = !toolResult?.web || toolResult.web.length === 0;
+                      const isXEmpty = !toolResult?.x || toolResult.x.length === 0;
+
+                      // Also check if it's the specific "blocked" response summary
+                      const isBlocked = toolResult?.summary === "Search already completed. Refrained from searching again.";
+
+                      if ((isWebEmpty && isXEmpty) || isBlocked) {
+                        return null;
+                      }
+
+                      return (
+                        <motion.div
+                          key={tool.toolCallId}
+                          initial={isPreloaded ? false : { opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: isPreloaded ? 0 : 0.3 }}
+                        >
+                          <MultiSearchAny result={toolResult} args={tool.args} />
+                        </motion.div>
+                      );
+                    })
                   )}
 
                   {/* === TOP SECTION: OTHER TOOL RESULTS (PORTFOLIO, TOKEN INFO, etc.) === */}
@@ -388,7 +461,7 @@ const PurePreviewMessage = ({
                         transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.1 }}
                       >
                         {renderableTools.map((toolInvocation) => {
-                          const { toolName, toolCallId, result } = toolInvocation;
+                          const { toolName, toolCallId, result } = toolInvocation as any;
 
                           const toolComponents: Record<string, React.ReactNode> = {
                             searchEvmTokenMarketData: <TokenInfoTableAny result={result} />,
@@ -561,6 +634,16 @@ const PurePreviewMessage = ({
 
                           // Only show styled container when assistant uses tools
                           if (hasTools) {
+                            // Filter out preamble narration when tools are used
+                            const filteredContent = typeof message.content === 'string'
+                              ? filterPreambleContent(smoothContent, true)
+                              : smoothContent;
+
+                            // Don't render empty content after filtering
+                            if (!filteredContent || filteredContent.trim().length === 0) {
+                              return null;
+                            }
+
                             return (
                               <div
                                 className="bg-muted/50 text-foreground px-4 py-2 shadow-sm max-w-full"
@@ -571,12 +654,14 @@ const PurePreviewMessage = ({
                                 <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                   <div className="flex-1 min-w-0 max-w-full">
                                     {typeof message.content === "string" ? (
-                                      <MarkdownAny allMessages={allMessages}>{smoothContent}</MarkdownAny>
+                                      <MarkdownAny allMessages={allMessages}>{filteredContent}</MarkdownAny>
                                     ) : (
                                       <div className="flex flex-col gap-2">
                                         {(message.content as any[]).map((part, index) => {
                                           if (part.type === "text") {
-                                            return <MarkdownAny key={index} allMessages={allMessages}>{part.text}</MarkdownAny>;
+                                            const filteredText = filterPreambleContent(part.text, true);
+                                            if (!filteredText) return null;
+                                            return <MarkdownAny key={index} allMessages={allMessages}>{filteredText}</MarkdownAny>;
                                           }
                                           if (part.type === "image" && typeof part.image === 'string') {
                                             return <MarkdownAny key={index} allMessages={allMessages}>{part.image}</MarkdownAny>;

@@ -97,8 +97,7 @@ export const myProvider: any = customProvider({
     "google-gemini-2.5-flash-preview": cometai("gemini-2.5-flash-preview-09-2025"),
     "xai-grok-4.1-fast": cometai("grok-4-1-fast-non-reasoning"),
     "zai-glm-4.7": cometai("glm-4.7"),
-    "deepseek-v3.2": cometai("deepseek-v3.2"),
-    "deepseek-v3-250324": cometai("deepseek-v3-250324"),
+
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
@@ -152,16 +151,7 @@ export const chatModels: Array<ChatModel> = [
     name: "Gemini 3 Flash",
     description: "Latest Gemini model for quick responses",
   },
-  {
-    id: "deepseek-v3-250324",
-    name: "DeepSeek V3",
-    description: "Deep analysis & research tasks",
-  },
-  {
-    id: "deepseek-v3.2",
-    name: "DeepSeek V3.2",
-    description: "Excellent coding & math reasoning",
-  },
+
   {
     id: "anthropic-haiku-4.5",
     name: "Claude Haiku 4.5",

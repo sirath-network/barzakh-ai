@@ -275,8 +275,7 @@ export const myProvider = customProvider({
     "google-gemini-2.5-flash-preview": cometai("gemini-2.5-flash-preview-09-2025"),
     "xai-grok-4.1-fast": cometai("grok-4-1-fast-non-reasoning"),
     "zai-glm-4.7": cometai("glm-4.7"),
-    "deepseek-v3.2": cometai("deepseek-v3.2"),
-    "deepseek-v3-250324": cometai("deepseek-v3-250324"),
+
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
@@ -297,8 +296,7 @@ export const myProvider = customProvider({
 | `google-gemini-3-flash` | **Gemini 3 Flash** | CometAPI | Speed | Fast Gemini responses |
 | `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | Preview | Experimental tasks |
 | `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | Speed | Fast reasoning |
-| `deepseek-v3.2` | **DeepSeek V3.2** | CometAPI | Reasoning | Complex reasoning |
-| `deepseek-v3-250324` | **DeepSeek V3 (March 2025)** | CometAPI | Analysis | Complex analysis |
+
 
 ### Intent Classification System
 
