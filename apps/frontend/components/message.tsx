@@ -20,6 +20,7 @@ import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
 import TransactionHistory from "./solana/TransactionHistory";
+import EvmTransactionHistory from "./onchain/EvmTransactionHistory";
 import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
@@ -28,6 +29,7 @@ const MultiSearchAny = MultiSearch as any;
 const PortfolioTableAny = PortfolioTable as any;
 const TokenInfoTableAny = TokenInfoTable as any;
 const TransactionHistoryAny = TransactionHistory as any;
+const EvmTransactionHistoryAny = EvmTransactionHistory as any;
 const AIGeneratedImageAny = AIGeneratedImage as any;
 const AIGeneratedImageGridAny = AIGeneratedImageGrid as any;
 const PreviewAttachmentAny = PreviewAttachment as any;
@@ -451,8 +453,12 @@ const PurePreviewMessage = ({
                       'searchSolanaTokenMarketData',
                       'getSolanaChainWalletPortfolio',
                       'getEvmMultiChainWalletPortfolio',
+                      'getMantlePortfolio',
                       'getTokenBalances',
                       'getSolanaWalletTransactions',
+                      // EVM chain transaction history tools
+                      'getMantleTransactionHistory',
+                      'getCronosTransactionHistory',
                       'createImage',
                       'initiateX402Payment',
                       // Relay Protocol - all quote tools show UI
@@ -483,8 +489,12 @@ const PurePreviewMessage = ({
                             searchSolanaTokenMarketData: <TokenInfoTableAny result={result} />,
                             getSolanaChainWalletPortfolio: <PortfolioTableAny result={result} />,
                             getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
+                            getMantlePortfolio: <PortfolioTableAny result={result} />,
                             getTokenBalances: <PortfolioTableAny result={result} />,
                             getSolanaWalletTransactions: <TransactionHistoryAny result={result} />,
+                            // EVM chain transaction history
+                            getMantleTransactionHistory: <EvmTransactionHistoryAny result={result} />,
+                            getCronosTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             createImage: result?.imageUrls ? (
                               <AIGeneratedImageGridAny
                                 imageUrls={result.imageUrls}

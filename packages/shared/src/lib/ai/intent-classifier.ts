@@ -603,9 +603,26 @@ async function classifyByLLM(message: string, chatContext?: string | null): Prom
 `;
 
     // Add context hint if we have a chain-specific context
+    // Also include address format hints so LLM knows when to override context
     let contextHint = '';
     if (chatContext) {
-        contextHint = `\n\nIMPORTANT CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation. Unless the user explicitly mentions a DIFFERENT blockchain or changes topic entirely, you should classify this as "${chatContext}". Only classify as a different chain if the user explicitly names it.`;
+        // Define EVM-compatible chains (these accept 0x addresses)
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const isEvmContext = evmChains.includes(chatContext);
+
+        contextHint = `
+
+CONVERSATION CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation.
+
+CRITICAL ADDRESS FORMAT RULES (these may OVERRIDE conversation context):
+- EVM-compatible chains (cronos, mantle, zeta, creditcoin, vana, flow, wormhole, sei): Accept "0x..." addresses (40 hex chars)
+- If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
+  - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
+  - A Base58 address (32-44 alphanumeric chars): Classify as "solana"
+  - A "sei1..." address: Classify as "sei"
+  - A "0x..." address with 64 hex chars: Classify as "aptos"
+
+Only use the "${chatContext}" context if the address format is compatible or no address is present.`;
     }
 
     try {
@@ -652,7 +669,70 @@ Respond with the most appropriate intent category and your confidence level (0-1
     } catch (error) {
         console.error("[INTENT] LLM classification failed:", error);
         // If we have chat context and LLM failed, use the context as fallback
+        // BUT first check if message contains addresses that conflict with the context
         if (chatContext) {
+            // Check for address format mismatches before using context as fallback
+            const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
+            const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
+            const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+            const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
+
+            // If address format conflicts with context, override it
+            // EVM-compatible chains: these accept 0x addresses
+            const evmChains = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+
+            if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
+                console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
+                return {
+                    primaryIntent: 'on_chain',
+                    confidence: 0.7,
+                    indicators: ['fallback:address_mismatch_evm_in_solana'],
+                    requiresMultiTool: false,
+                    classificationMethod: "fallback",
+                };
+            }
+            if (chatContext === 'aptos' && hasEvmAddress && !hasAptosAddress) {
+                console.log("[INTENT] LLM fallback: EVM address detected in aptos context, using on_chain");
+                return {
+                    primaryIntent: 'on_chain',
+                    confidence: 0.7,
+                    indicators: ['fallback:address_mismatch_evm_in_aptos'],
+                    requiresMultiTool: false,
+                    classificationMethod: "fallback",
+                };
+            }
+            if (evmChains.includes(chatContext) && hasSolanaAddress && !hasEvmAddress) {
+                console.log("[INTENT] LLM fallback: Solana address detected in EVM context, using solana");
+                return {
+                    primaryIntent: 'solana',
+                    confidence: 0.7,
+                    indicators: ['fallback:address_mismatch_solana_in_evm'],
+                    requiresMultiTool: false,
+                    classificationMethod: "fallback",
+                };
+            }
+            if (chatContext !== 'aptos' && hasAptosAddress) {
+                console.log("[INTENT] LLM fallback: Aptos address detected, using aptos");
+                return {
+                    primaryIntent: 'aptos',
+                    confidence: 0.7,
+                    indicators: ['fallback:aptos_address_detected'],
+                    requiresMultiTool: false,
+                    classificationMethod: "fallback",
+                };
+            }
+            if (chatContext !== 'sei' && hasSeiAddress) {
+                console.log("[INTENT] LLM fallback: Sei address detected, using sei");
+                return {
+                    primaryIntent: 'sei',
+                    confidence: 0.7,
+                    indicators: ['fallback:sei_address_detected'],
+                    requiresMultiTool: false,
+                    classificationMethod: "fallback",
+                };
+            }
+
+            // No address mismatch, safe to use context
             return {
                 primaryIntent: chatContext as IntentType,
                 confidence: 0.65,
@@ -683,8 +763,8 @@ function patternMatchedDifferentTopic(patternResult: IntentClassification | null
     return patternResult.primaryIntent !== expectedIntent && patternResult.confidence > 0.5;
 }
 
-// Groups that support context persistence (chain-specific + imagine)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
+// Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -753,7 +833,97 @@ export async function classifyIntent(
             patternResult.primaryIntent !== chatContext &&
             patternResult.confidence > 0.5;
 
-        // If pattern didn't match a different chain, use context
+        // CRITICAL: Check if addresses in the message indicate a DIFFERENT chain than context
+        // This prevents using Solana context when user provides 0x address, and vice versa
+        const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
+        const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
+        const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+        const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
+
+        // Define which chains support EVM addresses (0x format)
+        // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+
+        // Determine if address type mismatches the context
+        const addressMismatchesContext = (
+            // User has Solana context but provided EVM address (not a Solana address)
+            (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) ||
+            // User has Aptos context but provided 40-char EVM address (Aptos uses 64-char)
+            (chatContext === 'aptos' && hasEvmAddress && !hasAptosAddress) ||
+            // User has EVM-compatible context but provided Solana address (and no EVM address)
+            (EVM_COMPATIBLE_CHAINS.includes(chatContext) && hasSolanaAddress && !hasEvmAddress) ||
+            // User has non-Aptos context but provided Aptos address (64 hex chars)
+            // Note: Aptos 64-char addresses are distinct from 40-char EVM addresses
+            (chatContext !== 'aptos' && hasAptosAddress) ||
+            // User has non-Sei context but provided native Sei address (sei1...)
+            // Note: If user provides 0x address, they might still want Sei EVM, so only switch for sei1...
+            (!EVM_COMPATIBLE_CHAINS.includes(chatContext) && chatContext !== 'sei' && hasSeiAddress)
+        );
+
+        // If address type mismatches context, override with pattern result or appropriate chain
+        if (addressMismatchesContext) {
+            // If pattern found a better match, use it
+            if (patternResult && patternResult.confidence > 0.3) {
+                console.log(
+                    `[INTENT] Address mismatch detected - overriding ${chatContext} context with ${patternResult.primaryIntent} in ${Date.now() - startTime}ms`
+                );
+                return patternResult;
+            }
+            // Native Sei address always goes to Sei
+            else if (hasSeiAddress) {
+                console.log(
+                    `[INTENT] Sei address detected in ${chatContext} context - switching to sei in ${Date.now() - startTime}ms`
+                );
+                return {
+                    primaryIntent: 'sei',
+                    confidence: 0.8,
+                    indicators: ['address_mismatch:sei_address_detected'],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
+            // Aptos address (64 hex chars)
+            else if (hasAptosAddress) {
+                console.log(
+                    `[INTENT] Aptos address detected in ${chatContext} context - switching to aptos in ${Date.now() - startTime}ms`
+                );
+                return {
+                    primaryIntent: 'aptos',
+                    confidence: 0.8,
+                    indicators: ['address_mismatch:aptos_address_detected'],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
+            // Solana address
+            else if (hasSolanaAddress) {
+                console.log(
+                    `[INTENT] Solana address detected in ${chatContext} context - switching to solana in ${Date.now() - startTime}ms`
+                );
+                return {
+                    primaryIntent: 'solana',
+                    confidence: 0.8,
+                    indicators: ['address_mismatch:solana_address_detected'],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
+            // EVM address (0x 40-char) - default to on_chain for generic EVM
+            else if (hasEvmAddress) {
+                console.log(
+                    `[INTENT] EVM address detected in ${chatContext} context - switching to on_chain in ${Date.now() - startTime}ms`
+                );
+                return {
+                    primaryIntent: 'on_chain',
+                    confidence: 0.8,
+                    indicators: ['address_mismatch:evm_address_in_non_evm_context'],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
+        }
+
+        // If pattern didn't match a different chain and no address mismatch, use context
         if (!patternMatchedDifferentChain) {
             console.log(
                 `[INTENT] Using chat context: ${chatContext} (continuing conversation) in ${Date.now() - startTime}ms`

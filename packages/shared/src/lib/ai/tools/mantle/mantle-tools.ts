@@ -12,6 +12,8 @@
 
 import { tool } from "ai";
 import { z } from "zod";
+import { getZerionApiKey } from "../../../utils/utils";
+import { zerionBaseURL } from "../onchain/constant";
 
 // Mantle RPC endpoints
 const MANTLE_MAINNET_RPC = "https://rpc.mantle.xyz";
@@ -518,17 +520,15 @@ export const getMantleGasPrice = tool({
 });
 
 /**
- * Get Mantle transaction history for an address
+ * Get Mantle transaction history for an address using Zerion API
  */
 export const getMantleTransactionHistory = tool({
-    description: "Get detailed transaction history for a wallet address on Mantle Network. Returns comprehensive information about each transaction including type, direction, value, token transfers, and explorer links.",
+    description: "Get detailed transaction history for a wallet address on Mantle Network using Zerion API. Returns comprehensive information about each transaction including type, direction, value, token transfers, and explorer links. IMPORTANT: The UI will automatically render a transaction history table from the result. DO NOT list the transactions in your text response. Just provide a brief 1-sentence summary.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        page: z.number().optional().describe("Page number (default: 1)"),
-        limit: z.number().optional().describe("Number of transactions per page (default: 10, max: 100)"),
-        testnet: z.boolean().optional().describe("Use Sepolia testnet instead of mainnet (default: false)"),
+        limit: z.number().optional().describe("Number of transactions to fetch (default: 20, max: 50)"),
     }),
-    execute: async ({ address, page = 1, limit = 10, testnet = false }) => {
+    execute: async ({ address, limit = 20 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) {
                 return {
@@ -537,196 +537,132 @@ export const getMantleTransactionHistory = tool({
                 };
             }
 
-            // Get current block and calculate start block (last 500k blocks ~11 days on Mantle)
-            const currentBlock = await getCurrentMantleBlock(testnet);
-            const startBlock = Math.max(0, currentBlock - 500000);
-
-            // Fetch both normal transactions and token transfers in parallel
-            const [txData, tokenTxData] = await Promise.all([
-                etherscanV2Request({
-                    module: "account",
-                    action: "txlist",
-                    address,
-                    startblock: startBlock.toString(),
-                    endblock: currentBlock.toString(),
-                    page: page.toString(),
-                    offset: Math.min(limit, 100).toString(),
-                    sort: "desc",
-                }, testnet),
-                etherscanV2Request({
-                    module: "account",
-                    action: "tokentx",
-                    address,
-                    startblock: startBlock.toString(),
-                    endblock: currentBlock.toString(),
-                    page: "1",
-                    offset: "100",
-                    sort: "desc",
-                }, testnet),
-            ]);
-
-            if (txData.status !== "1" || !txData.result) {
-                if (txData.message === "No transactions found") {
-                    return {
-                        address,
-                        network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
-                        transactions: [],
-                        totalFound: 0,
-                        message: "No transactions found for this address in recent blocks",
-                    };
-                }
-                throw new Error(txData.message || "Failed to fetch transaction history");
-            }
-
-            // Create a map of tx hash -> token transfer details
-            const tokenTransferMap = new Map<string, any[]>();
-            if (tokenTxData.status === "1" && tokenTxData.result) {
-                for (const ttx of tokenTxData.result) {
-                    const hash = ttx.hash.toLowerCase();
-                    if (!tokenTransferMap.has(hash)) {
-                        tokenTransferMap.set(hash, []);
-                    }
-                    tokenTransferMap.get(hash)!.push({
-                        tokenName: ttx.tokenName,
-                        tokenSymbol: ttx.tokenSymbol,
-                        tokenDecimal: parseInt(ttx.tokenDecimal),
-                        value: ttx.value,
-                        from: ttx.from,
-                        to: ttx.to,
-                        contractAddress: ttx.contractAddress,
-                    });
-                }
-            }
-
-            const explorer = testnet ? MANTLE_TESTNET_EXPLORER : MANTLE_EXPLORER;
-            const normalizedAddress = address.toLowerCase();
-
-            const transactions = txData.result.map((tx: any) => {
-                const valueWei = BigInt(tx.value || "0");
-                const valueMNT = Number(valueWei) / 1e18;
-                const gasUsed = parseInt(tx.gasUsed || "0");
-                const gasPrice = parseInt(tx.gasPrice || "0");
-                const txFee = (gasUsed * gasPrice) / 1e18;
-
-                // Determine transaction direction
-                const isOutgoing = tx.from.toLowerCase() === normalizedAddress;
-                const isIncoming = tx.to?.toLowerCase() === normalizedAddress;
-                const direction = isOutgoing ? "OUT" : (isIncoming ? "IN" : "SELF");
-
-                // Get token transfers for this tx
-                const tokenTransfers = tokenTransferMap.get(tx.hash.toLowerCase()) || [];
-
-                // Format token transfer info
-                let tokenTransferInfo: any = null;
-                if (tokenTransfers.length > 0) {
-                    const transfers = tokenTransfers.map((t: any) => {
-                        const amount = parseFloat(t.value) / Math.pow(10, t.tokenDecimal);
-                        const isTokenOut = t.from.toLowerCase() === normalizedAddress;
-                        return {
-                            direction: isTokenOut ? "Sent" : "Received",
-                            amount: amount.toFixed(6),
-                            symbol: t.tokenSymbol,
-                            tokenName: t.tokenName,
-                            formatted: `${isTokenOut ? "-" : "+"}${amount.toFixed(2)} ${t.tokenSymbol}`,
-                            to: isTokenOut ? t.to : undefined,
-                            from: !isTokenOut ? t.from : undefined,
-                            contractAddress: t.contractAddress,
-                        };
-                    });
-                    tokenTransferInfo = transfers.length === 1 ? transfers[0] : transfers;
-                }
-
-                // Determine transaction type based on input data and context
-                let txType = "Transfer";
-                let methodName = null;
-
-                if (tx.input && tx.input !== "0x") {
-                    const methodSig = tx.input.slice(0, 10);
-                    const methodMap: Record<string, string> = {
-                        "0xa9059cbb": "Token Transfer",
-                        "0x23b872dd": "Token Transfer (from)",
-                        "0x095ea7b3": "Token Approval",
-                        "0x40c10f19": "Token Mint",
-                        "0x42966c68": "Token Burn",
-                        "0x7ff36ab5": "DEX Swap",
-                        "0x38ed1739": "DEX Swap",
-                        "0x18cbafe5": "DEX Swap",
-                        "0xe8e33700": "Add Liquidity",
-                        "0xf305d719": "Add Liquidity",
-                        "0xbaa2abde": "Remove Liquidity",
-                        "0x3593564c": "Universal Router",
-                        "0xac9650d8": "Multicall",
-                        "0x5ae401dc": "Multicall",
-                    };
-                    methodName = methodMap[methodSig] || tx.functionName?.split("(")[0] || methodSig;
-                    txType = tokenTransfers.length > 0 ? "Token Transfer"
-                        : methodName.includes("Swap") ? "DEX Swap"
-                            : methodName.includes("Approval") ? "Approval"
-                                : methodName.includes("Liquidity") ? "Liquidity"
-                                    : "Contract Call";
-                } else if (valueMNT > 0) {
-                    txType = "MNT Transfer";
-                }
-
-                // Format timestamp nicely
-                const timestamp = new Date(parseInt(tx.timeStamp) * 1000);
-                const formattedTime = timestamp.toLocaleString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    timeZone: "UTC",
-                }) + " UTC";
-
-                // Build the value string
-                let valueDisplay = valueMNT > 0 ? `${valueMNT.toFixed(6)} MNT` : null;
-                if (tokenTransferInfo) {
-                    if (Array.isArray(tokenTransferInfo)) {
-                        valueDisplay = tokenTransferInfo.map((t: any) => t.formatted).join(", ");
-                    } else {
-                        valueDisplay = tokenTransferInfo.formatted;
-                    }
-                }
-                if (!valueDisplay) valueDisplay = "0 MNT";
-
+            const apiKey = getZerionApiKey();
+            if (!apiKey) {
+                console.error("ZERION_DEV_API_KEY not configured");
                 return {
-                    hash: tx.hash,
-                    explorerUrl: `${explorer}/tx/${tx.hash}`,
-                    blockNumber: parseInt(tx.blockNumber),
-                    timestamp: formattedTime,
-                    direction,
-                    txType,
-                    status: tx.isError === "0" ? "✅ Success" : "❌ Failed",
-                    from: tx.from,
-                    to: tx.to || "Contract Creation",
-                    value: valueDisplay,
-                    tokenTransfer: tokenTransferInfo,
-                    method: methodName,
-                    gasUsed: gasUsed.toLocaleString(),
-                    gasPrice: `${(gasPrice / 1e9).toFixed(4)} Gwei`,
-                    txFee: `${txFee.toFixed(8)} MNT`,
+                    error: "Zerion API not configured",
+                    details: "Please contact support.",
                 };
+            }
+
+            // Use Zerion API with Mantle chain filter
+            const url = `${zerionBaseURL}/v1/wallets/${address}/transactions/?filter[chain_ids]=mantle&currency=usd&page[size]=${Math.min(limit, 50)}`;
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    accept: "application/json",
+                    authorization: `Basic ${apiKey}`,
+                },
             });
+
+            if (!response.ok) {
+                let errorDetails = "";
+                try {
+                    const errorJson = await response.json();
+                    errorDetails = JSON.stringify(errorJson);
+                } catch {
+                    errorDetails = await response.text();
+                }
+                console.error(`Zerion API Error ${response.status}:`, errorDetails);
+
+                if (response.status === 400) {
+                    return "Invalid wallet address format. Please verify and try again.";
+                }
+                return `API Error: ${response.status}`;
+            }
+
+            const data = await response.json();
+
+            if (!data.data || data.data.length === 0) {
+                return {
+                    address,
+                    network: "Mantle Mainnet",
+                    transactions: [],
+                    transactionCount: 0,
+                    message: "No transactions found for this wallet on Mantle.",
+                };
+            }
+
+            // Transform Zerion response to our format
+            const transactions = data.data
+                .filter((tx: any) => !tx.attributes.flags?.is_trash)
+                .map((tx: any) => {
+                    const attrs = tx.attributes;
+                    const transfers = attrs.transfers || [];
+
+                    // Determine direction
+                    const hasIncoming = transfers.some((t: any) => t.direction === "in");
+                    const hasOutgoing = transfers.some((t: any) => t.direction === "out");
+                    let direction = "SELF";
+                    if (hasOutgoing && !hasIncoming) direction = "OUT";
+                    else if (hasIncoming && !hasOutgoing) direction = "IN";
+
+                    // Format operation type
+                    const typeMap: Record<string, string> = {
+                        receive: "Receive",
+                        send: "Send",
+                        trade: "Swap",
+                        execute: "Contract",
+                        approve: "Approval",
+                        mint: "Mint",
+                        burn: "Burn",
+                        stake: "Stake",
+                        unstake: "Unstake",
+                        claim: "Claim",
+                        deposit: "Deposit",
+                        withdraw: "Withdraw",
+                        bridge: "Bridge",
+                    };
+                    const txType = typeMap[attrs.operation_type] || attrs.operation_type;
+
+                    // Format value display from transfers
+                    let value = "0 MNT";
+                    if (transfers.length > 0) {
+                        const mainTransfer = transfers[0];
+                        const amount = mainTransfer.quantity?.float || 0;
+                        const symbol = mainTransfer.fungible_info?.symbol || "MNT";
+                        value = `${amount.toFixed(6)} ${symbol}`;
+                    }
+
+                    // Format token transfers
+                    const tokenTransfer = transfers.length > 0 ? transfers.map((t: any) => ({
+                        direction: t.direction === "out" ? "Sent" : "Received",
+                        amount: (t.quantity?.float || 0).toFixed(6),
+                        symbol: t.fungible_info?.symbol || "MNT",
+                        formatted: `${t.direction === "out" ? "-" : "+"}${(t.quantity?.float || 0).toFixed(4)} ${t.fungible_info?.symbol || "MNT"}`,
+                    })) : null;
+
+                    return {
+                        hash: attrs.hash,
+                        explorerUrl: `${MANTLE_EXPLORER}/tx/${attrs.hash}`,
+                        blockNumber: attrs.mined_at_block,
+                        timestamp: attrs.mined_at,
+                        direction,
+                        txType,
+                        status: attrs.status === "confirmed" ? "✅ Success" : attrs.status === "failed" ? "❌ Failed" : attrs.status,
+                        from: attrs.sent_from,
+                        to: attrs.sent_to || "Contract",
+                        value,
+                        tokenTransfer: tokenTransfer && tokenTransfer.length === 1 ? tokenTransfer[0] : tokenTransfer,
+                        txFee: attrs.fee ? `${attrs.fee.quantity?.float?.toFixed(8) || 0} MNT` : null,
+                    };
+                });
 
             return {
                 address,
-                network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
-                chainId: testnet ? MANTLE_TESTNET_CHAIN_ID : MANTLE_CHAIN_ID,
-                page,
-                limit,
+                network: "Mantle Mainnet",
                 transactionCount: transactions.length,
                 transactions,
-                viewAllUrl: `${explorer}/address/${address}`,
-                note: "Showing transactions from last ~11 days. For complete history, visit the explorer.",
+                viewAllUrl: `${MANTLE_EXPLORER}/address/${address}`,
+                explorerUrl: `${MANTLE_EXPLORER}/address/${address}`,
             };
         } catch (error: any) {
             console.error("Error fetching Mantle transaction history:", error);
             return {
                 error: "Failed to fetch transaction history",
                 details: error.message,
-                hint: "Etherscan V2 API may require an API key. Set ETHERSCAN_API_KEY environment variable.",
             };
         }
     },
@@ -768,15 +704,39 @@ export const getMantleTokenTransfers = tool({
             const data = await etherscanV2Request(params, testnet);
 
             if (data.status !== "1" || !data.result) {
-                if (data.message === "No transactions found") {
+                // Handle various error cases gracefully instead of throwing
+                const errorMessage = data.message || data.result || "Unknown error";
+
+                if (errorMessage === "No transactions found" || errorMessage.includes("No records")) {
                     return {
                         address,
                         network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
                         tokenTransfers: [],
-                        message: "No token transfers found",
+                        message: "No token transfers found for this address",
                     };
                 }
-                throw new Error(data.message || "Failed to fetch token transfers");
+
+                // Handle NOTOK, rate limiting, API key issues gracefully
+                if (errorMessage === "NOTOK" || errorMessage.includes("rate limit") || errorMessage.includes("API")) {
+                    console.warn(`Mantle token transfers API returned: ${errorMessage}`);
+                    return {
+                        address,
+                        network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
+                        tokenTransfers: [],
+                        message: `Unable to fetch token transfers: ${errorMessage}. The Etherscan API may be rate limited or require an API key.`,
+                        error: errorMessage,
+                    };
+                }
+
+                // For other errors, return gracefully instead of throwing
+                console.error(`Mantle token transfers error: ${errorMessage}`);
+                return {
+                    address,
+                    network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
+                    tokenTransfers: [],
+                    message: `Failed to fetch token transfers: ${errorMessage}`,
+                    error: errorMessage,
+                };
             }
 
             const explorer = testnet ? MANTLE_TESTNET_EXPLORER : MANTLE_EXPLORER;
@@ -864,61 +824,149 @@ export const getMantleTokenList = tool({
 /**
  * Get complete portfolio (native + tokens) for a Mantle address
  */
+/**
+ * Get complete Mantle portfolio using Zerion API
+ * Returns data compatible with PortfolioTable UI component
+ */
 export const getMantlePortfolio = tool({
-    description: "Get complete portfolio for a wallet on Mantle Network including MNT balance and all ERC-20 token holdings. Returns comprehensive view of all assets.",
+    description: "Get complete portfolio for a wallet on Mantle Network including tokens, DeFi positions, and NFTs. Returns rich data that renders beautifully in the UI. IMPORTANT: The UI will automatically render a portfolio table with charts and expandable sections. Just provide a brief 1-sentence summary in your response.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        testnet: z.boolean().optional().describe("Use Sepolia testnet instead of mainnet (default: false)"),
     }),
-    execute: async ({ address, testnet = false }) => {
+    execute: async ({ address }) => {
         try {
-            const rpcUrl = testnet ? MANTLE_TESTNET_RPC : MANTLE_MAINNET_RPC;
+            if (!address.startsWith("0x") || address.length !== 42) {
+                return {
+                    error: "Invalid address format",
+                    details: "Address must be a valid Ethereum-style address (0x + 40 hex characters)",
+                };
+            }
 
-            // Fetch native MNT balance via RPC
-            const balanceResponse = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_getBalance",
-                    params: [address, "latest"],
-                    id: 1,
-                }),
+            const apiKey = getZerionApiKey();
+            if (!apiKey) {
+                console.error("ZERION_DEV_API_KEY not configured");
+                return {
+                    error: "Zerion API not configured",
+                    details: "Please contact support.",
+                };
+            }
+
+            const options = {
+                method: "GET",
+                headers: {
+                    accept: "application/json",
+                    authorization: `Basic ${apiKey}`,
+                },
+            };
+
+            console.log("Fetching Mantle portfolio for:", address);
+
+            // Fetch portfolio overview (filtered to Mantle)
+            const portfolioUrl = `${zerionBaseURL}/v1/wallets/${address}/portfolio?currency=usd`;
+            const portfolioResponse = await fetch(portfolioUrl, options);
+
+            if (!portfolioResponse.ok) {
+                const errorDetails = await portfolioResponse.text();
+                console.error(`Zerion portfolio API error ${portfolioResponse.status}:`, errorDetails);
+                return `Failed to fetch Mantle portfolio: API returned ${portfolioResponse.status}`;
+            }
+
+            const portfolioData = await portfolioResponse.json();
+
+            if (!portfolioData || !portfolioData.data || !portfolioData.data.attributes) {
+                return {
+                    error: "No portfolio data found",
+                    address,
+                    network: "Mantle Mainnet",
+                };
+            }
+
+            // Fetch positions filtered to Mantle chain
+            const positionsUrl = `${zerionBaseURL}/v1/wallets/${address}/positions/?filter[chain_ids]=mantle&sort=-value&currency=usd&page[size]=50`;
+            const positionsResponse = await fetch(positionsUrl, options);
+
+            let mantlePositions: any[] = [];
+            let mantleTotalValue = 0;
+
+            if (positionsResponse.ok) {
+                const positionsData = await positionsResponse.json();
+                mantlePositions = positionsData.data || [];
+                mantleTotalValue = mantlePositions.reduce((sum: number, pos: any) =>
+                    sum + (pos.attributes?.value || 0), 0
+                );
+            }
+
+            // Fetch DeFi positions on Mantle
+            let defiPositions: any[] = [];
+            try {
+                const defiUrl = `${zerionBaseURL}/v1/wallets/${address}/positions/?filter[positions]=only_complex&filter[chain_ids]=mantle&filter[trash]=only_non_trash&currency=usd&sort=value`;
+                const defiResponse = await fetch(defiUrl, options);
+                if (defiResponse.ok) {
+                    const defiData = await defiResponse.json();
+                    defiPositions = defiData.data || [];
+                }
+            } catch (error) {
+                console.error("Error fetching Mantle DeFi positions:", error);
+            }
+
+            // Build positions_distribution_by_chain with mantle data
+            const positionsDistribution: Record<string, number> = {};
+            if (mantleTotalValue > 0) {
+                positionsDistribution['mantle'] = mantleTotalValue;
+            }
+
+            // Build token icons map
+            const tokenIcons: Record<string, string> = {};
+            mantlePositions.forEach((pos: any) => {
+                const symbol = pos.attributes?.fungible_info?.symbol;
+                const icon = pos.attributes?.fungible_info?.icon?.url;
+                if (symbol && icon) {
+                    tokenIcons[symbol] = icon;
+                }
             });
 
-            const balanceData = await balanceResponse.json();
-            const balanceWei = BigInt(balanceData.result || "0");
-            const balanceMNT = Number(balanceWei) / 1e18;
+            // Build DeFi summary
+            const defiSummary = {
+                hasDefiPositions: defiPositions.length > 0,
+                totalDefiValue: defiPositions.reduce((sum: number, pos: any) => sum + (pos.attributes?.value || 0), 0),
+                positionCount: defiPositions.length,
+                positions: defiPositions.slice(0, 20).map((pos: any) => ({
+                    protocol: pos.attributes?.application_metadata?.name || pos.attributes?.protocol || 'Unknown',
+                    type: pos.attributes?.position_type || pos.type || 'unknown',
+                    chain: 'mantle',
+                    value: pos.attributes?.value || 0,
+                    tokens: pos.attributes?.fungible_info ? [{
+                        symbol: pos.attributes.fungible_info.symbol,
+                        name: pos.attributes.fungible_info.name,
+                        amount: pos.attributes.quantity?.float || 0,
+                    }] : []
+                }))
+            };
 
-            // Fetch ERC-20 token holdings from transfers
-            const tokens = await fetchTokenHoldingsFromTransfers(address, testnet);
-
-            const explorer = testnet ? MANTLE_TESTNET_EXPLORER : MANTLE_EXPLORER;
-
+            // Return in PortfolioData format for the UI component
             return {
-                address,
-                network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
-                chainId: testnet ? MANTLE_TESTNET_CHAIN_ID : MANTLE_CHAIN_ID,
-                nativeBalance: {
-                    symbol: "MNT",
-                    wei: balanceWei.toString(),
-                    balance: balanceMNT,
-                    formatted: `${balanceMNT.toFixed(4)} MNT`,
+                id: address,
+                type: "wallets",
+                attributes: {
+                    total: {
+                        positions: mantleTotalValue
+                    },
+                    changes: portfolioData.data.attributes.changes || { percent_1d: 0 },
+                    positions_distribution_by_chain: positionsDistribution,
+                    token_icons: tokenIcons,
                 },
-                tokenCount: tokens.length,
-                tokens: tokens.slice(0, 50),
-                hasMoreTokens: tokens.length > 50,
-                timestamp: new Date().toISOString(),
-                explorerUrl: `${explorer}/address/${address}?tab=tokens`,
+                currency: "usd",
+                defi: defiSummary,
+                // Additional context for the AI
+                network: "Mantle Mainnet",
+                explorerUrl: `${MANTLE_EXPLORER}/address/${address}`,
             };
         } catch (error: any) {
             console.error("[Mantle Portfolio] Error:", error);
-            const explorer = testnet ? MANTLE_TESTNET_EXPLORER : MANTLE_EXPLORER;
             return {
                 error: "Failed to fetch Mantle portfolio",
                 details: error.message,
-                explorerUrl: `${explorer}/address/${address}?tab=tokens`,
-                hint: "You can view the full portfolio on MantleScan using the link above.",
+                explorerUrl: `${MANTLE_EXPLORER}/address/${address}`,
             };
         }
     },

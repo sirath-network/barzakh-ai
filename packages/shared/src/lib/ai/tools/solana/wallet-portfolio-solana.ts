@@ -49,14 +49,14 @@ interface ZerionPositionsResponse {
 }
 
 // Transform Zerion response to match existing portfolio format
+// Uses 'solana' as the chain key for expandable "Assets by Chain" UI
 const transformZerionToPortfolio = (
   response: ZerionPositionsResponse,
   walletAddress: string
 ): PortfolioData => {
   const positions = response.data || [];
 
-  // Calculate positions distribution by token symbol and collect icons
-  const positions_distribution_by_chain: { [key: string]: number } = {};
+  // Calculate total value and collect token icons
   const token_icons: { [key: string]: string } = {};
   let totalUsd = 0;
 
@@ -66,8 +66,6 @@ const transformZerionToPortfolio = (
     const iconUrl = position.attributes.fungible_info?.icon?.url;
 
     if (valueUsd > 0) {
-      positions_distribution_by_chain[symbol] =
-        (positions_distribution_by_chain[symbol] || 0) + valueUsd;
       totalUsd += valueUsd;
     }
 
@@ -75,6 +73,13 @@ const transformZerionToPortfolio = (
     if (iconUrl && !token_icons[symbol]) {
       token_icons[symbol] = iconUrl;
     }
+  }
+
+  // Use 'solana' as the chain key (like Mantle uses 'mantle')
+  // This enables the expandable "Assets by Chain" UI format
+  const positions_distribution_by_chain: { [key: string]: number } = {};
+  if (totalUsd > 0) {
+    positions_distribution_by_chain['solana'] = totalUsd;
   }
 
   return {

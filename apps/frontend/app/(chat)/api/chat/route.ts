@@ -377,20 +377,27 @@ export async function POST(request: Request) {
 
   // Extract chain context from chat history for follow-up message routing
   function extractChainContext(msgs: Array<Message>): string | null {
+    // Chain patterns - ordered by specificity (more specific patterns first)
     const chainPatterns: Record<string, RegExp[]> = {
+      // Chain-specific keywords
       cronos: [/\bcronos\b/i, /\bcro\s+(token|coin|balance|wallet)/i, /\bvvs\s+(finance|swap)/i, /\bcrypto\.com\s+(chain|defi)/i],
-      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i],
-      sei: [/\bsei\b(?!\s*$)/i, /\bseitrace\b/i],
-      solana: [/\bsolana\b/i, /\bsol\s+(token|coin|balance)/i, /\bphantom\b/i],
+      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i, /\b0x[a-fA-F0-9]{64}\b/], // 64-char hex = Aptos
+      sei: [/\bsei\b(?!\s*$)/i, /\bseitrace\b/i, /\bsei1[a-z0-9]{38,}\b/], // sei1... = Sei native
+      solana: [/\bsolana\b/i, /\bsol\s+(token|coin|balance)/i, /\bphantom\b/i, /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/], // Base58 = Solana
       zeta: [/\bzetachain\b/i, /\bzeta\s+(network|chain)/i],
       creditcoin: [/\bcreditcoin\b/i, /\bctc\s+token/i],
       vana: [/\bvana\b/i],
       flow: [/\bflow\s+(blockchain|network|chain)/i],
       wormhole: [/\bwormhole\b/i],
       monad: [/\bmonad\b/i],
+      mantle: [/\bmantle\b/i, /\bmnt\s+(token|balance)/i],
+      // Generic EVM - 0x addresses (40 hex chars) indicate EVM chain
+      // This should be checked LAST since specific chains like Cronos also use 0x
+      on_chain: [/\b0x[a-fA-F0-9]{40}\b/, /\betherscan\b/i, /\bethereum\b/i, /\b(optimism|arbitrum|base|polygon)\b/i],
     };
 
     // Look at last 10 messages (excluding current) for chain mentions
+    // Process in REVERSE order (most recent first) to get the latest context
     const recentMessages = msgs.slice(-11, -1); // Get up to 10 messages before the current one
     for (const msg of recentMessages.reverse()) {
       const content = typeof msg.content === 'string'
@@ -399,10 +406,18 @@ export async function POST(request: Request) {
           ? (msg.content as Array<{ type: string; text?: string }>).map((c) => typeof c === 'string' ? c : c.text || '').join(' ')
           : JSON.stringify(msg.content);
 
+      // First check for chain-specific patterns (higher priority)
       for (const [chain, patterns] of Object.entries(chainPatterns)) {
+        // Skip on_chain in first pass - check it last
+        if (chain === 'on_chain') continue;
         if (patterns.some(p => p.test(content))) {
           return chain;
         }
+      }
+
+      // Then check for generic EVM (on_chain)
+      if (chainPatterns.on_chain.some(p => p.test(content))) {
+        return 'on_chain';
       }
     }
     return null;

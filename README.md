@@ -286,9 +286,6 @@ sequenceDiagram
 | `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | `google-gemini-2.5-flash-preview` | Preview Gemini tasks |
 | `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | `grok-4-1-fast-non-reasoning` | Fast reasoning |
 
-
-> ⭐ **Default Model:** GPT 5.1 (`google-gemini-2.5-flash-preview`)
-
 ### Image Generation
 
 | Model ID | Display Name | Provider | Description |

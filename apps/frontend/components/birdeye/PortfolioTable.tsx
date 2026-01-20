@@ -374,6 +374,22 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result.id, currency, totalPositions]);
 
+  // Auto-expand chain breakdown when there's only a few chains (better UX)
+  // Works for all chains including Solana now that it uses the same expandable view
+  useEffect(() => {
+    // Auto-expand if there are 1-3 chains to show token details immediately
+    if (chains.length > 0 && chains.length <= 3) {
+      const chainsToExpand = chains.slice(0, Math.min(chains.length, 2)); // Expand up to 2 chains
+      chainsToExpand.forEach(([chain]) => {
+        if (!expandedChains[chain] && !chainTokens[chain]) {
+          // Trigger expansion for each chain
+          toggleChainExpansion(chain);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chains.length, result.id]);
+
   const toggleProtocols = () => {
     // Don't allow expand for Solana (not supported)
     if (isSolanaAddress(result.id)) return;
@@ -554,7 +570,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     <Loader2Any className="w-6 h-6 animate-spin text-zinc-400" />
                   </div>
                 ) : protocolPositions.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                     {protocolPositions.map((position, idx) => (
                       <motion.div
                         key={idx}
@@ -643,186 +659,130 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           )}
         </AnimatePresence>
 
-        {/* Asset Lists */}
+        {/* Asset Lists - Use expandable chain view for all chains including Solana */}
         <div className="col-span-1 md:col-span-2 space-y-4">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white px-1">
-            {isSolanaWallet ? 'Token Holdings' : 'Assets by Chain'}
+            Assets by Chain
           </h3>
 
-          {/* Solana: Flat token list view */}
-          {isSolanaWallet ? (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
-              <div>
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-2 sm:gap-4 px-4 sm:px-5 py-3 text-[11px] sm:text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider border-b border-zinc-100 dark:border-zinc-800/50">
-                  <div className="col-span-6 sm:col-span-5">Token</div>
-                  <div className="col-span-3 text-right hidden sm:block">Allocation</div>
-                  <div className="col-span-6 sm:col-span-4 text-right">Value</div>
-                </div>
-                {chains.map(([tokenSymbol, value], index) => {
-                  const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
-                  const tokenIcon = result.attributes.token_icons?.[tokenSymbol];
-                  return (
-                    <motion.div
-                      key={tokenSymbol}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.03, duration: 0.2 }}
-                      className="grid grid-cols-12 gap-2 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30 transition-colors items-center border-b border-zinc-50 dark:border-zinc-900/50 last:border-b-0"
-                    >
-                      <div className="col-span-6 sm:col-span-5 flex items-center gap-3">
-                        {tokenIcon ? (
-                          <ImageAny
-                            src={tokenIcon}
-                            alt={tokenSymbol}
-                            width={36}
-                            height={36}
-                            className="w-9 h-9 rounded-full flex-shrink-0 ring-1 ring-zinc-200 dark:ring-zinc-800"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm shadow-sm">
-                            {tokenSymbol.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-semibold text-sm text-zinc-900 dark:text-white truncate">{tokenSymbol}</span>
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">Solana</span>
-                        </div>
-                      </div>
+          {/* Expandable chain list for all chains */}
+          {chains.map(([chain, value], index) => {
+            const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
+            const isExpanded = expandedChains[chain];
+            const tokens = chainTokens[chain];
+            const isLoading = loadingChains[chain];
 
-                      <div className="col-span-3 text-right hidden sm:block">
-                        <span className="text-sm text-zinc-500 dark:text-zinc-400 tabular-nums font-medium">{percentage.toFixed(1)}%</span>
-                      </div>
-
-                      <div className="col-span-6 sm:col-span-4 text-right">
-                        <div className="font-semibold text-sm text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : '0.00'}</div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            /* EVM: Expandable chain list */
-            chains.map(([chain, value], index) => {
-              const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
-              const isExpanded = expandedChains[chain];
-              const tokens = chainTokens[chain];
-              const isLoading = loadingChains[chain];
-
-              return (
-                <motion.div
-                  key={chain}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: isExpanded ? 1 : 1.005 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
+            return (
+              <motion.div
+                key={chain}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: isExpanded ? 1 : 1.005 }}
+                transition={{ delay: index * 0.05 }}
+                className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
+              >
+                <button
+                  onClick={() => toggleChainExpansion(chain)}
+                  className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors gap-2"
                 >
-                  <button
-                    onClick={() => toggleChainExpansion(chain)}
-                    className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors gap-2"
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
-                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1.5 sm:p-2 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
-                        <ImageAny
-                          src={getChainLogo(chain, chainIcons[chain])}
-                          alt={chain}
-                          width={24}
-                          height={24}
-                          className="w-full h-full object-contain"
-                          unoptimized
-                        />
-                      </div>
-                      <div className="text-left min-w-0 truncate">
-                        <div className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white capitalize truncate">{chain.replace(/-/g, ' ')}</div>
-                        <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{percentage.toFixed(1)}% of portfolio</div>
-                      </div>
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
+                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1.5 sm:p-2 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
+                      <ImageAny
+                        src={getChainLogo(chain, chainIcons[chain])}
+                        alt={chain}
+                        width={24}
+                        height={24}
+                        className="w-full h-full object-contain"
+                        unoptimized
+                      />
                     </div>
-
-                    <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
-                      <div className="text-right">
-                        <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
-                      </div>
-                      <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                    <div className="text-left min-w-0 truncate">
+                      <div className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white capitalize truncate">{chain.replace(/-/g, ' ')}</div>
+                      <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{percentage.toFixed(1)}% of portfolio</div>
                     </div>
-                  </button>
+                  </div>
 
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-zinc-100 dark:border-zinc-900 bg-zinc-50/30 dark:bg-zinc-900/10"
-                      >
-                        {isLoading ? (
-                          <div className="flex justify-center py-6">
-                            <Loader2Any className="w-5 h-5 animate-spin text-zinc-400" />
+                  <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
+                    <div className="text-right">
+                      <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
+                    </div>
+                    <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
+
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="border-t border-zinc-100 dark:border-zinc-900 bg-zinc-50/30 dark:bg-zinc-900/10"
+                    >
+                      {isLoading ? (
+                        <div className="flex justify-center py-6">
+                          <Loader2Any className="w-5 h-5 animate-spin text-zinc-400" />
+                        </div>
+                      ) : tokens && tokens.length > 0 ? (
+                        <div className="divide-y divide-zinc-100 dark:divide-zinc-900 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                          {/* Table Header */}
+                          <div className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                            <div className="col-span-6 sm:col-span-5">Asset</div>
+                            <div className="col-span-3 text-right hidden sm:block">Price</div>
+                            <div className="col-span-6 sm:col-span-4 text-right">Value</div>
                           </div>
-                        ) : tokens && tokens.length > 0 ? (
-                          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
-                            {/* Table Header */}
-                            <div className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                              <div className="col-span-6 sm:col-span-5">Asset</div>
-                              <div className="col-span-3 text-right hidden sm:block">Price</div>
-                              <div className="col-span-6 sm:col-span-4 text-right">Value</div>
-                            </div>
 
-                            {tokens.map((token, idx) => (
-                              <motion.div
-                                key={idx}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: idx * 0.02 }}
-                                className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors items-center group/row cursor-default"
-                              >
-                                <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
-                                  {token.icon ? (
-                                    <ImageAny
-                                      src={token.icon}
-                                      alt={token.symbol}
-                                      width={24}
-                                      height={24}
-                                      className="rounded-full"
-                                      unoptimized
-                                    />
-                                  ) : (
-                                    <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
-                                      {token.symbol.charAt(0)}
-                                    </div>
-                                  )}
-                                  <div className="flex flex-col">
-                                    <span className="font-medium text-sm text-zinc-900 dark:text-white">{token.symbol}</span>
-                                    <span className="text-xs text-zinc-500">{formatCrypto(token.balance)}</span>
+                          {tokens.map((token, idx) => (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: idx * 0.02 }}
+                              className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors items-center group/row cursor-default"
+                            >
+                              <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
+                                {token.icon ? (
+                                  <ImageAny
+                                    src={token.icon}
+                                    alt={token.symbol}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
+                                    {token.symbol.charAt(0)}
                                   </div>
+                                )}
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm text-zinc-900 dark:text-white">{token.symbol}</span>
+                                  <span className="text-xs text-zinc-500">{formatCrypto(token.balance)}</span>
                                 </div>
+                              </div>
 
-                                <div className="col-span-3 text-right hidden sm:block">
-                                  <div className="text-sm text-zinc-900 dark:text-white tabular-nums">${formatCrypto(token.price)}</div>
-                                  {/* Mini Sparkline Placeholder - Visual only since we lack history data */}
-                                  <div className="h-1 w-12 ml-auto mt-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                    <div className={`h-full w-2/3 rounded-full ${Math.random() > 0.5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                                  </div>
+                              <div className="col-span-3 text-right hidden sm:block">
+                                <div className="text-sm text-zinc-900 dark:text-white tabular-nums">${formatCrypto(token.price)}</div>
+                                {/* Mini Sparkline Placeholder - Visual only since we lack history data */}
+                                <div className="h-1 w-12 ml-auto mt-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div className={`h-full w-2/3 rounded-full ${Math.random() > 0.5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                                 </div>
+                              </div>
 
-                                <div className="col-span-6 sm:col-span-4 text-right">
-                                  <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatNumber(token.value)}</div>
-                                </div>
-                              </motion.div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-6 text-sm text-zinc-500">No tokens found on this chain.</div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })
-          )}
+                              <div className="col-span-6 sm:col-span-4 text-right">
+                                <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatNumber(token.value)}</div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-sm text-zinc-500">No tokens found on this chain.</div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* NFT Summary Card */}
@@ -894,7 +854,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                     <Loader2Any className="w-6 h-6 animate-spin text-zinc-400" />
                   </div>
                 ) : nftCollections.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                     {nftCollections.map((collection, idx) => (
                       <motion.div
                         key={idx}
@@ -962,8 +922,8 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

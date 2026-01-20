@@ -96,7 +96,7 @@ const cometai = createOpenAI({
   fetch: normalizedFetch,
 });
 
-export const DEFAULT_CHAT_MODEL: string = "google-gemini-2.5-flash-preview";
+export const DEFAULT_CHAT_MODEL: string = "xai-grok-4.1-fast";
 
 export const myProvider: any = customProvider({
   languageModels: {
