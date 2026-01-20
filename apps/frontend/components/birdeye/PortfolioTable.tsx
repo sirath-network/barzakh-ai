@@ -94,6 +94,14 @@ const getChainLogo = (chain: string, iconUrl?: string): string => {
   return zerionChainIcons[chain.toLowerCase()] || "https://chain-icons.s3.amazonaws.com/ethereum.png";
 };
 
+// Check if address is a Solana address (Base58 format, 32-44 chars, not starting with 0x)
+const isSolanaAddress = (address: string): boolean => {
+  if (!address || address.startsWith('0x')) return false;
+  // Solana addresses are Base58 encoded, typically 32-44 characters
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  return base58Regex.test(address);
+};
+
 // Format large numbers with commas
 const formatNumber = (num: number, decimals = 2): string => {
   return new Intl.NumberFormat('en-US', {
@@ -344,8 +352,11 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   };
 
   useEffect(() => {
+    // Skip DeFi/NFT fetches for Solana addresses (not supported by Zerion yet)
+    const isSolana = isSolanaAddress(result.id);
+
     if (result.id && !hasFetchedProtocols) {
-      if (totalPositions === 0) {
+      if (totalPositions === 0 || isSolana) {
         setHasFetchedProtocols(true);
       } else {
         fetchProtocolPositions();
@@ -353,18 +364,26 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     }
 
     if (result.id && !hasFetchedNfts) {
-      fetchNftCollections();
-      fetchNftPortfolio();
+      if (isSolana) {
+        setHasFetchedNfts(true);
+      } else {
+        fetchNftCollections();
+        fetchNftPortfolio();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result.id, currency, totalPositions]);
 
   const toggleProtocols = () => {
+    // Don't allow expand for Solana (not supported)
+    if (isSolanaAddress(result.id)) return;
     if (!showProtocols && protocolPositions.length === 0) fetchProtocolPositions();
     setShowProtocols(!showProtocols);
   };
 
   const toggleNfts = () => {
+    // Don't allow expand for Solana (not supported)
+    if (isSolanaAddress(result.id)) return;
     if (!showNfts && nftCollections.length === 0) fetchNftCollections();
     setShowNfts(!showNfts);
   };
@@ -408,6 +427,9 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       }
     }
   };
+
+  // Check if this is a Solana wallet
+  const isSolanaWallet = isSolanaAddress(result.id);
 
   return (
     <div className="w-full max-w-full space-y-4 font-sans">
@@ -471,20 +493,23 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.01 }}
+          whileHover={isSolanaWallet ? {} : { scale: 1.01 }}
           transition={{ delay: 0.1 }}
-          className="md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer group"
+          className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer group'}`}
           onClick={toggleProtocols}
         >
           <div className="p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
+              <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
                 <LandmarkAny className="w-5 h-5" />
               </div>
-              <div className={`transition-transform duration-300 ${showProtocols ? 'rotate-180' : ''}`}>
-                <ChevronDownAny className="w-5 h-5 text-zinc-400" />
-              </div>
-            </div>            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">DeFi Protocols</h3>
+              {!isSolanaWallet && (
+                <div className={`transition-transform duration-300 ${showProtocols ? 'rotate-180' : ''}`}>
+                  <ChevronDownAny className="w-5 h-5 text-zinc-400" />
+                </div>
+              )}
+            </div>
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">DeFi Protocols</h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Lending, Staking, Liquidity
             </p>
@@ -492,12 +517,23 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             <div className="mt-auto pt-4">
               <div className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status</div>
               <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${protocolPositions.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {loadingProtocols || (!hasFetchedProtocols && (totalPositions || 0) > 0) ? 'Loading...' :
-                    protocolPositions.length > 0 ? `${protocolPositions.length} Active Positions` :
-                      'No Active Positions'}
-                </span>
+                {isSolanaWallet ? (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+                    <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                      Coming soon
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className={`w-2 h-2 rounded-full ${protocolPositions.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {loadingProtocols || (!hasFetchedProtocols && (totalPositions || 0) > 0) ? 'Loading...' :
+                        protocolPositions.length > 0 ? `${protocolPositions.length} Active Positions` :
+                          'No Active Positions'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -607,146 +643,207 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           )}
         </AnimatePresence>
 
-        {/* Asset Lists by Chain */}
+        {/* Asset Lists */}
         <div className="col-span-1 md:col-span-2 space-y-4">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white px-1">Assets by Chain</h3>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white px-1">
+            {isSolanaWallet ? 'Token Holdings' : 'Assets by Chain'}
+          </h3>
 
-          {chains.map(([chain, value], index) => {
-            const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
-            const isExpanded = expandedChains[chain];
-            const tokens = chainTokens[chain];
-            const isLoading = loadingChains[chain];
-
-            return (
-              <motion.div
-                key={chain}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: isExpanded ? 1 : 1.005 }}
-                transition={{ delay: index * 0.05 }}
-                className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
-              >
-                <button
-                  onClick={() => toggleChainExpansion(chain)}
-                  className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors gap-2"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
-                    <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1.5 sm:p-2 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
-                      <ImageAny
-                        src={getChainLogo(chain, chainIcons[chain])}
-                        alt={chain}
-                        width={24}
-                        height={24}
-                        className="w-full h-full object-contain"
-                        unoptimized
-                      />
-                    </div>
-                    <div className="text-left min-w-0 truncate">
-                      <div className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white capitalize truncate">{chain.replace(/-/g, ' ')}</div>
-                      <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{percentage.toFixed(1)}% of portfolio</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
-                    <div className="text-right">
-                      <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
-                    </div>
-                    <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
-                  </div>
-                </button>
-
-                <AnimatePresence>
-                  {isExpanded && (
+          {/* Solana: Flat token list view */}
+          {isSolanaWallet ? (
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+              <div>
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-2 sm:gap-4 px-4 sm:px-5 py-3 text-[11px] sm:text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider border-b border-zinc-100 dark:border-zinc-800/50">
+                  <div className="col-span-6 sm:col-span-5">Token</div>
+                  <div className="col-span-3 text-right hidden sm:block">Allocation</div>
+                  <div className="col-span-6 sm:col-span-4 text-right">Value</div>
+                </div>
+                {chains.map(([tokenSymbol, value], index) => {
+                  const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
+                  const tokenIcon = result.attributes.token_icons?.[tokenSymbol];
+                  return (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-t border-zinc-100 dark:border-zinc-900 bg-zinc-50/30 dark:bg-zinc-900/10"
+                      key={tokenSymbol}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.03, duration: 0.2 }}
+                      className="grid grid-cols-12 gap-2 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30 transition-colors items-center border-b border-zinc-50 dark:border-zinc-900/50 last:border-b-0"
                     >
-                      {isLoading ? (
-                        <div className="flex justify-center py-6">
-                          <Loader2Any className="w-5 h-5 animate-spin text-zinc-400" />
-                        </div>
-                      ) : tokens && tokens.length > 0 ? (
-                        <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
-                          {/* Table Header */}
-                          <div className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                            <div className="col-span-6 sm:col-span-5">Asset</div>
-                            <div className="col-span-3 text-right hidden sm:block">Price</div>
-                            <div className="col-span-6 sm:col-span-4 text-right">Value</div>
+                      <div className="col-span-6 sm:col-span-5 flex items-center gap-3">
+                        {tokenIcon ? (
+                          <ImageAny
+                            src={tokenIcon}
+                            alt={tokenSymbol}
+                            width={36}
+                            height={36}
+                            className="w-9 h-9 rounded-full flex-shrink-0 ring-1 ring-zinc-200 dark:ring-zinc-800"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm shadow-sm">
+                            {tokenSymbol.charAt(0).toUpperCase()}
                           </div>
-
-                          {tokens.map((token, idx) => (
-                            <motion.div
-                              key={idx}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: idx * 0.02 }}
-                              className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors items-center group/row cursor-default"
-                            >
-                              <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
-                                {token.icon ? (
-                                  <ImageAny
-                                    src={token.icon}
-                                    alt={token.symbol}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full"
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
-                                    {token.symbol.charAt(0)}
-                                  </div>
-                                )}
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-sm text-zinc-900 dark:text-white">{token.symbol}</span>
-                                  <span className="text-xs text-zinc-500">{formatCrypto(token.balance)}</span>
-                                </div>
-                              </div>
-
-                              <div className="col-span-3 text-right hidden sm:block">
-                                <div className="text-sm text-zinc-900 dark:text-white tabular-nums">${formatCrypto(token.price)}</div>
-                                {/* Mini Sparkline Placeholder - Visual only since we lack history data */}
-                                <div className="h-1 w-12 ml-auto mt-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                  <div className={`h-full w-2/3 rounded-full ${Math.random() > 0.5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                                </div>
-                              </div>
-
-                              <div className="col-span-6 sm:col-span-4 text-right">
-                                <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatNumber(token.value)}</div>
-                              </div>
-                            </motion.div>
-                          ))}
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-sm text-zinc-900 dark:text-white truncate">{tokenSymbol}</span>
+                          <span className="text-xs text-zinc-400 dark:text-zinc-500">Solana</span>
                         </div>
-                      ) : (
-                        <div className="text-center py-6 text-sm text-zinc-500">No tokens found on this chain.</div>
-                      )}
+                      </div>
+
+                      <div className="col-span-3 text-right hidden sm:block">
+                        <span className="text-sm text-zinc-500 dark:text-zinc-400 tabular-nums font-medium">{percentage.toFixed(1)}%</span>
+                      </div>
+
+                      <div className="col-span-6 sm:col-span-4 text-right">
+                        <div className="font-semibold text-sm text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : '0.00'}</div>
+                      </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* EVM: Expandable chain list */
+            chains.map(([chain, value], index) => {
+              const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
+              const isExpanded = expandedChains[chain];
+              const tokens = chainTokens[chain];
+              const isLoading = loadingChains[chain];
+
+              return (
+                <motion.div
+                  key={chain}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: isExpanded ? 1 : 1.005 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
+                >
+                  <button
+                    onClick={() => toggleChainExpansion(chain)}
+                    className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors gap-2"
+                  >
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
+                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1.5 sm:p-2 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
+                        <ImageAny
+                          src={getChainLogo(chain, chainIcons[chain])}
+                          alt={chain}
+                          width={24}
+                          height={24}
+                          className="w-full h-full object-contain"
+                          unoptimized
+                        />
+                      </div>
+                      <div className="text-left min-w-0 truncate">
+                        <div className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white capitalize truncate">{chain.replace(/-/g, ' ')}</div>
+                        <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{percentage.toFixed(1)}% of portfolio</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
+                      <div className="text-right">
+                        <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
+                      </div>
+                      <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                    </div>
+                  </button>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="border-t border-zinc-100 dark:border-zinc-900 bg-zinc-50/30 dark:bg-zinc-900/10"
+                      >
+                        {isLoading ? (
+                          <div className="flex justify-center py-6">
+                            <Loader2Any className="w-5 h-5 animate-spin text-zinc-400" />
+                          </div>
+                        ) : tokens && tokens.length > 0 ? (
+                          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+                            {/* Table Header */}
+                            <div className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                              <div className="col-span-6 sm:col-span-5">Asset</div>
+                              <div className="col-span-3 text-right hidden sm:block">Price</div>
+                              <div className="col-span-6 sm:col-span-4 text-right">Value</div>
+                            </div>
+
+                            {tokens.map((token, idx) => (
+                              <motion.div
+                                key={idx}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: idx * 0.02 }}
+                                className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors items-center group/row cursor-default"
+                              >
+                                <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
+                                  {token.icon ? (
+                                    <ImageAny
+                                      src={token.icon}
+                                      alt={token.symbol}
+                                      width={24}
+                                      height={24}
+                                      className="rounded-full"
+                                      unoptimized
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
+                                      {token.symbol.charAt(0)}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-sm text-zinc-900 dark:text-white">{token.symbol}</span>
+                                    <span className="text-xs text-zinc-500">{formatCrypto(token.balance)}</span>
+                                  </div>
+                                </div>
+
+                                <div className="col-span-3 text-right hidden sm:block">
+                                  <div className="text-sm text-zinc-900 dark:text-white tabular-nums">${formatCrypto(token.price)}</div>
+                                  {/* Mini Sparkline Placeholder - Visual only since we lack history data */}
+                                  <div className="h-1 w-12 ml-auto mt-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div className={`h-full w-2/3 rounded-full ${Math.random() > 0.5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                  </div>
+                                </div>
+
+                                <div className="col-span-6 sm:col-span-4 text-right">
+                                  <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatNumber(token.value)}</div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 text-sm text-zinc-500">No tokens found on this chain.</div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })
+          )}
         </div>
 
         {/* NFT Summary Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.01 }}
+          whileHover={isSolanaWallet ? {} : { scale: 1.01 }}
           transition={{ delay: 0.2 }}
-          className="md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer group"
+          className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer group'}`}
           onClick={toggleNfts}
         >
           <div className="p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800 transition-colors">
+              <div className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
                 <LayersAny className="w-5 h-5" />
               </div>
-              <div className={`transition-transform duration-300 ${showNfts ? 'rotate-180' : ''}`}>
-                <ChevronDownAny className="w-5 h-5 text-zinc-400" />
-              </div>
+              {!isSolanaWallet && (
+                <div className={`transition-transform duration-300 ${showNfts ? 'rotate-180' : ''}`}>
+                  <ChevronDownAny className="w-5 h-5 text-zinc-400" />
+                </div>
+              )}
             </div>
 
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">NFTs</h3>
@@ -757,15 +854,26 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
             <div className="mt-auto pt-4">
               <div className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Status</div>
               <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${nftCollections.length > 0 ? 'bg-purple-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {loadingNfts || (!hasFetchedNfts && (totalPositions || 0) > 0) ? 'Loading...' :
-                    totalNftCollections > 0
-                      ? totalNftCollections > 12
-                        ? `12 of ${totalNftCollections} Collections`
-                        : `${totalNftCollections} Collections`
-                      : 'No NFTs Found'}
-                </span>
+                {isSolanaWallet ? (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-600" />
+                    <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                      Coming soon
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className={`w-2 h-2 rounded-full ${nftCollections.length > 0 ? 'bg-purple-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {loadingNfts || (!hasFetchedNfts && (totalPositions || 0) > 0) ? 'Loading...' :
+                        totalNftCollections > 0
+                          ? totalNftCollections > 12
+                            ? `12 of ${totalNftCollections} Collections`
+                            : `${totalNftCollections} Collections`
+                          : 'No NFTs Found'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

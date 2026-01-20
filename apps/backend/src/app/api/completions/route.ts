@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       model: model
     } = validatedData;
 
-    myProvider.languageModel("gemini-2.5-flash-preview-09-2025")
+    myProvider.languageModel("google-gemini-2.5-flash-preview")
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"
     );

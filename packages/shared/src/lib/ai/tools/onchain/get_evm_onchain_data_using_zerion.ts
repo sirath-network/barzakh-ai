@@ -49,7 +49,7 @@ export const getEvmOnchainDataUsingZerion = tool({
       const zerionAllPathsAndDesc = await getAllPathsAndDesc(zerionOpenapidata);
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("gemini-2.5-flash-preview-09-2025"),
+        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
         system: `You are an intelligent API assistant for Zerion blockchain data. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
 
         ## 🚨 ABSOLUTE RULES (MUST FOLLOW):

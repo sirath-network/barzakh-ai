@@ -24,7 +24,7 @@ export const defiLlama = tool({
       );
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("gemini-2.5-flash-preview-09-2025"),
+        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
         system: `You are an intelligent API assistant. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
       
         ## How to Process User Queries:

@@ -272,7 +272,7 @@ export const myProvider = customProvider({
     "anthropic-opus-4.5": cometai("claude-opus-4-5-20251101-thinking"),
     "anthropic-haiku-4.5": cometai("claude-haiku-4-5-20251001"),
     "google-gemini-3-flash": cometai("gemini-3-flash"),
-    "google-gemini-2.5-flash-preview": cometai("gemini-2.5-flash-preview-09-2025"),
+    "google-gemini-2.5-flash-preview": cometai("google-gemini-2.5-flash-preview"),
     "xai-grok-4.1-fast": cometai("grok-4-1-fast-non-reasoning"),
     "zai-glm-4.7": cometai("glm-4.7"),
 

@@ -13,6 +13,10 @@ export type PortfolioData = {
     positions_distribution_by_chain: {
       [key: string]: number | undefined; // For additional chains
     };
+    // Token icon URLs keyed by symbol (for Solana tokens)
+    token_icons?: {
+      [key: string]: string | undefined;
+    };
     total: {
       positions: number | null;
     };

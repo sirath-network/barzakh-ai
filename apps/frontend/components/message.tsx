@@ -19,13 +19,15 @@ import { MessageReasoning } from "./message-reasoning";
 import MultiSearch from "./multi-search";
 import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft } from "lucide-react";
+import TransactionHistory from "./solana/TransactionHistory";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
 const MultiSearchAny = MultiSearch as any;
 const PortfolioTableAny = PortfolioTable as any;
 const TokenInfoTableAny = TokenInfoTable as any;
+const TransactionHistoryAny = TransactionHistory as any;
 const AIGeneratedImageAny = AIGeneratedImage as any;
 const AIGeneratedImageGridAny = AIGeneratedImageGrid as any;
 const PreviewAttachmentAny = PreviewAttachment as any;
@@ -46,6 +48,7 @@ const FileTextAny = FileText as any;
 const FileImageAny = FileImage as any;
 const CreditCardAny = CreditCard as any;
 const ArrowRightLeftAny = ArrowRightLeft as any;
+const HistoryAny = History as any;
 const TooltipAny = Tooltip as any;
 const TooltipTriggerAny = TooltipTrigger as any;
 const TooltipContentAny = TooltipContent as any;
@@ -58,6 +61,7 @@ const toolIcons: Record<string, React.ElementType> = {
   getSolanaChainWalletPortfolio: WalletAny,
   getEvmMultiChainWalletPortfolio: WalletAny,
   getTokenBalances: WalletAny,
+  getSolanaWalletTransactions: HistoryAny,
   getCreditcoinApiData: FileTextAny,
   getVanaApiData: FileTextAny,
   getEvmOnchainDataUsingZerion: FileTextAny,
@@ -153,6 +157,16 @@ const filterPreambleContent = (content: string, hasTools: boolean): string => {
   filtered = filtered.replace(/^\s*\n+/, '');
 
   return filtered.trim();
+};
+
+// Helper to remove markdown tables from content
+const removeMarkdownTables = (content: string): string => {
+  // Regex matches markdown tables:
+  // Starts with |...|
+  // Followed by divider row |---|---|
+  // Followed by any rows |...|
+  const tableRegex = /\|.*\|.*\n\|[-: |]+\|.*(\n\|.*\|.*)*/g;
+  return content.replace(tableRegex, "").trim();
 };
 
 
@@ -438,6 +452,7 @@ const PurePreviewMessage = ({
                       'getSolanaChainWalletPortfolio',
                       'getEvmMultiChainWalletPortfolio',
                       'getTokenBalances',
+                      'getSolanaWalletTransactions',
                       'createImage',
                       'initiateX402Payment',
                       // Relay Protocol - all quote tools show UI
@@ -469,6 +484,7 @@ const PurePreviewMessage = ({
                             getSolanaChainWalletPortfolio: <PortfolioTableAny result={result} />,
                             getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
                             getTokenBalances: <PortfolioTableAny result={result} />,
+                            getSolanaWalletTransactions: <TransactionHistoryAny result={result} />,
                             createImage: result?.imageUrls ? (
                               <AIGeneratedImageGridAny
                                 imageUrls={result.imageUrls}
@@ -635,9 +651,17 @@ const PurePreviewMessage = ({
                           // Only show styled container when assistant uses tools
                           if (hasTools) {
                             // Filter out preamble narration when tools are used
-                            const filteredContent = typeof message.content === 'string'
+                            let filteredContent = typeof message.content === 'string'
                               ? filterPreambleContent(smoothContent, true)
                               : smoothContent;
+
+                            // Special handling: Remove markdown tables if Transaction History tool was used
+                            // logic: if simplified content has table, and we have transaction tool, user wants just the UI
+                            // logic: if simplified content has table, and we have transaction tool, user wants just the UI
+                            const hasTxHistory = completedTools?.some(t => t.toolName === 'getSolanaWalletTransactions');
+                            if (hasTxHistory && filteredContent) {
+                              filteredContent = removeMarkdownTables(filteredContent);
+                            }
 
                             // Don't render empty content after filtering
                             if (!filteredContent || filteredContent.trim().length === 0) {

@@ -25,7 +25,7 @@ export const getAptosGraphqlData = tool({
 
       // Step 2: Ask the AI agent to select the best tool to fetch the data.
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("gemini-2.5-flash-preview-09-2025"),
+        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
         system: `You are an intelligent API assistant. Your job is to process user queries and call the relevant tool to fetch the data from Aptos.
         Pay close attention to queries about an account's transaction history. For these, you must use the \`getAccountTransactionsData\` tool.
         For all other queries, choose the most appropriate tool from the list and provide the required parameters.`,

@@ -306,20 +306,20 @@ export const searchGroups: readonly SearchGroupItem[] = [
     description: "Everything Sei. Search, transactions and more",
     icon: Network,
     img: "/images/icon/sei/sei-logo.png",
-  }
+  },
+  {
+    id: "solana",
+    name: "Solana",
+    description: "Everything Solana. Search, transactions and more",
+    icon: Network,
+    img: "/images/icon/solana/solana.png",
+  },
   // {
   // id: "monad",
   // name: "Monad",
   // description: "Everything Monad. Search, transactions and more.",
   // icon: Network,
   // img: "/images/icon/monad/monad-logo.jpg",
-  // },
-  // {
-  // id: "solana",
-  // name: "Solana",
-  // description: "Everything Solana. Search, transactions and more.",
-  // icon: Network,
-  // img: "/images/icon/solana/solana.png",
   // },
 ];
 

@@ -118,7 +118,7 @@ export const getSeiApiData = tool({
       const allPaths = await getAllPathDetails(openapidata);
 
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("gemini-2.5-flash-preview-09-2025"),
+        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
         output: "array",
         schema: z.string().describe("the full api path with query parameters"),
         system: `

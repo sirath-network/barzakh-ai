@@ -25,7 +25,7 @@ export const getZetaApiData = tool({
       const allPaths = await getAllPaths(openapidata);
       console.log("use prompt is -- ", userQuery);
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("gemini-2.5-flash-preview-09-2025"),
+        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n

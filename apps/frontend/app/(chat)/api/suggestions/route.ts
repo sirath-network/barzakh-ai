@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await generateText({
-      model: myProvider.languageModel("gemini-2.5-flash-preview-09-2025"),
+      model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
       prompt: `
         Translate the following JSON array of objects into the language with code "${mainLang}".
         Do not change the keys ("title", "subtitle"). Only translate the string values.

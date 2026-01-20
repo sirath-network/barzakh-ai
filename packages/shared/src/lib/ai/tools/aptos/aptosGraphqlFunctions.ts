@@ -3,7 +3,7 @@ const APTOS_GRAPHQL_ENDPOINT =
 
 // Utility function for making GraphQL requests with timeout and retry
 async function fetchGraphQL(
-  query: string, 
+  query: string,
   variables: Record<string, any>,
   timeout = 300000, // 5 min
   retries = 2
@@ -16,7 +16,7 @@ async function fetchGraphQL(
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       console.log(`Attempt ${attempt + 1} of ${retries + 1}`);
-      
+
       // Create AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -26,8 +26,8 @@ async function fetchGraphQL(
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${apiKey}`,
-          "Origin": process.env.NODE_ENV === 'production' 
-            ? "https://chat.barzakh.tech" 
+          "Origin": process.env.NODE_ENV === 'production'
+            ? "https://chat.barzakh.tech"
             : "http://localhost:3000",
         },
         body: JSON.stringify({ query, variables }),
@@ -40,17 +40,17 @@ async function fetchGraphQL(
 
       if (!response.ok || json.errors) {
         // Check if it's a timeout error that we should retry
-        const isTimeoutError = json.errors?.some((error: any) => 
-          error.message?.includes("Request Timed Out") || 
+        const isTimeoutError = json.errors?.some((error: any) =>
+          error.message?.includes("Request Timed Out") ||
           error.extensions?.code === "408"
         );
-        
+
         if (isTimeoutError && attempt < retries) {
           console.log(`Timeout error, retrying in ${(attempt + 1) * 2} seconds...`);
           await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
           continue;
         }
-        
+
         throw new Error(`GraphQL Error: ${JSON.stringify(json.errors)}`);
       }
 
@@ -65,15 +65,15 @@ async function fetchGraphQL(
         }
         throw new Error(`Request timed out after ${retries + 1} attempts`);
       }
-      
+
       console.error(`Error fetching data (attempt ${attempt + 1}): ${error}`);
-      
+
       if (attempt < retries) {
         console.log(`Retrying in ${(attempt + 1) * 2} seconds...`);
         await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
         continue;
       }
-      
+
       throw error;
     }
   }
@@ -82,7 +82,7 @@ async function fetchGraphQL(
 // 1️⃣ Get Transaction Block Number
 export async function getPortfolio(address: string, limit = 10, offset = 0) {
   console.log("Fetching portfolio for address:", address);
-  
+
   try {
     // Fetch in parallel but with smaller limits to reduce timeout risk
     const [ownedTokens, ownedCoins] = await Promise.allSettled([
@@ -123,10 +123,10 @@ export async function getAccountTransactionsData(
       }
     }
   `;
-  
+
   try {
     const data = await fetchGraphQL(query, { address, limit, offset });
-    
+
     // Add explorer links to the returned data
     if (data?.account_transactions && Array.isArray(data.account_transactions)) {
       data.account_transactions = data.account_transactions.map((tx: any) => ({
@@ -134,10 +134,10 @@ export async function getAccountTransactionsData(
         explorer_link: `https://explorer.aptoslabs.com/txn/${tx.transaction_version}?network=mainnet`,
         formatted_link: `[Transaction ${tx.transaction_version}](https://explorer.aptoslabs.com/txn/${tx.transaction_version}?network=mainnet)`
       }));
-      
+
       console.log(`Added explorer links to ${data.account_transactions.length} transactions`);
     }
-    
+
     return data;
   } catch (error) {
     console.error("Error fetching transaction data:", error);
@@ -190,7 +190,7 @@ export async function getOwnedCoinsData(
   offset = 0
 ) {
   console.log("Fetching coins data for address:", ownerAddress);
-  
+
   // Simplified query to reduce load
   const query = `
     query CoinsData($owner_address: String, $limit: Int, $offset: Int) {
@@ -213,20 +213,20 @@ export async function getOwnedCoinsData(
       }
     }
   `;
-  
+
   try {
     const data = await fetchGraphQL(query, {
       owner_address: ownerAddress,
       limit,
       offset,
     }, 20000); // 20 second timeout for this query
-    
+
     console.log("Coins data received:", data?.current_fungible_asset_balances?.length || 0, "items");
-    
+
     if (!data?.current_fungible_asset_balances) {
       return [];
     }
-    
+
     // Process the data
     const coinsData = data.current_fungible_asset_balances.map((coin: any) => {
       const { amount, metadata } = coin;
@@ -236,7 +236,7 @@ export async function getOwnedCoinsData(
         amount: amount / Math.pow(10, decimals || 8), // Default to 8 decimals if not provided
       };
     });
-    
+
     console.log("Processed coins data:", coinsData.length, "items");
     return coinsData;
   } catch (error) {
@@ -248,7 +248,7 @@ export async function getOwnedCoinsData(
 // Optimized tokens query
 export async function getOwnedTokens(address: string, limit = 10, offset = 0) {
   console.log("Fetching owned tokens for address:", address);
-  
+
   const query = `
     query getOwnedTokens($where_condition: current_token_ownerships_v2_bool_exp!, $offset: Int, $limit: Int) {
       current_token_ownerships_v2(
@@ -267,19 +267,19 @@ export async function getOwnedTokens(address: string, limit = 10, offset = 0) {
       }
     }
   `;
-  
+
   const whereCondition = {
     owner_address: { _eq: address },
     amount: { _gt: 0 },
   };
-  
+
   try {
     const data = await fetchGraphQL(query, {
       where_condition: whereCondition,
       offset,
       limit,
     }, 15000); // 15 second timeout
-    
+
     console.log("Tokens data received:", data?.current_token_ownerships_v2?.length || 0, "items");
     return data;
   } catch (error) {
