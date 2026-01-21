@@ -529,7 +529,7 @@ function PureMultimodalInput({
 
   const submitForm = useCallback(async () => {
     if (!user?.id) {
-      toast.error("Please login to continue", { position: "bottom-center" });
+      toast.error("Please login to continue");
       return;
     }
     if (isLoading) {

@@ -24,10 +24,9 @@ export const metadata: Metadata = {
     "Web3 search",
     "crypto intelligence",
   ],
-  authors: [{ name: "Barzakh Team" }],
-  creator: "Barzakh Team",
-  publisher: "Barzakh Team",
-  manifest: "/manifest.json",
+  authors: [{ name: "Sirath Network" }],
+  creator: "Sirath Network",
+  publisher: "Sirath Network",
   icons: {
     icon: [
       { url: "/images/barzakh/logo-white.svg", type: "image/svg+xml" },

@@ -171,73 +171,125 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ result }) => {
                         // Get primary transfer for display
                         const primaryTransfer = tx.transfers[0];
 
+                        // Prepare value and color constants
+                        const isIncoming = primaryTransfer?.direction === "in";
+                        const sign = isIncoming ? "+" : "-";
+                        const valueColor = isIncoming
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400";
+
+                        const addressLabel = isIncoming ? "From" : "To";
+                        const displayAddress = truncateAddress(
+                            isIncoming
+                                ? primaryTransfer?.from || "—"
+                                : primaryTransfer?.to || tx.to || "—"
+                        );
+
                         return (
                             <motion.div
                                 key={tx.hash}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.03, duration: 0.2 }}
-                                className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30 transition-colors"
+                                className="px-4 py-3 hover:bg-zinc-50/80 dark:hover:bg-zinc-900/30 transition-colors border-b border-zinc-100 dark:border-zinc-800/50 last:border-0"
                             >
-                                {/* Left: Icon + Type + Time */}
-                                <div className="flex items-center gap-3 min-w-0">
+                                {/* Mobile Layout (< 640px) */}
+                                <div className="sm:hidden flex items-start gap-3">
                                     <div
-                                        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bgColor}`}
+                                        className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${style.bgColor}`}
                                     >
                                         <IconComponent className={`w-4 h-4 ${style.iconColor}`} />
                                     </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="font-medium text-sm text-zinc-900 dark:text-white">
-                                            {style.label}
-                                        </span>
-                                        <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                                            {formatDate(tx.timestamp)}
-                                        </span>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <span className="font-medium text-sm text-zinc-900 dark:text-white truncate">
+                                                {style.label}
+                                            </span>
+                                            {primaryTransfer && (
+                                                <span className={`font-semibold text-sm tabular-nums flex-shrink-0 ${valueColor}`}>
+                                                    {sign}{formatCrypto(primaryTransfer.amount)} {primaryTransfer.symbol}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                                                {formatDate(tx.timestamp)}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                                    <span>{addressLabel}</span>
+                                                    <span className="font-mono text-zinc-600 dark:text-zinc-300">
+                                                        {displayAddress}
+                                                    </span>
+                                                </div>
+                                                <a
+                                                    href={`https://solscan.io/tx/${tx.hash}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1 rounded-md bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                                                >
+                                                    <ExternalLink className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Center: Token + Amount */}
-                                {primaryTransfer && (
-                                    <div className="flex flex-col items-center text-center px-2">
-                                        <span
-                                            className={`font-semibold text-sm tabular-nums ${primaryTransfer.direction === "in"
-                                                ? "text-emerald-600 dark:text-emerald-400"
-                                                : "text-rose-600 dark:text-rose-400"
-                                                }`}
+                                {/* Desktop Layout (>= 640px) */}
+                                <div className="hidden sm:flex items-center justify-between">
+                                    {/* Left: Icon + Type + Time */}
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div
+                                            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bgColor}`}
                                         >
-                                            {primaryTransfer.direction === "in" ? "+" : "-"}
-                                            {formatCrypto(primaryTransfer.amount)} {primaryTransfer.symbol}
-                                        </span>
-                                        {primaryTransfer.valueUsd !== null && (
-                                            <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                                                ${formatNumber(primaryTransfer.valueUsd)}
+                                            <IconComponent className={`w-4 h-4 ${style.iconColor}`} />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="font-medium text-sm text-zinc-900 dark:text-white">
+                                                {style.label}
                                             </span>
-                                        )}
+                                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                                                {formatDate(tx.timestamp)}
+                                            </span>
+                                        </div>
                                     </div>
-                                )}
 
-                                {/* Right: Counterparty + Link */}
-                                <div className="flex items-center gap-3">
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                            {primaryTransfer?.direction === "in" ? "From" : "To"}
-                                        </span>
-                                        <span className="text-xs font-mono text-zinc-600 dark:text-zinc-300">
-                                            {truncateAddress(
-                                                primaryTransfer?.direction === "in"
-                                                    ? primaryTransfer.from
-                                                    : primaryTransfer?.to || tx.to || "—"
+                                    {/* Center: Token + Amount */}
+                                    {primaryTransfer && (
+                                        <div className="flex flex-col items-center text-center px-2">
+                                            <span
+                                                className={`font-semibold text-sm tabular-nums ${valueColor}`}
+                                            >
+                                                {sign}
+                                                {formatCrypto(primaryTransfer.amount)} {primaryTransfer.symbol}
+                                            </span>
+                                            {primaryTransfer.valueUsd !== null && (
+                                                <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                                                    ${formatNumber(primaryTransfer.valueUsd)}
+                                                </span>
                                             )}
-                                        </span>
+                                        </div>
+                                    )}
+
+                                    {/* Right: Counterparty + Link */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                {addressLabel}
+                                            </span>
+                                            <span className="text-xs font-mono text-zinc-600 dark:text-zinc-300">
+                                                {displayAddress}
+                                            </span>
+                                        </div>
+                                        <a
+                                            href={`https://solscan.io/tx/${tx.hash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                                        >
+                                            <ExternalLink className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
+                                        </a>
                                     </div>
-                                    <a
-                                        href={`https://solscan.io/tx/${tx.hash}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                                    >
-                                        <ExternalLink className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
-                                    </a>
                                 </div>
                             </motion.div>
                         );
