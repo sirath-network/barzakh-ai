@@ -2,16 +2,47 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useSwitchChain, useSendTransaction, useSignMessage, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck } from "lucide-react";
 import { createClient } from "@relayprotocol/relay-sdk";
+import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { motion, AnimatePresence } from "framer-motion";
+import { useChainWallet, isNonEvmChain, getNonEvmChainName } from "@/hooks/use-chain-wallet";
+
+// Dynamic import DynamicWidget to prevent SSR issues
+const DynamicWidget = dynamic(
+    () => import('@dynamic-labs/sdk-react-core').then((mod) => mod.DynamicWidget),
+    { ssr: false, loading: () => <div className="h-11 bg-zinc-800/50 rounded-lg animate-pulse" /> }
+);
+
+// Dynamic import for useDynamicContext - we need this to programmatically open the auth flow
+import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
 
 // Type aliases for React 19 compatibility
 const ButtonAny = Button as any;
+
+// Solana RPC URL - use env var or fallback to public endpoint
+const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://solana-rpc.publicnode.com";
+
+// Custom connect button for Dynamic SDK - styled like the EVM wallet connect button
+const DynamicConnectButton = () => {
+    const { setShowAuthFlow } = useDynamicContext();
+
+    return (
+        <ButtonAny
+            onClick={() => setShowAuthFlow(true)}
+            variant="outline"
+            className="w-full h-11 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold text-sm"
+        >
+            <Wallet className="size-4 mr-2" />
+            Connect Wallet
+        </ButtonAny>
+    );
+};
 
 // Chain names for display
 const CHAIN_NAMES: Record<number, string> = {
@@ -134,6 +165,7 @@ interface RelayTransaction {
     to: string;
     value: string;
     chainId: number;
+    rawData?: any; // Raw transaction data for non-EVM chains
 }
 
 interface RelayQuoteDetails {
@@ -173,6 +205,7 @@ interface RelaySwapApprovalProps {
             toToken: string;
             amount: string;
             isUSD: boolean;
+            recipient?: string;
         };
     };
 }
@@ -189,75 +222,14 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const [txHash, setTxHash] = useState<string | null>(null);
     const [currentTxIndex, setCurrentTxIndex] = useState(0);
     const [isVerified, setIsVerified] = useState(false);
+    const [clientTransactions, setClientTransactions] = useState<RelayTransaction[]>([]);
+    const [clientLoading, setClientLoading] = useState(false);
+
 
     // Swap tracking state
     const [swapAlreadyCompleted, setSwapAlreadyCompleted] = useState(false);
     const [isCheckingSwapStatus, setIsCheckingSwapStatus] = useState(true);
     const [completedTxHash, setCompletedTxHash] = useState<string | null>(null);
-
-    // Client-side execution state
-    const [clientTransactions, setClientTransactions] = useState<RelayTransaction[]>([]);
-    const [clientLoading, setClientLoading] = useState(false);
-
-    // Generate unique swap request ID from params
-    const swapRequestId = result.toolParams && result.timestamp
-        ? btoa(JSON.stringify({
-            fromChainId: result.toolParams.fromChainId,
-            toChainId: result.toolParams.toChainId,
-            fromToken: result.toolParams.fromToken,
-            toToken: result.toolParams.toToken,
-            amount: result.toolParams.amount,
-            timestamp: result.timestamp,
-        }))
-        : null;
-
-    // Check if swap was already completed (server-side persistence)
-    useEffect(() => {
-        const checkSwapCompletion = async () => {
-            if (!swapRequestId) {
-                setIsCheckingSwapStatus(false);
-                return;
-            }
-
-            try {
-                const res = await fetch(`/api/relay/swap-tracking?swapRequestId=${encodeURIComponent(swapRequestId)}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.completed) {
-                        setSwapAlreadyCompleted(true);
-                        setCompletedTxHash(data.transactionHash || null);
-                        setStep("success");
-                    }
-                }
-            } catch (error) {
-                console.warn("Failed to check swap status:", error);
-            } finally {
-                setIsCheckingSwapStatus(false);
-            }
-        };
-
-        checkSwapCompletion();
-    }, [swapRequestId]);
-
-    // Handle error results
-    if (result.status === "error") {
-        return (
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 max-w-md w-full"
-            >
-                <div className="flex items-center gap-2 text-destructive">
-                    <AlertCircle className="size-5" />
-                    <span className="font-medium">Quote Error</span>
-                </div>
-                <p className="mt-2 text-sm text-zinc-400">{result.error || result.details}</p>
-                {result.suggestion && (
-                    <p className="mt-2 text-xs text-zinc-500 italic">{result.suggestion}</p>
-                )}
-            </motion.div>
-        );
-    }
 
     // Get initial quote details
     const quote = result.quote || result.quoteDetails;
@@ -265,13 +237,124 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const destChain = result.toChain || result.destinationChain;
     const initialTransactions = result.transactions || [];
 
+    // Determine required chain for transaction
+    const getChainIdFromName = (name: string): number | undefined => {
+        const entry = Object.entries(CHAIN_NAMES).find(([_, n]) =>
+            n.toLowerCase() === name?.toLowerCase()
+        );
+        return entry ? parseInt(entry[0]) : undefined;
+    };
+
+    const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
+    const destinationChainIdNum = result.toolParams?.toChainId || getChainIdFromName(destChain || "");
+    const isWrongChain = chain?.id !== requiredChainIdNum;
+
+    // Check if source chain is non-EVM (e.g., swapping FROM Solana)
+    const isSourceNonEvm = requiredChainIdNum ? isNonEvmChain(requiredChainIdNum) : false;
+
+    // Get source chain wallet from Dynamic SDK (for Solana, Bitcoin, Tron)
+    const sourceWallet = useChainWallet(requiredChainIdNum);
+
+    // Address Input Logic
+    const [recipientAddress, setRecipientAddress] = useState<string>("");
+    const [recipientError, setRecipientError] = useState<string>("");
+
+    // Check if we need a separate destination address (e.g. cross-chain to non-EVM, or from non-EVM to EVM)
+    const needsDestinationAddress = (() => {
+        if (typeof window === "undefined") return false;
+
+        // If destination is non-EVM, we DEFINITELY need a separate address
+        if (destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
+            return true;
+        }
+
+        // If source is non-EVM and destination is EVM, we need the user to provide an EVM address
+        // (unless they have an EVM wallet connected)
+        if (isSourceNonEvm && destinationChainIdNum && !isNonEvmChain(destinationChainIdNum)) {
+            // If no EVM wallet connected, we need manual input
+            return !address;
+        }
+
+        return false;
+    })();
+
+    // Get destination chain wallet from Dynamic SDK (for Solana, Bitcoin, Tron)
+    const destinationWallet = useChainWallet(destinationChainIdNum);
+
+    // Initialize recipient from tool params if valid, or clear if needed
+    useEffect(() => {
+        if (result.toolParams?.recipient) {
+            // If the tool returned a recipient (e.g. from prompt), use it
+            // BUT check if it's a placeholder. If it looks like a placeholder, don't auto-fill it as "valid"
+            const isPlaceholder =
+                result.toolParams.recipient.includes("11111111111111111111111111111111") ||
+                result.toolParams.recipient.startsWith("0x000000000000000000000000000000");
+
+            if (!isPlaceholder) {
+                setRecipientAddress(result.toolParams.recipient);
+            }
+        }
+    }, [result.toolParams]);
+
+    // Validate destination address
+    const validateRecipient = (addr: string) => {
+        if (!destinationChainIdNum) return true;
+
+        // Solana
+        if (destinationChainIdNum === 792703809) {
+            return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
+        }
+        // Bitcoin
+        if (destinationChainIdNum === 8253038) {
+            return /^(1|3|bc1)[a-zA-Z0-9]{25,90}$/.test(addr);
+        }
+        // Tron
+        if (destinationChainIdNum === 728126428) {
+            return /^T[a-zA-Z0-9]{33}$/.test(addr);
+        }
+
+        // Default EVM
+        return /^0x[a-fA-F0-9]{40}$/.test(addr);
+    };
+
     // Use client transactions if available, otherwise initial
     const processedTransactions = clientTransactions.length > 0 ? clientTransactions : initialTransactions;
-
     // Fetch executable transaction client-side if needed
     useEffect(() => {
         const fetchExecutableTx = async () => {
-            if (isConnected && address && result.toolParams && processedTransactions.length === 0) {
+            // Determine the effective user address for the quote
+            // For non-EVM sources, we need the Dynamic wallet address
+            // For EVM sources, we use the connected wagmi address
+            let effectiveUser: string | undefined;
+
+            if (isSourceNonEvm) {
+                // For non-EVM sources, we need a Dynamic wallet connection
+                if (!sourceWallet?.address) {
+                    console.log('Skipping quote fetch: Source is non-EVM, waiting for wallet connection');
+                    return;
+                }
+                effectiveUser = sourceWallet.address;
+            } else {
+                // For EVM sources, use the wagmi address
+                if (!address) return;
+                effectiveUser = address;
+            }
+
+            // Use manual address input for non-EVM destinations, or EVM address
+            const effectiveRecipient = needsDestinationAddress
+                ? recipientAddress
+                : address;
+
+            if (!effectiveRecipient || (needsDestinationAddress && !validateRecipient(effectiveRecipient))) {
+                return;
+            }
+
+            // For non-EVM sources, we don't require wagmi connection, only the Dynamic wallet
+            const canFetch = isSourceNonEvm
+                ? (sourceWallet?.address && result.toolParams && processedTransactions.length === 0)
+                : (isConnected && address && result.toolParams && processedTransactions.length === 0);
+
+            if (canFetch && effectiveUser && result.toolParams) {
                 setClientLoading(true);
                 try {
                     const client = createClient({
@@ -285,36 +368,47 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         toCurrency: result.toolParams.toToken,
                         amount: result.toolParams.amount,
                         tradeType: 'EXACT_INPUT',
-                        user: address,
-                        recipient: address
+                        user: effectiveUser,
+                        recipient: effectiveRecipient // Use the validated recipient
                     });
 
                     if (txQuote.steps) {
+                        console.log('Quote steps received:', JSON.stringify(txQuote.steps, null, 2));
+
                         const txs = txQuote.steps.flatMap((step: any) =>
                             step.items.map((item: any) => {
+                                console.log('Processing step item:', JSON.stringify(item, null, 2));
                                 const txData = item.data || item;
                                 return {
                                     data: txData.data || "0x",
                                     to: txData.to,
                                     value: txData.value ?? "0",
-                                    chainId: txData.chainId || step.chainId || result.toolParams?.fromChainId
+                                    chainId: txData.chainId || step.chainId || result.toolParams?.fromChainId,
+                                    // Store the FULL item for non-EVM chains so we can access all transaction formats
+                                    rawData: isSourceNonEvm ? item : undefined
                                 };
                             })
                         );
 
                         setClientTransactions(txs);
+                        setErrorMessage(""); // Clear any previous errors
                     }
                 } catch (err: any) {
                     console.error("Client-side quote fetch failed:", err);
-                    setErrorMessage("Failed to prepare transaction. Please try again.");
+                    setErrorMessage(err.message || "Failed to prepare transaction.");
                 } finally {
                     setClientLoading(false);
                 }
             }
         };
 
-        fetchExecutableTx();
-    }, [isConnected, address, result.toolParams, processedTransactions.length]);
+        // Debounce fetching to avoid rapid calls while typing
+        const timer = setTimeout(() => {
+            fetchExecutableTx();
+        }, 800);
+
+        return () => clearTimeout(timer);
+    }, [isConnected, address, result.toolParams, processedTransactions.length, recipientAddress, needsDestinationAddress, isSourceNonEvm, sourceWallet?.address]);
 
     // Reset verification when disconnected
     useEffect(() => {
@@ -334,7 +428,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     }, [step, disconnect]);
 
     // If no quote or no transactions, show informational card
+    // BUT if it's an error, return null to avoid showing failed attempts alongside successful ones
+    // (The AI often retries with correct params after a failure)
     if (!quote) {
+        if (result.status === "error") {
+            // Don't render failed attempts - they clutter the UI when AI retries
+            return null;
+        }
         return (
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -357,131 +457,427 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         );
     }
 
-    // Determine required chain for transaction
-    const getChainIdFromName = (name: string): number | undefined => {
-        const entry = Object.entries(CHAIN_NAMES).find(([_, n]) =>
-            n.toLowerCase() === name?.toLowerCase()
-        );
-        return entry ? parseInt(entry[0]) : undefined;
-    };
+    // URL for Relay explorer (shows cross-chain transaction details)
+    const explorerUrl = txHash || completedTxHash
+        ? `https://relay.link/transaction/${txHash || completedTxHash}`
+        : undefined;
 
-    const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
-    const isWrongChain = chain?.id !== requiredChainIdNum;
-
-    const handleVerify = async () => {
-        try {
-            setStep("verifying");
-
-            // 1. Get nonce from server
-            const nonceRes = await fetch(`/api/wallet/verify-signature?address=${address}`);
-            if (!nonceRes.ok) throw new Error("Failed to get verification nonce");
-            const { message } = await nonceRes.json();
-
-            // 2. Sign message
-            const signature = await signMessageAsync({ message });
-
-            // 3. Verify on server (without binding wallet to account)
-            const verifyRes = await fetch("/api/wallet/verify-signature", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ address, signature, bindWallet: false }),
-            });
-
-            if (!verifyRes.ok) {
-                const data = await verifyRes.json();
-                throw new Error(data.error || "Verification failed");
-            }
-
-            setIsVerified(true);
-            setStep("ready");
-        } catch (error: any) {
-            // Handle user rejection
-            if (error.code === 4001 ||
-                error?.name === 'UserRejectedRequestError' ||
-                error?.message?.includes('User rejected')) {
+    // Handlers
+    const handleSwitchChain = async () => {
+        if (requiredChainIdNum) {
+            setStep("switching");
+            try {
+                switchChain({ chainId: requiredChainIdNum });
                 setStep("ready");
-                return;
+            } catch (err) {
+                console.error("Failed to switch chain:", err);
+                setStep("ready");
             }
-
-            console.error("Verification failed:", error);
-            setStep("ready");
-            toast.error(error.message || "Verification failed. Please try again.");
         }
     };
 
-    // Execute swap
+    const handleVerify = async () => {
+        setStep("verifying");
+        try {
+            await signMessageAsync({ message: "Verify wallet ownership for Relay Protocol swap" });
+            setIsVerified(true);
+            setStep("ready");
+        } catch (err) {
+            console.error("Verification failed:", err);
+            setStep("ready");
+        }
+    };
+
+    // Generate deterministic ID for this specific swap intent
+    // We use the timestamp from the tool result to ensure it's unique to this specific AI response
+    // but persistent across page reloads (since chat history saves the tool result)
+    const swapRequestId = result.toolParams
+        ? `swap-v1-${result.toolParams.fromChainId}-${result.toolParams.toChainId}-${result.toolParams.amount}-${result.timestamp || 'no-time'}`
+        : null;
+
+    // Check status on mount
+    useEffect(() => {
+        if (!swapRequestId) {
+            setIsCheckingSwapStatus(false);
+            return;
+        }
+
+        const checkStatus = async () => {
+            // Avoid double check if already success
+            if (step === "success") return;
+
+            try {
+                const res = await fetch(`/api/relay/swap-tracking?swapRequestId=${encodeURIComponent(swapRequestId)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.completed) {
+                        setSwapAlreadyCompleted(true);
+                        setStep("success");
+                        if (data.transactionHash) {
+                            setCompletedTxHash(data.transactionHash);
+                            // Also set the hash for display
+                            setTxHash(data.transactionHash);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to check swap status:", error);
+            } finally {
+                setIsCheckingSwapStatus(false);
+            }
+        };
+
+        checkStatus();
+    }, [swapRequestId]);
+
     const handleExecuteSwap = async () => {
-        if (!address || !processedTransactions || processedTransactions.length === 0) return;
+        if (processedTransactions.length === 0) return;
+
+        // If we need a destination address but it's invalid, show error
+        if (needsDestinationAddress && !validateRecipient(recipientAddress)) {
+            setRecipientError("Please enter a valid destination address");
+            return;
+        }
 
         setStep("sending");
         setErrorMessage("");
 
         try {
-            let lastTxHash: string | null = null;
-            for (let i = 0; i < processedTransactions.length; i++) {
-                setCurrentTxIndex(i);
-                const tx = processedTransactions[i];
+            // Keep track of the final hash
+            let finalHash = "";
 
-                if (tx.chainId !== chain?.id && switchChain) {
-                    await switchChain({ chainId: tx.chainId });
+            // Handle non-EVM source chains differently
+            if (isSourceNonEvm && sourceWallet) {
+                // For non-EVM chains, we need to use the Dynamic SDK's signer
+                console.log('Executing non-EVM transaction with Dynamic wallet');
+
+                for (let i = 0; i < processedTransactions.length; i++) {
+                    setCurrentTxIndex(i);
+                    const tx = processedTransactions[i];
+
+                    // Get the signer from the Dynamic wallet
+                    // Dynamic SDK wallet types vary by chain - use dynamic access
+                    const walletAny = sourceWallet as any;
+                    const signer = walletAny.getSigner ? await walletAny.getSigner() : await walletAny.connector?.getSigner?.();
+
+                    if (!signer) {
+                        throw new Error("Failed to get signer from Dynamic wallet");
+                    }
+
+                    // The transaction data from Relay should be in the rawData field
+                    // For Solana, this would be a serialized transaction
+                    const rawTxData = tx.rawData || tx;
+
+                    let signature: string = '';
+
+                    // Determine chain type and execute accordingly
+                    const chainId = result.toolParams?.fromChainId;
+
+                    // Solana chain IDs (792703809 is Relay's Solana identifier)
+                    if (chainId === 792703809 || chainId === 1399811149) {
+                        console.log('Executing Solana transaction');
+
+                        // Create Solana connection
+                        const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
+
+                        // Import required Solana types dynamically
+                        const {
+                            PublicKey,
+                            TransactionInstruction,
+                            TransactionMessage,
+                            AddressLookupTableAccount
+                        } = await import('@solana/web3.js');
+
+                        // The Relay API returns instructions and addressLookupTableAddresses
+                        // We need to build a VersionedTransaction from these
+                        const dataObj = rawTxData?.data;
+
+                        if (!dataObj?.instructions || !Array.isArray(dataObj.instructions)) {
+                            throw new Error('No instructions found in Relay API response');
+                        }
+
+                        console.log('Building transaction from', dataObj.instructions.length, 'instructions');
+
+                        // Convert instruction objects to TransactionInstruction
+                        const instructions: InstanceType<typeof TransactionInstruction>[] = dataObj.instructions.map((ix: any) => {
+                            const keys = ix.keys.map((key: any) => ({
+                                pubkey: new PublicKey(key.pubkey),
+                                isSigner: key.isSigner,
+                                isWritable: key.isWritable
+                            }));
+
+                            // Convert hex data to buffer
+                            let dataBuffer: Buffer;
+                            if (ix.data && ix.data.length > 0) {
+                                if (ix.data.startsWith('0x')) {
+                                    dataBuffer = Buffer.from(ix.data.slice(2), 'hex');
+                                } else {
+                                    // Try hex first, then base64
+                                    try {
+                                        dataBuffer = Buffer.from(ix.data, 'hex');
+                                    } catch {
+                                        dataBuffer = Buffer.from(ix.data, 'base64');
+                                    }
+                                }
+                            } else {
+                                dataBuffer = Buffer.from([]);
+                            }
+
+                            return new TransactionInstruction({
+                                keys,
+                                programId: new PublicKey(ix.programId),
+                                data: dataBuffer
+                            });
+                        });
+
+                        // Fetch address lookup tables if provided
+                        let addressLookupTables: InstanceType<typeof AddressLookupTableAccount>[] = [];
+                        if (dataObj.addressLookupTableAddresses && dataObj.addressLookupTableAddresses.length > 0) {
+                            console.log('Fetching', dataObj.addressLookupTableAddresses.length, 'address lookup tables');
+
+                            const lookupTablePromises = dataObj.addressLookupTableAddresses.map(async (address: string) => {
+                                try {
+                                    const pubkey = new PublicKey(address);
+                                    const result = await connection.getAddressLookupTable(pubkey);
+                                    return result.value;
+                                } catch (e) {
+                                    console.warn('Failed to fetch lookup table:', address, e);
+                                    return null;
+                                }
+                            });
+
+                            const results = await Promise.all(lookupTablePromises);
+                            addressLookupTables = results.filter((t): t is InstanceType<typeof AddressLookupTableAccount> => t !== null);
+                            console.log('Fetched', addressLookupTables.length, 'lookup tables');
+                        }
+
+                        // Get the payer's public key
+                        const payerPubkey = new PublicKey(sourceWallet.address);
+
+                        // Get a recent blockhash
+                        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+                        console.log('Got blockhash:', blockhash);
+
+                        // Build the transaction message
+                        const messageV0 = new TransactionMessage({
+                            payerKey: payerPubkey,
+                            recentBlockhash: blockhash,
+                            instructions
+                        }).compileToV0Message(addressLookupTables);
+
+                        // Create the versioned transaction
+                        const transaction = new VersionedTransaction(messageV0);
+                        console.log('Built VersionedTransaction');
+
+                        // Sign the transaction using the Dynamic wallet signer
+                        console.log('Signing transaction with Dynamic wallet...');
+                        const signedTx = await signer.signTransaction(transaction);
+                        console.log('Transaction signed');
+
+                        // Send the signed transaction
+                        console.log('Sending transaction to Solana network...');
+                        const txSignature = await connection.sendRawTransaction(
+                            signedTx.serialize(),
+                            { skipPreflight: false, preflightCommitment: 'confirmed' }
+                        );
+                        console.log('Transaction sent, signature:', txSignature);
+
+                        // Wait for confirmation
+                        console.log('Waiting for confirmation...');
+                        await connection.confirmTransaction({
+                            signature: txSignature,
+                            blockhash,
+                            lastValidBlockHeight
+                        }, 'confirmed');
+                        console.log('Transaction confirmed!');
+
+                        signature = txSignature;
+                    } else if (chainId === 8453 || chainId === 137 || chainId === 10) {
+                        // This shouldn't happen for isSourceNonEvm, but handle as fallback
+                        throw new Error("Unexpected EVM chain in non-EVM execution path");
+                    } else if (chainId === 728126428) {
+                        // Tron (728126428 is Relay's Tron identifier)
+                        console.log('Executing Tron transaction');
+                        const result = await signer.signAndSendTransaction(rawTxData);
+                        signature = typeof result === 'string' ? result : result.signature || result.txid;
+                    } else {
+                        // Bitcoin or other chains
+                        console.log(`Executing transaction for chain ${chainId}`);
+                        const result = await signer.signAndSendTransaction(rawTxData);
+                        signature = typeof result === 'string' ? result : result.signature || result.hash || result.txid;
+                    }
+
+                    if (!signature) {
+                        throw new Error("Transaction failed - no signature returned");
+                    }
+
+                    console.log('Transaction signature:', signature);
+                    setTxHash(signature);
+                    finalHash = signature;
                 }
+            } else {
+                // Standard EVM transaction execution
+                for (let i = 0; i < processedTransactions.length; i++) {
+                    setCurrentTxIndex(i);
+                    const tx = processedTransactions[i];
 
-                const hash = await sendTransactionAsync({
-                    to: tx.to as `0x${string}`,
-                    data: tx.data as `0x${string}`,
-                    value: BigInt(tx.value),
-                    chainId: tx.chainId,
-                });
+                    const hash = await sendTransactionAsync({
+                        to: tx.to as `0x${string}`,
+                        data: tx.data as `0x${string}`,
+                        value: BigInt(tx.value || "0"),
+                        chainId: tx.chainId
+                    });
 
-                setTxHash(hash);
-                lastTxHash = hash;
+                    setTxHash(hash);
+                    finalHash = hash;
+                }
             }
 
+            // If all succeeded
+            setCompletedTxHash(finalHash); // Use last hash
+            setSwapAlreadyCompleted(true);
             setStep("success");
 
-            // Mark swap as completed (server-side persistence)
-            if (swapRequestId && lastTxHash) {
-                try {
-                    await fetch("/api/relay/swap-tracking", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            swapRequestId,
-                            transactionHash: lastTxHash,
-                        }),
-                    });
-                } catch (err) {
-                    console.warn("Failed to mark swap as completed:", err);
-                }
+            // Mark as completed in DB
+            if (swapRequestId && finalHash) {
+                fetch("/api/relay/swap-tracking", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        swapRequestId,
+                        transactionHash: finalHash
+                    })
+                }).catch(err => console.error("Failed to track swap:", err));
             }
-        } catch (error: any) {
-            if (error?.name === "UserRejectedRequestError" ||
-                error?.message?.includes("User rejected") ||
-                error?.code === 4001) {
+
+        } catch (err: any) {
+            // Check for user rejection
+            const isUserRejection = err.message?.includes("User rejected") ||
+                err.message?.includes("User denied") ||
+                err.message?.includes("User cancelled") ||
+                err.cause?.message?.includes("User rejected");
+
+            if (isUserRejection) {
+                console.log("Transaction cancelled by user");
                 setStep("ready");
                 return;
             }
 
-            console.error("Transaction error:", error);
-            setErrorMessage(error.message || "Transaction failed");
+            console.error("Swap failed:", err);
+            setErrorMessage(err.shortMessage || err.message || "Transaction failed");
             setStep("error");
         }
     };
 
-    const handleSwitchChain = async () => {
-        if (!requiredChainIdNum) return;
-        setStep("switching");
-        try {
-            await switchChain?.({ chainId: requiredChainIdNum });
-            setStep("ready");
-        } catch (error: any) {
-            setStep("ready");
-        }
-    };
+    // Helper to render input - Dedicated UI for destination address
+    const renderAddressInput = () => {
+        if (!needsDestinationAddress) return null;
 
-    const explorerUrl = txHash && requiredChainIdNum
-        ? `${BLOCK_EXPLORERS[requiredChainIdNum] || "https://etherscan.io"}/tx/${txHash}`
-        : null;
+        const chainName = CHAIN_NAMES[destinationChainIdNum!] || getNonEvmChainName(destinationChainIdNum!) || destChain || "destination";
+        const isValidAddress = recipientAddress && validateRecipient(recipientAddress);
+        const isEvmDestination = destinationChainIdNum && !isNonEvmChain(destinationChainIdNum);
+
+        return (
+            <div className="space-y-3">
+                {/* Source wallet connection - Show first when source is non-EVM */}
+                {isSourceNonEvm && !sourceWallet?.address && (
+                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Wallet className="size-4 text-zinc-500 dark:text-zinc-400" />
+                            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                Connect your {getNonEvmChainName(requiredChainIdNum!)} Wallet
+                            </p>
+                        </div>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
+                            To swap from {getNonEvmChainName(requiredChainIdNum!)}, connect a wallet like {
+                                requiredChainIdNum === 792703809 ? "Phantom or Solflare" :
+                                    requiredChainIdNum === 8253038 ? "Xverse or Unisat" :
+                                        requiredChainIdNum === 728126428 ? "TronLink" : "a native wallet"
+                            }.
+                        </p>
+                        <DynamicConnectButton />
+                    </div>
+                )}
+
+                {/* Source wallet connected indicator */}
+                {isSourceNonEvm && sourceWallet?.address && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                        <Check className="size-4 text-green-500" />
+                        <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                            {getNonEvmChainName(requiredChainIdNum!)} wallet connected
+                        </span>
+                        <span className="text-xs text-zinc-500 ml-auto truncate max-w-[140px]" title={sourceWallet.address}>
+                            {sourceWallet.address.slice(0, 8)}...{sourceWallet.address.slice(-6)}
+                        </span>
+                    </div>
+                )}
+
+                {/* Destination address input */}
+                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="size-4 text-zinc-400 dark:text-zinc-500" />
+                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors">
+                                Your {chainName} Wallet Address
+                            </p>
+                        </div>
+                        {isValidAddress && (
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-[10px] font-medium">
+                                <Check className="size-3" /> Valid
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Show connect wallet option for EVM destinations */}
+                    {isEvmDestination && isSourceNonEvm && (
+                        <div className="mb-3">
+                            <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
+                                <ConnectButton.Custom>
+                                    {({ openConnectModal, mounted }) => (
+                                        <ButtonAny
+                                            onClick={openConnectModal}
+                                            disabled={!mounted}
+                                            variant="outline"
+                                            className="w-full h-10 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                        >
+                                            <Wallet className="size-4 mr-2" />
+                                            Connect EVM Wallet
+                                        </ButtonAny>
+                                    )}
+                                </ConnectButton.Custom>
+                            </div>
+                            <div className="flex items-center gap-3 my-3">
+                                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+                                <span className="text-xs text-zinc-400">or enter manually</span>
+                                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+                            </div>
+                        </div>
+                    )}
+
+                    <input
+                        type="text"
+                        value={recipientAddress}
+                        onChange={(e) => {
+                            setRecipientAddress(e.target.value);
+                            if (e.target.value && !validateRecipient(e.target.value)) {
+                                setRecipientError("Invalid address format");
+                            } else {
+                                setRecipientError("");
+                            }
+                        }}
+                        placeholder={`Enter your ${chainName} wallet address`}
+                        className="w-full bg-transparent text-lg font-mono tracking-tight text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none"
+                    />
+                    {recipientError && (
+                        <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1">
+                            <AlertCircle className="size-3" />
+                            {recipientError}
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <motion.div
@@ -540,11 +936,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             </p>
                         </div>
                         <div className="flex items-baseline justify-between gap-4">
-                            <span className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-white truncate" title={quote.inputAmount}>
-                                {quote.inputAmount}
+                            <span className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-white truncate" title={quote!.inputAmount}>
+                                {quote!.inputAmount}
                             </span>
                             <span className="text-sm font-semibold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                                {quote.inputToken}
+                                {quote!.inputToken}
                             </span>
                         </div>
                     </div>
@@ -569,18 +965,21 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             </p>
                         </div>
                         <div className="flex items-baseline justify-between gap-4">
-                            <span className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-white truncate" title={quote.outputAmount}>
-                                {quote.outputAmount}
+                            <span className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-white truncate" title={quote!.outputAmount}>
+                                {quote!.outputAmount}
                             </span>
                             <span className="text-sm font-semibold px-2 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                                {quote.outputToken}
+                                {quote!.outputToken}
                             </span>
                         </div>
                     </div>
 
+                    {/* DESTINATION ADDRESS INPUT (if needed) */}
+                    {renderAddressInput()}
+
                     {/* INFO GRID */}
                     <AnimatePresence>
-                        {(quote.rate || quote.estimatedTime || quote.totalFee) && (
+                        {(quote!.rate || quote!.estimatedTime || quote!.totalFee) && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
@@ -589,13 +988,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             >
                                 <div className="flex flex-col gap-1 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
                                     <span className="opacity-70">Rate</span>
-                                    <span className="font-mono font-medium text-zinc-700 dark:text-zinc-300">{quote.rate}</span>
+                                    <span className="font-mono font-medium text-zinc-700 dark:text-zinc-300">{quote!.rate}</span>
                                 </div>
                                 <div className="flex flex-col gap-1 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
                                     <div className="flex items-center gap-1 opacity-70">
                                         <Clock className="size-3" /> Est. Time
                                     </div>
-                                    <span className="font-medium text-zinc-700 dark:text-zinc-300">{quote.estimatedTime || "~2-5 seconds"}</span>
+                                    <span className="font-medium text-zinc-700 dark:text-zinc-300">{quote!.estimatedTime || "~2-5 seconds"}</span>
                                 </div>
 
                             </motion.div>
@@ -636,7 +1035,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                         rel="noopener noreferrer"
                                         className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors"
                                     >
-                                        View Transaction <ExternalLink className="size-3" />
+                                        View on Relay <ExternalLink className="size-3" />
                                     </a>
                                 </div>
                             </motion.div>
@@ -655,12 +1054,12 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 <span className="text-sm font-medium">Swap Completed!</span>
                                 {completedTxHash && (
                                     <a
-                                        href={`${BLOCK_EXPLORERS[requiredChainIdNum!] || "https://etherscan.io"}/tx/${completedTxHash}`}
+                                        href={`https://relay.link/transaction/${completedTxHash}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors"
                                     >
-                                        View Transaction <ExternalLink className="size-3" />
+                                        View on Relay <ExternalLink className="size-3" />
                                     </a>
                                 )}
                             </div>
@@ -673,7 +1072,44 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     {/* ACTIONS - Hide when swap completed */}
                     {step !== "success" && !swapAlreadyCompleted && (
                         <div className="pt-2">
-                            {!isConnected ? (
+                            {/* Non-EVM Source Chain - Show action buttons when wallet is connected */}
+                            {isSourceNonEvm && sourceWallet?.address ? (
+                                <div className="space-y-3">
+                                    {/* Action button based on state */}
+                                    {clientLoading ? (
+                                        <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400" variant="outline">
+                                            <Loader2 className="size-4 mr-2 animate-spin" />
+                                            Preparing Transaction...
+                                        </ButtonAny>
+                                    ) : processedTransactions.length === 0 ? (
+                                        <ButtonAny disabled className="w-full h-11 bg-zinc-800/50 text-zinc-500" variant="ghost">
+                                            {needsDestinationAddress && !recipientAddress ? "Enter destination address..." :
+                                                needsDestinationAddress && recipientError ? "Invalid destination address" :
+                                                    "Fetching quote..."}
+                                        </ButtonAny>
+                                    ) : step === "ready" ? (
+                                        <ButtonAny
+                                            onClick={handleExecuteSwap}
+                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                                        >
+                                            <ArrowRightLeft className="size-4 mr-2" />
+                                            {processedTransactions.length > 1
+                                                ? `Execute Step ${currentTxIndex + 1}/${processedTransactions.length}`
+                                                : "Execute Swap"}
+                                        </ButtonAny>
+                                    ) : step === "sending" || isSending ? (
+                                        <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400">
+                                            <Loader2 className="size-4 mr-2 animate-spin" />
+                                            {processedTransactions.length > 1
+                                                ? `Signing ${currentTxIndex + 1}/${processedTransactions.length}...`
+                                                : "Signing Transaction..."}
+                                        </ButtonAny>
+                                    ) : null}
+                                </div>
+                            ) : isSourceNonEvm && !sourceWallet?.address ? (
+                                /* Non-EVM source without wallet - handled in renderAddressInput */
+                                null
+                            ) : !isConnected ? (
                                 <div className="flex justify-center w-full [&_button]:w-full">
                                     <ConnectButton.Custom>
                                         {({ openConnectModal, mounted }) => (
@@ -707,7 +1143,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             ) : clientLoading ? (
                                 <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400" variant="outline">
                                     <Loader2 className="size-4 mr-2 animate-spin" />
-                                    Preparing Signature...
+                                    Preparing Transaction...
                                 </ButtonAny>
                             ) : !isVerified ? (
                                 <ButtonAny
@@ -729,8 +1165,9 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 </ButtonAny>
                             ) : processedTransactions.length === 0 ? (
                                 <ButtonAny disabled className="w-full h-11 bg-zinc-800/50 text-zinc-500" variant="ghost">
-                                    <Loader2 className="size-4 mr-2 animate-spin" />
-                                    Fetching quote...
+                                    {needsDestinationAddress && !recipientAddress ? "Enter destination address..." :
+                                        needsDestinationAddress && recipientError ? "Invalid destination address" :
+                                            "Fetching quote..."}
                                 </ButtonAny>
                             ) : step === "ready" ? (
                                 <ButtonAny
@@ -772,6 +1209,6 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     </p>
                 </div>
             </div>
-        </motion.div>
+        </motion.div >
     );
 }

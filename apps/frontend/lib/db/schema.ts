@@ -199,7 +199,7 @@ export type Suggestion = InferSelectModel<typeof suggestion>;
 export const x402_transactions = pgTable("X402Transaction", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   userId: uuid("userId").notNull().references(() => user.id),
-  transactionHash: varchar("transactionHash", { length: 66 }).notNull().unique(),
+  transactionHash: varchar("transactionHash", { length: 128 }).notNull().unique(),
   chainId: integer("chainId").notNull(),
   amount: varchar("amount", { length: 64 }).notNull(),
   tokenAddress: varchar("tokenAddress", { length: 42 }),
@@ -217,7 +217,7 @@ export const relay_swap_tracking = pgTable("RelaySwapTracking", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   userId: uuid("userId").notNull().references(() => user.id),
   swapRequestId: text("swapRequestId").notNull().unique(), // Hash of swap params
-  transactionHash: varchar("transactionHash", { length: 66 }), // Optional, for record keeping
+  transactionHash: varchar("transactionHash", { length: 128 }), // Optional, for record keeping
   completedAt: timestamp("completedAt").notNull().defaultNow(),
 });
 

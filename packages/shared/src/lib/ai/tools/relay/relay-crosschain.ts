@@ -19,8 +19,10 @@ import {
     mainnet,
     optimism,
     arbitrum,
+    arbitrumNova,
     base,
     polygon,
+    polygonZkEvm,
     avalanche,
     bsc,
     zkSync,
@@ -34,6 +36,49 @@ import {
     fantom,
     celo,
     cronos,
+    metis,
+    boba,
+    ronin,
+    sei,
+    taiko,
+    redstone,
+    lisk,
+    morph,
+    cyber,
+    berachain,
+    soneium,
+    worldchain,
+    xai,
+    zircuit,
+    // Newly added confirmed viem chains
+    abstract,
+    ancient8,
+    apeChain,
+    arenaz,
+    b3,
+    corn,
+    degen,
+    flowMainnet,
+    forma,
+    funkiMainnet,
+    gravity,
+    gunz,
+    hemi,
+    hyperEvm,
+    ink,
+    katana,
+    plasma,
+    plume,
+    sanko,
+    shape,
+    somnia,
+    sonic,
+    story,
+    superposition,
+    superseed,
+    swellchain,
+    unichain,
+    zeroNetwork,
 } from "viem/chains";
 
 // Initialize Relay client with supported chains
@@ -41,8 +86,10 @@ const SUPPORTED_CHAINS = [
     mainnet,
     optimism,
     arbitrum,
+    arbitrumNova,
     base,
     polygon,
+    polygonZkEvm,
     avalanche,
     bsc,
     zkSync,
@@ -56,21 +103,64 @@ const SUPPORTED_CHAINS = [
     fantom,
     celo,
     cronos,
+    metis,
+    boba,
+    ronin,
+    sei,
+    taiko,
+    redstone,
+    lisk,
+    morph,
+    cyber,
+    berachain,
+    soneium,
+    worldchain,
+    xai,
+    zircuit,
+    abstract,
+    ancient8,
+    apeChain,
+    arenaz,
+    b3,
+    corn,
+    degen,
+    flowMainnet,
+    forma,
+    funkiMainnet,
+    gravity,
+    gunz,
+    hemi,
+    hyperEvm,
+    ink,
+    katana,
+    plasma,
+    plume,
+    sanko,
+    shape,
+    somnia,
+    sonic,
+    story,
+    superposition,
+    superseed,
+    swellchain,
+    unichain,
+    zeroNetwork,
 ];
 
 // Chain ID to name mapping for display (all Relay Protocol supported chains)
+// Chain ID to name mapping based on user request
 const CHAIN_NAMES: Record<number, string> = {
     1: "Ethereum",
     10: "Optimism",
     25: "Cronos",
-    56: "BNB Chain",
+    56: "BNB",
     100: "Gnosis",
     130: "Unichain",
     137: "Polygon",
     143: "Monad",
     146: "Sonic",
     169: "Manta Pacific",
-    288: "Boba",
+    288: "Boba Network",
     324: "zkSync Era",
     360: "Shape",
     466: "AppChain",
@@ -97,7 +187,7 @@ const CHAIN_NAMES: Record<number, string> = {
     5031: "Somnia",
     5330: "Superseed",
     7560: "Cyber",
-    7869: "Powerloom",
+    7869: "Powerloom v2",
     7897: "Arena-Z",
     8333: "B3",
     8453: "Base",
@@ -122,102 +212,149 @@ const CHAIN_NAMES: Record<number, string> = {
     81457: "Blast",
     98866: "Plume",
     167000: "Taiko",
-    510003: "Syndicate",
+    510003: "Syndicate Commons",
     534352: "Scroll",
-    543210: "Zero",
+    543210: "ZERO",
     660279: "Xai",
+    666666666: "Degen",
     747474: "Katana",
+    888888888: "Ancient8",
+    1380012617: "RARI",
     7777777: "Zora",
+    8253038: "Bitcoin",
+    792703809: "Solana",
+    728126428: "Tron",
+    9286185: "Eclipse",
+    9286186: "Soon",
+    5064014: "Ethereal",
+    984122: "Forma",
+    3586256: "Lighter",
+    21000000: "Corn",
 };
 
 // Token support level per chain: "All" = any token with DEX liquidity, "Limited" = specific tokens only
+// Token support level per chain: "All" | "Limited"
 const TOKEN_SUPPORT: Record<number, "All" | "Limited"> = {
-    1: "All",        // Ethereum
-    10: "All",       // Optimism
-    25: "All",       // Cronos
-    56: "All",       // BNB
-    100: "All",      // Gnosis
-    130: "All",      // Unichain
-    137: "All",      // Polygon
-    143: "All",      // Monad
-    146: "All",      // Sonic
-    169: "All",      // Manta Pacific
-    288: "All",      // Boba Network
-    324: "All",      // zkSync Era
-    360: "All",      // Shape
-    466: "Limited",  // AppChain
-    480: "All",      // World Chain
-    690: "All",      // Redstone
-    747: "All",      // Flow EVM
-    988: "Limited",  // Stable
-    999: "All",      // HyperEVM
-    1088: "All",     // Metis
-    1101: "All",     // Polygon zkEVM
-    1135: "Limited", // Lisk
-    1329: "Limited", // Sei
-    1337: "All",     // Hyperliquid
-    1424: "Limited", // Perennial
-    1514: "All",     // Story
-    1625: "All",     // Gravity
-    1868: "All",     // Soneium
-    1923: "Limited", // SwellChain
-    1996: "Limited", // Sanko
-    2020: "All",     // Ronin
-    2741: "All",     // Abstract
-    2818: "Limited", // Morph
-    5000: "All",     // Mantle
-    5031: "Limited", // Somnia
-    5330: "Limited", // Superseed
-    7560: "All",     // Cyber
-    7869: "Limited", // Powerloom v2
-    7897: "Limited", // Arena-Z
-    8333: "Limited", // B3
-    8453: "All",     // Base
-    9745: "All",     // Plasma
-    21000000: "All", // Corn
-    33139: "All",    // ApeChain
-    33979: "Limited",// Funkichain
-    34443: "All",    // Mode
-    42018: "Limited",// Mythos
-    42161: "All",    // Arbitrum
-    42170: "All",    // Arbitrum Nova
-    42220: "All",    // Celo
-    43111: "All",    // Hemi
-    43114: "All",    // Avalanche
-    43419: "Limited",// Gunz
-    48900: "Limited",// Zircuit
-    55244: "Limited",// Superposition
-    57073: "All",    // Ink
-    59144: "All",    // Linea
-    60808: "Limited",// BOB
-    69000: "Limited",// Animechain
-    80094: "All",    // Berachain
-    81457: "All",    // Blast
-    98866: "All",    // Plume
-    167000: "All",   // Taiko
-    510003: "Limited",// Syndicate Commons
-    534352: "All",   // Scroll
-    543210: "All",   // ZERO
-    660279: "Limited",// Xai
-    666666666: "Limited", // Degen
-    747474: "All",   // Katana
-    888888888: "Limited", // Ancient8
-    1380012617: "All", // RARI
-    7777777: "All",  // Zora
-    8253038: "Limited", // Bitcoin
-    792703809: "All", // Solana
-    728126428: "Limited", // Tron
-    9286185: "Limited", // Eclipse
-    9286186: "Limited", // Soon
-    5064014: "Limited", // Ethereal
-    984122: "Limited", // Forma
+    2741: "All",
+    888888888: "Limited",
+    69000: "Limited",
+    33139: "All",
+    466: "Limited",
+    42161: "All",
+    42170: "All",
+    7897: "Limited",
+    43114: "All",
+    8333: "Limited",
+    8453: "All",
+    80094: "All",
+    8253038: "Limited",
+    81457: "All",
+    56: "All",
+    60808: "Limited",
+    288: "All",
+    42220: "All",
+    21000000: "All",
+    25: "All",
+    7560: "All",
+    666666666: "Limited",
+    9286185: "Limited",
+    5064014: "Limited",
+    1: "All",
+    747: "All",
+    984122: "Limited",
+    33979: "Limited",
+    100: "All",
+    1625: "All",
+    43419: "Limited",
+    43111: "All",
+    999: "All",
+    1337: "All",
+    57073: "All",
+    747474: "All",
+    3586256: "All",
+    59144: "All",
+    1135: "Limited",
+    169: "All",
+    5000: "All",
+    1088: "All",
+    34443: "All",
+    143: "All",
+    2818: "Limited",
+    42018: "Limited",
+    10: "All",
+    1424: "Limited",
+    9745: "All",
+    98866: "All",
+    137: "All",
+    1101: "All",
+    7869: "Limited",
+    1380012617: "All",
+    690: "All",
+    2020: "All",
+    1996: "Limited",
+    534352: "All",
+    1329: "Limited",
+    360: "All",
+    792703809: "All",
+    5031: "Limited",
+    1868: "All",
+    146: "All",
+    9286186: "Limited",
+    988: "Limited",
+    1514: "All",
+    55244: "Limited",
+    5330: "Limited",
+    1923: "Limited",
+    510003: "Limited",
+    167000: "All",
+    728126428: "Limited",
+    130: "All",
+    480: "All",
+    660279: "Limited",
+    543210: "All",
+    48900: "Limited",
+    324: "All",
+    7777777: "All",
 };
 
 // Native token address (zero address)
 const NATIVE_TOKEN = "0x0000000000000000000000000000000000000000";
+// Solana native SOL address (System Program) - NOT wSOL which is So11111111111111111111111111111111111111112
+const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111";
+
+function getNativeTokenAddress(chainId: number): string {
+    if (chainId === 792703809) return SOLANA_NATIVE_ADDRESS;
+    return NATIVE_TOKEN;
+}
 
 // Placeholder address for preview quotes (cannot use zero address as ERC20 tokens cannot be sent to it)
 const PREVIEW_PLACEHOLDER_ADDRESS = "0x0000000000000000000000000000000000000001";
+// Use a valid-looking generic Solana address (System Program 111... is sometimes rejected as recipient)
+// This is a burn address often used (or just a valid format)
+// Actually, let's use a real-looking Dead address to be safe, or just keep 111... if we are sure.
+// But user got 500 error with it. Let's try the "Dead" wallet concept or just a random valid key.
+// "Bitc0in..." is sometimes used on Solana? No.
+// Let's use a generated valid address.
+// 44444444444444444444444444444444444444444444
+// But wait, 111... IS the native system program.
+// Let's try using the user's EVM address but encoded as base58? No.
+// Let's try passing undefined/null? No, API requires string.
+// Let's use:
+// "Dead111111111111111111111111111111111111111" (might be invalid base58 or checksum)
+// Let's use the Wrapped SOL address as a placeholder recipient?
+// So11111111111111111111111111111111111111112
+const SOLANA_PLACEHOLDER = "So11111111111111111111111111111111111111112";
+
+const BITCOIN_PLACEHOLDER_ADDRESS = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"; // Genesis
+const TRON_PLACEHOLDER_ADDRESS = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb"; // Foundation
+const ECLIPSE_PLACEHOLDER_ADDRESS = "0x0000000000000000000000000000000000000001"; // Eclipse uses casting
+
+function getPlaceholderAddress(chainId: number): string {
+    if (chainId === 792703809) return SOLANA_PLACEHOLDER;
+    if (chainId === 8253038) return BITCOIN_PLACEHOLDER_ADDRESS;
+    if (chainId === 728126428) return TRON_PLACEHOLDER_ADDRESS;
+    return PREVIEW_PLACEHOLDER_ADDRESS;
+}
 
 // Token addresses per chain (stablecoins + popular tokens)
 const TOKEN_ADDRESSES: Record<number, Record<string, string>> = {
@@ -307,6 +444,7 @@ const TOKEN_COINGECKO_IDS: Record<string, string> = {
 };
 
 // Native token symbols by chain (for USD conversion)
+// Native token symbols by chain (for USD conversion)
 const NATIVE_SYMBOLS: Record<number, string> = {
     1: "ETH",
     10: "ETH",
@@ -327,12 +465,12 @@ const NATIVE_SYMBOLS: Record<number, string> = {
     1088: "METIS",
     1101: "ETH", // Polygon zkEVM
     1135: "ETH", // Lisk
-    1329: "ETH", // Sei uses USDC
+    1329: "SEI", // Sei
     1514: "IP", // Story
     1625: "G", // Gravity
     1868: "ETH", // Soneium
     1923: "ETH", // SwellChain
-    1996: "ETH", // Sanko (DMT)
+    1996: "DMT", // Sanko
     2020: "RON", // Ronin
     2741: "ETH", // Abstract
     2818: "ETH", // Morph
@@ -356,11 +494,37 @@ const NATIVE_SYMBOLS: Record<number, string> = {
     69000: "ANIME", // Animechain
     80094: "BERA", // Berachain
     81457: "ETH", // Blast
-    98866: "PLUME", // Plume
+    98866: "ETH", // Plume
     167000: "ETH", // Taiko
     534352: "ETH", // Scroll
     660279: "XAI", // Xai
     7777777: "ETH", // Zora
+    21000000: "BTC", // Corn
+    9286185: "ETH", // Eclipse
+    8253038: "BTC", // Bitcoin
+    792703809: "SOL", // Solana
+    728126428: "TRX", // Tron
+    888888888: "ETH", // Ancient8
+    666666666: "DEGEN", // Degen
+    9286186: "ETH", // Soon
+    5064014: "ETH", // Ethereal
+    747: "FLOW", // Flow EVM
+    984122: "TIA", // Forma
+    33979: "ETH", // Funkichain
+    43419: "GUN", // Gunz
+
+    1337: "HYPE", // Hyperliquid
+    747474: "ETH", // Katana
+    3586256: "ETH", // Lighter
+    42018: "MYTH", // Mythos
+    1424: "ETH", // Perennial
+    9745: "ETH", // Plasma
+    7869: "ETH", // Powerloom
+    1380012617: "ETH", // RARI
+    5031: "STT", // Somnia
+    988: "ETH", // Stable
+    510003: "ETH", // Syndicate
+    543210: "ETH", // ZERO
 };
 
 let isClientInitialized = false;
@@ -498,14 +662,50 @@ async function fetchChainTokens(chainId: number): Promise<Record<string, TokenIn
     }
 }
 
+// Known native token decimals by chain (for chains where 18 is not correct)
+const NATIVE_TOKEN_DECIMALS: Record<number, number> = {
+    792703809: 9,   // Solana (SOL)
+    8253038: 8,     // Bitcoin (BTC)
+    728126428: 6,   // Tron (TRX)
+    43114: 18,      // Avalanche (AVAX)
+    56: 18,         // BNB Chain
+    137: 18,        // Polygon (POL/MATIC)
+};
+
 /**
  * Get token decimals for a token on a specific chain
- * Returns 18 as default if not found
+ * Handles native tokens correctly by mapping to chain's native symbol
+ * Returns chain-specific fallback for native tokens, or 18 as general default
  */
 async function getTokenDecimals(tokenSymbol: string, chainId: number): Promise<number> {
+    const symbol = tokenSymbol.toUpperCase();
+
+    // Handle "native" keyword - map to the chain's native token symbol
+    const effectiveSymbol = symbol === "NATIVE"
+        ? (NATIVE_SYMBOLS[chainId] || "ETH").toUpperCase()
+        : symbol;
+
+    // If it's a native token (either by keyword or by symbol matching chain's native)
+    const nativeSymbol = NATIVE_SYMBOLS[chainId]?.toUpperCase();
+    if (effectiveSymbol === nativeSymbol || symbol === "NATIVE") {
+        // Return known decimals for this chain, or default 18
+        return NATIVE_TOKEN_DECIMALS[chainId] ?? 18;
+    }
+
+    // For non-native tokens, try to fetch from API
     const tokens = await fetchChainTokens(chainId);
-    const tokenInfo = tokens[tokenSymbol.toUpperCase()];
-    return tokenInfo?.decimals ?? 18; // Default to 18 decimals
+    const tokenInfo = tokens[effectiveSymbol];
+
+    if (tokenInfo?.decimals) {
+        return tokenInfo.decimals;
+    }
+
+    // Fallback: check if it might be a native token by common symbols
+    if (["SOL", "WSOL"].includes(effectiveSymbol) && chainId === 792703809) return 9;
+    if (["BTC", "WBTC"].includes(effectiveSymbol) && chainId === 8253038) return 8;
+    if (["TRX"].includes(effectiveSymbol) && chainId === 728126428) return 6;
+
+    return 18; // Default to 18 decimals
 }
 
 /**
@@ -605,12 +805,39 @@ export const getRelaySupportedChains = tool({
     execute: async () => {
         return {
             protocol: "Relay Protocol",
-            supportedChains: SUPPORTED_CHAINS.map((chain) => ({
-                chainId: chain.id,
-                name: CHAIN_NAMES[chain.id] || chain.name,
-                nativeCurrency: chain.nativeCurrency,
-                tokenSupport: TOKEN_SUPPORT[chain.id] || "Unknown",
-            })),
+            supportedChains: [
+                ...SUPPORTED_CHAINS.map((chain) => ({
+                    chainId: chain.id,
+                    name: CHAIN_NAMES[chain.id] || chain.name,
+                    nativeCurrency: chain.nativeCurrency,
+                    tokenSupport: TOKEN_SUPPORT[chain.id] || "Unknown",
+                })),
+                // Add non-viem supported chains (like Solana)
+                {
+                    chainId: 792703809,
+                    name: "Solana",
+                    nativeCurrency: { name: "Solana", symbol: "SOL", decimals: 9 },
+                    tokenSupport: "All"
+                },
+                {
+                    chainId: 8253038,
+                    name: "Bitcoin",
+                    nativeCurrency: { name: "Bitcoin", symbol: "BTC", decimals: 8 },
+                    tokenSupport: "Limited"
+                },
+                {
+                    chainId: 728126428,
+                    name: "Tron",
+                    nativeCurrency: { name: "Tron", symbol: "TRX", decimals: 6 },
+                    tokenSupport: "Limited"
+                },
+                {
+                    chainId: 9286185,
+                    name: "Eclipse",
+                    nativeCurrency: { name: "Eclipse", symbol: "ETH", decimals: 18 },
+                    tokenSupport: "Limited"
+                }
+            ],
             features: [
                 "Cross-chain swaps",
                 "Native token bridging",
@@ -634,7 +861,12 @@ Most major chains (Ethereum, Optimism, Arbitrum, Base, Cronos, etc.) have tokenS
 
 **SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "0.5$" and the tool will automatically convert to the token amount.
 
-**IMPORTANT - ASK FOR CLARIFICATION when user request is incomplete:**
+**IMPORTANT - NEVER ASK FOR RECIPIENT ADDRESS**:
+For cross-chain swaps (especially to non-EVM chains like Solana, Bitcoin, Tron), DO NOT ask the user for their recipient address upfront.
+Just call this tool directly - the swap modal UI will collect the recipient address from the user.
+The UI handles recipient address collection for better UX.
+
+**ASK FOR CLARIFICATION only when:**
 
 1. **Missing source chain**: If user says "Swap ETH to USDC" without specifying source chain, ASK: "Which chain is your ETH on? (e.g., Ethereum, Optimism, Arbitrum, Base, Cronos)"
 
@@ -694,36 +926,51 @@ Examples of COMPLETE requests:
             .describe("Recipient address (defaults to user address if not provided)"),
     }),
     execute: async ({
-        fromChainId,
-        toChainId,
+        fromChainId: rawFromChainId,
+        toChainId: rawToChainId,
         fromToken,
         toToken,
         amount,
         userAddress,
         recipientAddress,
     }) => {
+        // Normalize Chain IDs (e.g. 101 -> 792703809 for Solana)
+        const fromChainId = normalizeChainId(rawFromChainId);
+        const toChainId = normalizeChainId(rawToChainId);
+
         try {
-            // Validate addresses
-            if (userAddress && !isValidEvmAddress(userAddress)) {
+            // Validate addresses based on source chain
+            if (userAddress && !isValidAddressForChain(userAddress, fromChainId)) {
                 return {
                     status: "error",
                     error: "Invalid wallet address",
-                    details: `The provided address '${userAddress}' is not a valid EVM address.`,
-                    suggestion: "Please provide a valid Ethereum wallet address starting with 0x.",
+                    details: `The provided address '${userAddress}' is not valid for chain ${fromChainId}.`,
+                    suggestion: "Please provide a valid wallet address for the selected chain.",
                 };
             }
 
-            if (recipientAddress && !isValidEvmAddress(recipientAddress)) {
+            if (recipientAddress && !isValidAddressForChain(recipientAddress, toChainId)) {
                 return {
                     status: "error",
                     error: "Invalid recipient address",
-                    details: `The provided address '${recipientAddress}' is not a valid EVM address.`,
-                    suggestion: "Please provide a valid Ethereum recipient address starting with 0x.",
+                    details: `The provided address '${recipientAddress}' is not valid for chain ${toChainId}.`,
+                    suggestion: "Please provide a valid recipient address for the destination chain.",
                 };
             }
 
             // Use a non-zero placeholder if no user address provided (zero address can't receive ERC20s)
-            const effectiveUserAddress = userAddress || PREVIEW_PLACEHOLDER_ADDRESS;
+            const effectiveUserAddress = userAddress || getPlaceholderAddress(fromChainId);
+
+            // For recipient, ONLY use userAddress if it's valid for the destination chain
+            // Otherwise use the chain-specific placeholder
+            let effectiveRecipientAddress = recipientAddress;
+            if (!effectiveRecipientAddress) {
+                if (userAddress && isValidAddressForChain(userAddress, toChainId)) {
+                    effectiveRecipientAddress = userAddress;
+                } else {
+                    effectiveRecipientAddress = getPlaceholderAddress(toChainId);
+                }
+            }
 
             initializeRelayClient();
 
@@ -775,16 +1022,20 @@ Examples of COMPLETE requests:
             ).toString();
 
             // Use direct API call instead of SDK (SDK v4.0.1 uses outdated /quote/v2 endpoint)
-            const quote = await fetchRelayQuoteDirectly({
+            const quoteParams = {
                 originChainId: fromChainId,
                 destinationChainId: toChainId,
                 originCurrency: fromTokenAddress,
                 destinationCurrency: toTokenAddress,
                 amount: amountInSmallestUnit,
                 user: effectiveUserAddress,
-                recipient: recipientAddress || effectiveUserAddress,
+                recipient: effectiveRecipientAddress,
                 tradeType: 'EXACT_INPUT',
-            });
+            };
+
+            console.log("[Relay] Fetching Quote (Generic):", JSON.stringify(quoteParams, null, 2));
+
+            const quote = await fetchRelayQuoteDirectly(quoteParams);
 
             // Extract relevant quote information
             const quoteDetails = extractQuoteDetails(quote, fromChainId, toChainId);
@@ -802,6 +1053,7 @@ Examples of COMPLETE requests:
                     fromToken: fromTokenAddress,
                     toToken: toTokenAddress,
                     amount: amountInSmallestUnit, // Use atomic units (wei) for execution
+                    recipient: effectiveRecipientAddress,
                     isUSD: false
                 },
                 ...(usdConversionInfo && {
@@ -871,21 +1123,41 @@ Examples of COMPLETE requests:
             .describe("Amount to bridge - can be token amount (e.g., '0.1') OR USD amount (e.g., '$0.5', '0.5 USD')"),
         userAddress: z.string().optional().describe("User wallet address"), // Made optional
     }),
-    execute: async ({ fromChainId, toChainId, amount, userAddress }) => {
+    execute: async ({ fromChainId: rawFromChainId, toChainId: rawToChainId, amount, userAddress }) => {
+        // Normalize Chain IDs (e.g. 101 -> 792703809 for Solana)
+        const fromChainId = normalizeChainId(rawFromChainId);
+        const toChainId = normalizeChainId(rawToChainId);
+
         try {
-            // Validate address
-            if (userAddress && !isValidEvmAddress(userAddress)) {
+            // Validate address based on source chain
+            if (userAddress && !isValidAddressForChain(userAddress, fromChainId)) {
                 return {
                     status: "error",
                     error: "Invalid wallet address",
-                    details: `The provided address '${userAddress}' is not a valid EVM address.`,
-                    suggestion: "Please provide a valid Ethereum wallet address starting with 0x.",
+                    details: `The provided address '${userAddress}' is not valid for chain ${fromChainId}.`,
+                    suggestion: "Please provide a valid wallet address for the selected chain.",
                 };
             }
 
             // Use zero address if no user address provided
             // Use a non-zero placeholder if no user address provided (zero address can't receive ERC20s)
-            const effectiveUserAddress = userAddress || PREVIEW_PLACEHOLDER_ADDRESS;
+
+            // For user (sender), we need an address on FromChain
+            const effectiveUserAddress = userAddress || getPlaceholderAddress(fromChainId);
+
+            // For recipient (receiver), we need an address on ToChain
+            // If user provided address, assume it's valid for ToChain (or they handle cross-chain addr match)
+            // If not, ONLY use userAddress if it's valid for ToChain, otherwise use placeholder
+            // For recipient (receiver), we need an address on ToChain
+            // If user provided address, assume it's valid for ToChain (or they handle cross-chain addr match)
+            // If not, ONLY use userAddress if it's valid for ToChain, otherwise use placeholder
+            let effectiveRecipientAddress: string;
+
+            if (userAddress && isValidAddressForChain(userAddress, toChainId)) {
+                effectiveRecipientAddress = userAddress;
+            } else {
+                effectiveRecipientAddress = getPlaceholderAddress(toChainId);
+            }
 
             initializeRelayClient();
 
@@ -929,16 +1201,20 @@ Examples of COMPLETE requests:
             const amountWei = BigInt(Math.floor(parseFloat(actualAmount) * 1e18)).toString();
 
             // Use direct API call instead of SDK (SDK v4.0.1 uses outdated /quote/v2 endpoint)
-            const quote = await fetchRelayQuoteDirectly({
+            const quoteParams = {
                 originChainId: fromChainId,
                 destinationChainId: toChainId,
-                originCurrency: NATIVE_TOKEN,
-                destinationCurrency: NATIVE_TOKEN,
+                originCurrency: getNativeTokenAddress(fromChainId),
+                destinationCurrency: getNativeTokenAddress(toChainId),
                 amount: amountWei,
                 user: effectiveUserAddress,
-                recipient: effectiveUserAddress,
+                recipient: effectiveRecipientAddress,
                 tradeType: 'EXACT_INPUT',
-            });
+            };
+
+            console.log("[Relay] Fetching Bridge Quote:", JSON.stringify(quoteParams, null, 2));
+
+            const quote = await fetchRelayQuoteDirectly(quoteParams);
 
             const quoteDetails = extractQuoteDetails(quote, fromChainId, toChainId);
 
@@ -1014,19 +1290,20 @@ Examples:
         recipientAddress,
     }) => {
         try {
-            // Validate addresses
-            if (userAddress && !isValidEvmAddress(userAddress)) {
+            // Validate addresses based on source chain
+            if (userAddress && !isValidAddressForChain(userAddress, fromChainId)) {
                 return {
                     status: "error",
                     error: "Invalid wallet address",
-                    details: `The provided address '${userAddress}' is not a valid EVM address.`,
-                    suggestion: "Please provide a valid Ethereum wallet address starting with 0x.",
+                    details: `The provided address '${userAddress}' is not valid for chain ${fromChainId}.`,
+                    suggestion: "Please provide a valid wallet address for the selected chain.",
                 };
             }
 
             // Use zero address if no user address provided (for preview)
             // Use a non-zero placeholder if no user address provided (zero address can't receive ERC20s)
-            const effectiveUserAddress = userAddress || PREVIEW_PLACEHOLDER_ADDRESS;
+            const effectiveUserAddress = userAddress || getPlaceholderAddress(fromChainId);
+            const effectiveRecipientAddress = recipientAddress || userAddress || getPlaceholderAddress(toChainId);
 
             initializeRelayClient();
 
@@ -1084,8 +1361,8 @@ Examples:
                 toCurrency: toTokenAddress,
                 tradeType: 'EXACT_INPUT',
                 amount: amountInSmallestUnit,
-                user: userAddress,
-                recipient: recipientAddress || userAddress,
+                user: effectiveUserAddress,
+                recipient: effectiveRecipientAddress,
             });
 
             // Extract transaction steps from quote
@@ -1137,8 +1414,8 @@ Examples:
 // Helper functions
 
 function resolveTokenAddress(token: string, chainId: number): string {
-    if (token.toLowerCase() === "native" || token.toLowerCase() === "eth") {
-        return NATIVE_TOKEN;
+    if (token.toLowerCase() === "native" || token.toLowerCase() === "eth" || token.toLowerCase() === "sol") {
+        return getNativeTokenAddress(chainId);
     }
 
     // Check if it's already an address
@@ -1163,8 +1440,14 @@ async function resolveTokenAddressAsync(token: string, chainId: number): Promise
     // First try sync resolution
     const resolved = resolveTokenAddress(token, chainId);
 
+    // If it is already a valid address for the chain, use it
+    if (isValidAddressForChain(resolved, chainId)) {
+        return resolved;
+    }
+
     // If it returned unresolved (not an address), try dynamic lookup
-    if (!resolved.startsWith("0x") || resolved.length !== 42) {
+    // Only fetch if it doesn't look like an address
+    if (!resolved.startsWith("0x") && !isValidAddressForChain(resolved, chainId)) {
         const apiTokens = await fetchChainTokens(chainId);
         const upperSymbol = token.toUpperCase();
         if (apiTokens[upperSymbol]) {
@@ -1175,7 +1458,24 @@ async function resolveTokenAddressAsync(token: string, chainId: number): Promise
     return resolved;
 }
 
-function isValidEvmAddress(address: string): boolean {
+function isValidAddressForChain(address: string, chainId: number): boolean {
+    // Solana (792703809)
+    if (chainId === 792703809) {
+        // Simple Base58 length check (32-44 chars)
+        return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+    }
+    // Bitcoin (8253038)
+    if (chainId === 8253038) {
+        // Simple BTC address check (starts with 1, 3, or bc1, 26-90 chars)
+        return /^(1|3|bc1)[a-zA-Z0-9]{25,90}$/.test(address);
+    }
+    // Tron (728126428)
+    if (chainId === 728126428) {
+        // Tron addresses start with T and are 34 chars
+        return /^T[a-zA-Z0-9]{33}$/.test(address);
+    }
+
+    // Default to EVM check for all other chains
     return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
@@ -1187,6 +1487,25 @@ function hasLimitedTokenSupport(chainId: number): boolean {
     return TOKEN_SUPPORT[chainId] === "Limited";
 }
 
+function normalizeChainId(chainId: number): number {
+    // Map common aliases to Relay-supported Chain IDs
+    if (chainId === 101) return 792703809; // Wormhole Solana -> Relay Solana
+    if (chainId === 102) return 792703809; // SPL token context
+    if (chainId === 507) return 792703809; // Another Solana alias used by some AI models
+    return chainId;
+}
+
+// Normalize wrapped token symbols to their native equivalents for display
+function normalizeTokenDisplayName(symbol: string, chainId: number): string {
+    const upper = symbol.toUpperCase();
+    // Solana: WSOL -> SOL
+    if (chainId === 792703809 && (upper === "WSOL" || upper === "WRAPPED SOL")) {
+        return "SOL";
+    }
+    // Could add more normalizations here for other chains if needed
+    return symbol;
+}
+
 function extractQuoteDetails(
     quote: any,
     fromChainId: number,
@@ -1196,14 +1515,18 @@ function extractQuoteDetails(
         const details = quote.details || {};
         const fees = quote.fees || {};
 
-        const inputToken =
+        const rawInputToken =
             details.currencyIn?.currency?.symbol ||
             details.currencyIn?.currency?.name ||
             "Unknown";
-        const outputToken =
+        const rawOutputToken =
             details.currencyOut?.currency?.symbol ||
             details.currencyOut?.currency?.name ||
             "Unknown";
+
+        // Normalize display names (e.g., WSOL -> SOL)
+        const inputToken = normalizeTokenDisplayName(rawInputToken, fromChainId);
+        const outputToken = normalizeTokenDisplayName(rawOutputToken, toChainId);
 
         let formattedRate = details.rate || "N/A";
         if (details.rate) {

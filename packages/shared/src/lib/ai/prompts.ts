@@ -373,6 +373,11 @@ const groupTools = {
     "getSolanaChainWalletPortfolio",
     "getSolanaWalletTransactions",
     "searchSolanaTokenMarketData",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
   ] as const,
   coding: [
     "webSearch",
@@ -1416,7 +1421,7 @@ Always assume information being asked is related to Solana, if not told otherwis
 # Network Information
 - Chain ID: solana
 - Native Token: SOL
-- RPC: https://api.mainnet-beta.solana.com
+- RPC: https://api.mainnet.solana.com
 - Explorer: https://solscan.io
 - Address Format: Base58 encoded (32-44 characters, e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)
 - Program Language: Rust (with Anchor framework)

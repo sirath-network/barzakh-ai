@@ -369,11 +369,11 @@ const INTENT_PATTERNS: IntentPattern[] = [
         intent: "on_chain",
         patterns: [
             // Cross-chain swap patterns with chain names on both sides
-            /\b(swap|bridge|transfer|send)\b.*\b(from|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|mainnet|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb)\b.*\b(to|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|mainnet|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb)\b/i,
+            /\b(swap|bridge|transfer|send)\b.*\b(from|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|mainnet|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb|solana|sol|eclipse|bitcoin|btc|tron|trx)\b.*\b(to|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|mainnet|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb|solana|sol|eclipse|bitcoin|btc|tron|trx)\b/i,
             // Inverted pattern: chain to chain with swap/bridge in middle
-            /\b(cronos|optimism|arbitrum|base|polygon|ethereum|linea|scroll|zksync|blast)\b.*\b(to|into)\b.*\b(cronos|optimism|arbitrum|base|polygon|ethereum|linea|scroll|zksync|blast)\b/i,
+            /\b(cronos|optimism|arbitrum|base|polygon|ethereum|linea|scroll|zksync|blast|solana|sol|eclipse|bitcoin|btc|tron|trx)\b.*\b(to|into)\b.*\b(cronos|optimism|arbitrum|base|polygon|ethereum|linea|scroll|zksync|blast|solana|sol|eclipse|bitcoin|btc|tron|trx)\b/i,
             // Token with amount + from chain + to chain pattern
-            /\b\d+(\.\d+)?\s*(cro|eth|usdc|usdt|matic|avax|bnb)\b.*\b(from|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum)\b.*\b(to|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum)\b/i,
+            /\b\d+(\.\d+)?\s*(cro|eth|usdc|usdt|matic|avax|bnb|sol|btc|trx)\b.*\b(from|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|solana|bitcoin|tron)\b.*\b(to|on)\s*(cronos|optimism|arbitrum|base|polygon|ethereum|solana|bitcoin|tron)\b/i,
         ],
         keywords: [
             "cronos to optimism",
@@ -385,6 +385,10 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "swap cro to eth",
             "bridge cro to",
             "from cronos to",
+            "swap sol",
+            "bridge sol",
+            "eth to sol",
+            "sol to eth",
         ],
         priority: 97, // Higher than chain-specific (95) to catch cross-chain swaps
     },
@@ -409,9 +413,9 @@ const INTENT_PATTERNS: IntentPattern[] = [
             // Relay cross-chain swap/bridge patterns
             /\b(swap|bridge|transfer)\b.*\b(from|to)\b.*\b(chain|network|L2|optimism|arbitrum|base|polygon|ethereum|mainnet)\b/i,
             /\b(cross[-\s]?chain|cross[-\s]?network)\b.*\b(swap|bridge|transfer)\b/i,
-            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai)\b.*\b(to|from|on)\b/i,
-            /\b\$?\d+(\.\d+)?\s*(worth|of|in)?\s*(eth|usdc|usdt|dai|weth|wbtc)\b.*\b(to|from|on)\b/i,
-            /\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode)\b.*\b(to|from)\b.*\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|ethereum)\b/i,
+            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|btc|trx)\b.*\b(to|from|on)\b/i,
+            /\b\$?\d+(\.\d+)?\s*(worth|of|in)?\s*(eth|usdc|usdt|dai|weth|wbtc|sol|btc|trx)\b.*\b(to|from|on)\b/i,
+            /\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|solana|bitcoin|tron)\b.*\b(to|from)\b.*\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|ethereum|solana|bitcoin|tron)\b/i,
         ],
         keywords: [
             "portfolio",

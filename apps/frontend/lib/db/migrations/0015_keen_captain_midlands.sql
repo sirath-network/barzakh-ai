@@ -1,0 +1,1 @@
+ALTER TABLE "RelaySwapTracking" ALTER COLUMN "transactionHash" SET DATA TYPE varchar(128);
