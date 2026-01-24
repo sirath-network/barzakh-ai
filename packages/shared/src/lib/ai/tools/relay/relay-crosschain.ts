@@ -857,7 +857,8 @@ export const getRelaySupportedChains = tool({
 export const getRelayQuote = tool({
     description: `Get a quote for cross-chain swap or bridge using Relay Protocol.
 Supports swapping any token on any supported chain to any other token on any chain.
-Most major chains (Ethereum, Optimism, Arbitrum, Base, Cronos, etc.) have tokenSupport: "All" - meaning any token with DEX liquidity works.
+Supports **EVM** (Ethereum, Base, Arbitrum, Optimism, Cronos, etc.) AND **Non-EVM** (Solana, Bitcoin, Tron) chains. Use Relay for ALL cross-chain swaps, including those involving SOL, BTC, or TRX.
+Most major chains have tokenSupport: "All" - meaning any token with DEX liquidity works.
 
 **SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "0.5$" and the tool will automatically convert to the token amount.
 
@@ -889,6 +890,7 @@ Examples of COMPLETE requests:
 - "Swap $0.5 worth of ETH on Ethereum to USDC on Arbitrum"
 - "Bridge $10 USDC from Polygon to Base"
 - "Swap 0.001 ETH on Optimism to ETH on Arbitrum"
+- "Swap 1 SOL on Solana to ETH on Ethereum"
 - "Swap 100 CRO from Cronos to ETH on Optimism"`,
     parameters: z.object({
         fromChainId: z

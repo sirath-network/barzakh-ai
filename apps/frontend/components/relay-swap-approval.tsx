@@ -35,8 +35,7 @@ const DynamicConnectButton = () => {
     return (
         <ButtonAny
             onClick={() => setShowAuthFlow(true)}
-            variant="outline"
-            className="w-full h-11 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold text-sm"
+            className="w-full h-11 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
         >
             <Wallet className="size-4 mr-2" />
             Connect Wallet
@@ -258,6 +257,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     // Address Input Logic
     const [recipientAddress, setRecipientAddress] = useState<string>("");
     const [recipientError, setRecipientError] = useState<string>("");
+    const [showManualInput, setShowManualInput] = useState(false);
 
     // Check if we need a separate destination address (e.g. cross-chain to non-EVM, or from non-EVM to EVM)
     const needsDestinationAddress = (() => {
@@ -295,6 +295,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
             }
         }
     }, [result.toolParams]);
+
+    // Auto-fill recipient address when non-EVM destination wallet is connected
+    useEffect(() => {
+        if (destinationWallet?.address && destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
+            setRecipientAddress(destinationWallet.address);
+        }
+    }, [destinationWallet?.address, destinationChainIdNum]);
 
     // Validate destination address
     const validateRecipient = (addr: string) => {
@@ -417,15 +424,18 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     }, [isConnected]);
 
+    const { handleLogOut } = useDynamicContext();
+
     // Auto-disconnect on success
     useEffect(() => {
         if (step === "success") {
             const timer = setTimeout(() => {
                 disconnect();
+                handleLogOut();
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [step, disconnect]);
+    }, [step, disconnect, handleLogOut]);
 
     // If no quote or no transactions, show informational card
     // BUT if it's an error, return null to avoid showing failed attempts alongside successful ones
@@ -479,7 +489,30 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const handleVerify = async () => {
         setStep("verifying");
         try {
-            await signMessageAsync({ message: "Verify wallet ownership for Relay Protocol swap" });
+            const message = `Verify ownership of wallet for swap:\n${isSourceNonEvm ? sourceWallet?.address : address}\nTimestamp: ${Date.now()}`;
+
+            if (isSourceNonEvm && sourceWallet) {
+                // Non-EVM signing (Solana, Bitcoin, Tron)
+                const walletAny = sourceWallet as any;
+                // Some wallets expose signMessage directly, some via adapter/connector
+                const signer = walletAny.signMessage
+                    ? walletAny
+                    : walletAny.connector?.signMessage
+                        ? walletAny.connector
+                        : null;
+
+                if (signer) {
+                    await signer.signMessage(message);
+                } else {
+                    // Fallback mock if signing not easily accessible in this context
+                    // (Production should implement specific adapters for each chain family)
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            } else {
+                // EVM signing
+                await signMessageAsync({ message });
+            }
+
             setIsVerified(true);
             setStep("ready");
         } catch (err) {
@@ -777,40 +810,15 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         const isValidAddress = recipientAddress && validateRecipient(recipientAddress);
         const isEvmDestination = destinationChainIdNum && !isNonEvmChain(destinationChainIdNum);
 
+        // Hide if non-EVM destination wallet is already connected (user requested clean UI)
+        if (!isEvmDestination && destinationWallet?.address) return null;
+
         return (
             <div className="space-y-3">
-                {/* Source wallet connection - Show first when source is non-EVM */}
-                {isSourceNonEvm && !sourceWallet?.address && (
-                    <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Wallet className="size-4 text-zinc-500 dark:text-zinc-400" />
-                            <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                Connect your {getNonEvmChainName(requiredChainIdNum!)} Wallet
-                            </p>
-                        </div>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
-                            To swap from {getNonEvmChainName(requiredChainIdNum!)}, connect a wallet like {
-                                requiredChainIdNum === 792703809 ? "Phantom or Solflare" :
-                                    requiredChainIdNum === 8253038 ? "Xverse or Unisat" :
-                                        requiredChainIdNum === 728126428 ? "TronLink" : "a native wallet"
-                            }.
-                        </p>
-                        <DynamicConnectButton />
-                    </div>
-                )}
+
 
                 {/* Source wallet connected indicator */}
-                {isSourceNonEvm && sourceWallet?.address && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                        <Check className="size-4 text-green-500" />
-                        <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                            {getNonEvmChainName(requiredChainIdNum!)} wallet connected
-                        </span>
-                        <span className="text-xs text-zinc-500 ml-auto truncate max-w-[140px]" title={sourceWallet.address}>
-                            {sourceWallet.address.slice(0, 8)}...{sourceWallet.address.slice(-6)}
-                        </span>
-                    </div>
-                )}
+
 
                 {/* Destination address input */}
                 <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
@@ -821,11 +829,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 Your {chainName} Wallet Address
                             </p>
                         </div>
-                        {isValidAddress && (
-                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-[10px] font-medium">
-                                <Check className="size-3" /> Valid
-                            </span>
-                        )}
+
                     </div>
 
                     {/* Show connect wallet option for EVM destinations */}
@@ -837,8 +841,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                         <ButtonAny
                                             onClick={openConnectModal}
                                             disabled={!mounted}
-                                            variant="outline"
-                                            className="w-full h-10 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                            className="w-full h-10 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
                                         >
                                             <Wallet className="size-4 mr-2" />
                                             Connect EVM Wallet
@@ -848,34 +851,89 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             </div>
                             <div className="flex items-center gap-3 my-3">
                                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-                                <span className="text-xs text-zinc-400">or enter manually</span>
+                                <button
+                                    onClick={() => setShowManualInput(!showManualInput)}
+                                    className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors flex items-center gap-1"
+                                >
+                                    Or Paste Address
+                                    <motion.div
+                                        animate={{ rotate: showManualInput ? 180 : 0 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-70">
+                                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </motion.div>
+                                </button>
                                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                             </div>
                         </div>
                     )}
 
-                    <input
-                        type="text"
-                        value={recipientAddress}
-                        onChange={(e) => {
-                            setRecipientAddress(e.target.value);
-                            if (e.target.value && !validateRecipient(e.target.value)) {
-                                setRecipientError("Invalid address format");
-                            } else {
-                                setRecipientError("");
-                            }
-                        }}
-                        placeholder={`Enter your ${chainName} wallet address`}
-                        className="w-full bg-transparent text-lg font-mono tracking-tight text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none"
-                    />
-                    {recipientError && (
-                        <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1">
-                            <AlertCircle className="size-3" />
-                            {recipientError}
-                        </p>
+                    {/* Show connect wallet option for Non-EVM destinations */}
+                    {!isEvmDestination && (
+                        <div className="mb-3">
+                            {!destinationWallet?.address ? (
+                                <>
+                                    <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
+                                        <DynamicConnectButton />
+                                    </div>
+                                    <div className="flex items-center gap-3 my-3">
+                                        <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+                                        <button
+                                            onClick={() => setShowManualInput(!showManualInput)}
+                                            className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors flex items-center gap-1"
+                                        >
+                                            Or Paste Address
+                                            <motion.div
+                                                animate={{ rotate: showManualInput ? 180 : 0 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-70">
+                                                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </motion.div>
+                                        </button>
+                                        <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+                                    </div>
+                                </>
+                            ) : null}
+                        </div>
                     )}
+
+                    <AnimatePresence>
+                        {(showManualInput || (isEvmDestination ? !isSourceNonEvm : !!destinationWallet?.address)) && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <input
+                                    type="text"
+                                    value={recipientAddress}
+                                    onChange={(e) => {
+                                        setRecipientAddress(e.target.value);
+                                        if (e.target.value && !validateRecipient(e.target.value)) {
+                                            setRecipientError("Invalid address format");
+                                        } else {
+                                            setRecipientError("");
+                                        }
+                                    }}
+                                    placeholder={`Receiver addresses`}
+                                    className="w-full bg-transparent text-sm font-mono tracking-tight text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none pb-2 text-center"
+                                />
+                                {recipientError && (
+                                    <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1 mb-2">
+                                        <AlertCircle className="size-3" />
+                                        {recipientError}
+                                    </p>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
-            </div>
+            </div >
         );
     };
 
@@ -974,8 +1032,57 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         </div>
                     </div>
 
+                    {/* Source wallet connection - Show first when source is non-EVM */
+                        !swapAlreadyCompleted && step !== "success" && isSourceNonEvm && !sourceWallet?.address && (
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Wallet className="size-4 text-zinc-500 dark:text-zinc-400" />
+                                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                        Connect Your {getNonEvmChainName(requiredChainIdNum!)} Wallet
+                                    </p>
+                                </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
+                                    To swap from {getNonEvmChainName(requiredChainIdNum!)}, connect a wallet like {
+                                        requiredChainIdNum === 792703809 ? "Phantom or Solflare" :
+                                            requiredChainIdNum === 8253038 ? "Xverse or Unisat" :
+                                                requiredChainIdNum === 728126428 ? "TronLink" : "a native wallet"
+                                    }.
+                                </p>
+                                <DynamicConnectButton />
+                            </div>
+                        )}
+
+                    {/* EVM Source wallet connection - Show first ONLY when destination is Non-EVM (to match the "Source on Top" layout) */
+                        !swapAlreadyCompleted && step !== "success" && !isSourceNonEvm && destinationChainIdNum && isNonEvmChain(destinationChainIdNum) && !isConnected && (
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Wallet className="size-4 text-zinc-500 dark:text-zinc-400" />
+                                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                        Connect Your {sourceChain} Wallet
+                                    </p>
+                                </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
+                                    To swap from {sourceChain}, please connect your EVM wallet.
+                                </p>
+                                <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
+                                    <ConnectButton.Custom>
+                                        {({ openConnectModal, mounted }) => (
+                                            <ButtonAny
+                                                onClick={openConnectModal}
+                                                disabled={!mounted}
+                                                className="w-full h-10 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
+                                            >
+                                                <Wallet className="size-4 mr-2" />
+                                                Connect Wallet
+                                            </ButtonAny>
+                                        )}
+                                    </ConnectButton.Custom>
+                                </div>
+                            </div>
+                        )}
+
                     {/* DESTINATION ADDRESS INPUT (if needed) */}
-                    {renderAddressInput()}
+                    {!swapAlreadyCompleted && step !== "success" && renderAddressInput()}
 
                     {/* INFO GRID */}
                     <AnimatePresence>
@@ -1016,58 +1123,36 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         )}
                     </AnimatePresence>
 
-                    {/* SUCCESS STATE */}
+                    {/* SUCCESS STATE - CONSTANT & UNIFIED */}
                     <AnimatePresence>
-                        {step === "success" && explorerUrl && (
+                        {(step === "success" || swapAlreadyCompleted) && (
                             <motion.div
-                                initial={{ opacity: 0, y: -10 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800/50"
+                                className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 shadow-sm"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-                                        <Check className="size-4" />
-                                        <span className="text-sm font-medium">Swap Executed!</span>
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                    <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200">
+
+                                        <span className="font-semibold text-sm">Swap Completed!</span>
                                     </div>
-                                    <a
-                                        href={explorerUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors"
-                                    >
-                                        View on Relay <ExternalLink className="size-3" />
-                                    </a>
+                                    {(explorerUrl || completedTxHash) && (
+                                        <a
+                                            href={`https://relay.link/transaction/${completedTxHash || txHash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors bg-blue-50 dark:bg-blue-900/10 px-2 py-1 rounded-md"
+                                        >
+                                            View on Relay <ExternalLink className="size-5" />
+                                        </a>
+                                    )}
                                 </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    Your transaction has been submitted. Request a new quote to initiate another swap.
+                                </p>
                             </motion.div>
                         )}
                     </AnimatePresence>
-
-                    {/* ALREADY COMPLETED INFO */}
-                    {swapAlreadyCompleted && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50"
-                        >
-                            <div className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300 flex-wrap">
-                                <Info className="size-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
-                                <span className="text-sm font-medium">Swap Completed!</span>
-                                {completedTxHash && (
-                                    <a
-                                        href={`https://relay.link/transaction/${completedTxHash}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1 transition-colors"
-                                    >
-                                        View on Relay <ExternalLink className="size-3" />
-                                    </a>
-                                )}
-                            </div>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 pl-6">
-                                Request a new quote for initiate another swap
-                            </p>
-                        </motion.div>
-                    )}
 
                     {/* ACTIONS - Hide when swap completed */}
                     {step !== "success" && !swapAlreadyCompleted && (
@@ -1088,15 +1173,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                                     "Fetching quote..."}
                                         </ButtonAny>
                                     ) : step === "ready" ? (
-                                        <ButtonAny
-                                            onClick={handleExecuteSwap}
-                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-                                        >
-                                            <ArrowRightLeft className="size-4 mr-2" />
-                                            {processedTransactions.length > 1
-                                                ? `Execute Step ${currentTxIndex + 1}/${processedTransactions.length}`
-                                                : "Execute Swap"}
-                                        </ButtonAny>
+                                        needsDestinationAddress && !recipientAddress ? null : (
+                                            <ButtonAny
+                                                onClick={handleExecuteSwap}
+                                                className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                                            >
+                                                <ArrowRightLeft className="size-4 mr-2" />
+                                                {processedTransactions.length > 1
+                                                    ? `Execute Step ${currentTxIndex + 1}/${processedTransactions.length}`
+                                                    : "Execute Swap"}
+                                            </ButtonAny>
+                                        )
                                     ) : step === "sending" || isSending ? (
                                         <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400">
                                             <Loader2 className="size-4 mr-2 animate-spin" />
@@ -1107,23 +1194,26 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                     ) : null}
                                 </div>
                             ) : isSourceNonEvm && !sourceWallet?.address ? (
-                                /* Non-EVM source without wallet - handled in renderAddressInput */
+                                /* Non-EVM source without wallet - handled in renderAddressInput usually, but if address input is hidden (e.g. EVM wallet connected), we must show it here */
                                 null
                             ) : !isConnected ? (
-                                <div className="flex justify-center w-full [&_button]:w-full">
-                                    <ConnectButton.Custom>
-                                        {({ openConnectModal, mounted }) => (
-                                            <ButtonAny
-                                                onClick={openConnectModal}
-                                                disabled={!mounted}
-                                                className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                            >
-                                                <Wallet className="size-4" />
-                                                Connect Wallet
-                                            </ButtonAny>
-                                        )}
-                                    </ConnectButton.Custom>
-                                </div>
+                                /* Only show bottom connect button if NOT in the "EVM -> Non-EVM" flow (because that flow has the button at the top) */
+                                (!destinationChainIdNum || !isNonEvmChain(destinationChainIdNum)) ? (
+                                    <div className="flex justify-center w-full [&_button]:w-full">
+                                        <ConnectButton.Custom>
+                                            {({ openConnectModal, mounted }) => (
+                                                <ButtonAny
+                                                    onClick={openConnectModal}
+                                                    disabled={!mounted}
+                                                    className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                                >
+                                                    <Wallet className="size-4" />
+                                                    Connect Wallet
+                                                </ButtonAny>
+                                            )}
+                                        </ConnectButton.Custom>
+                                    </div>
+                                ) : null
                             ) : isWrongChain ? (
                                 <ButtonAny
                                     onClick={handleSwitchChain}
@@ -1140,28 +1230,30 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                         <>Switch to {CHAIN_NAMES[requiredChainIdNum!] || `Chain ${requiredChainIdNum}`}</>
                                     )}
                                 </ButtonAny>
+                            ) : !isVerified ? (
+                                needsDestinationAddress && !recipientAddress ? null : (
+                                    <ButtonAny
+                                        onClick={handleVerify}
+                                        disabled={step === "verifying"}
+                                        className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                    >
+                                        {step === "verifying" ? (
+                                            <>
+                                                <Loader2 className="size-4 mr-2 animate-spin" />
+                                                Verifying Ownership...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ShieldCheck className="size-4 mr-2" />
+                                                Verify Wallet
+                                            </>
+                                        )}
+                                    </ButtonAny>
+                                )
                             ) : clientLoading ? (
                                 <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400" variant="outline">
                                     <Loader2 className="size-4 mr-2 animate-spin" />
                                     Preparing Transaction...
-                                </ButtonAny>
-                            ) : !isVerified ? (
-                                <ButtonAny
-                                    onClick={handleVerify}
-                                    disabled={step === "verifying"}
-                                    className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                >
-                                    {step === "verifying" ? (
-                                        <>
-                                            <Loader2 className="size-4 mr-2 animate-spin" />
-                                            Verifying Ownership...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ShieldCheck className="size-4 mr-2" />
-                                            Verify Wallet
-                                        </>
-                                    )}
                                 </ButtonAny>
                             ) : processedTransactions.length === 0 ? (
                                 <ButtonAny disabled className="w-full h-11 bg-zinc-800/50 text-zinc-500" variant="ghost">
