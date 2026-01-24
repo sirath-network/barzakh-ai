@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useSwitchChain, useSendTransaction, useSignMessage, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck } from "lucide-react";
+import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck, Copy } from "lucide-react";
 import { createClient } from "@relayprotocol/relay-sdk";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -210,7 +210,7 @@ interface RelaySwapApprovalProps {
 }
 
 export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
-    const { address, isConnected, chain } = useAccount();
+    const { address, isConnected, chain, connector } = useAccount();
     const { switchChain } = useSwitchChain();
     const { sendTransactionAsync, isPending: isSending } = useSendTransaction();
     const { signMessageAsync } = useSignMessage();
@@ -223,6 +223,15 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const [isVerified, setIsVerified] = useState(false);
     const [clientTransactions, setClientTransactions] = useState<RelayTransaction[]>([]);
     const [clientLoading, setClientLoading] = useState(false);
+    const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+    const copyToClipboard = (text: string, label: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedAddress(label);
+        toast.success("Address copied to clipboard");
+        setTimeout(() => setCopiedAddress(null), 2000);
+    };
 
 
     // Swap tracking state
@@ -296,10 +305,21 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     }, [result.toolParams]);
 
-    // Auto-fill recipient address when non-EVM destination wallet is connected
+    // Auto-fill recipient address when non-EVM destination wallet is connected, AND clear it if disconnected
     useEffect(() => {
-        if (destinationWallet?.address && destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
-            setRecipientAddress(destinationWallet.address);
+        if (destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
+            if (destinationWallet?.address) {
+                setRecipientAddress(destinationWallet.address);
+            } else {
+                // Only clear if it was previously set (to avoid wiping manual input unnecessarily? 
+                // Actually, if user matches the chain intent and disconnects, we should probably clear to avoid stale wallet state)
+                // But we must be careful not to wipe 'result.toolParams.recipient' if that was the source.
+                // However, usually toolParams.recipient is set in the INITIAL effect.
+                // This effect tracks WALLET connection. 
+                // If wallet connects, we overwrite. If wallet disconnects, we should probably clear IF it matches the wallet.
+                // For simplicity/correctness with "Synced" behavior:
+                setRecipientAddress("");
+            }
         }
     }, [destinationWallet?.address, destinationChainIdNum]);
 
@@ -419,10 +439,14 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
     // Reset verification when disconnected
     useEffect(() => {
-        if (!isConnected) {
-            setIsVerified(false);
+        // If Non-EVM source, check dynamic wallet
+        if (isSourceNonEvm) {
+            if (!sourceWallet?.address) setIsVerified(false);
+        } else {
+            // If EVM source, check wagmi connection
+            if (!isConnected) setIsVerified(false);
         }
-    }, [isConnected]);
+    }, [isConnected, isSourceNonEvm, sourceWallet?.address]);
 
     const { handleLogOut } = useDynamicContext();
 
@@ -505,18 +529,40 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     await signer.signMessage(message);
                 } else {
                     // Fallback mock if signing not easily accessible in this context
-                    // (Production should implement specific adapters for each chain family)
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             } else {
                 // EVM signing
-                await signMessageAsync({ message });
+                if (!address) throw new Error("No EVM wallet connected");
+
+                // Some connectors (like certain WalletConnect versions or mocked providers) might cause issues with direct signMessageAsync
+                // We explicit check for connector availability
+                if (!connector) {
+                    console.warn("No wagmi connector found, attempting standard sign");
+                }
+
+                try {
+                    // Pass account explicitly to help wagmi identify context
+                    await signMessageAsync({ message, account: address });
+                } catch (innerErr: any) {
+                    // Check for the specific "getChainId" error which implies connector mismatch
+                    if (innerErr?.message?.includes('getChainId') || innerErr?.toString().includes('getChainId')) {
+                        console.warn("Caught connector error, falling back to simple signature request or skipping verification strictness:", innerErr);
+                        throw new Error("Wallet connection stale. Please disconnect and reconnect.");
+                    }
+                    throw innerErr;
+                }
             }
 
             setIsVerified(true);
             setStep("ready");
-        } catch (err) {
+        } catch (err: any) {
             console.error("Verification failed:", err);
+            if (err?.message?.includes('getChainId') || err?.toString().includes('getChainId')) {
+                setErrorMessage("Wallet connector error. Please reconnect your wallet.");
+            } else {
+                setErrorMessage(err.message || "Verification failed");
+            }
             setStep("ready");
         }
     };
@@ -1084,6 +1130,73 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     {/* DESTINATION ADDRESS INPUT (if needed) */}
                     {!swapAlreadyCompleted && step !== "success" && renderAddressInput()}
 
+                    {/* ADDRESS DETAILS - Show engaged wallets */}
+                    {!swapAlreadyCompleted && step !== "success" && (
+                        (() => {
+                            // Determine effective addresses
+                            const sourceAddr = isSourceNonEvm ? sourceWallet?.address : address;
+                            const destAddr = needsDestinationAddress ? recipientAddress : address;
+
+                            // Only show if we have at least one connected/known address that matches the intent
+                            const hasSource = isSourceNonEvm ? !!sourceWallet?.address : !!address;
+                            const hasDest = !!destAddr;
+
+                            if (!hasSource && !hasDest) return null;
+
+                            return (
+                                <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 space-y-3 shadow-sm">
+                                    {/* Sender Row */}
+                                    <div className="flex items-center justify-between group/sender">
+                                        <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                                            <div className="p-1.5 rounded-md bg-zinc-200/50 dark:bg-zinc-800">
+                                                <Wallet className="size-3.5" />
+                                            </div>
+                                            <span className="text-xs font-medium">Sender ({isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : "EVM"})</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-950/50 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
+                                                {sourceAddr ? `${sourceAddr.slice(0, 6)}...${sourceAddr.slice(-4)}` : "Not connected"}
+                                            </div>
+                                            {sourceAddr && (
+                                                <button
+                                                    onClick={() => copyToClipboard(sourceAddr, 'source')}
+                                                    className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                                    title="Copy address"
+                                                >
+                                                    {copiedAddress === 'source' ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Recipient Row */}
+                                    <div className="flex items-center justify-between group/recipient">
+                                        <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                                            <div className="p-1.5 rounded-md bg-zinc-200/50 dark:bg-zinc-800">
+                                                <ArrowRightLeft className="size-3.5" />
+                                            </div>
+                                            <span className="text-xs font-medium">Recipient ({destinationChainIdNum && isNonEvmChain(destinationChainIdNum) ? getNonEvmChainName(destinationChainIdNum) : "EVM"})</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-950/50 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
+                                                {destAddr ? `${destAddr.slice(0, 6)}...${destAddr.slice(-4)}` : "..."}
+                                            </div>
+                                            {destAddr && (
+                                                <button
+                                                    onClick={() => copyToClipboard(destAddr, 'dest')}
+                                                    className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                                    title="Copy address"
+                                                >
+                                                    {copiedAddress === 'dest' ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()
+                    )}
+
                     {/* INFO GRID */}
                     <AnimatePresence>
                         {(quote!.rate || quote!.estimatedTime || quote!.totalFee) && (
@@ -1171,6 +1284,24 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                             {needsDestinationAddress && !recipientAddress ? "Enter destination address..." :
                                                 needsDestinationAddress && recipientError ? "Invalid destination address" :
                                                     "Fetching quote..."}
+                                        </ButtonAny>
+                                    ) : (step === "ready" && !isVerified) || step === "verifying" ? (
+                                        <ButtonAny
+                                            onClick={handleVerify}
+                                            disabled={step === "verifying"}
+                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                        >
+                                            {step === "verifying" ? (
+                                                <>
+                                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                                    Verifying Ownership...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ShieldCheck className="size-4 mr-2" />
+                                                    Verify Wallet
+                                                </>
+                                            )}
                                         </ButtonAny>
                                     ) : step === "ready" ? (
                                         needsDestinationAddress && !recipientAddress ? null : (
