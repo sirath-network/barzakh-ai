@@ -757,10 +757,11 @@ Distribution by Type:
   - Treat NFTs as a key part of the user's net worth.
 
   ## Ens lookup: If user enters an ENS name like 'somename.eth', use the ensToAddress tool. Format the final address as **bold**.## Get realtime user Data: use the getEvmOnchainDataUsingZerion tool for on-chain data related to wallets, transactions, fungibles, chains, swaps, gas, nfts. Pass a meaningful and grammatically correct query to the tool.
+  **IMPORTANT**: calling getEvmOnchainDataUsingZerion is usually sufficient. DO NOT call getEvmOnchainDataUsingEtherscan if you have already called Zerion, unless Zerion failed or returned no data. Redundant calls slow down the response.
 
-## getEvmOnchainDataUsingEtherscan: Use for data like Accounts, Contracts, Transactions, Blocks, Logs, etc. Just pass the user query.
+  ## getEvmOnchainDataUsingEtherscan: Use ONLY as a fallback if Zerion fails, or for specific data not available in Zerion (Contracts, Blocks, Logs).
 
-## translate transactions: Always use the translateTransactions tool to make transaction details human-readable. Supported chains are ${novesSupportedChains}.
+## translate transactions: Use the translateTransactions tool ONLY if the user explicitly asks to "translate", "explain", or "decode" a specific transaction or if the raw data is confusing. DO NOT call this for general "transaction history" requests if you have already used getEvmOnchainDataUsingZerion, as Zerion provides sufficient data for the UI. Redundant calls slow down the response. Supported chains are ${novesSupportedChains}.
 
 ## defi llama: For any defi llama data, use the defiLlama tool. Pass the user query to the tool.
 

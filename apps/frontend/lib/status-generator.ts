@@ -4,99 +4,210 @@ import type { ToolInvocation, Message } from "ai";
  * Tool name to user-friendly status message mapping
  */
 const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => string> = {
-  // Portfolio tools
+  // =========================================================
+  // CORE & UTILS
+  // =========================================================
+  webSearch: (params, userPrompt) => {
+    try {
+      // Context detection via user prompt
+      if (userPrompt) {
+        const codingKeywords = [
+          "code", "function", "api", "sdk", "library", "react", "nextjs",
+          "bug", "error", "fix", "implement", "debug", "component", "hook"
+        ];
+        const isCoding = codingKeywords.some(w => userPrompt.toLowerCase().includes(w));
+        if (isCoding) {
+          return "Researching documentation & solutions";
+        }
+      }
+
+      if (params) {
+        if (params.queries && Array.isArray(params.queries) && params.queries.length > 0) {
+          return `Searching ${params.queries.length} topics for context`;
+        }
+        if (params.query && typeof params.query === 'string' && params.query.length < 50) {
+          return `Searching web for "${params.query}"`;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return "Searching the web for information";
+  },
+  imageAnalyzer: () => "Analyzing image content",
+  fileReader: () => "Reading file content",
+
+  // =========================================================
+  // CREATIVE
+  // =========================================================
+  createImage: (params) => {
+    // Artist-like progression messages
+    const steps = [
+      "Rendering your masterpiece",
+      "Mixing digital palette",
+      "Applying artistic touches",
+      "Sculpting light & shadow",
+      "Dreaming in pixels",
+      "Finalizing details"
+    ];
+
+    // Server-side fallback (stable)
+    if (typeof window === 'undefined') return steps[0];
+
+    // Client-side rotation (every 3s)
+    // Use semi-random offset based on params to avoid global sync if possible, or just time
+    const index = Math.floor(Date.now() / 3000) % steps.length;
+    return steps[index];
+  },
+
+  // =========================================================
+  // CROSS-CHAIN & BRIDGING (RELAY)
+  // =========================================================
+  getRelaySupportedChains: () => "Listing supported cross-chain networks",
+  getRelayQuote: (params) => {
+    const token = params?.toToken || "tokens";
+    return `Calculating bridge route for ${token}`;
+  },
+  getRelayBridgeQuote: () => "Analyzing bridge fees and liquidity",
+  prepareRelayTransaction: () => "Preparing cross-chain transaction",
+
+  // =========================================================
+  // ON-CHAIN GENERAL (EVM)
+  // =========================================================
   getEvmMultiChainWalletPortfolio: (params) => {
     const address = params?.address || params?.walletAddress;
     if (address) {
-      const shortAddress = address.length > 12 
-        ? `${address.slice(0, 6)}...${address.slice(-4)}`
-        : address;
-      return `Fetching portfolio for ${shortAddress}`;
+      const short = address.slice(0, 6);
+      return `Analyzing portfolio for ${short}...`;
     }
-    return "Fetching wallet portfolio";
+    return "Scanning EVM assets and positions";
   },
-  getSolanaChainWalletPortfolio: (params) => {
-    const address = params?.address || params?.walletAddress;
-    if (address) {
-      const shortAddress = address.length > 12 
-        ? `${address.slice(0, 6)}...${address.slice(-4)}`
-        : address;
-      return `Fetching Solana portfolio for ${shortAddress}`;
-    }
-    return "Fetching Solana wallet portfolio";
+  getEvmOnchainDataUsingZerion: () => "Retrieving on-chain data",
+  getEvmOnchainDataUsingEtherscan: () => "Deep fetch on-chain data",
+  searchEvmTokenMarketData: (params) => {
+    const token = params?.token || params?.tokenName || params?.symbol;
+    if (token) return `Checking market data for ${token}`;
+    return "Retrieving token market metrics";
   },
-  getTokenBalances: (params) => {
-    const address = params?.address || params?.walletAddress;
-    if (address) {
-      return "Fetching token balances";
-    }
-    return "Analyzing token balances";
-  },
-
-  // Token market data tools
-  searchEvmTokenMarketData: (params, userPrompt) => {
-    const tokenName = params?.token || params?.tokenName || params?.symbol;
-    if (tokenName) {
-      return `Fetching ${tokenName} market data`;
-    }
-    return "Retrieving token market data";
-  },
-  searchSolanaTokenMarketData: (params, userPrompt) => {
-    const tokenName = params?.token || params?.tokenName || params?.symbol;
-    if (tokenName) {
-      return `Fetching ${tokenName} market data`;
-    }
-    return "Retrieving Solana token data";
-  },
-
-  // Web search
-  webSearch: (params, userPrompt) => {
-    const query = params?.query || params?.searchQuery;
-    if (query && query.length < 30) {
-      return `Searching for ${query}`;
-    }
-    return "Searching the web";
-  },
-
-  // Blockchain data tools
-  getEvmOnchainDataUsingZerion: (params) => {
-    return "Analyzing on-chain data";
-  },
-  getEvmOnchainDataUsingEtherscan: (params) => {
-    return "Scanning blockchain transactions";
-  },
-  translateTransactions: (params) => {
-    return "Translating transactions";
-  },
-
-  // Address resolution
   ensToAddress: (params) => {
     const name = params?.name || params?.ensName;
-    if (name) {
-      return `Resolving ${name}`;
-    }
-    return "Resolving ENS name";
+    return name ? `Resolving ENS name ${name}` : "Resolving ENS identity";
   },
+  translateTransactions: () => "Decoding transaction data",
+
+  // =========================================================
+  // SOLANA
+  // =========================================================
+  getSolanaChainWalletPortfolio: (params) => {
+    const address = params?.address || params?.walletAddress;
+    const suffix = address ? `(${address.slice(0, 4)}..)` : "";
+    return `Scanning Solana portfolio ${suffix}`;
+  },
+  getSolanaWalletTransactions: () => "Fetching Solana transaction history",
+  searchSolanaTokenMarketData: (params) => {
+    const token = params?.token || params?.symbol;
+    return token ? `Checking Solana market for ${token}` : "Analyzing Solana token data";
+  },
+
+  // =========================================================
+  // MANTLE
+  // =========================================================
+  getMantleBalance: () => "Checking Mantle balance",
+  getMantlePortfolio: () => "Scanning Mantle assets",
+  getMantleTransaction: () => "Verifying Mantle transaction",
+  getMantleTransactionHistory: () => "Fetching Mantle history",
+  getMantleTokenBalance: () => "Checking Mantle tokens",
+  getMantleGasPrice: () => "Checking Mantle gas fees",
+  getMantleTokenTransfers: () => "Tracking Mantle transfers",
+  getMantleTokenList: () => "Listing Mantle tokens",
+  getMantleRollupInfo: () => "Checking Mantle L2 state",
+  getMantleContractABI: () => "Fetching Mantle contract ABI",
+
+  // =========================================================
+  // CRONOS & CRONOS ZKEVM
+  // =========================================================
+  // Cronos EVM
+  getCronosBalance: () => "Checking Cronos balance",
+  getCronosTransaction: () => "Fetching Cronos transaction detail",
+  getCronosTransactionHistory: () => "Retrieving Cronos history",
+  getCronosTokenBalance: () => "Checking Cronos tokens",
+  getCronosGasPrice: () => "Checking Cronos gas fees",
+  getCronosMarketData: () => "Scanning Cronos markets",
+  convertCrypto: () => "Calculating conversion rates",
+  getCryptoPrice: () => "Fetching latest prices",
+  // zkEVM
+  getZkEVMBalance: () => "Checking zkEVM balance",
+  getZkEVMPortfolio: () => "Scanning zkEVM portfolio",
+  getZkEVMTransactionHistory: () => "Fetching zkEVM history",
+  getZkEVMTokenList: () => "Listing zkEVM tokens",
+  getZkEVMGasPrice: () => "Estimating zkEVM gas",
+
+  // x402
+  initiateX402Payment: () => "Preparing payment transaction",
+  getSubscriptionInfo: () => "Retrieving subscription details",
+  getCurrentSubscriptionStatus: () => "Checking subscription status",
+
+  // =========================================================
+  // APTOS
+  // =========================================================
+  getAptosApiData: () => "Querying Aptos resources",
+  getAptosStats: () => "Checking Aptos network status",
+  getAptosScanApiData: () => "Scanning Aptos explorer",
+  getAptosPortfolio: () => "Aggregating Aptos assets",
+  getAptosGraphqlData: () => "Querying Aptos indexer",
   aptosNames: (params) => {
     const name = params?.name || params?.aptosName;
-    if (name) {
-      return `Resolving ${name}`;
-    }
-    return "Resolving Aptos name";
+    return name ? `Resolving Aptos handle ${name}` : "Resolving Aptos identity";
   },
 
-  // API data tools
-  getCreditcoinApiData: () => "Fetching Creditcoin data",
-  getVanaApiData: () => "Fetching Vana data",
+  // =========================================================
+  // WORMHOLE
+  // =========================================================
+  getWormholeApiData: () => "Checking Wormhole status",
 
-  // Image generation
-  createImage: (params) => {
-    const prompt = params?.prompt || params?.description;
-    if (prompt && prompt.length < 25) {
-      return `Generating ${prompt}`;
-    }
-    return "Generating image";
-  },
+  // =========================================================
+  // ZETA CHAIN
+  // =========================================================
+  getZetaApiData: () => "Querying ZetaChain status",
+  getZetaStats: () => "Checking ZetaChain metrics",
+
+  // =========================================================
+  // FLOW
+  // =========================================================
+  getFlowApiData: () => "Querying Flow blockchain",
+  getFlowStats: () => "Checking Flow status",
+
+  // =========================================================
+  // SEI
+  // =========================================================
+  getSeiApiData: () => "Querying Sei network",
+  getSeiStats: () => "Checking Sei metrics",
+
+  // =========================================================
+  // VANA
+  // =========================================================
+  getVanaApiData: () => "Retrieving Vana data",
+  getVanaStats: () => "Analyzing Vana stats",
+
+  // =========================================================
+  // CREDITCOIN
+  // =========================================================
+  getCreditcoinApiData: () => "Verifying Creditcoin history",
+  getCreditcoinStats: () => "Auditing RWA ledger status",
+
+  // =========================================================
+  // MONAD (Upcoming)
+  // =========================================================
+  getMonadApiData: () => "Querying Monad network",
+  getMonadStats: () => "Checking Monad throughput",
+
+  // =========================================================
+  // DEFI & MISC
+  // =========================================================
+  defiLlama: () => "Consulting DefiLlama protocol data",
+  queryCryptoComAI: () => "Asking Crypto.com AI Agent",
+  analyzeWalletWithAI: () => "Running AI wallet diagnostics",
+  getSiteContent: () => "Reading website content",
 };
 
 /**
@@ -159,7 +270,8 @@ export function generateStatusFromTool(
   if (statusHandler) {
     try {
       const status = statusHandler(params, userPrompt);
-      if (status && status.length <= 50) {
+      // Increased limit to 120 to allow for longer dynamic messages (like image prompts)
+      if (status && status.length <= 120) {
         return status;
       }
     } catch (error) {
@@ -169,23 +281,23 @@ export function generateStatusFromTool(
 
   // Fallback: Generate generic status based on tool name patterns
   if (toolName.includes("Portfolio") || toolName.includes("portfolio")) {
-    return "Fetching portfolio data";
+    return "Aggregating comprehensive wallet portfolio data and asset holdings";
   }
   if (toolName.includes("Token") || toolName.includes("token")) {
-    return "Retrieving token information";
+    return "Retrieving detailed token market metrics and price information";
   }
   if (toolName.includes("Search") || toolName.includes("search")) {
-    return "Searching";
+    return "Conducting an extensive search to gather relevant context";
   }
   if (toolName.includes("Address") || toolName.includes("address")) {
-    return "Resolving address";
+    return "Resolving blockchain address identity and associated metadata";
   }
   if (toolName.includes("Image") || toolName.includes("image")) {
-    return "Generating image";
+    return "Processing your request to generate high-quality visual content";
   }
 
   // Ultimate fallback
-  return "Processing";
+  return "Processing your request and analyzing data to provide the best response";
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { type ReactNode, useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 
 // Dynamically import DynamicContextProvider with SSR disabled
 const DynamicContextProviderAsync = dynamic(
@@ -32,6 +33,7 @@ interface DynamicWalletProviderProps {
  */
 export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) {
     const [mounted, setMounted] = useState(false);
+    const { resolvedTheme } = useTheme();
     const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
     const apiBaseUrl = process.env.NEXT_PUBLIC_DYNAMIC_API_BASE_URL;
 
@@ -52,6 +54,7 @@ export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) 
 
     return (
         <DynamicContextProviderAsync
+            theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
             settings={{
                 environmentId,
                 apiBaseUrl,

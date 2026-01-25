@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "@/lib/framer-motion";
+import { useEffect, useState } from "react";
 
 interface ThinkingAnimationProps {
     statusText?: string;
@@ -8,8 +9,18 @@ interface ThinkingAnimationProps {
 
 // Komponen animasi 'Thinking' yang diperbaiki
 export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
-    // Use dynamic status text if provided, otherwise fallback to "Thinking"
-    const displayText = statusText || "Thinking";
+    // Keep track of the last non-empty status to prevent flickering back to generic "Thinking"
+    // when a tool finishes but the LLM is still preparing the response
+    const [lastValidStatus, setLastValidStatus] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+        if (statusText) {
+            setLastValidStatus(statusText);
+        }
+    }, [statusText]);
+
+    // Use dynamic status text if provided, otherwise fallback to last valid status, then "Processing"
+    const displayText = statusText || lastValidStatus || "Processing";
     const containerVariants = {
         hidden: {
             opacity: 0,
@@ -69,20 +80,20 @@ export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
     };
 
     return (
-        <motion.div 
+        <motion.div
             className="flex items-center gap-3 py-3 px-1"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            exit={{ 
-                opacity: 0, 
+            exit={{
+                opacity: 0,
                 y: -5,
-                transition: { duration: 0.25, ease: "easeIn" } 
+                transition: { duration: 0.25, ease: "easeIn" }
             }}
         >
             {/* Text di sebelah kiri */}
             <AnimatePresence mode="wait">
-                <motion.span 
+                <motion.span
                     key={displayText}
                     className="text-sm font-medium text-muted-foreground select-none leading-none"
                     variants={textVariants}
@@ -94,7 +105,7 @@ export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
                     {displayText}
                 </motion.span>
             </AnimatePresence>
-            
+
             {/* Dots animation di sebelah kanan dengan baseline alignment */}
             <motion.div
                 className="flex items-center gap-1 h-[14px]"

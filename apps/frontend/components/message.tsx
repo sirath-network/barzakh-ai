@@ -459,6 +459,17 @@ const PurePreviewMessage = ({
                       // EVM chain transaction history tools
                       'getMantleTransactionHistory',
                       'getCronosTransactionHistory',
+                      'getZkEVMTransactionHistory', // Added
+                      'getEvmOnchainDataUsingZerion', // Added
+                      'getEvmOnchainDataUsingEtherscan', // Added
+                      // Other chains supported by EvmTransactionHistory
+                      'getCreditcoinApiData', // Added
+                      'getVanaApiData', // Added
+                      'getZetaApiData', // Added
+                      'getFlowApiData', // Added
+                      'getWormholeApiData', // Added
+                      'getSeiApiData', // Added (Check if supported or needs update)
+                      'translateTransactions', // Added to use rich UI
                       'createImage',
                       'initiateX402Payment',
                       // Relay Protocol - all quote tools show UI
@@ -492,9 +503,20 @@ const PurePreviewMessage = ({
                             getMantlePortfolio: <PortfolioTableAny result={result} />,
                             getTokenBalances: <PortfolioTableAny result={result} />,
                             getSolanaWalletTransactions: <TransactionHistoryAny result={result} />,
-                            // EVM chain transaction history
+                            // EVM chain transaction history & General API Data
                             getMantleTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             getCronosTransactionHistory: <EvmTransactionHistoryAny result={result} />,
+                            getZkEVMTransactionHistory: <EvmTransactionHistoryAny result={result} />,
+                            // Map generic and other chain tools to EvmTransactionHistory
+                            getEvmOnchainDataUsingZerion: <EvmTransactionHistoryAny result={result} />,
+                            getEvmOnchainDataUsingEtherscan: <EvmTransactionHistoryAny result={result} />,
+                            getCreditcoinApiData: <EvmTransactionHistoryAny result={result} />,
+                            getVanaApiData: <EvmTransactionHistoryAny result={result} />,
+                            getZetaApiData: <EvmTransactionHistoryAny result={result} />,
+                            getFlowApiData: <EvmTransactionHistoryAny result={result} />,
+                            getWormholeApiData: <EvmTransactionHistoryAny result={result} />,
+                            getSeiApiData: <EvmTransactionHistoryAny result={result} />,
+                            translateTransactions: <EvmTransactionHistoryAny result={result} />,
                             createImage: result?.imageUrls ? (
                               <AIGeneratedImageGridAny
                                 imageUrls={result.imageUrls}
@@ -667,8 +689,21 @@ const PurePreviewMessage = ({
 
                             // Special handling: Remove markdown tables if Transaction History tool was used
                             // logic: if simplified content has table, and we have transaction tool, user wants just the UI
-                            // logic: if simplified content has table, and we have transaction tool, user wants just the UI
-                            const hasTxHistory = completedTools?.some(t => t.toolName === 'getSolanaWalletTransactions');
+                            const hasTxHistory = completedTools?.some(t =>
+                              t.toolName === 'getSolanaWalletTransactions' ||
+                              t.toolName === 'translateTransactions' ||
+                              t.toolName === 'getEvmOnchainDataUsingZerion' ||
+                              t.toolName === 'getEvmOnchainDataUsingEtherscan' ||
+                              t.toolName === 'getMantleTransactionHistory' ||
+                              t.toolName === 'getCronosTransactionHistory' ||
+                              t.toolName === 'getZkEVMTransactionHistory' ||
+                              t.toolName === 'getCreditcoinApiData' ||
+                              t.toolName === 'getVanaApiData' ||
+                              t.toolName === 'getZetaApiData' ||
+                              t.toolName === 'getFlowApiData' ||
+                              t.toolName === 'getWormholeApiData' ||
+                              t.toolName === 'getSeiApiData'
+                            );
                             if (hasTxHistory && filteredContent) {
                               filteredContent = removeMarkdownTables(filteredContent);
                             }

@@ -20,14 +20,14 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
   const theme = useMemo(() => {
     const baseTheme = resolvedTheme === 'dark'
       ? darkTheme({
-        accentColor: '#E3E0CD',
+        accentColor: '#fdfdfdff',
         accentColorForeground: 'white',
         borderRadius: 'medium',
         fontStack: 'system',
         overlayBlur: 'small',
       })
       : lightTheme({
-        accentColor: '#E3E0CD',
+        accentColor: '#000000ff',
         accentColorForeground: 'white',
         borderRadius: 'medium',
         fontStack: 'system',

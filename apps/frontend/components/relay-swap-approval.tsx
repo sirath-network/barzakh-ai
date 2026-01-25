@@ -831,10 +831,16 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
         } catch (err: any) {
             // Check for user rejection
-            const isUserRejection = err.message?.includes("User rejected") ||
-                err.message?.includes("User denied") ||
-                err.message?.includes("User cancelled") ||
-                err.cause?.message?.includes("User rejected");
+            const errorString = (err?.message || err?.toString() || "").toLowerCase();
+            const isUserRejection =
+                errorString.includes("user rejected") ||
+                errorString.includes("user denied") ||
+                errorString.includes("user cancelled") ||
+                errorString.includes("canceled") ||
+                errorString.includes("declined") ||
+                errorString.includes("reject") || // Broad check for "reject"
+                err?.code === 4001 || // Standard rejection code
+                err?.cause?.code === 4001;
 
             if (isUserRejection) {
                 console.log("Transaction cancelled by user");

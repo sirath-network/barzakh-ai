@@ -28,6 +28,31 @@ const MANTLE_TESTNET_CHAIN_ID = 5003;
 const MANTLE_EXPLORER = "https://mantlescan.xyz";
 const MANTLE_TESTNET_EXPLORER = "https://sepolia.mantlescan.xyz";
 
+// Helper to format amounts consistently with EVM tools
+const formatAmount = (val: string | number) => {
+    if (!val) return "0";
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num)) return "0";
+
+    if (Math.abs(num) >= 1_000_000_000_000) {
+        return (num / 1_000_000_000_000).toFixed(2).replace(/\.00$/, '') + " T";
+    }
+    if (Math.abs(num) >= 1_000_000_000) {
+        return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '') + " B";
+    }
+    if (Math.abs(num) >= 1_000_000) {
+        return (num / 1_000_000).toFixed(2).replace(/\.00$/, '') + " M";
+    }
+    if (Math.abs(num) >= 1_000) {
+        return (num / 1_000).toFixed(2).replace(/\.00$/, '') + " K";
+    }
+
+    return new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 6,
+        useGrouping: true
+    }).format(num);
+};
+
 /**
  * Helper to get current block number from Mantle RPC
  */
@@ -649,7 +674,7 @@ export const getMantleTransactionHistory = tool({
                         const mainTransfer = transfers[0];
                         const amount = mainTransfer.quantity?.float || 0;
                         const symbol = mainTransfer.fungible_info?.symbol || "MNT";
-                        value = `${amount.toFixed(6)} ${symbol}`;
+                        value = `${formatAmount(amount)} ${symbol}`;
                     }
 
                     // Format token transfers
@@ -657,7 +682,7 @@ export const getMantleTransactionHistory = tool({
                         direction: t.direction === "out" ? "Sent" : "Received",
                         amount: (t.quantity?.float || 0).toFixed(6),
                         symbol: t.fungible_info?.symbol || "MNT",
-                        formatted: `${t.direction === "out" ? "-" : "+"}${(t.quantity?.float || 0).toFixed(4)} ${t.fungible_info?.symbol || "MNT"}`,
+                        formatted: `${t.direction === "out" ? "-" : "+"}${formatAmount(t.quantity?.float || 0)} ${t.fungible_info?.symbol || "MNT"}`,
                     })) : null;
 
                     return {
