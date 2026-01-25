@@ -6,7 +6,7 @@
     "dev": "next dev --turbo -p 3000",
     "devt": "next dev --turbopack",
     "deve": "next dev --experimental-https",
-    "build": "tsx lib/db/migrate && next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' tsx lib/db/migrate && next build",
     "start": "next start",
     "lint": "next lint && biome lint --write --unsafe",
     "lint:fix": "next lint --fix && biome lint --write --unsafe",
