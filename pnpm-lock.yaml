@@ -19,6 +19,7 @@ overrides:
   h3: '>=1.15.5'
   undici: '>=6.23.0'
   lodash: ^4.17.23
+  valibot: ^1.2.0
 
 importers:
 
@@ -4081,7 +4082,7 @@ packages:
   '@sats-connect/core@0.10.0':
     resolution: {integrity: sha512-a/YvGuAC+4og1Ownp3r0OFOHEdBV1xB8EWLFasURfMPSuU3LuFhxSv8rd6PSpqixhNY28fUWamjyjXYjxvGm7w==}
     peerDependencies:
-      valibot: 1.1.0
+      valibot: ^1.2.0
 
   '@sats-connect/make-default-provider-config@0.0.10':
     resolution: {integrity: sha512-BBot3Ofa2J7OwXprgYPD4C8dppX4nnPxj4FXWq1H7fDsvwJmW4sAnfmnAIzwmyWZJOR2uZqtTkXAA08sVkoN5g==}
@@ -11937,14 +11938,6 @@ packages:
     resolution: {integrity: sha512-AXyzMjazYB3ovL3q051VLH06Ixj//Knx7QnUSi1T//Ie3io6CpsPu9nVMOx5MoLWh6xV0B9J0hIaxungxXUbPQ==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
-  valibot@1.1.0:
-    resolution: {integrity: sha512-Nk8lX30Qhu+9txPYTwM0cFlWLdPFsFr6LblzqIySfbZph9+BFsAHsNvHOymEviUepeIW6KFHzpX8TKhbptBXXw==}
-    peerDependencies:
-      typescript: '>=5'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   valibot@1.2.0:
     resolution: {integrity: sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg==}
     peerDependencies:
@@ -18216,19 +18209,19 @@ snapshots:
 
   '@safe-global/safe-gateway-typescript-sdk@3.23.1': {}
 
-  '@sats-connect/core@0.10.0(valibot@1.1.0(typescript@5.9.3))':
+  '@sats-connect/core@0.10.0(valibot@1.2.0(typescript@5.9.3))':
     dependencies:
       axios: 1.13.2
       bitcoin-address-validation: 3.0.0
       buffer: 6.0.3
       jsontokens: 4.0.1
-      valibot: 1.1.0(typescript@5.9.3)
+      valibot: 1.2.0(typescript@5.9.3)
     transitivePeerDependencies:
       - debug
 
-  '@sats-connect/make-default-provider-config@0.0.10(@sats-connect/core@0.10.0(valibot@1.1.0(typescript@5.9.3)))(typescript@5.9.3)':
+  '@sats-connect/make-default-provider-config@0.0.10(@sats-connect/core@0.10.0(valibot@1.2.0(typescript@5.9.3)))(typescript@5.9.3)':
     dependencies:
-      '@sats-connect/core': 0.10.0(valibot@1.1.0(typescript@5.9.3))
+      '@sats-connect/core': 0.10.0(valibot@1.2.0(typescript@5.9.3))
       '@sats-connect/ui': 0.0.6
       bowser: 2.13.1
       typescript: 5.9.3
@@ -26201,7 +26194,7 @@ snapshots:
 
   extension-port-stream@3.0.0:
     dependencies:
-      readable-stream: 3.6.2
+      readable-stream: 4.7.0
       webextension-polyfill: 0.10.0
 
   eyes@0.1.8: {}
@@ -29750,10 +29743,10 @@ snapshots:
 
   sats-connect@4.2.1(typescript@5.9.3):
     dependencies:
-      '@sats-connect/core': 0.10.0(valibot@1.1.0(typescript@5.9.3))
-      '@sats-connect/make-default-provider-config': 0.0.10(@sats-connect/core@0.10.0(valibot@1.1.0(typescript@5.9.3)))(typescript@5.9.3)
+      '@sats-connect/core': 0.10.0(valibot@1.2.0(typescript@5.9.3))
+      '@sats-connect/make-default-provider-config': 0.0.10(@sats-connect/core@0.10.0(valibot@1.2.0(typescript@5.9.3)))(typescript@5.9.3)
       '@sats-connect/ui': 0.0.7
-      valibot: 1.1.0(typescript@5.9.3)
+      valibot: 1.2.0(typescript@5.9.3)
     transitivePeerDependencies:
       - debug
       - typescript
@@ -30838,10 +30831,6 @@ snapshots:
     dependencies:
       '@types/uuid': 8.3.4
       uuid: 8.3.2
-
-  valibot@1.1.0(typescript@5.9.3):
-    optionalDependencies:
-      typescript: 5.9.3
 
   valibot@1.2.0(typescript@5.9.3):
     optionalDependencies:
