@@ -50,13 +50,20 @@ async function zkevmApiRequest(module: string, action: string, params: Record<st
 
     console.log(`[zkEVM API] ${module}/${action}:`, url.toString().replace(apiKey, "***"));
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-        throw new Error(`zkEVM API request failed: ${response.status} ${response.statusText}`);
-    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-    const data = await response.json();
-    return data;
+    try {
+        const response = await fetch(url.toString(), { signal: controller.signal });
+        if (!response.ok) {
+            throw new Error(`zkEVM API request failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
@@ -67,12 +74,17 @@ async function fetchZkEVMTokenBalances(address: string): Promise<any[]> {
     const url = `${ZKEVM_EXPLORER_TABLE}/erc20TokenBalance?address=${address}&p=1&ps=500`;
     console.log(`[zkEVM Token] Fetching token balances from explorer table: ${url}`);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const response = await fetch(url, {
         headers: {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "User-Agent": "Mozilla/5.0 (compatible; BarzakhAI/1.0)",
         },
+        signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
         throw new Error(`Failed to fetch token balances: ${response.status}`);
@@ -119,11 +131,16 @@ export const getZkEVMBalance = tool({
             } catch (apiError) {
                 // Fallback to RPC if explorer API fails
                 console.log("[zkEVM] Explorer API failed, using RPC fallback");
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+
                 const rpcResponse = await fetch(ZKEVM_RPC, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBalance", params: [address, "latest"], id: 1 }),
+                    signal: controller.signal,
                 });
+                clearTimeout(timeoutId);
                 const rpcData = await rpcResponse.json();
                 balanceWei = BigInt(rpcData.result || "0");
             }
@@ -147,15 +164,15 @@ export const getZkEVMBalance = tool({
 /**
  * Get transaction history on Cronos zkEVM
  * Endpoint: account/getTxsByAddress
- * Note: API limits block range to max 10,000 blocks
+ * Note: API limits block range to max 
  */
 export const getZkEVMTransactionHistory = tool({
     description: "Get the latest transactions for a wallet address on Cronos zkEVM (Chain ID 388). Use for zkEVM transaction history.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        blockRange: z.number().optional().default(10000).describe("Number of recent blocks to search (max 10000)"),
+        blockRange: z.number().optional().default(2000000).describe("Number of recent blocks to search (default: 2000000)"),
     }),
-    execute: async ({ address, blockRange = 10000 }) => {
+    execute: async ({ address, blockRange = 2000000 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) {
                 return { error: "Invalid address format", details: "Address must be 0x followed by 40 hex characters" };
@@ -164,7 +181,7 @@ export const getZkEVMTransactionHistory = tool({
             // First, get current block number
             const blockData = await zkevmApiRequest("ethproxy", "getBlockNumber", {});
             const currentBlock = parseInt(blockData.result, 16);
-            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+            const startBlock = Math.max(0, currentBlock - blockRange);
 
             console.log(`[zkEVM] Fetching txs from block ${startBlock} to ${currentBlock}`);
 
@@ -302,22 +319,22 @@ export const getZkEVMGasPrice = tool({
 /**
  * Get ERC-20 token transfers for a wallet on Cronos zkEVM
  * Endpoint: account/getERC20TransferByAddress
- * Note: API limits block range to max 10,000 blocks
+ * Note: API limits block range to max 
  */
 export const getZkEVMTokenTransfers = tool({
     description: "Get ERC-20 token transfer history for a wallet on Cronos zkEVM (Chain ID 388).",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        blockRange: z.number().optional().default(10000).describe("Number of recent blocks to search (max 10000)"),
+        blockRange: z.number().optional().default(2000000).describe("Number of recent blocks to search (default: 2000000)"),
     }),
-    execute: async ({ address, blockRange = 10000 }) => {
+    execute: async ({ address, blockRange = 2000000 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) return { error: "Invalid wallet address format" };
 
             // Get current block number first
             const blockData = await zkevmApiRequest("ethproxy", "getBlockNumber", {});
             const currentBlock = parseInt(blockData.result, 16);
-            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+            const startBlock = Math.max(0, currentBlock - blockRange);
 
             const data = await zkevmApiRequest("account", "getERC20TransferByAddress", {
                 address,
@@ -357,22 +374,22 @@ export const getZkEVMTokenTransfers = tool({
 /**
  * Get internal transactions for a wallet on Cronos zkEVM
  * Endpoint: account/getInternalTxsByAddress
- * Note: API limits block range to max 10,000 blocks
+ * Note: API limits block range to max 
  */
 export const getZkEVMInternalTxList = tool({
     description: "Get internal transactions for a wallet on Cronos zkEVM (Chain ID 388).",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        blockRange: z.number().optional().default(10000).describe("Number of recent blocks to search (max 10000)"),
+        blockRange: z.number().optional().default(2000000).describe("Number of recent blocks to search (default: 2000000)"),
     }),
-    execute: async ({ address, blockRange = 10000 }) => {
+    execute: async ({ address, blockRange = 2000000 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) return { error: "Invalid wallet address format" };
 
             // Get current block number first
             const blockData = await zkevmApiRequest("ethproxy", "getBlockNumber", {});
             const currentBlock = parseInt(blockData.result, 16);
-            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+            const startBlock = Math.max(0, currentBlock - blockRange);
 
             const data = await zkevmApiRequest("account", "getInternalTxsByAddress", {
                 address,

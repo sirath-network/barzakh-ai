@@ -270,6 +270,8 @@ const INTENT_PATTERNS: IntentPattern[] = [
             /\bzk\s*evm\b/i, // zkEVM
             /\bzkevm\b/i, // zkEVM without space
             /\bzkCRO\b/i, // zkCRO token
+            /\bcronos\s*zkevm\b/i, // Explicit Cronos zkEVM
+            /\bzk\s*cronos\b/i, // zk Cronos
             /\bcro\s+(token|coin|balance|wallet|portfolio)\b/i,
             /\bcrypto\.com\s+(chain|defi|app|exchange)\b/i,
             /\b(vvs|tectonic|ferro|mmf|mad\s*meerkat|ebisus|fulcrum)\b/i,
@@ -282,7 +284,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "cronos", "cro token", "crypto.com chain", "crypto.com defi",
             "vvs finance", "vvs swap", "tectonic finance", "ferro protocol",
             "cronos wallet", "cronos portfolio", "on cronos", "cronos network",
-            "cronos zkevm", "zkevm", "zkcro", "zk evm", "cronos pos",
+            "cronos zkevm", "zkevm", "zkcro", "zk evm", "cronos pos", "zk cronos",
         ],
         priority: 95,
     },
@@ -412,6 +414,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
     },
 
     // Default search - lowest priority (catches everything else)
+    // Default search - lowest priority (catches everything else)
     {
         intent: "search",
         patterns: [
@@ -419,10 +422,11 @@ const INTENT_PATTERNS: IntentPattern[] = [
             /\b(latest|recent|news|update|current|today)\b/i,
             /\b(price|weather|stock|score|result|movie|recipe|review)\b/i,
             /\b(compare|versus|vs|difference)\b/i,
+            /\b(web|browse|internet)\b/i, // Explicit web mapping
         ],
         keywords: [
             "search", "find", "look up", "what is", "latest news",
-            "google it", "web search", "current events",
+            "google it", "web search", "current events", "web",
         ],
         priority: 10,
     },
@@ -535,7 +539,12 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
         contextHint = `\n
 CONVERSATION CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation.
 
-CRITICAL ADDRESS FORMAT RULES (these may OVERRIDE conversation context):
+CRITICAL RULES:
+1. If the user asks for generic actions like "track portfolio", "check balance", "view wallet" WITHOUT explicitly naming another chain, YOU MUST classify as "${chatContext}".
+   - Example: "track portfolio" -> "${chatContext}" (NOT "on_chain")
+   - Example: "check balance" -> "${chatContext}" (NOT "on_chain")
+
+2. ADDRESS FORMAT RULES (may OVERRIDE context):
 - EVM-compatible chains (cronos, mantle, zeta, creditcoin, vana, flow, wormhole, sei): Accept "0x..." addresses (40 hex chars)
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
@@ -571,14 +580,20 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                 confidence: z.number().min(0).max(1),
                 reasoning: z.string(),
             }),
-            prompt: `Classify this user message into one of these intent categories:
+            prompt: `You are a classification API. Output ONLY valid JSON.
+NO introductory text. NO markdown. NO explanations.
+
+Classify the user message into one of: [${intentCategories.split('\n').map(l => l.trim().split(':')[0]).join(', ')}]
+
+Categories:
 ${intentCategories}${contextHint}
 
 User message: "${message}"
 
-Respond with the most appropriate intent category and your confidence level (0-1).`,
+JSON Response:`,
             maxTokens: 150,
             mode: 'json',
+            temperature: 0,
         });
 
         return {
@@ -744,10 +759,27 @@ export async function classifyIntent(
     const patternResult = classifyByPatterns(message);
 
     if (patternResult && patternResult.confidence >= confidenceThreshold) {
-        console.log(
-            `[INTENT] Pattern match: ${patternResult.primaryIntent} (${patternResult.confidence.toFixed(2)}) in ${Date.now() - startTime} ms`
-        );
-        return patternResult;
+        // Special Case: IF pattern detected generic "on_chain" (e.g. "track portfolio")
+        // BUT we have a specific chain context (e.g. "cronos"), prevent early return
+        // and allow context logic to handle it, OR override immediately.
+
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+
+        if (patternResult.primaryIntent === 'on_chain' &&
+            chatContext &&
+            EVM_COMPATIBLE_CHAINS.includes(chatContext as IntentType) &&
+            chatContext !== 'on_chain') {
+
+            console.log(
+                `[INTENT] Generic 'on_chain' pattern detected in '${chatContext}' context. Overriding early return to preserve context.`
+            );
+            // Don't return here - let it fall through to context logic (Step 2)
+        } else {
+            console.log(
+                `[INTENT] Pattern match: ${patternResult.primaryIntent} (${patternResult.confidence.toFixed(2)}) in ${Date.now() - startTime} ms`
+            );
+            return patternResult;
+        }
     }
 
     // Step 2: Context-based routing for follow-up messages
@@ -770,14 +802,7 @@ export async function classifyIntent(
 
     // Handle chain-specific context
     if (chatContext && CONTEXT_AWARE_GROUPS.includes(chatContext as IntentType)) {
-        // Check if the pattern matched a DIFFERENT chain with reasonable confidence
-        const patternMatchedDifferentChain = patternResult &&
-            CONTEXT_AWARE_GROUPS.includes(patternResult.primaryIntent as IntentType) &&
-            patternResult.primaryIntent !== chatContext &&
-            patternResult.confidence > 0.5;
-
         // CRITICAL: Check if addresses in the message indicate a DIFFERENT chain than context
-        // This prevents using Solana context when user provides 0x address, and vice versa
         const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
         const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
         const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
@@ -786,6 +811,15 @@ export async function classifyIntent(
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
         const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+
+        // Check if the pattern matched a DIFFERENT chain with reasonable confidence
+        const patternMatchedDifferentChain = patternResult &&
+            CONTEXT_AWARE_GROUPS.includes(patternResult.primaryIntent as IntentType) &&
+            patternResult.primaryIntent !== chatContext &&
+            // CRITICAL: Don't let generic 'on_chain' override specific EVM chains (e.g. 'cronos')
+            // If context is 'cronos' and pattern says 'on_chain' (e.g. "portfolio"), stick to 'cronos'
+            !(patternResult.primaryIntent === 'on_chain' && EVM_COMPATIBLE_CHAINS.includes(chatContext)) &&
+            patternResult.confidence > 0.5;
 
         // Determine if address type mismatches the context
         const addressMismatchesContext = (

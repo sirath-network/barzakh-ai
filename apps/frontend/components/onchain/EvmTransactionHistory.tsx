@@ -241,7 +241,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
         return (
             <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-                    No transactions found for this wallet on {chainConfig.name}.
+                    No transactions found for this wallet on {chainConfig.name} in the last ~4 months.
                 </p>
             </div>
         );
