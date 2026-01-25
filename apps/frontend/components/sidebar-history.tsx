@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import type { User } from "next-auth";
 import { memo, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
@@ -388,7 +388,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
   const { setView } = useView();
   const { id } = useParams();
-  const pathname = usePathname();
   const {
     data: history,
     isLoading,
@@ -397,9 +396,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     fallbackData: [],
   });
 
-  useEffect(() => {
-    mutate();
-  }, [pathname, mutate]);
+
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);

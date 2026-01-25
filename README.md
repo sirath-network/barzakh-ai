@@ -354,13 +354,13 @@ flowchart LR
 
 ### Cronos zkEVM Direct Tools
 
-Direct API access to Cronos zkEVM (Chain ID 388) with dynamic 10k block range for reliability:
+Direct API access to Cronos zkEVM (Chain ID 388) block range for reliability:
 
 ```typescript
 // Available zkEVM Tools
 const zkevmTools = {
   getZkEVMBalance,           // Native zkCRO balance (with RPC fallback)
-  getZkEVMTransactionHistory, // Transaction history (last 10k blocks)
+  getZkEVMTransactionHistory, // Transaction history
   getZkEVMTransaction,       // Transaction status by hash
   getZkEVMTokenBalance,      // ERC-20 token balance
   getZkEVMGasPrice,          // zkCRO price

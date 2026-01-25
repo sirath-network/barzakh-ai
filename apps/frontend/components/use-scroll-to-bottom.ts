@@ -1,8 +1,8 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
 export function useScrollToBottomOnDomChange<T extends HTMLElement>(): [
-  RefObject<T>,
-  RefObject<T>,
+  RefObject<T | null>,
+  RefObject<T | null>,
 ] {
   const containerRef = useRef<T>(null);
   const endRef = useRef<T>(null);
@@ -31,8 +31,8 @@ export function useScrollToBottomOnDomChange<T extends HTMLElement>(): [
 }
 
 export function useScrollToBottom<T extends HTMLElement>(deps: any[]): [
-  RefObject<T>,
-  RefObject<T>,
+  RefObject<T | null>,
+  RefObject<T | null>,
 ] {
   const containerRef = useRef<T>(null);
   const endRef = useRef<T>(null);

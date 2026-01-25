@@ -429,6 +429,13 @@ export async function POST(request: Request) {
   // Detect if conversation has image generation history
   function hasImageGenerationHistory(msgs: typeof messages): boolean {
     for (const msg of msgs) {
+      // Check for user uploaded images
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        for (const part of msg.content as any[]) {
+          if (part.type === 'image') return true;
+        }
+      }
+
       // Check for createImage tool calls or results
       if (Array.isArray(msg.content)) {
         for (const part of msg.content as any[]) {

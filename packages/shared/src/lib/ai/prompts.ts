@@ -373,6 +373,11 @@ const groupTools = {
     "getSolanaChainWalletPortfolio",
     "getSolanaWalletTransactions",
     "searchSolanaTokenMarketData",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
   ] as const,
   coding: [
     "webSearch",
@@ -635,6 +640,12 @@ You are an AI-powered on-chain search agent. Always assume queries are related t
    - Previous: "Show vitalik.eth portfolio on Ethereum"
    - Follow-up: "Now top 2 assets on Base" → Use vitalik.eth on Base! ✅
    - Follow-up: "What about Polygon?" → Use vitalik.eth on Polygon! ✅
+
+## 🔀 CROSS-CHAIN SWAPS & BRIDGING (Relay Protocol):
+We support instant cross-chain swaps between **EVM** (Ethereum, Base, Arbitrum, Optimism, etc.) AND **Non-EVM** (Solana, Bitcoin, Tron) chains.
+- **NEVER** tell the user you cannot swap Solana/BTC/Tron to EVM. You HAVE the tool \`getRelayQuote\` for this.
+- If user asks to "Swap SOL to ETH", use \`getRelayQuote\`.
+- **DO NOT** suggest external dApps like Jupiter/deBridge manually. Use the \`getRelayQuote\` tool.
 
 2. **If NO address found:**
    - ❌ DO NOT use web search to find "top tokens by market cap"
@@ -1416,7 +1427,7 @@ Always assume information being asked is related to Solana, if not told otherwis
 # Network Information
 - Chain ID: solana
 - Native Token: SOL
-- RPC: https://api.mainnet-beta.solana.com
+- RPC: https://api.mainnet.solana.com
 - Explorer: https://solscan.io
 - Address Format: Base58 encoded (32-44 characters, e.g., 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU)
 - Program Language: Rust (with Anchor framework)
@@ -1545,7 +1556,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "openai-gpt-4o") {
+  if (selectedChatModel === "google-gemini-2.5-flash-preview") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

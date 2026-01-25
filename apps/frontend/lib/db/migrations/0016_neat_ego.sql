@@ -1,0 +1,1 @@
+ALTER TABLE "X402Transaction" ALTER COLUMN "transactionHash" SET DATA TYPE varchar(128);

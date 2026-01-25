@@ -33,13 +33,19 @@ const MANTLE_TESTNET_EXPLORER = "https://sepolia.mantlescan.xyz";
  */
 async function getCurrentMantleBlock(testnet = false): Promise<number> {
     const rpcUrl = testnet ? MANTLE_TESTNET_RPC : MANTLE_MAINNET_RPC;
-    const response = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
-    });
-    const data = await response.json();
-    return parseInt(data.result, 16);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+        const response = await fetch(rpcUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
+            signal: controller.signal,
+        });
+        const data = await response.json();
+        return parseInt(data.result, 16);
+    } catch (e) { throw e; } finally { clearTimeout(timeoutId); }
 }
 
 /**
@@ -56,13 +62,18 @@ async function etherscanV2Request(params: Record<string, string>, testnet = fals
     });
 
     const url = `${ETHERSCAN_V2_API}?${queryParams.toString()}`;
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    if (!response.ok) {
-        throw new Error(`Etherscan API request failed: ${response.status}`);
-    }
+    try {
+        const response = await fetch(url, { signal: controller.signal });
 
-    return response.json();
+        if (!response.ok) {
+            throw new Error(`Etherscan API request failed: ${response.status}`);
+        }
+
+        return response.json();
+    } finally { clearTimeout(timeoutId); }
 }
 
 /**
@@ -100,15 +111,16 @@ async function fetchTokenHoldingsFromTransfers(address: string, testnet = false)
             }
         }
 
-        // Fetch current balance for each token via RPC
-        const tokens: any[] = [];
+        // Fetch current balance for each token via RPC in PARALLEL
+        // Use Promise.all to blast requests (Mantle RPC handles concurrency well)
+        const balanceOfSelector = "0x70a08231";
+        const paddedAddress = address.slice(2).padStart(64, "0");
+        const callData = balanceOfSelector + paddedAddress;
 
-        for (const [contractAddress, tokenInfo] of tokenMap) {
+        const tokenPromises = Array.from(tokenMap).map(async ([contractAddress, tokenInfo]) => {
             try {
-                // ERC-20 balanceOf function signature
-                const balanceOfSelector = "0x70a08231";
-                const paddedAddress = address.slice(2).padStart(64, "0");
-                const callData = balanceOfSelector + paddedAddress;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout per token check
 
                 const response = await fetch(rpcUrl, {
                     method: "POST",
@@ -119,7 +131,9 @@ async function fetchTokenHoldingsFromTransfers(address: string, testnet = false)
                         params: [{ to: contractAddress, data: callData }, "latest"],
                         id: 1,
                     }),
+                    signal: controller.signal,
                 });
+                clearTimeout(timeoutId);
 
                 const data = await response.json();
 
@@ -128,7 +142,7 @@ async function fetchTokenHoldingsFromTransfers(address: string, testnet = false)
                     if (balanceRaw > 0n) {
                         const balance = Number(balanceRaw) / Math.pow(10, tokenInfo.decimals);
                         if (balance > 0.000001) {
-                            tokens.push({
+                            return {
                                 contractAddress,
                                 name: tokenInfo.name,
                                 symbol: tokenInfo.symbol,
@@ -136,15 +150,19 @@ async function fetchTokenHoldingsFromTransfers(address: string, testnet = false)
                                 balance,
                                 balanceFormatted: balance.toFixed(6),
                                 isNative: false,
-                            });
+                            };
                         }
                     }
                 }
             } catch (e) {
-                // Skip tokens that fail balance check
-                console.error(`[Mantle] Failed to fetch balance for ${contractAddress}:`, e);
+                // Skip tokens that fail balance check without crashing the whole list
+                console.warn(`[Mantle] Failed to fetch balance for ${contractAddress}:`, e);
             }
-        }
+            return null;
+        });
+
+        const results = await Promise.all(tokenPromises);
+        const tokens = results.filter((t) => t !== null) as any[];
 
         // Sort by balance descending
         tokens.sort((a, b) => b.balance - a.balance);
@@ -300,69 +318,77 @@ export const getMantleTransaction = tool({
 
             const rpcUrl = testnet ? MANTLE_TESTNET_RPC : MANTLE_MAINNET_RPC;
 
-            // Get transaction details
-            const txResponse = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_getTransactionByHash",
-                    params: [cleanHash],
-                    id: 1,
-                }),
-            });
+            // Parallelize tx and receipt lookup
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-            const txData = await txResponse.json();
+            try {
+                const [txResponse, receiptResponse] = await Promise.all([
+                    fetch(rpcUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "eth_getTransactionByHash",
+                            params: [cleanHash],
+                            id: 1,
+                        }),
+                        signal: controller.signal,
+                    }),
+                    fetch(rpcUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "eth_getTransactionReceipt",
+                            params: [cleanHash],
+                            id: 2,
+                        }),
+                        signal: controller.signal,
+                    })
+                ]);
 
-            if (txData.error || !txData.result) {
-                throw new Error(txData.error?.message || "Transaction not found");
+                const txData = await txResponse.json();
+                const receiptData = await receiptResponse.json();
+
+                if (txData.error || !txData.result) {
+                    throw new Error(txData.error?.message || "Transaction not found");
+                }
+
+                const tx = txData.result;
+                const receipt = receiptData.result;
+
+                const valueWei = BigInt(tx.value);
+                const valueMNT = Number(valueWei) / 1e18;
+                const gasPrice = parseInt(tx.gasPrice, 16);
+                const gasUsed = receipt ? parseInt(receipt.gasUsed, 16) : null;
+                const txFee = gasUsed ? (gasPrice * gasUsed) / 1e18 : null;
+
+                const explorer = testnet ? MANTLE_TESTNET_EXPLORER : MANTLE_EXPLORER;
+
+                return {
+                    network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
+                    hash: txHash,
+                    status: receipt ? (receipt.status === "0x1" ? "Success" : "Failed") : "Pending",
+                    blockNumber: tx.blockNumber ? parseInt(tx.blockNumber, 16) : null,
+                    from: tx.from,
+                    to: tx.to,
+                    value: {
+                        wei: valueWei.toString(),
+                        mnt: valueMNT.toFixed(6),
+                        formatted: `${valueMNT.toFixed(4)} MNT`,
+                    },
+                    gasPrice: `${(gasPrice / 1e9).toFixed(2)} Gwei`,
+                    gasUsed: gasUsed,
+                    transactionFee: txFee ? `${txFee.toFixed(6)} MNT` : null,
+                    nonce: parseInt(tx.nonce, 16),
+                    inputData: tx.input.length > 10 ? `${tx.input.slice(0, 10)}...` : tx.input,
+                    isContractInteraction: tx.input !== "0x" && tx.input.length > 2,
+                    explorerUrl: `${explorer}/tx/${txHash}`,
+                };
+            } finally {
+                clearTimeout(timeoutId);
             }
-
-            const tx = txData.result;
-
-            // Get transaction receipt for status
-            const receiptResponse = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_getTransactionReceipt",
-                    params: [cleanHash],
-                    id: 2,
-                }),
-            });
-
-            const receiptData = await receiptResponse.json();
-            const receipt = receiptData.result;
-
-            const valueWei = BigInt(tx.value);
-            const valueMNT = Number(valueWei) / 1e18;
-            const gasPrice = parseInt(tx.gasPrice, 16);
-            const gasUsed = receipt ? parseInt(receipt.gasUsed, 16) : null;
-            const txFee = gasUsed ? (gasPrice * gasUsed) / 1e18 : null;
-
-            const explorer = testnet ? MANTLE_TESTNET_EXPLORER : MANTLE_EXPLORER;
-
-            return {
-                network: testnet ? "Mantle Sepolia Testnet" : "Mantle Mainnet",
-                hash: txHash,
-                status: receipt ? (receipt.status === "0x1" ? "Success" : "Failed") : "Pending",
-                blockNumber: tx.blockNumber ? parseInt(tx.blockNumber, 16) : null,
-                from: tx.from,
-                to: tx.to,
-                value: {
-                    wei: valueWei.toString(),
-                    mnt: valueMNT.toFixed(6),
-                    formatted: `${valueMNT.toFixed(4)} MNT`,
-                },
-                gasPrice: `${(gasPrice / 1e9).toFixed(2)} Gwei`,
-                gasUsed: gasUsed,
-                transactionFee: txFee ? `${txFee.toFixed(6)} MNT` : null,
-                nonce: parseInt(tx.nonce, 16),
-                inputData: tx.input.length > 10 ? `${tx.input.slice(0, 10)}...` : tx.input,
-                isContractInteraction: tx.input !== "0x" && tx.input.length > 2,
-                explorerUrl: `${explorer}/tx/${txHash}`,
-            };
         } catch (error: any) {
             console.error("Error fetching Mantle transaction:", error);
             return {
@@ -682,9 +708,9 @@ export const getMantleTokenTransfers = tool({
     }),
     execute: async ({ address, contractAddress, page = 1, limit = 20, testnet = false }) => {
         try {
-            // Get current block and calculate start block (last 10k blocks)
+            // Get current block and calculate start block
             const currentBlock = await getCurrentMantleBlock(testnet);
-            const startBlock = Math.max(0, currentBlock - 500000);
+            const startBlock = Math.max(0, currentBlock - 5000000);
 
             const params: Record<string, string> = {
                 module: "account",

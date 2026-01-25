@@ -37,7 +37,7 @@ import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
   // coding now allows user to select from CODING_ALLOWED_MODELS
-  imagine: "openai-gpt-4.1",
+  imagine: "google-gemini-2.5-flash-preview",
   // multimodal requires a vision-capable model for image analysis
   multimodal: "google-gemini-2.5-flash-preview",
 };
@@ -475,7 +475,13 @@ function PureMultimodalInput({
 
   useEffect(() => {
     setLocalStorageInput(input);
-    adjustHeight();
+    if (input) {
+      adjustHeight();
+    } else {
+      resetHeight();
+      // Force reset after render to ensure scrollHeight is correct
+      setTimeout(resetHeight, 0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, setLocalStorageInput]);
 
@@ -985,24 +991,25 @@ function PureMultimodalInput({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       >
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {(() => {
             return (attachments.length > 0 || uploadQueue.length > 0);
           })() && (
               <motion.div
+                key="attachment-container"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="flex flex-wrap gap-2 sm:gap-3 px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30"
+                className="flex flex-wrap gap-2 sm:gap-3 px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30 overflow-hidden"
               >
                 {attachments.map((attachment, index) => (
                   <motion.div
-                    key={`${attachment.url}-${index}`}
+                    key={`att-${attachment.url}-${index}`}
                     layout
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   >
                     <PreviewAttachment
@@ -1015,11 +1022,11 @@ function PureMultimodalInput({
 
                 {uploadQueue.map((filename, index) => (
                   <motion.div
-                    key={`uploading-${filename}-${index}`}
+                    key={`up-${filename}-${index}`}
                     layout
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   >
                     <PreviewAttachment
@@ -1089,7 +1096,7 @@ function PureMultimodalInput({
 
         <input
           type="file"
-          className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
+          className="fixed -top-full -left-full size-0.5 opacity-0"
           ref={fileInputRef}
           multiple
           onChange={handleFileChange}
@@ -1104,7 +1111,7 @@ function PureMultimodalInput({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden"
+              className="overflow-hidden relative z-20"
             >
               <div className="flex items-center justify-between w-full px-2 pb-2 pt-1">
                 <div className="flex flex-row gap-1 items-center">

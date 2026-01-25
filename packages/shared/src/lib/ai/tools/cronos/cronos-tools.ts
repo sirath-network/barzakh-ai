@@ -9,7 +9,7 @@ import { tool } from "ai";
 import { z } from "zod";
 
 // Cronos RPC endpoints
-const CRONOS_MAINNET_RPC = "https://evm.cronos.org";
+const CRONOS_MAINNET_RPC = "https://cronos-evm-rpc.publicnode.com";
 const CRONOS_TESTNET_RPC = "https://evm-t3.cronos.org";
 
 // Cronos Explorer API (official)
@@ -28,13 +28,23 @@ const CRONOS_EXPLORER_API = CRONOS_EXPLORER_API_V1;
  */
 async function getCurrentCronosBlock(testnet = false): Promise<number> {
     const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
-    const response = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
-    });
-    const data = await response.json();
-    return parseInt(data.result, 16);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for stability
+
+    try {
+        const response = await fetch(rpcUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
+            signal: controller.signal,
+        });
+        const data = await response.json();
+        return parseInt(data.result, 16);
+    } catch (error) {
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
@@ -50,6 +60,9 @@ export const getCronosBalance = tool({
         try {
             const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
             const response = await fetch(rpcUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -59,7 +72,9 @@ export const getCronosBalance = tool({
                     params: [address, "latest"],
                     id: 1,
                 }),
+                signal: controller.signal,
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`RPC request failed: ${response.status}`);
@@ -109,6 +124,9 @@ export const getCronosBlockInfo = tool({
         try {
             const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             const response = await fetch(rpcUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -118,7 +136,9 @@ export const getCronosBlockInfo = tool({
                     params: [blockNumber, false], // false = don't include full transaction objects
                     id: 1,
                 }),
+                signal: controller.signal,
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`RPC request failed: ${response.status}`);
@@ -195,66 +215,74 @@ export const getCronosTransaction = tool({
 
             const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
 
-            // Get transaction details
-            const txResponse = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_getTransactionByHash",
-                    params: [cleanHash],
-                    id: 1,
-                }),
-            });
+            // Parallelize RPC calls for transaction and receipt
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s for parallel requests
 
-            const txData = await txResponse.json();
+            try {
+                const [txResponse, receiptResponse] = await Promise.all([
+                    fetch(rpcUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "eth_getTransactionByHash",
+                            params: [cleanHash],
+                            id: 1,
+                        }),
+                        signal: controller.signal,
+                    }),
+                    fetch(rpcUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "eth_getTransactionReceipt",
+                            params: [txHash],
+                            id: 2,
+                        }),
+                        signal: controller.signal,
+                    })
+                ]);
 
-            if (txData.error || !txData.result) {
-                throw new Error(txData.error?.message || "Transaction not found - the hash may be invalid or the transaction doesn't exist on Cronos");
+                const txData = await txResponse.json();
+                const receiptData = await receiptResponse.json();
+
+                if (txData.error || !txData.result) {
+                    throw new Error(txData.error?.message || "Transaction not found - the hash may be invalid or the transaction doesn't exist on Cronos");
+                }
+
+                const tx = txData.result;
+                const receipt = receiptData.result;
+
+                const valueWei = BigInt(tx.value);
+                const valueCRO = Number(valueWei) / 1e18;
+                const gasPrice = parseInt(tx.gasPrice, 16);
+                const gasUsed = receipt ? parseInt(receipt.gasUsed, 16) : null;
+                const txFee = gasUsed ? (gasPrice * gasUsed) / 1e18 : null;
+
+                return {
+                    network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
+                    hash: txHash,
+                    status: receipt ? (receipt.status === "0x1" ? "Success" : "Failed") : "Pending",
+                    blockNumber: tx.blockNumber ? parseInt(tx.blockNumber, 16) : null,
+                    from: tx.from,
+                    to: tx.to,
+                    value: {
+                        wei: valueWei.toString(),
+                        cro: valueCRO.toFixed(6),
+                        formatted: `${valueCRO.toFixed(4)} CRO`,
+                    },
+                    gasPrice: `${(gasPrice / 1e9).toFixed(2)} Gwei`,
+                    gasUsed: gasUsed,
+                    transactionFee: txFee ? `${txFee.toFixed(6)} CRO` : null,
+                    nonce: parseInt(tx.nonce, 16),
+                    inputData: tx.input.length > 10 ? `${tx.input.slice(0, 10)}...` : tx.input,
+                    isContractInteraction: tx.input !== "0x" && tx.input.length > 2,
+                };
+            } finally {
+                clearTimeout(timeoutId);
             }
-
-            const tx = txData.result;
-
-            // Get transaction receipt for status
-            const receiptResponse = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_getTransactionReceipt",
-                    params: [txHash],
-                    id: 2,
-                }),
-            });
-
-            const receiptData = await receiptResponse.json();
-            const receipt = receiptData.result;
-
-            const valueWei = BigInt(tx.value);
-            const valueCRO = Number(valueWei) / 1e18;
-            const gasPrice = parseInt(tx.gasPrice, 16);
-            const gasUsed = receipt ? parseInt(receipt.gasUsed, 16) : null;
-            const txFee = gasUsed ? (gasPrice * gasUsed) / 1e18 : null;
-
-            return {
-                network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
-                hash: txHash,
-                status: receipt ? (receipt.status === "0x1" ? "Success" : "Failed") : "Pending",
-                blockNumber: tx.blockNumber ? parseInt(tx.blockNumber, 16) : null,
-                from: tx.from,
-                to: tx.to,
-                value: {
-                    wei: valueWei.toString(),
-                    cro: valueCRO.toFixed(6),
-                    formatted: `${valueCRO.toFixed(4)} CRO`,
-                },
-                gasPrice: `${(gasPrice / 1e9).toFixed(2)} Gwei`,
-                gasUsed: gasUsed,
-                transactionFee: txFee ? `${txFee.toFixed(6)} CRO` : null,
-                nonce: parseInt(tx.nonce, 16),
-                inputData: tx.input.length > 10 ? `${tx.input.slice(0, 10)}...` : tx.input,
-                isContractInteraction: tx.input !== "0x" && tx.input.length > 2,
-            };
         } catch (error: any) {
             console.error("Error fetching Cronos transaction:", error);
             return {
@@ -279,78 +307,78 @@ export const getCronosTokenBalance = tool({
         try {
             const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
 
-            // ERC-20 balanceOf function signature
             const balanceOfSelector = "0x70a08231";
             const paddedAddress = walletAddress.slice(2).padStart(64, "0");
             const callData = balanceOfSelector + paddedAddress;
-
-            const response = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_call",
-                    params: [
-                        {
-                            to: tokenAddress,
-                            data: callData,
-                        },
-                        "latest",
-                    ],
-                    id: 1,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
-
-            const balanceHex = data.result;
-
-            // Handle empty or invalid balance responses
-            let balance: bigint;
-            if (!balanceHex || balanceHex === "0x" || balanceHex === "0x0") {
-                balance = BigInt(0);
-            } else {
-                try {
-                    balance = BigInt(balanceHex);
-                } catch (e) {
-                    console.error("Failed to parse balance hex:", balanceHex);
-                    balance = BigInt(0);
-                }
-            }
-
-            // Try to get token decimals
             const decimalsSelector = "0x313ce567";
-            const decimalsResponse = await fetch(rpcUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    jsonrpc: "2.0",
-                    method: "eth_call",
-                    params: [{ to: tokenAddress, data: decimalsSelector }, "latest"],
-                    id: 2,
-                }),
-            });
 
-            const decimalsData = await decimalsResponse.json();
-            const decimals = decimalsData.result ? parseInt(decimalsData.result, 16) : 18;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-            const formattedBalance = Number(balance) / Math.pow(10, decimals);
+            try {
+                // Parallelize balance and decimal lookup
+                const [balanceResponse, decimalsResponse] = await Promise.all([
+                    fetch(rpcUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "eth_call",
+                            params: [{ to: tokenAddress, data: callData }, "latest"],
+                            id: 1,
+                        }),
+                        signal: controller.signal,
+                    }),
+                    fetch(rpcUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            method: "eth_call",
+                            params: [{ to: tokenAddress, data: decimalsSelector }, "latest"],
+                            id: 2,
+                        }),
+                        signal: controller.signal,
+                    })
+                ]);
 
-            return {
-                network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
-                wallet: walletAddress,
-                token: tokenAddress,
-                balance: {
-                    raw: balance.toString(),
-                    formatted: formattedBalance.toFixed(6),
-                    decimals,
-                },
-                timestamp: new Date().toISOString(),
-            };
+                const balanceData = await balanceResponse.json();
+                const decimalsData = await decimalsResponse.json();
+
+                if (balanceData.error) {
+                    throw new Error(balanceData.error.message);
+                }
+
+                const balanceHex = balanceData.result;
+                let balance: bigint;
+                if (!balanceHex || balanceHex === "0x" || balanceHex === "0x0") {
+                    balance = BigInt(0);
+                } else {
+                    try {
+                        balance = BigInt(balanceHex);
+                    } catch (e) {
+                        console.error("Failed to parse balance hex:", balanceHex);
+                        balance = BigInt(0);
+                    }
+                }
+
+                const decimals = decimalsData.result ? parseInt(decimalsData.result, 16) : 18;
+                const formattedBalance = Number(balance) / Math.pow(10, decimals);
+
+                return {
+                    network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
+                    wallet: walletAddress,
+                    token: tokenAddress,
+                    balance: {
+                        raw: balance.toString(),
+                        formatted: formattedBalance.toFixed(6),
+                        decimals,
+                    },
+                    timestamp: new Date().toISOString(),
+                };
+            } finally {
+                clearTimeout(timeoutId);
+            }
         } catch (error: any) {
             console.error("Error fetching token balance:", error);
             return {
@@ -423,18 +451,18 @@ export const getCronosGasPrice = tool({
 
 /**
  * Get Cronos transaction history for an address
- * Note: Uses dynamic block range (last 10,000 blocks) for reliability
+ * Note: Uses dynamic block range (last 2,000,000 blocks ~4 months) for reliability
  */
 export const getCronosTransactionHistory = tool({
-    description: "Get transaction history for a wallet address on Cronos blockchain. Returns list of transactions from last 10,000 blocks.",
+    description: "Get transaction history for a wallet address on Cronos blockchain. Returns list of transactions from last 2,000,000 blocks.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
         page: z.number().optional().describe("Page number (default: 1)"),
-        limit: z.number().optional().describe("Number of transactions per page (default: 10, max: 100)"),
+        limit: z.number().optional().describe("Results per page (default: 10)"),
         sort: z.enum(["asc", "desc"]).optional().describe("Sort order by timestamp - 'asc' for oldest first, 'desc' for newest first (default: desc)"),
-        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 10000)"),
+        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 2000000)"),
     }),
-    execute: async ({ address, page = 1, limit = 10, sort = "desc", blockRange = 10000 }) => {
+    execute: async ({ address, page = 1, limit = 10, sort = "desc", blockRange = 2000000 }) => {
         try {
             // Validate address format
             if (!address.startsWith("0x") || address.length !== 42) {
@@ -446,7 +474,7 @@ export const getCronosTransactionHistory = tool({
 
             // Get current block number and calculate range
             const currentBlock = await getCurrentCronosBlock();
-            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 2000000));
 
             console.log(`[Cronos] Fetching txs from block ${startBlock} to ${currentBlock}`);
 
@@ -470,52 +498,70 @@ export const getCronosTransactionHistory = tool({
                         blockRange: { from: startBlock, to: currentBlock },
                         transactions: [],
                         totalFound: 0,
-                        message: "No transactions found for this address in the last 10,000 blocks",
+                        message: "No transactions found for this address in the last 2,000,000 blocks",
                     };
                 }
                 throw new Error(data.message || "Failed to fetch transaction history");
             }
 
-            const transactions = data.result.map((tx: any) => ({
-                hash: tx.hash,
-                blockNumber: parseInt(tx.blockNumber),
-                timestamp: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
-                from: tx.from,
-                to: tx.to,
-                value: {
-                    wei: tx.value,
-                    cro: (parseFloat(tx.value) / 1e18).toFixed(6) + " CRO",
-                },
-                gasUsed: tx.gasUsed,
-                gasPrice: (parseInt(tx.gasPrice) / 1e9).toFixed(2) + " Gwei",
-                txFee: ((parseInt(tx.gasUsed) * parseInt(tx.gasPrice)) / 1e18).toFixed(6) + " CRO",
-                status: tx.isError === "0" ? "Success" : "Failed",
-                functionName: tx.functionName || null,
-                methodId: tx.methodId || null,
-                explorerUrl: `https://explorer.cronos.org/tx/${tx.hash}`,
-            }));
+            const transactions = data.result.map((tx: any) => {
+                // Determine direction
+                const isFrom = tx.from.toLowerCase() === address.toLowerCase();
+                const isTo = tx.to.toLowerCase() === address.toLowerCase();
+                let direction = "SELF";
+                if (isFrom && !isTo) direction = "OUT";
+                else if (isTo && !isFrom) direction = "IN";
 
-            // Find first transaction if sorting ascending
-            const firstTransaction = sort === "asc" && transactions.length > 0
-                ? transactions[0]
-                : null;
+                // Format value
+                const valueWei = BigInt(tx.value);
+                const valueCRO = Number(valueWei) / 1e18;
+                const valueFormatted = `${valueCRO.toFixed(6)} CRO`;
+
+                // Determine type from method or direction
+                let txType = "Transaction";
+                if (tx.functionName) {
+                    if (tx.functionName.toLowerCase().includes("swap")) txType = "Swap";
+                    else if (tx.functionName.toLowerCase().includes("approve")) txType = "Approve";
+                    else if (tx.functionName.toLowerCase().includes("transfer")) txType = "Transfer";
+                    else if (tx.functionName.toLowerCase().includes("mint")) txType = "Mint";
+                    else txType = "Contract"; // Generic contract interaction
+                } else if (valueCRO > 0) {
+                    txType = direction === "IN" ? "Receive" : "Send";
+                }
+
+                return {
+                    hash: tx.hash,
+                    blockNumber: parseInt(tx.blockNumber),
+                    timestamp: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
+                    from: tx.from,
+                    to: tx.to,
+                    value: valueFormatted,
+                    direction,
+                    txType,
+                    gasUsed: tx.gasUsed,
+                    gasPrice: (parseInt(tx.gasPrice) / 1e9).toFixed(2) + " Gwei",
+                    txFee: ((parseInt(tx.gasUsed) * parseInt(tx.gasPrice)) / 1e18).toFixed(6) + " CRO",
+                    status: tx.isError === "0" ? "Success" : "Failed",
+                    explorerUrl: `https://explorer.cronos.org/tx/${tx.hash}`,
+                };
+            });
+
+            // Sort by timestamp descending (newest first)
+            transactions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+            // Strict limit to prevent overflow
+            const effectiveLimit = Math.min(limit, 50);
+            const limitedTransactions = transactions.slice(0, effectiveLimit);
 
             return {
                 address,
                 network: "Cronos Mainnet",
                 chainId: 25,
-                page,
-                limit,
                 transactionCount: transactions.length,
-                transactions,
-                firstTransaction: firstTransaction ? {
-                    hash: firstTransaction.hash,
-                    timestamp: firstTransaction.timestamp,
-                    from: firstTransaction.from,
-                    to: firstTransaction.to,
-                    value: firstTransaction.value.cro,
-                } : null,
+                transactions: limitedTransactions,
+                viewAllUrl: `https://explorer.cronos.org/address/${address}`,
                 explorerUrl: `https://explorer.cronos.org/address/${address}`,
+                warning: transactions.length > effectiveLimit ? `List truncated to top ${effectiveLimit} transactions` : undefined,
             };
         } catch (error: any) {
             console.error("Error fetching Cronos transaction history:", error);
@@ -573,21 +619,21 @@ export const getCronosBalanceMulti = tool({
 
 /**
  * Get internal transactions for an address
- * Note: Uses dynamic block range (last 10,000 blocks) for reliability
+ * Note: Uses dynamic block range (last 2,000,000 blocks) for reliability
  */
 export const getCronosInternalTxList = tool({
-    description: "Get internal transactions (contract calls that transfer value) for a wallet address on Cronos from last 10,000 blocks.",
+    description: "Get internal transactions (contract calls that transfer value) for a wallet address on Cronos from last 2,000,000 blocks.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
         page: z.number().optional().describe("Page number"),
         limit: z.number().optional().describe("Results per page (max 100)"),
-        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 10000)"),
+        blockRange: z.number().optional().describe("Number of recent blocks to search (default: 2000000)"),
     }),
-    execute: async ({ address, page = 1, limit = 20, blockRange = 10000 }) => {
+    execute: async ({ address, page = 1, limit = 20, blockRange = 2000000 }) => {
         try {
             // Get current block number and calculate range
             const currentBlock = await getCurrentCronosBlock();
-            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 10000));
+            const startBlock = Math.max(0, currentBlock - Math.min(blockRange, 2000000));
 
             const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
             const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=txlistinternal&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=${page}&offset=${Math.min(limit, 100)}${apiKey ? `&apikey=${apiKey}` : ""}`;
@@ -597,7 +643,7 @@ export const getCronosInternalTxList = tool({
 
             if (data.status !== "1" || !data.result) {
                 if (data.message === "No transactions found") {
-                    return { address, network: "Cronos Mainnet", blockRange: { from: startBlock, to: currentBlock }, internalTransactions: [], message: "No internal transactions found in last 10,000 blocks" };
+                    return { address, network: "Cronos Mainnet", blockRange: { from: startBlock, to: currentBlock }, internalTransactions: [], message: "No internal transactions found in last 2,000,000 blocks" };
                 }
                 throw new Error(data.message || "Failed to fetch internal transactions");
             }
@@ -616,12 +662,17 @@ export const getCronosInternalTxList = tool({
                 errCode: tx.errCode || null,
             }));
 
+            const effectiveLimit = Math.min(limit, 50);
+            const limitedTransactions = transactions.slice(0, effectiveLimit);
+
             return {
                 address,
                 network: "Cronos Mainnet",
                 chainId: 25,
                 internalTransactionCount: transactions.length,
-                internalTransactions: transactions,
+                displayedCount: limitedTransactions.length,
+                internalTransactions: limitedTransactions,
+                warning: transactions.length > effectiveLimit ? `List truncated to top ${effectiveLimit} internal transactions` : undefined,
             };
         } catch (error: any) {
             return { error: "Failed to fetch internal transactions", details: error.message };
@@ -672,12 +723,17 @@ export const getCronosTokenTransfers = tool({
                 gasPrice: `${(parseInt(tx.gasPrice) / 1e9).toFixed(2)} Gwei`,
             }));
 
+            const effectiveLimit = Math.min(limit, 50);
+            const limitedTransfers = transfers.slice(0, effectiveLimit);
+
             return {
                 address,
                 network: "Cronos Mainnet",
                 chainId: 25,
                 transferCount: transfers.length,
-                tokenTransfers: transfers,
+                displayedCount: limitedTransfers.length,
+                tokenTransfers: limitedTransfers,
+                warning: transfers.length > effectiveLimit ? `List truncated to top ${effectiveLimit} token transfers` : undefined,
             };
         } catch (error: any) {
             return { error: "Failed to fetch token transfers", details: error.message };
@@ -719,17 +775,24 @@ export const getCronosTokenList = tool({
                             type: token.type || "ERC-20",
                         };
                     })
-                    // Filter out dust (tokens with very small balance)
-                    .filter((t: any) => parseFloat(t.balance) > 0.000001);
+                // Filter out dust (tokens with very small balance)
+                const tokensFiltered = tokens
+                    .filter((t: any) => parseFloat(t.balance) > 0.000001)
+                    .sort((a: any, b: any) => parseFloat(b.balance) - parseFloat(a.balance)); // Sort by balance desc
+
+                // Limit result size
+                const limitedTokens = tokensFiltered.slice(0, 50);
 
                 return {
                     address,
                     network: "Cronos Mainnet",
                     chainId: 25,
-                    tokenCount: tokens.length,
-                    tokens,
+                    tokenCount: tokensFiltered.length,
+                    displayedCount: limitedTokens.length,
+                    tokens: limitedTokens,
                     timestamp: new Date().toISOString(),
                     explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
+                    warning: tokensFiltered.length > 50 ? "List truncated to top 50 tokens by balance" : undefined,
                 };
             }
 
@@ -766,15 +829,23 @@ export const getCronosTokenList = tool({
                             };
                         }).filter((t: any) => parseFloat(t.balance) > 0.000001);
 
+                        // Sort by balance descending
+                        tokens.sort((a: any, b: any) => parseFloat(b.balance) - parseFloat(a.balance));
+
+                        // Limit to top 50 to prevent context overflow and UI crashes
+                        const limitedTokens = tokens.slice(0, 50);
+
                         return {
                             address,
                             network: "Cronos Mainnet",
                             chainId: 25,
-                            tokenCount: tokens.length,
-                            tokens,
+                            tokenCount: tokens.length, // Show total count
+                            displayedCount: limitedTokens.length,
+                            tokens: limitedTokens,
                             timestamp: new Date().toISOString(),
                             explorerUrl: `https://explorer.cronos.org/address/${address}?tab=tokens`,
-                        };
+                            warning: tokens.length > 50 ? "List truncated to top 50 tokens by balance" : undefined,
+                        }
                     }
                 }
             }
