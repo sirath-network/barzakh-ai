@@ -33,6 +33,7 @@ interface DynamicWalletProviderProps {
 export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) {
     const [mounted, setMounted] = useState(false);
     const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_DYNAMIC_API_BASE_URL;
 
     useEffect(() => {
         setMounted(true);
@@ -53,6 +54,7 @@ export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) 
         <DynamicContextProviderAsync
             settings={{
                 environmentId,
+                apiBaseUrl,
                 walletConnectors: [
                     SolanaWalletConnectors,
                     BitcoinWalletConnectors,
