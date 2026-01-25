@@ -119,6 +119,23 @@ const formatCrypto = (num: number): string => {
   }).format(num);
 };
 
+// Format large values with abbreviations (M, B, T, K)
+const formatLargeValue = (num: number): string => {
+  if (num >= 1_000_000_000_000) {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num / 1_000_000_000_000) + ' T';
+  }
+  if (num >= 1_000_000_000) {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num / 1_000_000_000) + ' B';
+  }
+  if (num >= 1_000_000) {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num / 1_000_000) + ' M';
+  }
+  if (num >= 1_000) {
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num / 1_000) + ' K';
+  }
+  return formatNumber(num);
+};
+
 // Interface for chain token details
 interface ChainTokenDetail {
   symbol: string;
@@ -203,7 +220,11 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const isPositiveChange = percentChange && percentChange >= 0;
 
   // Calculate total DeFi value and Net Worth
-  const totalDeFiValue = protocolPositions.reduce((acc, pos) => acc + pos.totalValue, 0);
+  // Use fetched positions if available, otherwise fallback to pre-fetched result.defi summary
+  const totalDeFiValue = protocolPositions.length > 0
+    ? protocolPositions.reduce((acc, pos) => acc + pos.totalValue, 0)
+    : (result.defi?.totalDefiValue || 0);
+
   // Use fetched NFT portfolio value if available, otherwise fallback to sum of collections
   const totalNftValue = nftPortfolioValue > 0
     ? nftPortfolioValue
@@ -353,26 +374,22 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
   useEffect(() => {
     // Skip DeFi/NFT fetches for Solana addresses (not supported by Zerion yet)
+    // REMOVED EAGER FETCHING to prevent rate limiting
+    // Data will be fetched lazily when user expands the sections
+
+    // Auto-mark as fetched if it's a Solana address (so we don't try to fetch later)
     const isSolana = isSolanaAddress(result.id);
-
-    if (result.id && !hasFetchedProtocols) {
-      if (totalPositions === 0 || isSolana) {
-        setHasFetchedProtocols(true);
-      } else {
-        fetchProtocolPositions();
-      }
-    }
-
-    if (result.id && !hasFetchedNfts) {
-      if (isSolana) {
-        setHasFetchedNfts(true);
-      } else {
-        fetchNftCollections();
-        fetchNftPortfolio();
-      }
+    if (isSolana) {
+      setHasFetchedProtocols(true);
+      setHasFetchedNfts(true);
+    } else {
+      // Eagerly fetch NFTs so the user doesn't see "Loading..." when expanding
+      // We still lazy load DeFi protocols to save some requests
+      fetchNftPortfolio();
+      fetchNftCollections();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result.id, currency, totalPositions]);
+  }, [result.id, currency]);
 
   // Auto-expand chain breakdown when there's only a few chains (better UX)
   // Works for all chains including Solana now that it uses the same expandable view
@@ -542,11 +559,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                   </>
                 ) : (
                   <>
-                    <div className={`w-2 h-2 rounded-full ${protocolPositions.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
+                    <div className={`w-2 h-2 rounded-full ${(!hasFetchedProtocols && result.defi?.hasDefiPositions) || protocolPositions.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      {loadingProtocols || (!hasFetchedProtocols && (totalPositions || 0) > 0) ? 'Loading...' :
+                      {loadingProtocols ? 'Loading...' :
                         protocolPositions.length > 0 ? `${protocolPositions.length} Active Positions` :
-                          'No Active Positions'}
+                          result.defi?.hasDefiPositions ? `${result.defi.positionCount} Active Positions` :
+                            'No Active Positions'}
                     </span>
                   </>
                 )}
@@ -638,14 +656,14 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <div className="text-sm font-medium text-zinc-900 dark:text-white tabular-nums leading-none mb-1">
-                                  ${formatNumber(token.value)}
+                                  ${formatLargeValue(token.value)}
                                 </div>
                               </div>
                             </div>
                           ))}
                           <div className="pt-3 mt-2 border-t border-zinc-100 dark:border-zinc-800/50 flex justify-between items-center">
                             <span className="text-xs font-medium text-zinc-500">Total Value</span>
-                            <span className="text-sm font-bold text-zinc-900 dark:text-white tabular-nums">${formatNumber(position.totalValue)}</span>
+                            <span className="text-sm font-bold text-zinc-900 dark:text-white tabular-nums">${formatLargeValue(position.totalValue)}</span>
                           </div>
                         </div>
                       </motion.div>
@@ -704,7 +722,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
                   <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
                     <div className="text-right">
-                      <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatNumber(value) : "0.00"}</div>
+                      <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatLargeValue(value) : "0.00"}</div>
                     </div>
                     <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                   </div>
@@ -769,7 +787,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                               </div>
 
                               <div className="col-span-6 sm:col-span-4 text-right">
-                                <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatNumber(token.value)}</div>
+                                <div className="font-bold text-sm text-zinc-900 dark:text-white tabular-nums">${formatLargeValue(token.value)}</div>
                               </div>
                             </motion.div>
                           ))}

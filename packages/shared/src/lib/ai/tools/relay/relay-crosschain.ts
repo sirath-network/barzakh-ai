@@ -896,12 +896,12 @@ Examples of COMPLETE requests:
         fromChainId: z
             .number()
             .describe(
-                "Source chain ID (e.g., 1 for Ethereum, 10 for Optimism, 25 for Cronos)"
+                "Source chain ID (e.g. 1=Eth, 10=Opt, 8453=Base, 792703809=Solana, 8253038=Bitcoin, 728126428=Tron)"
             ),
         toChainId: z
             .number()
             .describe(
-                "Destination chain ID (e.g., 42161 for Arbitrum, 8453 for Base)"
+                "Destination chain ID (e.g. 1=Eth, 792703809=Solana, 8253038=Bitcoin, 728126428=Tron)"
             ),
         fromToken: z
             .string()
@@ -916,7 +916,7 @@ Examples of COMPLETE requests:
         amount: z
             .string()
             .describe(
-                "Amount to swap - can be token amount (e.g., '0.1') OR USD amount (e.g., '$0.5', '0.5 USD', '0.5$')"
+                "Amount to swap - MUST be a specific number (e.g., '0.1', '100'). Do NOT use 'max', 'all', or words. You MUST check the user's balance first and calculate the specific amount."
             ),
         userAddress: z
             .string()
@@ -1017,10 +1017,24 @@ Examples of COMPLETE requests:
             }
 
             // Get token decimals from Currencies API (cached)
-            const decimals = await getTokenDecimals(fromToken, fromChainId);
+            let decimals = await getTokenDecimals(fromToken, fromChainId);
+
+            // Fallback for decimals if API returns null/undefined
+            if (typeof decimals !== 'number' || isNaN(decimals)) {
+                console.warn(`[Relay] Failed to get decimals for ${fromToken} on chain ${fromChainId}. Defaulting to 18.`);
+                decimals = 18;
+            }
+
+            // Validate amount before conversion
+            const parsedAmountNum = parseFloat(actualAmount);
+            if (isNaN(parsedAmountNum)) {
+                throw new Error(`Invalid amount provided: ${actualAmount}`);
+            }
+
             // Use BigInt to ensure integer output (API requires pattern "^[0-9]+$")
+            // Use safe multiplication to avoid floating point precision issues
             const amountInSmallestUnit = BigInt(
-                Math.floor(parseFloat(actualAmount) * Math.pow(10, decimals))
+                Math.round(parsedAmountNum * Math.pow(10, decimals))
             ).toString();
 
             // Use direct API call instead of SDK (SDK v4.0.1 uses outdated /quote/v2 endpoint)
@@ -1274,7 +1288,7 @@ Examples:
 - Swap $5 of ETH from Arbitrum to Optimism
 - Bridge $10 worth of native token from Base to Polygon`,
     parameters: z.object({
-        fromChainId: z.number().describe("Source chain ID"),
+        fromChainId: z.number().describe("Source chain ID (e.g. 1=Eth, 792703809=Solana, 8253038=Bitcoin, 728126428=Tron)"),
         toChainId: z.number().describe("Destination chain ID"),
         fromToken: z.string().describe("Source token (native/symbol/address)"),
         toToken: z.string().describe("Destination token"),

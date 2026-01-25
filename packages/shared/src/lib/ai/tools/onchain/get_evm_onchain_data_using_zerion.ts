@@ -10,6 +10,83 @@ import { multichainEnsLookup } from "../../../utils/multichain-ens-lookup";
 import zerionJson from "./zerion-openapi.json";
 import { zerionBaseURL } from "./constant";
 import { getZerionApiKey } from "../../../utils/utils";
+
+// Interface for UI compatibility
+export interface EvmTransactionHistoryResponse {
+  address?: string;
+  network: string;
+  chainId?: number;
+  page?: number;
+  limit?: number;
+  transactionCount: number;
+  transactions: any[]; // Using any[] for simplicity in this tool, or duplicate full EvmTransaction interface
+  viewAllUrl?: string;
+  explorerUrl?: string;
+  note?: string;
+  error?: string;
+  raw?: any;
+}
+
+const explorerMap: Record<string, string> = {
+  // Major Chains
+  "ethereum": "https://etherscan.io",
+  "bsc": "https://bscscan.com",
+  "binance-smart-chain": "https://bscscan.com",
+  "polygon": "https://polygonscan.com",
+  "base": "https://basescan.org",
+  "arbitrum": "https://arbiscan.io",
+  "arbitrum-one": "https://arbiscan.io",
+  "arbitrum-nova": "https://nova.arbiscan.io",
+  "optimism": "https://optimistic.etherscan.io",
+  "op": "https://optimistic.etherscan.io",
+  "avalanche": "https://snowscan.xyz",
+
+  // Layer 2s & Newer Chains
+  "linea": "https://lineascan.build",
+  "blast": "https://blastscan.io",
+  "scroll": "https://scrollscan.com",
+  "zksync-era": "https://explorer.zksync.io",
+  "mantle": "https://mantlescan.xyz",
+  "taiko": "https://taikoscan.io",
+  "mode": "https://explorer.mode.network",
+  "metis": "https://andromeda-explorer.metis.io",
+
+  // Specialized / Etherscan EAAS Chains
+  "bittorrent": "https://bttcscan.com",
+  "celo": "https://celoscan.io",
+  "fraxtal": "https://fraxscan.com",
+  "gnosis": "https://gnosisscan.io",
+  "memecore": "https://memecorescan.io",
+  "moonbeam": "https://moonbeam.moonscan.io",
+  "moonriver": "https://moonriver.moonscan.io",
+  "opbnb": "https://opbnb.bscscan.com",
+  "xdc": "https://xdcscan.com",
+  "apechain": "https://apescan.io",
+  "world": "https://worldscan.org",
+  "sonic": "https://sonicscan.org",
+  "unichain": "https://uniscan.xyz",
+  "abstract": "https://abscan.org",
+  "berachain": "https://berascan.com",
+  "swellchain": "https://swellchainscan.io",
+  "monad": "https://monadscan.com",
+  "hyperevm": "https://hyperevmscan.io",
+  "katana": "https://katanascan.com",
+  "sei": "https://seiscan.io",
+  "stable": "https://stablescan.xyz",
+  "plasma": "https://plasmascan.to",
+  "fantom": "https://ftmscan.com",
+};
+
+const getExplorerBaseUrl = (chain: string) => {
+  return explorerMap[chain.toLowerCase()] || "https://etherscan.io";
+};
+
+const getTxExplorerUrl = (chain: string, hash: string) => {
+  const base = getExplorerBaseUrl(chain);
+  return `${base}/tx/${hash}`;
+};
+
+
 export const getEvmOnchainDataUsingZerion = tool({
   description: "Get real-time data from Ethereum based blockchains.",
   parameters: z.object({
@@ -47,6 +124,9 @@ export const getEvmOnchainDataUsingZerion = tool({
 
       const zerionOpenapidata = await loadOpenAPIFromJson(zerionJson);
       const zerionAllPathsAndDesc = await getAllPathsAndDesc(zerionOpenapidata);
+
+      let fetchedData: any = null;
+      let queriedAddress: string | null = null;
 
       const aiAgentResponse = await generateText({
         model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
@@ -294,6 +374,20 @@ export const getEvmOnchainDataUsingZerion = tool({
 
                 const json = await response.json();
                 console.log("✅ Fetched API response successfully");
+
+                // Capture data if it looks like transactions or portfolio
+                if (json?.data && (url.includes('/transactions') || url.includes('/positions'))) {
+                  fetchedData = json;
+
+                  // Extract address from URL if possible to ensure we have the correct wallet context
+                  // URL format: .../wallets/{address}/...
+                  const walletMatch = url.match(/\/wallets\/([^/]+)/);
+                  if (walletMatch && walletMatch[1]) {
+                    queriedAddress = walletMatch[1];
+                    console.log("Captured queried address:", queriedAddress);
+                  }
+                }
+
                 return json; // Return parsed JSON data for further processing
               } catch (error: any) {
                 console.error("Error fetching API data:", error);
@@ -307,6 +401,102 @@ export const getEvmOnchainDataUsingZerion = tool({
         },
         maxSteps: 5,
       });
+
+      // If we captured structured data, transform and return it for the UI
+      if (fetchedData && fetchedData.data) {
+        try {
+          // Normalize Zerion response to EvmTransactionHistoryResponse
+          const items = Array.isArray(fetchedData.data) ? fetchedData.data : [fetchedData.data];
+
+          // Basic mapping - iterate over items to format
+          const transactions = items.map((item: any) => {
+            const attr = item.attributes || {};
+            const transfers = attr.transfers || [];
+
+            // Try to find the primary transfer details
+            // Zerion transfers: [{ direction, quantity, fungible_info: { icon, symbol }, value }]
+
+            // Default to 'OUT' if direction is not explicitly 'in'
+            const primaryDirection = transfers[0]?.direction === 'in' ? 'IN' : 'OUT';
+            const primaryTransfer = transfers[0];
+
+            // Helper to clean up amounts
+            const formatAmount = (val: string | number) => {
+              if (!val) return "0";
+              const num = typeof val === 'string' ? parseFloat(val) : val;
+              if (isNaN(num)) return "0";
+
+              // For large numbers (>= 1M), use abbreviations like Etherscan (e.g. 50.00 M)
+              if (Math.abs(num) >= 1_000_000_000_000) {
+                return (num / 1_000_000_000_000).toFixed(2).replace(/\.00$/, '') + " T";
+              }
+              if (Math.abs(num) >= 1_000_000_000) {
+                return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '') + " B";
+              }
+              if (Math.abs(num) >= 1_000_000) {
+                return (num / 1_000_000).toFixed(2).replace(/\.00$/, '') + " M";
+              }
+              if (Math.abs(num) >= 1_000) {
+                return (num / 1_000).toFixed(2).replace(/\.00$/, '') + " K";
+              }
+
+              // For other numbers, use commas and up to 6 decimal places
+              return new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: 6,
+                useGrouping: true // Ensure commas are used
+              }).format(num);
+            };
+
+            const sender = primaryTransfer?.sender?.address || primaryTransfer?.sender?.id ||
+              transfers.find((t: any) => t.sender?.address)?.sender?.address ||
+              (primaryDirection === 'OUT' && queriedAddress ? queriedAddress : 'Unknown');
+
+            const recipient = primaryTransfer?.recipient?.address || primaryTransfer?.recipient?.id ||
+              transfers.find((t: any) => t.recipient?.address)?.recipient?.address ||
+              (primaryDirection === 'IN' && queriedAddress ? queriedAddress : 'Unknown');
+
+            // Extract chain from attributes or relationships
+            // Zerion usually provides chain info in relationships, but for now we default to what we have or 'ethereum'
+            // Ideally we parse it from the 'chain' relationship or the ID prefix if available
+            const chainIdString = item.relationships?.chain?.data?.id || 'ethereum';
+
+            return {
+              hash: attr.hash || item.id,
+              timestamp: attr.mined_at,
+              direction: primaryDirection,
+              txType: attr.operation_type || 'Transaction',
+              status: attr.status,
+              from: sender,
+              to: recipient,
+              value: primaryTransfer?.value ? primaryTransfer?.value.toString() : '0',
+              tokenTransfer: primaryTransfer ? {
+                direction: primaryDirection,
+                amount: primaryTransfer.quantity?.numeric || '0',
+                symbol: primaryTransfer.fungible_info?.symbol || '?',
+                formatted: `${formatAmount(primaryTransfer.quantity?.numeric)} ${primaryTransfer.fungible_info?.symbol || '?'}`
+              } : undefined,
+              explorerUrl: getTxExplorerUrl(chainIdString, attr.hash || item.id),
+              chain: chainIdString
+            };
+          });
+
+          if (transactions.length > 0) {
+            console.log("Returning structured Zerion data for UI");
+            // Determine primary network for the whole card if possible, otherwise default to first tx's chain
+            const primaryChain = transactions[0]?.chain || "evm";
+
+            return {
+              network: primaryChain,
+              transactionCount: transactions.length,
+              transactions: transactions,
+              explorerUrl: getExplorerBaseUrl(primaryChain) + "/address/" + (queriedAddress || (transactions[0].from !== 'Unknown' ? transactions[0].from : transactions[0].to)),
+              raw: fetchedData
+            } as EvmTransactionHistoryResponse; // Cast to the defined interface
+          }
+        } catch (e) {
+          console.error("Failed to transform Zerion data:", e);
+        }
+      }
 
       return aiAgentResponse.text;
     } catch (error: any) {

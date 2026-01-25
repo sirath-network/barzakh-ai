@@ -3,6 +3,7 @@ import {
   createDataStreamResponse,
   streamText,
 } from "ai";
+import { after } from "next/server";
 import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
@@ -619,34 +620,36 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
           tools: wrappedTools,
           onFinish: async ({ response, reasoning }) => {
             if (session.user?.id) {
-              try {
-                const sanitizedResponseMessages = sanitizeResponseMessages({
-                  messages: response.messages,
-                  reasoning,
-                });
-
-                // Guard against saving empty messages if AI response fails
-                if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                  const messagesToSave = sanitizedResponseMessages.map((message) => {
-                    // Clean message content to restore original storage URLs (R2/Blob)
-                    const cleanedContent = cleanMessageContentForStorage(message.content);
-
-                    return {
-                      id: message.id,
-                      chatId: id,
-                      role: message.role,
-                      content: cleanedContent,
-                      createdAt: new Date(),
-                    };
+              after(async () => {
+                try {
+                  const sanitizedResponseMessages = sanitizeResponseMessages({
+                    messages: response.messages,
+                    reasoning,
                   });
 
-                  await saveMessages({ messages: messagesToSave });
-                  await updateChatUpdatedAt({ id });
-                  await decrementRemainingMessageCount(session.user.id);
+                  // Guard against saving empty messages if AI response fails
+                  if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
+                    const messagesToSave = sanitizedResponseMessages.map((message) => {
+                      // Clean message content to restore original storage URLs (R2/Blob)
+                      const cleanedContent = cleanMessageContentForStorage(message.content);
+
+                      return {
+                        id: message.id,
+                        chatId: id,
+                        role: message.role,
+                        content: cleanedContent,
+                        createdAt: new Date(),
+                      };
+                    });
+
+                    await saveMessages({ messages: messagesToSave });
+                    await updateChatUpdatedAt({ id });
+                    await decrementRemainingMessageCount(session.user.id!);
+                  }
+                } catch (error) {
+                  console.error("Failed to save chat", error);
                 }
-              } catch (error) {
-                console.error("Failed to save chat", error);
-              }
+              });
             }
           },
           experimental_telemetry: {
@@ -676,34 +679,36 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
             tools: wrappedTools,
             onFinish: async ({ response, reasoning }) => {
               if (session.user?.id) {
-                try {
-                  const sanitizedResponseMessages = sanitizeResponseMessages({
-                    messages: response.messages,
-                    reasoning,
-                  });
-
-                  // Guard against saving empty messages if AI response fails
-                  if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                    await saveMessages({
-                      messages: sanitizedResponseMessages.map((message) => {
-                        // Clean message content to restore original storage URLs (R2/Blob)
-                        const cleanedContent = cleanMessageContentForStorage(message.content);
-
-                        return {
-                          id: message.id,
-                          chatId: id,
-                          role: message.role,
-                          content: cleanedContent,
-                          createdAt: new Date(),
-                        };
-                      }),
+                after(async () => {
+                  try {
+                    const sanitizedResponseMessages = sanitizeResponseMessages({
+                      messages: response.messages,
+                      reasoning,
                     });
-                    await updateChatUpdatedAt({ id });
-                    await decrementRemainingMessageCount(session.user.id);
+
+                    // Guard against saving empty messages if AI response fails
+                    if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
+                      await saveMessages({
+                        messages: sanitizedResponseMessages.map((message) => {
+                          // Clean message content to restore original storage URLs (R2/Blob)
+                          const cleanedContent = cleanMessageContentForStorage(message.content);
+
+                          return {
+                            id: message.id,
+                            chatId: id,
+                            role: message.role,
+                            content: cleanedContent,
+                            createdAt: new Date(),
+                          };
+                        }),
+                      });
+                      await updateChatUpdatedAt({ id });
+                      await decrementRemainingMessageCount(session.user.id!);
+                    }
+                  } catch (error) {
+                    console.error("Failed to save chat", error);
                   }
-                } catch (error) {
-                  console.error("Failed to save chat", error);
-                }
+                });
               }
             },
             experimental_telemetry: {
