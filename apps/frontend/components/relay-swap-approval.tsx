@@ -1326,7 +1326,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                             <Loader2 className="size-4 mr-2 animate-spin" />
                                             {processedTransactions.length > 1
                                                 ? `Signing ${currentTxIndex + 1}/${processedTransactions.length}...`
-                                                : "Signing Transaction..."}
+                                                : "Confirm in wallet..."}
                                         </ButtonAny>
                                     ) : null}
                                 </div>
