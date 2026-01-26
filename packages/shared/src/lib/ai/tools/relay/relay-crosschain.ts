@@ -916,7 +916,7 @@ Examples of COMPLETE requests:
         amount: z
             .string()
             .describe(
-                "Amount to swap - MUST be a specific number (e.g., '0.1', '100'). Do NOT use 'max', 'all', or words. You MUST check the user's balance first and calculate the specific amount."
+                "Amount to swap. If user specifies USD (e.g. '$5', '5 USD'), PRESERVE the '$' or 'USD' (e.g. return '$5'). If token amount (e.g. '0.1 ETH'), just return the number (e.g. '0.1')."
             ),
         userAddress: z
             .string()
@@ -1136,7 +1136,9 @@ Examples of COMPLETE requests:
         toChainId: z.number().describe("Destination chain ID"),
         amount: z
             .string()
-            .describe("Amount to bridge - can be token amount (e.g., '0.1') OR USD amount (e.g., '$0.5', '0.5 USD')"),
+            .describe(
+                "Amount to bridge. If user specifies USD (e.g. '$5', '5 USD'), PRESERVE the '$' or 'USD' (e.g. return '$5'). If token amount (e.g. '0.1 ETH'), just return the number (e.g. '0.1')."
+            ),
         userAddress: z.string().optional().describe("User wallet address"), // Made optional
     }),
     execute: async ({ fromChainId: rawFromChainId, toChainId: rawToChainId, amount, userAddress }) => {
@@ -1292,7 +1294,11 @@ Examples:
         toChainId: z.number().describe("Destination chain ID"),
         fromToken: z.string().describe("Source token (native/symbol/address)"),
         toToken: z.string().describe("Destination token"),
-        amount: z.string().describe("Amount to swap - can be token amount (e.g., '0.1') OR USD amount (e.g., '$0.5', '0.5 USD')"),
+        amount: z
+            .string()
+            .describe(
+                "Amount to swap. If user specifies USD (e.g. '$5', '5 USD'), PRESERVE the '$' or 'USD' (e.g. return '$5'). If token amount (e.g. '0.1 ETH'), just return the number (e.g. '0.1')."
+            ),
         userAddress: z.string().describe("User wallet address"),
         recipientAddress: z.string().optional().describe("Recipient address"),
     }),

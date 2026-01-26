@@ -136,12 +136,14 @@ function PureSendButton({
   submitForm,
   input,
   uploadQueue,
+  hasAttachments,
 }: {
   submitForm: () => void;
   input: string;
   uploadQueue: Array<string>;
+  hasAttachments: boolean;
 }) {
-  const isDisabled = input.length === 0 || uploadQueue.length > 0;
+  const isDisabled = (input.length === 0 && !hasAttachments) || uploadQueue.length > 0;
   const isUploading = uploadQueue.length > 0;
 
   return (
@@ -1082,13 +1084,12 @@ function PureMultimodalInput({
               <StopButton stop={stop} setMessages={setMessages} />
             ) : (
               <AnimatePresence>
-                {(input.length > 0 || attachments.length > 0) && (
-                  <SendButton
-                    input={input}
-                    submitForm={submitForm}
-                    uploadQueue={uploadQueue}
-                  />
-                )}
+                <SendButton
+                  input={input}
+                  submitForm={submitForm}
+                  uploadQueue={uploadQueue}
+                  hasAttachments={attachments.length > 0}
+                />
               </AnimatePresence>
             )}
           </div>

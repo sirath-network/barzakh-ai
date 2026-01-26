@@ -763,11 +763,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
                         // Wait for confirmation
                         console.log('Waiting for confirmation...');
-                        await connection.confirmTransaction({
+                        const confirmation = await connection.confirmTransaction({
                             signature: txSignature,
                             blockhash,
                             lastValidBlockHeight
                         }, 'confirmed');
+
+                        if (confirmation.value.err) {
+                            console.error('Transaction confirmation error:', confirmation.value.err);
+                            throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+                        }
+
                         console.log('Transaction confirmed!');
 
                         signature = txSignature;
@@ -858,6 +864,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const renderAddressInput = () => {
         if (!needsDestinationAddress) return null;
 
+        // If same chain, we don't need a separate destination input visual 
+        // because connecting the source wallet handles it.
+        if (requiredChainIdNum === destinationChainIdNum) return null;
+
         const chainName = CHAIN_NAMES[destinationChainIdNum!] || getNonEvmChainName(destinationChainIdNum!) || destChain || "destination";
         const isValidAddress = recipientAddress && validateRecipient(recipientAddress);
         const isEvmDestination = destinationChainIdNum && !isNonEvmChain(destinationChainIdNum);
@@ -927,16 +937,18 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         <div className="mb-3">
                             {!destinationWallet?.address ? (
                                 <>
-                                    <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                        <DynamicConnectButton />
-                                    </div>
+                                    {requiredChainIdNum !== destinationChainIdNum && (
+                                        <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
+                                            <DynamicConnectButton />
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-3 my-3">
                                         <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                                         <button
                                             onClick={() => setShowManualInput(!showManualInput)}
                                             className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors flex items-center gap-1"
                                         >
-                                            Or Paste Address
+                                            {requiredChainIdNum === destinationChainIdNum ? "Paste Recipient Address" : "Or Paste Address"}
                                             <motion.div
                                                 animate={{ rotate: showManualInput ? 180 : 0 }}
                                                 transition={{ duration: 0.2 }}

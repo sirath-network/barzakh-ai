@@ -49,10 +49,12 @@ export async function generateTitleFromUserMessage({
   const { text: title } = await generateText({
     model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
     system: `\n
-    - you will generate a short title based on the first message a user begins a conversation with
-    - ensure it is not more than 80 characters long
-    - the title should be a summary of the user's message
-    - do not use quotes or colons`,
+    - Generate a creative, concise, and intelligent title (3-6 words) for this chat based on the user's first message.
+    - Focus on the core intent, topic, or question rather than just summarizing words.
+    - If it's a coding question, mention the language or technology.
+    - Avoid generic titles like "Hello" or "Question".
+    - Do not use quotes, colons, or unnecessary punctuation.
+    - Make it sound like a sleek headline.`,
     prompt: userText,
   });
 
