@@ -546,22 +546,26 @@ const PurePreviewMessage = ({
                       'getSolanaChainWalletPortfolio',
                       'getEvmMultiChainWalletPortfolio',
                       'getMantlePortfolio',
+                      'getMonadPortfolio', // Monad portfolio (primary)
                       'getTokenBalances',
                       'getSolanaWalletTransactions',
                       // EVM chain transaction history tools
                       'getMantleTransactionHistory',
                       'getCronosTransactionHistory',
-                      'getZkEVMTransactionHistory', // Added
-                      'getEvmOnchainDataUsingZerion', // Added
-                      'getEvmOnchainDataUsingEtherscan', // Added
+                      'getMonadTransactionHistory', // Monad transactions
+                      'getZkEVMTransactionHistory',
+                      'getEvmOnchainDataUsingZerion',
+                      'getEvmOnchainDataUsingEtherscan',
                       // Other chains supported by EvmTransactionHistory
-                      'getCreditcoinApiData', // Added
-                      'getVanaApiData', // Added
-                      'getZetaApiData', // Added
-                      'getFlowApiData', // Added
-                      'getWormholeApiData', // Added
-                      'getSeiApiData', // Added (Check if supported or needs update)
-                      'translateTransactions', // Added to use rich UI
+                      'getCreditcoinApiData',
+                      'getVanaApiData',
+                      'getZetaApiData',
+                      'getFlowApiData',
+                      'getWormholeApiData',
+                      'getSeiApiData',
+                      'translateTransactions',
+                      // Note: getMonadDefiPositions, getMonadNFTs, getMonadTokenPositions excluded
+                      // They are handled internally by getMonadPortfolio
                       'createImage',
                       'initiateX402Payment',
                       // Relay Protocol - all quote tools show UI
@@ -593,11 +597,13 @@ const PurePreviewMessage = ({
                             getSolanaChainWalletPortfolio: <PortfolioTableAny result={result} />,
                             getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
                             getMantlePortfolio: <PortfolioTableAny result={result} />,
+                            getMonadPortfolio: <PortfolioTableAny result={result} />,
                             getTokenBalances: <PortfolioTableAny result={result} />,
                             getSolanaWalletTransactions: <TransactionHistoryAny result={result} />,
                             // EVM chain transaction history & General API Data
                             getMantleTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             getCronosTransactionHistory: <EvmTransactionHistoryAny result={result} />,
+                            getMonadTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             getZkEVMTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             // Map generic and other chain tools to EvmTransactionHistory
                             getEvmOnchainDataUsingZerion: <EvmTransactionHistoryAny result={result} />,
@@ -609,6 +615,8 @@ const PurePreviewMessage = ({
                             getWormholeApiData: <EvmTransactionHistoryAny result={result} />,
                             getSeiApiData: <EvmTransactionHistoryAny result={result} />,
                             translateTransactions: <EvmTransactionHistoryAny result={result} />,
+                            // Note: getMonadDefiPositions, getMonadNFTs, getMonadTokenPositions excluded
+                            // They are handled internally by getMonadPortfolio
                             createImage: result?.imageUrls ? (
                               <AIGeneratedImageGridAny
                                 imageUrls={result.imageUrls}
@@ -788,13 +796,18 @@ const PurePreviewMessage = ({
                               t.toolName === 'getEvmOnchainDataUsingEtherscan' ||
                               t.toolName === 'getMantleTransactionHistory' ||
                               t.toolName === 'getCronosTransactionHistory' ||
+                              t.toolName === 'getMonadTransactionHistory' ||
                               t.toolName === 'getZkEVMTransactionHistory' ||
                               t.toolName === 'getCreditcoinApiData' ||
                               t.toolName === 'getVanaApiData' ||
                               t.toolName === 'getZetaApiData' ||
                               t.toolName === 'getFlowApiData' ||
                               t.toolName === 'getWormholeApiData' ||
-                              t.toolName === 'getSeiApiData'
+                              t.toolName === 'getSeiApiData' ||
+                              t.toolName === 'getMonadPortfolio' ||
+                              t.toolName === 'getMonadDefiPositions' ||
+                              t.toolName === 'getMonadNFTs' ||
+                              t.toolName === 'getMonadTokenPositions'
                             );
                             if (hasOnchainTools && filteredContent) {
                               filteredContent = removeMarkdownTables(filteredContent);

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Call Zerion API to get wallet positions filtered by chain
-    const url = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${chain}&currency=${currency}&sort=value`;
+    const url = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${chain}&filter[trash]=only_non_trash&currency=${currency}&sort=value`;
 
     const response = await fetch(url, options);
 

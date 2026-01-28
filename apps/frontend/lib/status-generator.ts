@@ -196,10 +196,17 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   getCreditcoinStats: () => "Auditing RWA ledger status",
 
   // =========================================================
-  // MONAD (Upcoming)
+  // MONAD (Dedicated tools using Zerion API)
   // =========================================================
-  getMonadApiData: () => "Querying Monad network",
-  getMonadStats: () => "Checking Monad throughput",
+  getMonadBalance: () => "Checking MON balance",
+  getMonadTransaction: () => "Fetching Monad transaction",
+  getMonadGasPrice: () => "Checking Monad gas",
+  getMonadTransactionHistory: () => "Fetching Monad history",
+  getMonadPortfolio: () => "Scanning Monad portfolio",
+  getMonadDefiPositions: () => "Fetching Monad DeFi positions",
+  getMonadNFTs: () => "Fetching Monad NFTs",
+  getMonadTokenPositions: () => "Fetching Monad tokens",
+  getMonadStats: () => "Checking Monad blockchain stats",
 
   // =========================================================
   // DEFI & MISC

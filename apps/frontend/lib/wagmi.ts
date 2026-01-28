@@ -1,9 +1,7 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { defineChain } from 'viem';
 import { http } from 'wagmi';
 import { createConfig } from 'wagmi';
-import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
-// All chains supported by Relay Protocol (from viem/chains)
+// All chains from viem/chains - includes 200+ EVM chains
 import {
   mainnet,
   optimism,
@@ -24,6 +22,7 @@ import {
   gnosis,
   celo,
   cronos,
+  cronosTestnet, // For x402 payments
   mantle,
   metis,
   taiko,
@@ -51,33 +50,16 @@ import {
   zircuit,
   superseed,
   unichain,
+  monad, // High-throughput L1 EVM
+  hyperEvm, // Hyperliquid EVM
+  cronoszkEVM, // Cronos zkEVM
 } from 'viem/chains';
 
-// Define Cronos Testnet chain (for x402 payments)
-export const cronosTestnet = defineChain({
-  id: 338,
-  name: 'Cronos Testnet',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Test CRO',
-    symbol: 'TCRO',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://evm-t3.cronos.org'],
-    },
-  },
-  blockExplorers: {
-    default: { name: 'Cronos Explorer', url: 'https://explorer.cronos.org/testnet' },
-  },
-  testnet: true,
-});
+
 
 // All supported chains for wallet connections
-// Cronos Testnet for x402 payments + all Relay Protocol supported chains
 const supportedChains = [
-  cronosTestnet,
-  // Relay Protocol chains
+  // Core chains
   mainnet,
   optimism,
   arbitrum,
@@ -97,6 +79,8 @@ const supportedChains = [
   gnosis,
   celo,
   cronos,
+  cronosTestnet,
+  cronoszkEVM,
   mantle,
   metis,
   taiko,
@@ -124,6 +108,8 @@ const supportedChains = [
   zircuit,
   superseed,
   unichain,
+  monad,
+  hyperEvm,
 ] as const;
 
 // WalletConnect Project ID - Get yours at https://cloud.walletconnect.com/

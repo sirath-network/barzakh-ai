@@ -442,6 +442,14 @@ const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string;
 
   let filteredChildren = children.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
 
+  // Convert custom image URL patterns to proper markdown images
+  // Matches patterns like [EDITED_IMAGE_URL: url], [IMAGE_URL: url], [GENERATED_IMAGE: url]
+  // This handles cases where the AI outputs custom formats instead of standard markdown image syntax
+  filteredChildren = filteredChildren.replace(
+    /\[(?:EDITED_IMAGE_URL|IMAGE_URL|GENERATED_IMAGE):\s*\n*(https?:\/\/[^\s\]]+)\s*\n*\]/gi,
+    '\n\n![Generated image]($1)\n\n'
+  );
+
   // Filter out standalone image URLs from text (but preserve them in markdown links and images)
   // This regex matches image URLs that appear as plain text (not in markdown syntax)
   filteredChildren = filteredChildren.replace(

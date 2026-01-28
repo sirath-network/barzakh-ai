@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useBalance, useSwitchChain, useSignTypedData, useDisconnect, useSignMessage } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { cronosTestnet } from "@/lib/wagmi";
+import { cronosTestnet } from "viem/chains";
 import { formatUnits } from "viem";
 import { CreditCard, Check, AlertCircle, Loader2, Sparkles, Zap, Crown, ShieldCheck, Wallet } from "lucide-react";
 import Image from "next/image";

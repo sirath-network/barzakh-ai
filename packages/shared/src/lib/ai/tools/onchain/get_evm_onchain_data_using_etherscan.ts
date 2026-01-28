@@ -175,9 +175,8 @@ export const getEvmOnchainDataUsingEtherscan = tool({
           [/\b(swellchain|swell)\b(?!.*testnet)/i, 1923, "Swellchain Mainnet"],
           [/\b(swellchain|swell).*testnet\b/i, 1924, "Swellchain Testnet"],
 
-          // Monad
-          [/\bmonad\b(?!.*testnet)/i, 143, "Monad Mainnet"],
-          [/\bmonad.*testnet\b/i, 10143, "Monad Testnet"],
+          // Monad (Mainnet only)
+          [/\bmonad\b/i, 143, "Monad Mainnet"],
 
           // HyperEVM
           [/\bhyperevm\b/i, 999, "HyperEVM Mainnet"],

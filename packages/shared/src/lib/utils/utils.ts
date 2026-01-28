@@ -211,8 +211,9 @@ interface SearchGroupItem {
   readonly name: string;
   readonly description: string;
   readonly icon: LucideIcon;
-  readonly img: string;
+  readonly img: string | { light: string; dark: string };
 }
+
 
 export const searchGroups: readonly SearchGroupItem[] = [
   {
@@ -244,18 +245,44 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: "",
   },
   {
+    id: "cronos",
+    name: "Cronos",
+    description: "Everything Cronos. Search, transactions and more",
+    icon: Network,
+    img: {
+      light: "/images/icon/cronos/cronos-dark.png",
+      dark: "/images/icon/cronos/cronos-light.png",
+    },
+  },
+  {
+    id: "monad",
+    name: "Monad",
+    description: "Everything Monad. Search, transactions and more.",
+    icon: Network,
+    img: {
+      light: "/images/icon/monad/monad-dark.png",
+      dark: "/images/icon/monad/monad-light.png",
+    },
+  },
+  {
     id: "mantle",
     name: "Mantle",
     description: "Everything Mantle. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/mantle/mantle-logo.png",
+    img: {
+      light: "/images/icon/mantle/mantle-dark.png",
+      dark: "/images/icon/mantle/mantle-light.png",
+    },
   },
   {
     id: "aptos",
     name: "Aptos",
     description: "Everything Aptos. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/aptos/aptos-logo.png",
+    img: {
+      light: "/images/icon/aptos/aptos-dark.png",
+      dark: "/images/icon/aptos/aptos-light.png",
+    },
   },
   {
     id: "wormhole",
@@ -263,65 +290,70 @@ export const searchGroups: readonly SearchGroupItem[] = [
     description:
       "Everything Wormhole. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/wormhole/wormhole-logo.png",
-  },
-  {
-    id: "cronos",
-    name: "Cronos",
-    description: "Everything Cronos. Search, transactions and more",
-    icon: Network,
-    img: "/images/icon/cronos/cronos-logo.png",
+    img: {
+      light: "/images/icon/wormhole/wormhole-dark.png",
+      dark: "/images/icon/wormhole/wormhole-light.png",
+    },
   },
   {
     id: "creditcoin",
     name: "Creditcoin",
     description: "Everything Creditcoin. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/creditcoin/creditcoin-white.png",
+    img: "/images/icon/creditcoin/creditcoin-logo.png",
   },
   {
     id: "vana",
     name: "Vana",
     description: "Everything Vana. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/vana/vana-icon-black.png",
+    img: {
+      light: "/images/icon/vana/vana-dark.png",
+      dark: "/images/icon/vana/vana-light.png",
+    },
   },
   {
     id: "zeta",
     name: "Zeta",
     description: "Everything Zeta. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/zeta/zetachain-logo.png",
+    img: {
+      light: "/images/icon/zeta/zetachain-dark.png",
+      dark: "/images/icon/zeta/zetachain-light.png",
+    },
   },
   {
     id: "flow",
     name: "Flow",
     description: "Everything Flow. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/flow/flow-logo.png",
+    img: {
+      light: "/images/icon/flow/flow-dark.png",
+      dark: "/images/icon/flow/flow-light.png",
+    },
   },
   {
     id: "sei",
     name: "Sei",
     description: "Everything Sei. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/sei/sei-logo.png",
+    img: {
+      light: "/images/icon/sei/sei-dark.png",
+      dark: "/images/icon/sei/sei-light.png",
+    },
   },
   {
     id: "solana",
     name: "Solana",
     description: "Everything Solana. Search, transactions and more",
     icon: Network,
-    img: "/images/icon/solana/solana.png",
-  },
-  // {
-  // id: "monad",
-  // name: "Monad",
-  // description: "Everything Monad. Search, transactions and more.",
-  // icon: Network,
-  // img: "/images/icon/monad/monad-logo.jpg",
-  // },
+    img: {
+      light: "/images/icon/solana/sol-dark.png",
+      dark: "/images/icon/solana/sol-light.png",
+    },
+  }
 ];
+
 
 export type SearchGroup = (typeof searchGroups)[number];
 

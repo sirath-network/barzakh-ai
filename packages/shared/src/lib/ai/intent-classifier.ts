@@ -55,6 +55,358 @@ interface IntentPattern {
 }
 
 // ============================================================================
+// Follow-Up Query Intelligence
+// Detects when user is continuing a conversation (should inherit context)
+// ============================================================================
+
+const FOLLOW_UP_PATTERNS: RegExp[] = [
+    // Direct continuations
+    /^(now|then|next|also|and)\s+/i,
+    /^(show|get|give|provide|fetch)\s*(me|us)?\s*(more|the|some|another|\d+|recent|latest)/i,
+    /^(what|how)\s+about\s+/i,
+    /^can\s+you\s+(also|show|get|provide)/i,
+
+    // Transaction/activity references  
+    /\b(their|this|that|the|its)\s*(wallet|address|portfolio|transactions?|history|balance)/i,
+    /\b(recent|last|latest)\s*(transactions?|activity|history|tx)/i,
+    /\blast\s*\d+\s*(transactions?|tx|transfers?)/i,
+
+    // Implicit references
+    /^(check|view|analyze)\s+(the\s+)?(same|this)/i,
+    /\bsame\s+(wallet|address|portfolio)/i,
+    /\bfor\s+(this|that|the)\s+(wallet|address)/i,
+];
+
+/**
+ * Check if a message is a follow-up query that should inherit context
+ */
+function isFollowUpQuery(message: string): boolean {
+    return FOLLOW_UP_PATTERNS.some(pattern => pattern.test(message));
+}
+
+// ============================================================================
+// Semantic Action Classification
+// Maps action verbs to expected tool categories
+// ============================================================================
+
+interface SemanticAction {
+    patterns: RegExp[];
+    defaultRoute: IntentType | 'context'; // 'context' means use current context
+    priority: number;
+}
+
+const SEMANTIC_ACTIONS: Record<string, SemanticAction> = {
+    portfolio: {
+        patterns: [
+            /\b(track|show|view|check|analyze|get|fetch)\s*(the\s+)?(portfolio|holdings|assets|wallet)/i,
+            /\bportfolio\b/i,
+            /\bholdings\b/i,
+        ],
+        defaultRoute: 'context',
+        priority: 10,
+    },
+    transactions: {
+        patterns: [
+            /\b(show|get|view|fetch|provide)\s*(\d+\s+)?(recent|latest|last)?\s*(transactions?|tx|history|activity)/i,
+            /\btransaction\s*history\b/i,
+            /\brecent\s*(transactions?|activity)\b/i,
+        ],
+        defaultRoute: 'context',
+        priority: 10,
+    },
+    balance: {
+        patterns: [
+            /\b(check|show|get|view)\s*(the\s+)?(balance|balances)/i,
+            /\btoken\s*balance/i,
+        ],
+        defaultRoute: 'context',
+        priority: 10,
+    },
+    swap: {
+        patterns: [
+            /\b(swap|exchange|convert|trade)\s+/i,
+            /\bbridge\s+(from|to)\b/i,
+            /\bcross[-\s]?chain\s+(swap|transfer|bridge)/i,
+        ],
+        defaultRoute: 'on_chain', // Swaps always route to Relay
+        priority: 15,
+    },
+    nft: {
+        patterns: [
+            /\b(show|get|view|check)\s*(the\s+)?(nfts?|collectibles?|collections?)/i,
+            /\bnft\s*(portfolio|collection|holdings)/i,
+        ],
+        defaultRoute: 'context',
+        priority: 10,
+    },
+    defi: {
+        patterns: [
+            /\b(stake|unstake|deposit|withdraw|lend|borrow|farm|yield)/i,
+            /\bdefi\s*(positions?|protocols?)/i,
+            /\bliquidity\s*(pool|position)/i,
+        ],
+        defaultRoute: 'context',
+        priority: 10,
+    },
+    price: {
+        patterns: [
+            /\b(price|chart|market|volume|mcap|market\s*cap)\s*(of|for)?\b/i,
+            /\btoken\s*price\b/i,
+        ],
+        defaultRoute: 'search',
+        priority: 5,
+    },
+    // Subscription/billing actions - routes to search (which has subscription tools)
+    subscription: {
+        patterns: [
+            /\b(subscribe|subscription|upgrade|downgrade|renew|cancel)\b.*\b(plan|tier|subscription)?\b/i,
+            /\b(change|switch|modify)\s*(my\s+)?(plan|subscription|tier|billing)\b/i,
+            /\b(pro|ultimate)\s*(plan|tier)?\s*(monthly|quarterly|yearly)?\b/i,
+            /\bhow\s+much\s+(is|does|cost)\b.*\b(subscription|plan|pro|ultimate)\b/i,
+            /\bwhat\s+(is|are)\s+(my\s+)?(subscription|plan|tier)\b/i,
+        ],
+        defaultRoute: 'search',  // Routes to search group which has subscription tools
+        priority: 20,  // Higher than most actions to override chain context
+    },
+};
+
+/**
+ * Detect semantic action in message
+ */
+function detectSemanticAction(message: string): { action: string; route: IntentType | 'context' } | null {
+    for (const [action, config] of Object.entries(SEMANTIC_ACTIONS)) {
+        if (config.patterns.some(p => p.test(message))) {
+            return { action, route: config.defaultRoute };
+        }
+    }
+    return null;
+}
+
+// ============================================================================
+// EVM-Compatible Chains Registry
+// Centralized chain information for accurate detection
+// ============================================================================
+
+interface ChainInfo {
+    id: string;
+    intent: IntentType;
+    patterns: RegExp[];
+    keywords: string[];
+    tokens: string[]; // Native or major tokens
+    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos';
+    isEvm: boolean;
+}
+
+const CHAIN_REGISTRY: ChainInfo[] = [
+    // Monad (newly supported)
+    {
+        id: 'monad',
+        intent: 'monad',
+        patterns: [
+            /\bmonad\b/i,
+            /\bmon\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bmonad\s*(mainnet|testnet|network|chain|evm|l1)\b/i,
+            /\bmonadscan\b/i,
+            /\bparallelized\s*(evm|execution)?\b/i,
+            /\bhigh\s*throughput\s*evm\b/i,
+        ],
+        keywords: ['monad', 'mon token', 'monad network', 'monad mainnet', 'monad portfolio',
+            'monadscan', 'parallelized evm', 'shmonad', 'monad l1', 'keone hon'],
+        tokens: ['MON'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Mantle (L2)
+    {
+        id: 'mantle',
+        intent: 'mantle',
+        patterns: [
+            /\bmantle\b/i,
+            /\bmnt\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bmantle\s+(network|chain|l2|layer\s*2|wallet|portfolio)\b/i,
+            /\bmantlescan\b/i,
+            /\bmerchant\s*moe\b/i,
+            /\bbutter\.xyz\b/i,
+        ],
+        keywords: ['mantle', 'mnt token', 'mantle network', 'mantle l2', 'mantlescan',
+            'merchant moe', 'butter exchange', 'meth', 'cmeth', 'init capital'],
+        tokens: ['MNT', 'METH', 'CMETH'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Cronos (includes zkEVM)
+    {
+        id: 'cronos',
+        intent: 'cronos',
+        patterns: [
+            /\bcronos\b/i,
+            /\bzk\s*evm\b/i,
+            /\bzkevm\b/i,
+            /\bzkCRO\b/i,
+            /\bcronos\s*(zkevm|pos|mainnet)\b/i,
+            /\bcro\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bcrypto\.?com\s*(chain|defi|exchange)?\b/i,
+        ],
+        keywords: ['cronos', 'cro token', 'cronos zkevm', 'zkcro', 'cronos pos',
+            'crypto.com', 'vvs finance', 'tectonic', 'ferro protocol'],
+        tokens: ['CRO', 'ZKCRO'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Solana (non-EVM)
+    {
+        id: 'solana',
+        intent: 'solana',
+        patterns: [
+            /\bsolana\b/i,
+            /\bsol\s+(token|coin|balance|wallet|portfolio|price)\b/i,
+            /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/, // Base58 address
+            /\b(raydium|orca|jupiter|magic\s*eden|tensor|pump\.fun)\b/i,
+        ],
+        keywords: ['solana', 'sol', 'solana wallet', 'phantom', 'solflare',
+            'jupiter swap', 'raydium', 'orca', 'magic eden', 'pump.fun'],
+        tokens: ['SOL', 'BONK', 'JTO', 'JUP'],
+        addressFormat: 'base58',
+        isEvm: false,
+    },
+    // Aptos (non-EVM, 64-char hex)
+    {
+        id: 'aptos',
+        intent: 'aptos',
+        patterns: [
+            /\baptos\b/i,
+            /\bapt\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\b0x[a-fA-F0-9]{64}\b/, // Aptos 64-char address
+            /\b(petra|pontem|martian)\s*wallet\b/i,
+            /\bmove\s*language\b/i,
+        ],
+        keywords: ['aptos', 'apt', 'aptos wallet', 'petra wallet', 'pontem',
+            'liquidswap', 'aries markets', 'thala labs'],
+        tokens: ['APT'],
+        addressFormat: 'aptos',
+        isEvm: false,
+    },
+    // Sei (supports both sei1... and 0x EVM addresses)
+    {
+        id: 'sei',
+        intent: 'sei',
+        patterns: [
+            /\bsei\b(?!\s*$)/i,
+            /\bsei\s*(network|chain|v2|evm|wallet|portfolio)\b/i,
+            /\bsei1[a-z0-9]{38,}\b/, // Native Sei address
+            /\bsei\s*evm\b/i, // Sei EVM
+            /\bparallelized\s*evm\b/i,
+        ],
+        keywords: ['sei', 'sei network', 'sei v2', 'sei evm', 'compass wallet', 'fin wallet',
+            'yaka finance', 'dragon swap', 'parallelized evm'],
+        tokens: ['SEI'],
+        addressFormat: 'evm', // Sei accepts both sei1... and 0x addresses
+        isEvm: true, // Sei has full EVM compatibility
+    },
+    // Zeta
+    {
+        id: 'zeta',
+        intent: 'zeta',
+        patterns: [
+            /\bzetachain\b/i,
+            /\bzeta\s+(network|chain|hub|wallet|portfolio)\b/i,
+            /\bomnichain\b/i,
+        ],
+        keywords: ['zetachain', 'zeta', 'omnichain', 'zeta hub'],
+        tokens: ['ZETA'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Creditcoin
+    {
+        id: 'creditcoin',
+        intent: 'creditcoin',
+        patterns: [
+            /\bcreditcoin\b/i,
+            /\bctc\s+(token|coin|balance|wallet)\b/i,
+            /\bgluwa\b/i,
+        ],
+        keywords: ['creditcoin', 'ctc', 'gluwa', 'real world assets', 'rwa'],
+        tokens: ['CTC'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Vana
+    {
+        id: 'vana',
+        intent: 'vana',
+        patterns: [
+            /\bvana\b/i,
+            /\bvana\s+(network|data|wallet|portfolio)\b/i,
+            /\bdata\s*dao\b/i,
+        ],
+        keywords: ['vana', 'data dao', 'vana network'],
+        tokens: ['VANA'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Flow
+    {
+        id: 'flow',
+        intent: 'flow',
+        patterns: [
+            /\bflow\s*(blockchain|network|chain|evm|wallet|portfolio)\b/i,
+            /\bcadence\b/i,
+            /\bdapper\s*labs\b/i,
+            /\bnba\s*top\s*shot\b/i,
+        ],
+        keywords: ['flow blockchain', 'flow network', 'cadence', 'nba top shot', 'dapper'],
+        tokens: ['FLOW'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // Wormhole
+    {
+        id: 'wormhole',
+        intent: 'wormhole',
+        patterns: [
+            /\bwormhole\b/i,
+            /\bwormhole\s*(bridge|portal|guardian|scan)\b/i,
+            /\bportal\s*bridge\b/i,
+        ],
+        keywords: ['wormhole', 'wormhole bridge', 'portal bridge', 'wormhole guardians'],
+        tokens: ['W'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+];
+
+/**
+ * Get all EVM-compatible chain intents
+ */
+function getEvmChainIntents(): IntentType[] {
+    return CHAIN_REGISTRY.filter(c => c.isEvm).map(c => c.intent);
+}
+
+/**
+ * Detect chain from message using registry
+ */
+function detectChainFromRegistry(message: string): ChainInfo | null {
+    const lowerMessage = message.toLowerCase();
+
+    for (const chain of CHAIN_REGISTRY) {
+        // Check patterns
+        if (chain.patterns.some(p => p.test(message))) {
+            return chain;
+        }
+        // Check keywords
+        if (chain.keywords.some(k => lowerMessage.includes(k.toLowerCase()))) {
+            return chain;
+        }
+        // Check token mentions (e.g., "MON balance", "MNT price")
+        if (chain.tokens.some(t => new RegExp(`\\b${t}\\b`, 'i').test(message))) {
+            return chain;
+        }
+    }
+    return null;
+}
+
+// ============================================================================
 // Pattern Definitions
 // Chain-specific patterns have HIGHER priority than generic on_chain
 // to ensure "portfolio on Aptos" routes to aptos, not on_chain
@@ -245,19 +597,26 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
-    // Monad-specific
+    // Monad-specific (high throughput L1)
     {
         intent: "monad",
         patterns: [
             /\bmonad\b/i,
-            /\bmonad\s+(network|chain|testnet|wallet|portfolio)\b/i,
+            /\bmon\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bmonad\s*(mainnet|testnet|network|chain|evm|l1|wallet|portfolio)\b/i,
+            /\bmonadscan\b/i,
             /\bgmonad\b/i,
+            /\bparallelized\s*(evm|execution)?\b/i,
+            /\bhigh\s*throughput\s*evm\b/i,
             /\b(portfolio|wallet|balance|holdings|track|show)\b.*\bmonad\b/i,
+            /\bmonad\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\b(on|at|for)\s+monad\b/i,
         ],
         keywords: [
-            "monad", "monad network", "monad testnet", "monad wallet",
-            "monad portfolio", "on monad", "gmonad", "monad community",
-            "parallel execution", "monad db",
+            "monad", "mon token", "monad network", "monad mainnet", "monad wallet",
+            "monad portfolio", "on monad", "monadscan", "gmonad", "shmonad",
+            "parallelized evm", "parallel execution", "monad db", "monad evm",
+            "high throughput evm", "monad l1", "keone hon",
         ],
         priority: 95,
     },
@@ -309,6 +668,24 @@ const INTENT_PATTERNS: IntentPattern[] = [
     },
 
     // =========================================================================
+    // UNIVERSAL SWAP/BRIDGE (Priority 99 - HIGHEST for swap actions)
+    // Catches ANY "swap X to Y" pattern regardless of token names
+    // =========================================================================
+    {
+        intent: "on_chain",
+        patterns: [
+            // Universal swap pattern: "swap [amount] [token] to [token]"
+            /^\s*(swap|exchange|convert|trade)\s+/i,
+            // Bridge pattern
+            /^\s*bridge\s+/i,
+        ],
+        keywords: [
+            "swap", "exchange", "convert", "trade", "bridge",
+        ],
+        priority: 99,  // HIGHEST - any message starting with swap/bridge goes to on_chain
+    },
+
+    // =========================================================================
     // CROSS-CHAIN SWAP/BRIDGE (Priority 97 - Higher than chain-specific)
     // =========================================================================
     {
@@ -319,7 +696,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             /\b(swap|bridge|transfer|send|move|convert)\b.*\b([a-z0-9]+)\b.*\b(to|into|for)\b.*\b([a-z0-9]+)\b/i,
 
             // Token specific swaps
-            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|btc|trx|cro|mnt|zeta)\b/i,
+            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|btc|trx|cro|mnt|zeta|mon)\b/i,
 
             // Cross-chain terminology
             /\b(cross[-\s]?chain|cross[-\s]?network|inter[-\s]?chain)\b/i,
@@ -328,9 +705,9 @@ const INTENT_PATTERNS: IntentPattern[] = [
         ],
         keywords: [
             "cross-chain swap", "cross-chain bridge", "bridge eth", "swap eth",
-            "bridge usdc", "swap usdc", "bridge sol", "swap sol",
-            "from optimism", "from arbitrum", "from base", "from ethereum", "from solana",
-            "to optimism", "to arbitrum", "to base", "to ethereum", "to solana",
+            "bridge usdc", "swap usdc", "bridge sol", "swap sol", "swap mon",
+            "from optimism", "from arbitrum", "from base", "from ethereum", "from solana", "from monad",
+            "to optimism", "to arbitrum", "to base", "to ethereum", "to solana", "to monad",
             "relay swap", "relay bridge", "gasless swap",
         ],
         priority: 97,
@@ -395,6 +772,29 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "npm", "yarn", "pnpm", "cargo", "pip", "maven",
         ],
         priority: 80,
+    },
+
+    // =========================================================================
+    // SUBSCRIPTION MANAGEMENT (Priority 98 - overrides chain context)
+    // Routes to search group which has subscription tools
+    // =========================================================================
+    {
+        intent: "search",  // Routes to search group which has subscription tools
+        patterns: [
+            /\b(subscribe|subscription|upgrade|downgrade|renew|cancel)\s*(to|my|the)?\s*(plan|subscription|tier|pro|ultimate)?\b/i,
+            /\b(change|switch|modify)\s*(my\s+)?(plan|subscription|tier|billing)\b/i,
+            /\bsubscription\s+(status|info|details|options|pricing)\b/i,
+            /\b(pro|ultimate)\s+(plan|tier|subscription)\b/i,
+            /\bwhat\s+(is|are)\s+(my\s+)?(subscription|plan|tier)\b/i,
+            /\bi\s+(want|wanna|need)\s+(to\s+)?(subscribe|upgrade|downgrade|change)\b/i,
+        ],
+        keywords: [
+            "subscribe", "subscription", "upgrade plan", "downgrade plan",
+            "renew subscription", "cancel subscription", "billing cycle",
+            "pro plan", "ultimate plan", "change plan", "switch tier",
+            "my subscription", "subscription status",
+        ],
+        priority: 98,  // Very high - overrides chain-specific contexts
     },
 
     // Multimodal - image analysis
@@ -533,19 +933,24 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
 CONVERSATION CONTEXT: This is a FOLLOW-UP message in an ongoing "${chatContext}" blockchain conversation.
 
 CRITICAL RULES:
-1. If the user asks for generic actions like "track portfolio", "check balance", "view wallet" WITHOUT explicitly naming another chain, YOU MUST classify as "${chatContext}".
+1. FOLLOW-UP QUERIES: If the user asks for generic actions like "track portfolio", "check balance", "view wallet", "show transactions" WITHOUT explicitly naming another chain, YOU MUST classify as "${chatContext}".
    - Example: "track portfolio" -> "${chatContext}" (NOT "on_chain")
-   - Example: "check balance" -> "${chatContext}" (NOT "on_chain")
+   - Example: "show recent transactions" -> "${chatContext}" (NOT "on_chain")
+   - Example: "now show NFTs" -> "${chatContext}" (NOT "on_chain")
 
-2. ADDRESS FORMAT RULES (may OVERRIDE context):
-- EVM-compatible chains (cronos, mantle, zeta, creditcoin, vana, flow, wormhole, sei): Accept "0x..." addresses (40 hex chars)
+2. SWAP/BRIDGE ACTIONS: Always route swap/bridge requests to "on_chain" regardless of context.
+   - Example: "swap ETH to USDC" -> "on_chain"
+   - Example: "bridge to Base" -> "on_chain"
+
+3. ADDRESS FORMAT RULES (may OVERRIDE context):
+- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, wormhole, sei): Accept "0x..." addresses (40 hex chars)
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
     - A Base58 address (32-44 alphanumeric chars): Classify as "solana"
@@ -555,7 +960,8 @@ CRITICAL RULES:
 Only use the "${chatContext}" context if the address format is compatible or no address is present.`;
     }
 
-    try {
+    // Helper function to attempt LLM classification
+    const attemptLLMClassification = async (attempt: number = 1): Promise<any> => {
         const { object } = await generateObject({
             model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
             schema: z.object({
@@ -595,6 +1001,12 @@ JSON Response:`,
             mode: 'json',
             temperature: 0,
         });
+        return object;
+    };
+
+    try {
+        // First attempt
+        const object = await attemptLLMClassification(1);
 
         return {
             primaryIntent: object.primaryIntent as IntentType,
@@ -603,112 +1015,128 @@ JSON Response:`,
             requiresMultiTool: false,
             classificationMethod: "llm",
         };
-    } catch (error) {
-        console.error("[INTENT] LLM classification failed:", error);
+    } catch (firstError: any) {
+        // Retry once after a short delay (LLM may have returned empty response)
+        try {
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+            const object = await attemptLLMClassification(2);
 
-        // Fallback: If we have image context (user was generating images), likely a follow-up ("make it blue")
-        if (hasImageContext) {
-            const lowerMsg = message.toLowerCase();
-            // Check if it looks like a refinement or just generic text
-            const refinementKeywords = ["make", "change", "add", "remove", "turn", "regenerate", "version", "style", "holding", "wearing", "background"];
-            const isRefinement = refinementKeywords.some(w => lowerMsg.includes(w));
-
-            if (isRefinement) {
-                console.log("[INTENT] LLM fallback: Image context refinement detected, using imagine");
-                return {
-                    primaryIntent: "imagine",
-                    confidence: 0.65,
-                    indicators: ["fallback:image_context_refinement"],
-                    requiresMultiTool: false,
-                    classificationMethod: "fallback",
-                };
-            }
-        }
-
-        // If we have chat context and LLM failed, use the context as fallback
-        // BUT first check if message contains addresses that conflict with the context
-        if (chatContext) {
-            // Check for address format mismatches before using context as fallback
-            const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
-            const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
-            const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
-            const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
-
-            // If address format conflicts with context, override it
-            // EVM-compatible chains: these accept 0x addresses
-            const evmChains = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
-
-            if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
-                console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
-                return {
-                    primaryIntent: 'on_chain',
-                    confidence: 0.7,
-                    indicators: ['fallback:address_mismatch_evm_in_solana'],
-                    requiresMultiTool: false,
-                    classificationMethod: "fallback",
-                };
-            }
-            if (chatContext === 'aptos' && hasEvmAddress && !hasAptosAddress) {
-                console.log("[INTENT] LLM fallback: EVM address detected in aptos context, using on_chain");
-                return {
-                    primaryIntent: 'on_chain',
-                    confidence: 0.7,
-                    indicators: ['fallback:address_mismatch_evm_in_aptos'],
-                    requiresMultiTool: false,
-                    classificationMethod: "fallback",
-                };
-            }
-            if (evmChains.includes(chatContext) && hasSolanaAddress && !hasEvmAddress) {
-                console.log("[INTENT] LLM fallback: Solana address detected in EVM context, using solana");
-                return {
-                    primaryIntent: 'solana',
-                    confidence: 0.7,
-                    indicators: ['fallback:address_mismatch_solana_in_evm'],
-                    requiresMultiTool: false,
-                    classificationMethod: "fallback",
-                };
-            }
-            if (chatContext !== 'aptos' && hasAptosAddress) {
-                console.log("[INTENT] LLM fallback: Aptos address detected, using aptos");
-                return {
-                    primaryIntent: 'aptos',
-                    confidence: 0.7,
-                    indicators: ['fallback:aptos_address_detected'],
-                    requiresMultiTool: false,
-                    classificationMethod: "fallback",
-                };
-            }
-            if (chatContext !== 'sei' && hasSeiAddress) {
-                console.log("[INTENT] LLM fallback: Sei address detected, using sei");
-                return {
-                    primaryIntent: 'sei',
-                    confidence: 0.7,
-                    indicators: ['fallback:sei_address_detected'],
-                    requiresMultiTool: false,
-                    classificationMethod: "fallback",
-                };
-            }
-
-            // No address mismatch, safe to use context
             return {
-                primaryIntent: chatContext as IntentType,
-                confidence: 0.65,
-                indicators: [`context_fallback:continuing_${chatContext}_conversation`],
+                primaryIntent: object.primaryIntent as IntentType,
+                confidence: object.confidence,
+                indicators: [`llm_retry:${object.reasoning.slice(0, 50)}`],
+                requiresMultiTool: false,
+                classificationMethod: "llm",
+            };
+        } catch (retryError: any) {
+            // Log concisely - only warn, not full error stack
+            console.warn("[INTENT] LLM classification failed after retry, using fallback:",
+                retryError?.cause?.message || retryError?.message || "Unknown error");
+
+            // Fallback: If we have image context (user was generating images), likely a follow-up ("make it blue")
+            if (hasImageContext) {
+                const lowerMsg = message.toLowerCase();
+                // Check if it looks like a refinement or just generic text
+                const refinementKeywords = ["make", "change", "add", "remove", "turn", "regenerate", "version", "style", "holding", "wearing", "background"];
+                const isRefinement = refinementKeywords.some(w => lowerMsg.includes(w));
+
+                if (isRefinement) {
+                    console.log("[INTENT] LLM fallback: Image context refinement detected, using imagine");
+                    return {
+                        primaryIntent: "imagine",
+                        confidence: 0.65,
+                        indicators: ["fallback:image_context_refinement"],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+            }
+
+            // If we have chat context and LLM failed, use the context as fallback
+            // BUT first check if message contains addresses that conflict with the context
+            if (chatContext) {
+                // Check for address format mismatches before using context as fallback
+                const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
+                const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
+                const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+                const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
+
+                // If address format conflicts with context, override it
+                // EVM-compatible chains: these accept 0x addresses
+                const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+
+                if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
+                    console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
+                    return {
+                        primaryIntent: 'on_chain',
+                        confidence: 0.7,
+                        indicators: ['fallback:address_mismatch_evm_in_solana'],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+                if (chatContext === 'aptos' && hasEvmAddress && !hasAptosAddress) {
+                    console.log("[INTENT] LLM fallback: EVM address detected in aptos context, using on_chain");
+                    return {
+                        primaryIntent: 'on_chain',
+                        confidence: 0.7,
+                        indicators: ['fallback:address_mismatch_evm_in_aptos'],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+                if (evmChains.includes(chatContext) && hasSolanaAddress && !hasEvmAddress) {
+                    console.log("[INTENT] LLM fallback: Solana address detected in EVM context, using solana");
+                    return {
+                        primaryIntent: 'solana',
+                        confidence: 0.7,
+                        indicators: ['fallback:address_mismatch_solana_in_evm'],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+                if (chatContext !== 'aptos' && hasAptosAddress) {
+                    console.log("[INTENT] LLM fallback: Aptos address detected, using aptos");
+                    return {
+                        primaryIntent: 'aptos',
+                        confidence: 0.7,
+                        indicators: ['fallback:aptos_address_detected'],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+                if (chatContext !== 'sei' && hasSeiAddress) {
+                    console.log("[INTENT] LLM fallback: Sei address detected, using sei");
+                    return {
+                        primaryIntent: 'sei',
+                        confidence: 0.7,
+                        indicators: ['fallback:sei_address_detected'],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+
+                // No address mismatch, safe to use context
+                return {
+                    primaryIntent: chatContext as IntentType,
+                    confidence: 0.65,
+                    indicators: [`context_fallback:continuing_${chatContext}_conversation`],
+                    requiresMultiTool: false,
+                    classificationMethod: "fallback",
+                };
+            }
+
+            // Return default search intent on LLM failure
+            return {
+                primaryIntent: "search",
+                confidence: 0.3,
+                indicators: ["fallback:llm_error"],
                 requiresMultiTool: false,
                 classificationMethod: "fallback",
             };
         }
-
-        // Return default search intent on LLM failure
-        return {
-            primaryIntent: "search",
-            confidence: 0.3,
-            indicators: ["fallback:llm_error"],
-            requiresMultiTool: false,
-            classificationMethod: "fallback",
-        };
-    }
-}
+    } // close inner catch (retryError)
+} // close outer catch (firstError)
 
 // ============================================================================
 // Main Classification Function
@@ -763,7 +1191,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -779,6 +1207,59 @@ export async function classifyIntent(
                 `[INTENT] Pattern match: ${patternResult.primaryIntent} (${patternResult.confidence.toFixed(2)}) in ${Date.now() - startTime} ms`
             );
             return patternResult;
+        }
+    }
+
+    // Step 1.5: Follow-up query detection with semantic action routing
+    // If this looks like a follow-up query, use context + semantic action
+    if (chatContext && CONTEXT_AWARE_GROUPS.includes(chatContext as IntentType)) {
+        const followUp = isFollowUpQuery(message);
+        const semanticAction = detectSemanticAction(message);
+
+        if (followUp || semanticAction) {
+            // Check if semantic action specifies a different route
+            if (semanticAction && semanticAction.route !== 'context') {
+                // Actions like "swap" always route to on_chain for Relay
+                console.log(
+                    `[INTENT] Semantic action '${semanticAction.action}' routes to ${semanticAction.route} in ${Date.now() - startTime} ms`
+                );
+                return {
+                    primaryIntent: semanticAction.route as IntentType,
+                    confidence: 0.85,
+                    indicators: [`semantic:${semanticAction.action}`, 'action_override'],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
+
+            // Check chain registry for explicit chain mention that might override
+            const detectedChain = detectChainFromRegistry(message);
+            if (detectedChain && detectedChain.intent !== chatContext) {
+                // User explicitly mentioned a different chain - switch to it
+                console.log(
+                    `[INTENT] Chain override: ${detectedChain.id} (from registry) in ${Date.now() - startTime} ms`
+                );
+                return {
+                    primaryIntent: detectedChain.intent,
+                    confidence: 0.9,
+                    indicators: [`registry:${detectedChain.id}`, `switched_from:${chatContext}`],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
+
+            // Follow-up or semantic action with context - inherit context
+            const indicator = followUp ? 'follow_up_detected' : `semantic:${semanticAction?.action}`;
+            console.log(
+                `[INTENT] ${followUp ? 'Follow-up' : 'Semantic action'} -> inheriting context: ${chatContext} in ${Date.now() - startTime} ms`
+            );
+            return {
+                primaryIntent: chatContext as IntentType,
+                confidence: 0.85,
+                indicators: [indicator, `context:${chatContext}`],
+                requiresMultiTool: false,
+                classificationMethod: 'pattern',
+            };
         }
     }
 
@@ -810,7 +1291,7 @@ export async function classifyIntent(
 
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
 
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&

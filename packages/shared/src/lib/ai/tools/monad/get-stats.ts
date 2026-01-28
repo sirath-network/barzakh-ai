@@ -9,7 +9,7 @@ export const getMonadStats = tool({
     try {
       console.log("fetching Monad Blockchain stats ");
       const response = await getStatPageScreenshot(
-        "https://testnet.monadexplorer.com/"
+        "https://monadscan.com/"
       );
 
       if (!response) {

@@ -63,6 +63,7 @@ const getChainLogo = (chain: string, iconUrl?: string): string => {
     "metis-andromeda": "https://chain-icons.s3.amazonaws.com/metis.png",
     metis: "https://chain-icons.s3.amazonaws.com/metis.png",
     mode: "https://chain-icons.s3.amazonaws.com/mode.png",
+    monad: "https://token-icons.s3.us-east-1.amazonaws.com/e25eb093-4540-456f-8067-8ffe2d85a278.png",
     okbchain: "https://chain-icons.s3.amazonaws.com/okx.png",
     opbnb: "https://chain-icons.s3.amazonaws.com/opBNB.png",
     optimism: "https://chain-icons.s3.amazonaws.com/optimism.png",

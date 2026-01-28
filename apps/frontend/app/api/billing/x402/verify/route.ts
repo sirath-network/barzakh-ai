@@ -1,29 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { createPublicClient, http, defineChain } from "viem";
+import { createPublicClient, http } from "viem";
+import { cronosTestnet } from "viem/chains";
 import { db } from "@/lib/db/db";
 import { x402_transactions, user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-
-// Define Cronos EVM Testnet chain
-const cronosTestnet = defineChain({
-  id: 338,
-  name: 'Cronos Testnet',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Test CRO',
-    symbol: 'TCRO',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://evm-t3.cronos.org'],
-    },
-  },
-  blockExplorers: {
-    default: { name: 'Cronos Explorer', url: 'https://explorer.cronos.org/testnet' },
-  },
-  testnet: true,
-});
 
 // Use a dedicated RPC URL if available for better reliability
 const rpcUrl = process.env.CRONOS_TESTNET_RPC_URL || "https://evm-t3.cronos.org";

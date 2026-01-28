@@ -127,7 +127,7 @@ export const getSolanaChainWalletPortfolio = tool({
 
     try {
       // Use Zerion API with Solana chain filter
-      const url = `${zerionBaseURL}/v1/wallets/${wallet_address}/positions/?filter[chain_ids]=solana&currency=usd&sort=-value`;
+      const url = `${zerionBaseURL}/v1/wallets/${wallet_address}/positions/?filter[chain_ids]=solana&filter[trash]=only_non_trash&currency=usd&sort=-value`;
 
       const response = await fetch(url, {
         method: "GET",

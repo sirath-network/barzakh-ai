@@ -933,7 +933,7 @@ export const getMantlePortfolio = tool({
             }
 
             // Fetch positions filtered to Mantle chain
-            const positionsUrl = `${zerionBaseURL}/v1/wallets/${address}/positions/?filter[chain_ids]=mantle&sort=-value&currency=usd&page[size]=50`;
+            const positionsUrl = `${zerionBaseURL}/v1/wallets/${address}/positions/?filter[chain_ids]=mantle&filter[trash]=only_non_trash&sort=-value&currency=usd&page[size]=50`;
             const positionsResponse = await fetch(positionsUrl, options);
 
             let mantlePositions: any[] = [];

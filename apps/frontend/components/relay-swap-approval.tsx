@@ -125,6 +125,7 @@ const BLOCK_EXPLORERS: Record<number, string> = {
     100: "https://gnosisscan.io",
     130: "https://uniscan.xyz",
     137: "https://polygonscan.com",
+    143: "https://monadscan.com",
     146: "https://sonicscan.org",
     169: "https://pacific-explorer.manta.network",
     324: "https://explorer.zksync.io",

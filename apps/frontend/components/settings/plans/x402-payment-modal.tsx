@@ -8,7 +8,7 @@ import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, LogOut, AlertT
 import { formatUnits } from "viem";
 import { useAccount, useBalance, useSwitchChain, useSignTypedData, useSignMessage, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { cronosTestnet } from "@/lib/wagmi";
+import { cronosTestnet } from "viem/chains";
 
 interface X402PaymentModalProps {
   isOpen: boolean;

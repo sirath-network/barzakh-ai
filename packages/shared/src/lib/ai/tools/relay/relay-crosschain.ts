@@ -527,6 +527,145 @@ const NATIVE_SYMBOLS: Record<number, string> = {
     543210: "ETH", // ZERO
 };
 
+/**
+ * Token to Canonical Chain Mapping
+ * Maps token symbols to their primary/native chain
+ * Used for smart chain inference when user doesn't specify chain
+ */
+const TOKEN_CANONICAL_CHAIN: Record<string, number> = {
+    // Native Layer 1 tokens (unique to their chain)
+    MON: 143,           // Monad
+    SOL: 792703809,     // Solana
+    BTC: 8253038,       // Bitcoin
+    TRX: 728126428,     // Tron
+    AVAX: 43114,        // Avalanche
+    BNB: 56,            // BNB Chain
+    MATIC: 137,         // Polygon (legacy)
+    POL: 137,           // Polygon
+    FTM: 250,           // Fantom
+    CRO: 25,            // Cronos
+    CELO: 42220,        // Celo
+    METIS: 1088,        // Metis
+    MNT: 5000,          // Mantle
+    BERA: 80094,        // Berachain
+    SEI: 1329,          // Sei
+    APE: 33139,         // ApeChain
+    RON: 2020,          // Ronin
+    S: 146,             // Sonic
+    ZETA: 7000,         // ZetaChain
+    XAI: 660279,        // Xai
+    FLOW: 747,          // Flow EVM
+    HYPE: 1337,         // Hyperliquid
+    IP: 1514,           // Story
+    G: 1625,            // Gravity
+    GUN: 43419,         // Gunz
+    MYTH: 42018,        // Mythos
+    STT: 5031,          // Somnia
+    TIA: 984122,        // Forma
+    DEGEN: 666666666,   // Degen
+
+    // Native token aliases (wrapped versions)
+    WSOL: 792703809,    // Wrapped SOL on Solana
+    WMON: 143,          // Wrapped MON on Monad
+    WCRO: 25,           // Wrapped CRO on Cronos
+    WBNB: 56,           // Wrapped BNB
+    WAVAX: 43114,       // Wrapped AVAX
+
+    // Chain-specific tokens (unique to one chain)
+    BONK: 792703809,    // Solana memecoin
+    JTO: 792703809,     // Solana (Jito)
+    JUP: 792703809,     // Solana (Jupiter)
+    WIF: 792703809,     // Solana memecoin
+    PYTH: 792703809,    // Solana (Pyth)
+    RAY: 792703809,     // Solana (Raydium)
+    ORCA: 792703809,    // Solana (Orca)
+    POPCAT: 792703809,  // Solana memecoin
+    VVS: 25,            // Cronos (VVS Finance)
+    ZKCRO: 388,         // Cronos zkEVM
+    METH: 5000,         // Mantle (mETH)
+    CMETH: 5000,        // Mantle (cmETH)
+
+    // Monad meme tokens and ecosystem
+    MOLANDAK: 143,      // Monad meme token
+    EMO: 143,           // Emonad
+    MOXY: 143,          // Monad Foxy
+    FRENS: 143,         // Purple Frens
+    MONCOCK: 143,       // Monad memecoin
+    MCAT: 143,          // Monad Cats
+    NINJA: 143,         // Monad Ninja
+    SMON: 143,          // Kintsu Staked Monad
+
+    // DeFi tokens with primary chain
+    OP: 10,             // Optimism native
+    ARB: 42161,         // Arbitrum native
+};
+
+/**
+ * Tokens that exist on multiple chains (ambiguous - should ask user)
+ * These tokens have significant presence on multiple chains
+ */
+const MULTI_CHAIN_TOKENS: string[] = [
+    'ETH',    // Ethereum, Optimism, Arbitrum, Base, Linea, Scroll, etc.
+    'USDC',   // Most EVM chains
+    'USDT',   // Most EVM chains  
+    'WETH',   // Most EVM chains
+    'WBTC',   // Most EVM chains
+    'CBBTC',  // Multiple L2s (Base, Ethereum)
+    'DAI',    // Most EVM chains
+    'LINK',   // Most EVM chains
+    'UNI',    // Ethereum, L2s
+    'AAVE',   // Multiple chains
+    'CRV',    // Multiple chains
+    'SUSHI',  // Multiple chains
+];
+
+/**
+ * Infer chain from token symbol
+ * Returns chain ID if token is unique to a chain, null if ambiguous
+ */
+function inferChainFromToken(token: string): number | null {
+    const upperToken = token.toUpperCase();
+
+    // Handle 'native' keyword - can't infer chain from this
+    if (upperToken === 'NATIVE') {
+        return null;
+    }
+
+    // Skip if it's a known multi-chain token
+    if (MULTI_CHAIN_TOKENS.includes(upperToken)) {
+        return null;
+    }
+
+    // Check if it's in our canonical chain mapping
+    return TOKEN_CANONICAL_CHAIN[upperToken] || null;
+}
+
+/**
+ * Check if chain should be inferred or was explicitly provided
+ * Returns { chainId, wasInferred, message }
+ */
+function resolveChainWithInference(
+    providedChainId: number | undefined | null,
+    token: string
+): { chainId: number | null; wasInferred: boolean; message?: string } {
+    // If chain was explicitly provided (not 0, undefined, or null), use it
+    if (providedChainId !== undefined && providedChainId !== null && providedChainId !== 0) {
+        return { chainId: providedChainId, wasInferred: false };
+    }
+
+    // Try to infer from token
+    const inferredChain = inferChainFromToken(token);
+    if (inferredChain) {
+        return {
+            chainId: inferredChain,
+            wasInferred: true,
+            message: `Auto-detected ${token.toUpperCase()} on ${CHAIN_NAMES[inferredChain] || `Chain ${inferredChain}`}`
+        };
+    }
+
+    return { chainId: null, wasInferred: false };
+}
+
 let isClientInitialized = false;
 
 /**
@@ -616,13 +755,17 @@ async function fetchChainTokens(chainId: number): Promise<Record<string, TokenIn
     }
 
     try {
-        // Use the Currencies API (POST /currencies/v1) which returns all supported tokens
-        const response = await fetch("https://api.relay.link/currencies/v1", {
+        // Use the Currencies API (POST /currencies/v2) which returns all supported tokens
+        const response = await fetch("https://api.relay.link/currencies/v2", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ chainIds: [chainId] }),
+            body: JSON.stringify({
+                chainIds: [chainId],
+                limit: 100,  // Get more tokens
+                useExternalSearch: true,  // Enable external search for better coverage
+            }),
         });
 
         if (!response.ok) {
@@ -639,11 +782,9 @@ async function fetchChainTokens(chainId: number): Promise<Record<string, TokenIn
 
         const tokens: Record<string, TokenInfo> = {};
 
-        // The API returns an array where each item is itself an array containing one token object
-        // Structure: [[{token1}], [{token2}], ...]
-        for (const item of currencies) {
-            // Each item is an array containing one token object
-            const token = Array.isArray(item) ? item[0] : item;
+        // The API returns a flat array of token objects
+        // Structure: [{token1}, {token2}, ...]
+        for (const token of currencies) {
             if (token && token.symbol && token.address) {
                 tokens[token.symbol.toUpperCase()] = {
                     address: token.address,
@@ -655,10 +796,67 @@ async function fetchChainTokens(chainId: number): Promise<Record<string, TokenIn
         // Cache the result
         chainTokenCache.set(chainId, { tokens, timestamp: Date.now() });
 
+        console.log(`[Relay] Cached ${Object.keys(tokens).length} tokens for chain ${chainId}`);
         return tokens;
     } catch (error) {
         console.error(`[Relay] Error fetching chain tokens:`, error);
         return {};
+    }
+}
+
+/**
+ * Search for a token by term (name or symbol) on a specific chain
+ * This is used when the token isn't in our static map - queries Relay API with term parameter
+ */
+async function searchTokenByTerm(term: string, chainId: number): Promise<TokenInfo | null> {
+    try {
+        console.log(`[Relay] Searching for token "${term}" on chain ${chainId}...`);
+
+        const response = await fetch("https://api.relay.link/currencies/v2", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                chainIds: [chainId],
+                term: term,  // Search by term
+                limit: 10,
+                useExternalSearch: true,
+            }),
+        });
+
+        if (!response.ok) {
+            console.warn(`[Relay] Token search failed: ${response.status}`);
+            return null;
+        }
+
+        const results = await response.json();
+
+        if (!Array.isArray(results) || results.length === 0) {
+            console.warn(`[Relay] No tokens found for term "${term}" on chain ${chainId}`);
+            return null;
+        }
+
+        // Find exact match first (case insensitive), otherwise take first result
+        const exactMatch = results.find((t: any) =>
+            t.symbol?.toUpperCase() === term.toUpperCase() ||
+            t.name?.toUpperCase() === term.toUpperCase()
+        );
+
+        const token = exactMatch || results[0];
+
+        if (token && token.address) {
+            console.log(`[Relay] Found token: ${token.symbol} (${token.name}) at ${token.address}`);
+            return {
+                address: token.address,
+                decimals: token.decimals ?? 18,
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error(`[Relay] Error searching for token:`, error);
+        return null;
     }
 }
 
@@ -856,52 +1054,45 @@ export const getRelaySupportedChains = tool({
  */
 export const getRelayQuote = tool({
     description: `Get a quote for cross-chain swap or bridge using Relay Protocol.
-Supports swapping any token on any supported chain to any other token on any chain.
-Supports **EVM** (Ethereum, Base, Arbitrum, Optimism, Cronos, etc.) AND **Non-EVM** (Solana, Bitcoin, Tron) chains. Use Relay for ALL cross-chain swaps, including those involving SOL, BTC, or TRX.
-Most major chains have tokenSupport: "All" - meaning any token with DEX liquidity works.
+Supports **EVM** (Ethereum, Base, Arbitrum, Optimism, Cronos, etc.) AND **Non-EVM** (Solana, Bitcoin, Tron) chains.
 
-**SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "0.5$" and the tool will automatically convert to the token amount.
+**SMART CHAIN INFERENCE - DON'T ASK IF TOKEN IS UNIQUE**:
+Many tokens are unique to specific chains. If user doesn't specify a chain, INFER it automatically:
+- MON → Monad (143), SOL/BONK/JTO/JUP/WIF → Solana (792703809)
+- CRO/VVS → Cronos (25), MNT/METH → Mantle (5000), BERA → Berachain (80094)  
+- BNB → BNB Chain (56), AVAX → Avalanche (43114), OP → Optimism (10), ARB → Arbitrum (42161)
+- FLOW → Flow (747), HYPE → Hyperliquid (1337), ZETA → ZetaChain (7000)
 
-**IMPORTANT - NEVER ASK FOR RECIPIENT ADDRESS**:
-For cross-chain swaps (especially to non-EVM chains like Solana, Bitcoin, Tron), DO NOT ask the user for their recipient address upfront.
-Just call this tool directly - the swap modal UI will collect the recipient address from the user.
-The UI handles recipient address collection for better UX.
+**ONLY ASK for chain when token is AMBIGUOUS (exists on multiple chains)**:
+- ETH exists on Ethereum, Optimism, Arbitrum, Base, etc. → ASK which chain
+- USDC/USDT exist on most chains → ASK which chain
+- WETH/WBTC/DAI → ASK which chain
 
-**ASK FOR CLARIFICATION only when:**
+**DO NOT ASK if token is chain-specific, just call this tool with the token!**
+- "Swap 10k MON to SOL" → fromChainId=143 (auto), toChainId=792703809 (auto) ✅
+- "Swap VVS to BERA" → fromChainId=25 (auto), toChainId=80094 (auto) ✅
+- "Swap BONK to MNT" → Solana to Mantle, auto-inferred ✅
 
-1. **Missing source chain**: If user says "Swap ETH to USDC" without specifying source chain, ASK: "Which chain is your ETH on? (e.g., Ethereum, Optimism, Arbitrum, Base, Cronos)"
+**SUPPORTS USD AMOUNTS**: "$5", "5 USD", "5$" → auto-converts to token amount.
 
-2. **Missing destination chain**: If user says "Swap 10 VVS to Optimism" without destination token, ASK: "What token would you like to receive on Optimism? (e.g., ETH, USDC, USDT)"
+**NEVER ASK FOR RECIPIENT ADDRESS** - the UI handles that.
 
-3. **Missing destination token**: If user says "Bridge from Base" without destination token, ASK: "What token do you want to bridge, and to which chain?"
-
-4. **Same-chain swap**: If user says "Swap 1M VVS to CRO" and both are on Cronos, use this tool with fromChainId = toChainId = 25 (Cronos). Relay supports same-chain swaps too!
-
-5. **Ambiguous chain reference**: If user says "swap to mainnet", ASK: "Which mainnet? Ethereum, Cronos, or another chain?"
-
-**DO NOT call this tool until you have ALL of:**
-- Source chain (fromChainId)
-- Destination chain (toChainId) - can be same as source for same-chain swaps
-- Source token (fromToken)
-- Destination token (toToken)
-- Amount (can be token amount or USD amount)
-
-Examples of COMPLETE requests:
-- "Swap $0.5 worth of ETH on Ethereum to USDC on Arbitrum"
-- "Bridge $10 USDC from Polygon to Base"
-- "Swap 0.001 ETH on Optimism to ETH on Arbitrum"
-- "Swap 1 SOL on Solana to ETH on Ethereum"
-- "Swap 100 CRO from Cronos to ETH on Optimism"`,
+Examples:
+- "Swap 10k MON to SOL" → Call directly, chains auto-detected
+- "Swap 1 ETH to USDC" → ASK: "Which chain is your ETH on?"
+- "Swap SOL to ETH on Base" → fromChainId auto (Solana), toChainId=8453 (explicit)`,
     parameters: z.object({
         fromChainId: z
             .number()
+            .optional()  // NOW OPTIONAL - can be inferred from token
             .describe(
-                "Source chain ID (e.g. 1=Eth, 10=Opt, 8453=Base, 792703809=Solana, 8253038=Bitcoin, 728126428=Tron)"
+                "Source chain ID. OPTIONAL if token is chain-specific (MON=143, SOL=792703809, CRO=25, etc.). Common chains: 1=Ethereum, 10=Optimism, 25=Cronos, 143=Monad, 8453=Base, 42161=Arbitrum, 792703809=Solana"
             ),
         toChainId: z
             .number()
+            .optional()  // NOW OPTIONAL - can be inferred from token
             .describe(
-                "Destination chain ID (e.g. 1=Eth, 792703809=Solana, 8253038=Bitcoin, 728126428=Tron)"
+                "Destination chain ID. OPTIONAL if token is chain-specific. Same mapping as fromChainId."
             ),
         fromToken: z
             .string()
@@ -928,17 +1119,71 @@ Examples of COMPLETE requests:
             .describe("Recipient address (defaults to user address if not provided)"),
     }),
     execute: async ({
-        fromChainId: rawFromChainId,
-        toChainId: rawToChainId,
+        fromChainId: providedFromChainId,
+        toChainId: providedToChainId,
         fromToken,
         toToken,
         amount,
         userAddress,
         recipientAddress,
     }) => {
+        // Smart chain inference - resolve chains from tokens if not explicitly provided
+        const fromInference = resolveChainWithInference(providedFromChainId, fromToken);
+        const toInference = resolveChainWithInference(providedToChainId, toToken);
+
+        // If we couldn't determine source chain, return helpful error
+        if (!fromInference.chainId) {
+            const upperToken = fromToken.toUpperCase();
+            if (MULTI_CHAIN_TOKENS.includes(upperToken)) {
+                return {
+                    status: "clarification_needed",
+                    error: `${upperToken} exists on multiple chains`,
+                    question: `Which chain is your ${upperToken} on?`,
+                    suggestions: upperToken === 'ETH'
+                        ? ['Ethereum (1)', 'Optimism (10)', 'Arbitrum (42161)', 'Base (8453)', 'Linea (59144)']
+                        : ['Ethereum (1)', 'Polygon (137)', 'Arbitrum (42161)', 'Base (8453)', 'Optimism (10)'],
+                };
+            }
+            return {
+                status: "error",
+                error: "Could not determine source chain",
+                details: `Unknown token: ${fromToken}`,
+                suggestion: "Please specify which chain your token is on (e.g., 'on Ethereum', 'on Base').",
+            };
+        }
+
+        // If we couldn't determine destination chain, return helpful error
+        if (!toInference.chainId) {
+            const upperToken = toToken.toUpperCase();
+            if (MULTI_CHAIN_TOKENS.includes(upperToken)) {
+                return {
+                    status: "clarification_needed",
+                    error: `${upperToken} exists on multiple chains`,
+                    question: `Which chain do you want your ${upperToken} on?`,
+                    suggestions: upperToken === 'ETH'
+                        ? ['Ethereum (1)', 'Optimism (10)', 'Arbitrum (42161)', 'Base (8453)', 'Linea (59144)']
+                        : ['Ethereum (1)', 'Polygon (137)', 'Arbitrum (42161)', 'Base (8453)', 'Optimism (10)'],
+                };
+            }
+            return {
+                status: "error",
+                error: "Could not determine destination chain",
+                details: `Unknown token: ${toToken}`,
+                suggestion: "Please specify which chain you want the token on (e.g., 'to Ethereum', 'on Base').",
+            };
+        }
+
+        // Log inference if it happened
+        if (fromInference.wasInferred) {
+            console.log(`[Relay] ${fromInference.message}`);
+        }
+        if (toInference.wasInferred) {
+            console.log(`[Relay] ${toInference.message}`);
+        }
+
         // Normalize Chain IDs (e.g. 101 -> 792703809 for Solana)
-        const fromChainId = normalizeChainId(rawFromChainId);
-        const toChainId = normalizeChainId(rawToChainId);
+        const fromChainId = normalizeChainId(fromInference.chainId);
+        const toChainId = normalizeChainId(toInference.chainId);
 
         try {
             // Validate addresses based on source chain
@@ -1132,8 +1377,8 @@ Examples of COMPLETE requests:
 - "Bridge 0.5 ETH from Ethereum to Optimism"
 - "Bridge $10 of native token from Arbitrum to Base"`,
     parameters: z.object({
-        fromChainId: z.number().describe("Source chain ID"),
-        toChainId: z.number().describe("Destination chain ID"),
+        fromChainId: z.number().describe("Source chain ID. Common chains: 1=Ethereum, 10=Optimism, 25=Cronos, 137=Polygon, 143=Monad, 5000=Mantle, 8453=Base, 42161=Arbitrum, 792703809=Solana"),
+        toChainId: z.number().describe("Destination chain ID. Same mapping as fromChainId."),
         amount: z
             .string()
             .describe(
@@ -1284,14 +1529,18 @@ export const prepareRelayTransaction = tool({
 Returns the transaction parameters that need to be signed and submitted by the user's wallet.
 Use this after getting a quote to prepare the actual transaction.
 
-**SUPPORTS USD AMOUNTS**: You can specify amounts in USD like "$0.5", "0.5 USD", or "0.5$".
+**SMART CHAIN INFERENCE**: Chain IDs are optional - will auto-detect from token symbols.
+- MON → Monad (143), SOL → Solana (792703809), CRO → Cronos (25)
+- Only asks for chain if token is ambiguous (ETH, USDC, USDT exist on multiple chains)
+
+**SUPPORTS USD AMOUNTS**: "$5", "5 USD", "5$" → auto-converts to token amount.
 
 Examples:
 - Swap $5 of ETH from Arbitrum to Optimism
 - Bridge $10 worth of native token from Base to Polygon`,
     parameters: z.object({
-        fromChainId: z.number().describe("Source chain ID (e.g. 1=Eth, 792703809=Solana, 8253038=Bitcoin, 728126428=Tron)"),
-        toChainId: z.number().describe("Destination chain ID"),
+        fromChainId: z.number().optional().describe("Source chain ID. OPTIONAL if token is chain-specific."),
+        toChainId: z.number().optional().describe("Destination chain ID. OPTIONAL if token is chain-specific."),
         fromToken: z.string().describe("Source token (native/symbol/address)"),
         toToken: z.string().describe("Destination token"),
         amount: z
@@ -1303,14 +1552,52 @@ Examples:
         recipientAddress: z.string().optional().describe("Recipient address"),
     }),
     execute: async ({
-        fromChainId,
-        toChainId,
+        fromChainId: providedFromChainId,
+        toChainId: providedToChainId,
         fromToken,
         toToken,
         amount,
         userAddress,
         recipientAddress,
     }) => {
+        // Smart chain inference - resolve chains from tokens if not explicitly provided
+        const fromInference = resolveChainWithInference(providedFromChainId, fromToken);
+        const toInference = resolveChainWithInference(providedToChainId, toToken);
+
+        // If we couldn't determine chains, return helpful error
+        if (!fromInference.chainId) {
+            const upperToken = fromToken.toUpperCase();
+            return {
+                status: "error",
+                error: MULTI_CHAIN_TOKENS.includes(upperToken)
+                    ? `${upperToken} exists on multiple chains`
+                    : "Could not determine source chain",
+                suggestion: "Please specify which chain your token is on.",
+            };
+        }
+
+        if (!toInference.chainId) {
+            const upperToken = toToken.toUpperCase();
+            return {
+                status: "error",
+                error: MULTI_CHAIN_TOKENS.includes(upperToken)
+                    ? `${upperToken} exists on multiple chains`
+                    : "Could not determine destination chain",
+                suggestion: "Please specify which chain you want the token on.",
+            };
+        }
+
+        // Log inference
+        if (fromInference.wasInferred) {
+            console.log(`[Relay] ${fromInference.message}`);
+        }
+        if (toInference.wasInferred) {
+            console.log(`[Relay] ${toInference.message}`);
+        }
+
+        const fromChainId = normalizeChainId(fromInference.chainId);
+        const toChainId = normalizeChainId(toInference.chainId);
+
         try {
             // Validate addresses based on source chain
             if (userAddress && !isValidAddressForChain(userAddress, fromChainId)) {
@@ -1470,10 +1757,18 @@ async function resolveTokenAddressAsync(token: string, chainId: number): Promise
     // If it returned unresolved (not an address), try dynamic lookup
     // Only fetch if it doesn't look like an address
     if (!resolved.startsWith("0x") && !isValidAddressForChain(resolved, chainId)) {
+        // First try cached token list
         const apiTokens = await fetchChainTokens(chainId);
         const upperSymbol = token.toUpperCase();
         if (apiTokens[upperSymbol]) {
             return apiTokens[upperSymbol].address;
+        }
+
+        // If not found in cached list, try dynamic search by term
+        // This handles cases where user types token name (e.g., "Molandak") instead of symbol
+        const searchResult = await searchTokenByTerm(token, chainId);
+        if (searchResult) {
+            return searchResult.address;
         }
     }
 

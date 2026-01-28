@@ -88,13 +88,32 @@ const GroupOptionList = ({
           <>
             <div className="flex-shrink-0">
               {group.img ? (
-                <Image
-                  src={group.img}
-                  alt={`${group.name} icon`}
-                  width={28}
-                  height={28}
-                  className="bg-white rounded-full object-contain"
-                />
+                typeof group.img === "string" ? (
+                  <Image
+                    src={group.img}
+                    alt={`${group.name} icon`}
+                    width={28}
+                    height={28}
+                    className="rounded-full object-contain"
+                  />
+                ) : (
+                  <>
+                    <Image
+                      src={group.img.light}
+                      alt={`${group.name} icon`}
+                      width={28}
+                      height={28}
+                      className="rounded-full object-contain dark:hidden"
+                    />
+                    <Image
+                      src={group.img.dark}
+                      alt={`${group.name} icon`}
+                      width={28}
+                      height={28}
+                      className="rounded-full object-contain hidden dark:block"
+                    />
+                  </>
+                )
               ) : (
                 <IconComponent className="size-6" />
               )}
@@ -368,13 +387,32 @@ export const GroupSelector = ({
         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full border border-border/50 animate-in fade-in slide-in-from-left-2">
           <div className="flex-shrink-0">
             {selectedGroup.img ? (
-              <Image
-                src={selectedGroup.img}
-                alt="Selected group icon"
-                width={20}
-                height={20}
-                className="bg-white rounded-full object-contain"
-              />
+              typeof selectedGroup.img === "string" ? (
+                <Image
+                  src={selectedGroup.img}
+                  alt="Selected group icon"
+                  width={20}
+                  height={20}
+                  className="rounded-full object-contain"
+                />
+              ) : (
+                <>
+                  <Image
+                    src={selectedGroup.img.light}
+                    alt="Selected group icon"
+                    width={20}
+                    height={20}
+                    className="rounded-full object-contain dark:hidden"
+                  />
+                  <Image
+                    src={selectedGroup.img.dark}
+                    alt="Selected group icon"
+                    width={20}
+                    height={20}
+                    className="rounded-full object-contain hidden dark:block"
+                  />
+                </>
+              )
             ) : (
               SelectedIcon && <SelectedIcon className="size-4" />
             )}
