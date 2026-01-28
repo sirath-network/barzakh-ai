@@ -33,6 +33,7 @@ const explorerMap: Record<string, string> = {
   "bsc": "https://bscscan.com",
   "binance-smart-chain": "https://bscscan.com",
   "polygon": "https://polygonscan.com",
+  "polygon-zkevm": "https://zkevm.polygonscan.com",
   "base": "https://basescan.org",
   "arbitrum": "https://arbiscan.io",
   "arbitrum-one": "https://arbiscan.io",
@@ -46,35 +47,50 @@ const explorerMap: Record<string, string> = {
   "blast": "https://blastscan.io",
   "scroll": "https://scrollscan.com",
   "zksync-era": "https://explorer.zksync.io",
+  "zksync": "https://explorer.zksync.io",
   "mantle": "https://mantlescan.xyz",
   "taiko": "https://taikoscan.io",
   "mode": "https://explorer.mode.network",
   "metis": "https://andromeda-explorer.metis.io",
 
-  // Specialized / Etherscan EAAS Chains
-  "bittorrent": "https://bttcscan.com",
+  // Zerion-supported chains
+  "abstract": "https://abscan.org",
+  "apechain": "https://apescan.io",
+  "aurora": "https://explorer.aurora.dev",
+  "berachain": "https://berascan.com",
   "celo": "https://celoscan.io",
-  "fraxtal": "https://fraxscan.com",
+  "degen": "https://explorer.degen.tips",
+  "fantom": "https://ftmscan.com",
   "gnosis": "https://gnosisscan.io",
+  "xdai": "https://gnosisscan.io",
+  "gravity": "https://explorer.gravity.xyz",
+  "hyperevm": "https://hyperevmscan.io",
+  "ink": "https://explorer.inkonchain.com",
+  "katana": "https://katanascan.com",
+  "lens": "https://explorer.lens.xyz",
+  "monad": "https://monadscan.com",
+  "plasma": "https://plasmascan.to",
+  "soneium": "https://soneium.blockscout.com",
+  "sonic": "https://sonicscan.org",
+  "somnia": "https://explorer.somnia.network",
+  "solana": "https://solscan.io",
+  "unichain": "https://uniscan.xyz",
+  "world": "https://worldscan.org",
+  "xdc": "https://xdcscan.com",
+  "zero-network": "https://explorer.zero.network",
+  "zora": "https://explorer.zora.energy",
+  "0g": "https://explorer.0g.ai",
+
+  // Legacy/Other chains
+  "bittorrent": "https://bttcscan.com",
+  "fraxtal": "https://fraxscan.com",
   "memecore": "https://memecorescan.io",
   "moonbeam": "https://moonbeam.moonscan.io",
   "moonriver": "https://moonriver.moonscan.io",
   "opbnb": "https://opbnb.bscscan.com",
-  "xdc": "https://xdcscan.com",
-  "apechain": "https://apescan.io",
-  "world": "https://worldscan.org",
-  "sonic": "https://sonicscan.org",
-  "unichain": "https://uniscan.xyz",
-  "abstract": "https://abscan.org",
-  "berachain": "https://berascan.com",
   "swellchain": "https://swellchainscan.io",
-  "monad": "https://monadscan.com",
-  "hyperevm": "https://hyperevmscan.io",
-  "katana": "https://katanascan.com",
   "sei": "https://seiscan.io",
   "stable": "https://stablescan.xyz",
-  "plasma": "https://plasmascan.to",
-  "fantom": "https://ftmscan.com",
 };
 
 const getExplorerBaseUrl = (chain: string) => {
@@ -88,7 +104,7 @@ const getTxExplorerUrl = (chain: string, hash: string) => {
 
 
 export const getEvmOnchainDataUsingZerion = tool({
-  description: "Get real-time data from Ethereum based blockchains.",
+  description: "PRIMARY TOOL for EVM wallet data. Get transaction history, token balances, portfolio, and NFTs from 45+ chains (Ethereum, Polygon, Base, Arbitrum, Berachain, Sonic, etc). ALWAYS use this FIRST for any wallet or transaction query!",
   parameters: z.object({
     userQuery: z.string().describe("Query of user."),
   }),
@@ -196,18 +212,13 @@ export const getEvmOnchainDataUsingZerion = tool({
 
         ### 🔗 Supported Chain IDs
         Use these exact values for \`filter[chain_ids]\`:
-        - ethereum
-        - polygon
-        - arbitrum
-        - optimism
-        - base
-        - avalanche
-        - binance-smart-chain (for BSC)
-        - zksync-era
-        - linea
-        - blast
-        - scroll
-        - mantle
+        - ethereum, polygon, arbitrum, optimism, base, avalanche
+        - binance-smart-chain (for BSC), fantom, gnosis (or xdai)
+        - zksync-era, linea, blast, scroll, mantle
+        - abstract, apechain, aurora, berachain, celo, degen
+        - gravity, hyperevm, ink, katana, lens, monad
+        - plasma, polygon-zkevm, soneium, sonic, somnia
+        - solana, unichain, world, xdc, zero-network, zora, 0g
 
         ## 📋 Query Processing Steps:
 
@@ -346,6 +357,13 @@ export const getEvmOnchainDataUsingZerion = tool({
                   console.log("⚠️ Decoded HTML entities in URL");
                 }
 
+                // Auto-add trash filter for transaction queries to exclude spam/scam
+                if (cleanUrl.includes('/transactions') && !cleanUrl.includes('filter[trash]')) {
+                  const separator = cleanUrl.includes('?') ? '&' : '?';
+                  cleanUrl += `${separator}filter[trash]=only_non_trash`;
+                  console.log("🗑️ Added trash filter to exclude spam transactions");
+                }
+
                 console.log("fetching --- ", cleanUrl);
                 const options = {
                   method: "GET",
@@ -412,12 +430,24 @@ export const getEvmOnchainDataUsingZerion = tool({
           const transactions = items.map((item: any) => {
             const attr = item.attributes || {};
             const transfers = attr.transfers || [];
+            const approvals = attr.approvals || [];
 
             // Try to find the primary transfer details
             // Zerion transfers: [{ direction, quantity, fungible_info: { icon, symbol }, value }]
 
-            // Default to 'OUT' if direction is not explicitly 'in'
-            const primaryDirection = transfers[0]?.direction === 'in' ? 'IN' : 'OUT';
+            // Determine direction based on operation type and transfers
+            const operationType = attr.operation_type || '';
+            let primaryDirection = 'OUT';
+
+            // For receive operations, direction is IN
+            if (operationType === 'receive' || transfers[0]?.direction === 'in') {
+              primaryDirection = 'IN';
+            }
+            // For self-transfers
+            if (transfers[0]?.direction === 'self') {
+              primaryDirection = 'SELF';
+            }
+
             const primaryTransfer = transfers[0];
 
             // Helper to clean up amounts
@@ -431,7 +461,7 @@ export const getEvmOnchainDataUsingZerion = tool({
                 return (num / 1_000_000_000_000).toFixed(2).replace(/\.00$/, '') + " T";
               }
               if (Math.abs(num) >= 1_000_000_000) {
-                return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '') + " B";
+                return (num / 1_000_000_000).toFixed(2).replace(/\\.00$/, '') + " B";
               }
               if (Math.abs(num) >= 1_000_000) {
                 return (num / 1_000_000).toFixed(2).replace(/\.00$/, '') + " M";
@@ -447,36 +477,117 @@ export const getEvmOnchainDataUsingZerion = tool({
               }).format(num);
             };
 
-            const sender = primaryTransfer?.sender?.address || primaryTransfer?.sender?.id ||
-              transfers.find((t: any) => t.sender?.address)?.sender?.address ||
-              (primaryDirection === 'OUT' && queriedAddress ? queriedAddress : 'Unknown');
+            // Extract sender/recipient from various possible Zerion response structures
+            // Zerion uses sent_from/sent_to at the transaction level (required fields per OpenAPI spec)
+            const getSenderAddress = () => {
+              // Transaction-level addresses (from OpenAPI spec)
+              if (attr.sent_from) return attr.sent_from;
+              // Transfer-level addresses as fallback
+              if (primaryTransfer?.sender) {
+                return typeof primaryTransfer.sender === 'string'
+                  ? primaryTransfer.sender
+                  : primaryTransfer.sender;
+              }
+              // If direction is OUT, the sender is the queried wallet
+              if (primaryDirection === 'OUT' && queriedAddress) return queriedAddress;
+              return null;
+            };
 
-            const recipient = primaryTransfer?.recipient?.address || primaryTransfer?.recipient?.id ||
-              transfers.find((t: any) => t.recipient?.address)?.recipient?.address ||
-              (primaryDirection === 'IN' && queriedAddress ? queriedAddress : 'Unknown');
+            const getRecipientAddress = () => {
+              // Transaction-level addresses (from OpenAPI spec)
+              if (attr.sent_to) return attr.sent_to;
+              // Transfer-level addresses as fallback
+              if (primaryTransfer?.recipient) {
+                return typeof primaryTransfer.recipient === 'string'
+                  ? primaryTransfer.recipient
+                  : primaryTransfer.recipient;
+              }
+              // If direction is IN, the recipient is the queried wallet
+              if (primaryDirection === 'IN' && queriedAddress) return queriedAddress;
+              return null;
+            };
 
-            // Extract chain from attributes or relationships
-            // Zerion usually provides chain info in relationships, but for now we default to what we have or 'ethereum'
-            // Ideally we parse it from the 'chain' relationship or the ID prefix if available
+            const sender = getSenderAddress() || 'Unknown';
+            const recipient = getRecipientAddress() || 'Unknown';
+
+            // Extract chain from relationships
             const chainIdString = item.relationships?.chain?.data?.id || 'ethereum';
+
+            // Extract dApp info if available
+            const dappName = attr.application_metadata?.name || null;
+            const dappIcon = attr.application_metadata?.icon?.url || null;
+            const methodName = attr.application_metadata?.method?.name || null;
+
+            // Extract fee info
+            const fee = attr.fee ? {
+              value: attr.fee.value,
+              symbol: attr.fee.fungible_info?.symbol || 'ETH',
+              formatted: attr.fee.quantity?.numeric
+                ? `${formatAmount(attr.fee.quantity.numeric)} ${attr.fee.fungible_info?.symbol || 'ETH'}`
+                : null
+            } : null;
+
+            // Build token transfer info - handle multiple transfers for swaps
+            let tokenTransfer = undefined;
+            if (transfers.length > 0) {
+              if (transfers.length === 1) {
+                // Single transfer
+                tokenTransfer = {
+                  direction: primaryDirection,
+                  amount: primaryTransfer.quantity?.numeric || '0',
+                  symbol: primaryTransfer.fungible_info?.symbol || primaryTransfer.nft_info?.name || '?',
+                  formatted: `${formatAmount(primaryTransfer.quantity?.numeric)} ${primaryTransfer.fungible_info?.symbol || primaryTransfer.nft_info?.name || '?'}`
+                };
+              } else if (operationType === 'trade' && transfers.length >= 2) {
+                // For trades/swaps, show both sides
+                const inTransfer = transfers.find((t: any) => t.direction === 'in');
+                const outTransfer = transfers.find((t: any) => t.direction === 'out');
+                tokenTransfer = {
+                  direction: 'SWAP',
+                  amount: outTransfer?.quantity?.numeric || '0',
+                  symbol: outTransfer?.fungible_info?.symbol || '?',
+                  formatted: `${formatAmount(outTransfer?.quantity?.numeric)} ${outTransfer?.fungible_info?.symbol || '?'} → ${formatAmount(inTransfer?.quantity?.numeric)} ${inTransfer?.fungible_info?.symbol || '?'}`
+                };
+              } else {
+                // Multiple transfers - just show the first one with a note
+                tokenTransfer = {
+                  direction: primaryDirection,
+                  amount: primaryTransfer.quantity?.numeric || '0',
+                  symbol: primaryTransfer.fungible_info?.symbol || '?',
+                  formatted: `${formatAmount(primaryTransfer.quantity?.numeric)} ${primaryTransfer.fungible_info?.symbol || '?'} (+${transfers.length - 1} more)`
+                };
+              }
+            }
+
+            // Handle approvals if no transfers (for approve/revoke operations)
+            if (!tokenTransfer && approvals.length > 0) {
+              const primaryApproval = approvals[0];
+              tokenTransfer = {
+                direction: operationType === 'revoke' ? 'REVOKE' : 'APPROVE',
+                amount: primaryApproval.quantity?.numeric || 'unlimited',
+                symbol: primaryApproval.fungible_info?.symbol || primaryApproval.nft_info?.name || '?',
+                formatted: `${primaryApproval.fungible_info?.symbol || primaryApproval.nft_info?.name || 'Token'}`
+              };
+            }
 
             return {
               hash: attr.hash || item.id,
               timestamp: attr.mined_at,
               direction: primaryDirection,
-              txType: attr.operation_type || 'Transaction',
+              txType: operationType || 'Transaction',
               status: attr.status,
               from: sender,
               to: recipient,
               value: primaryTransfer?.value ? primaryTransfer?.value.toString() : '0',
-              tokenTransfer: primaryTransfer ? {
-                direction: primaryDirection,
-                amount: primaryTransfer.quantity?.numeric || '0',
-                symbol: primaryTransfer.fungible_info?.symbol || '?',
-                formatted: `${formatAmount(primaryTransfer.quantity?.numeric)} ${primaryTransfer.fungible_info?.symbol || '?'}`
-              } : undefined,
+              tokenTransfer,
               explorerUrl: getTxExplorerUrl(chainIdString, attr.hash || item.id),
-              chain: chainIdString
+              chain: chainIdString,
+              // Additional metadata
+              dappName,
+              dappIcon,
+              methodName,
+              fee,
+              blockNumber: attr.mined_at_block
             };
           });
 

@@ -5,9 +5,19 @@ import { motion } from "framer-motion";
 import {
     ArrowUpRight,
     ArrowDownLeft,
+    ArrowDownToLine,
+    ArrowUpFromLine,
     ExternalLink,
     RefreshCw,
     Coins,
+    CheckCircle2,
+    XCircle,
+    Gift,
+    Sparkles,
+    Flame,
+    UserPlus,
+    Rocket,
+    Zap,
 } from "lucide-react";
 
 // Chain configuration for explorer URLs and native tokens
@@ -69,14 +79,15 @@ const CHAIN_CONFIG: Record<string, { explorer: string; symbol: string; name: str
 interface EvmTransaction {
     hash: string;
     explorerUrl?: string;
-    blockNumber: number;
+    blockNumber?: number;
     timestamp: string;
-    direction: "IN" | "OUT" | "SELF";
+    direction: "IN" | "OUT" | "SELF" | string;
     txType: string;
     status: string;
     from: string;
     to: string;
     value: string;
+    chain?: string;
     tokenTransfer?: {
         direction: string;
         amount: string;
@@ -92,6 +103,15 @@ interface EvmTransaction {
     gasUsed?: string;
     gasPrice?: string;
     txFee?: string;
+    // New fields from Zerion
+    dappName?: string | null;
+    dappIcon?: string | null;
+    methodName?: string | null;
+    fee?: {
+        value: number;
+        symbol: string;
+        formatted: string | null;
+    } | null;
 }
 
 interface EvmTransactionHistoryResponse {
@@ -148,7 +168,100 @@ const formatDate = (timestamp: string): string => {
 
 // Get transaction type icon and color
 const getTransactionStyle = (direction: string, txType: string) => {
-    if (direction === "IN") {
+    const type = txType?.toLowerCase() || '';
+
+    // Handle specific operation types from Zerion
+    if (type === 'trade' || type.includes('swap')) {
+        return {
+            icon: RefreshCw,
+            bgColor: "bg-blue-500/10",
+            iconColor: "text-blue-500",
+            label: "Trade",
+        };
+    }
+    if (type === 'approve') {
+        return {
+            icon: CheckCircle2,
+            bgColor: "bg-amber-500/10",
+            iconColor: "text-amber-500",
+            label: "Approve",
+        };
+    }
+    if (type === 'revoke' || type === 'revoke_delegation') {
+        return {
+            icon: XCircle,
+            bgColor: "bg-orange-500/10",
+            iconColor: "text-orange-500",
+            label: type === 'revoke_delegation' ? "Revoke Delegation" : "Revoke",
+        };
+    }
+    if (type === 'deposit') {
+        return {
+            icon: ArrowDownToLine,
+            bgColor: "bg-teal-500/10",
+            iconColor: "text-teal-500",
+            label: "Deposit",
+        };
+    }
+    if (type === 'withdraw') {
+        return {
+            icon: ArrowUpFromLine,
+            bgColor: "bg-cyan-500/10",
+            iconColor: "text-cyan-500",
+            label: "Withdraw",
+        };
+    }
+    if (type === 'claim') {
+        return {
+            icon: Gift,
+            bgColor: "bg-purple-500/10",
+            iconColor: "text-purple-500",
+            label: "Claim",
+        };
+    }
+    if (type === 'mint') {
+        return {
+            icon: Sparkles,
+            bgColor: "bg-pink-500/10",
+            iconColor: "text-pink-500",
+            label: "Mint",
+        };
+    }
+    if (type === 'burn') {
+        return {
+            icon: Flame,
+            bgColor: "bg-red-600/10",
+            iconColor: "text-red-600",
+            label: "Burn",
+        };
+    }
+    if (type === 'delegate') {
+        return {
+            icon: UserPlus,
+            bgColor: "bg-indigo-500/10",
+            iconColor: "text-indigo-500",
+            label: "Delegate",
+        };
+    }
+    if (type === 'deploy') {
+        return {
+            icon: Rocket,
+            bgColor: "bg-violet-500/10",
+            iconColor: "text-violet-500",
+            label: "Deploy",
+        };
+    }
+    if (type === 'execute') {
+        return {
+            icon: Zap,
+            bgColor: "bg-yellow-500/10",
+            iconColor: "text-yellow-500",
+            label: "Execute",
+        };
+    }
+
+    // Fallback to direction-based styling for send/receive
+    if (type === 'receive' || direction === "IN") {
         return {
             icon: ArrowDownLeft,
             bgColor: "bg-emerald-500/10",
@@ -156,7 +269,7 @@ const getTransactionStyle = (direction: string, txType: string) => {
             label: "Received",
         };
     }
-    if (direction === "OUT") {
+    if (type === 'send' || direction === "OUT") {
         return {
             icon: ArrowUpRight,
             bgColor: "bg-rose-500/10",
@@ -164,14 +277,8 @@ const getTransactionStyle = (direction: string, txType: string) => {
             label: "Sent",
         };
     }
-    if (txType.toLowerCase().includes("swap")) {
-        return {
-            icon: RefreshCw,
-            bgColor: "bg-blue-500/10",
-            iconColor: "text-blue-500",
-            label: "Swap",
-        };
-    }
+
+    // Default fallback
     return {
         icon: Coins,
         bgColor: "bg-zinc-500/10",
@@ -216,8 +323,44 @@ const detectChain = (network: string): { explorer: string; symbol: string; name:
 };
 
 const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result }) => {
-    // Handle error string
+    // Handle empty or whitespace-only string result - don't render anything
+    if (typeof result === "string" && (!result || result.trim().length === 0)) {
+        return null;
+    }
+
+    // Handle string result - check if it's an API error/explanation message that shouldn't be shown
     if (typeof result === "string") {
+        const lowerResult = result.toLowerCase();
+
+        // Detect patterns that indicate this is an internal API error/explanation message
+        const isSystemMessage =
+            lowerResult.includes("etherscan api") ||
+            lowerResult.includes("pro endpoint") ||
+            lowerResult.includes("paid subscription") ||
+            lowerResult.includes("i cannot fulfill") ||
+            lowerResult.includes("i am unable to") ||
+            lowerResult.includes("unable to retrieve") ||
+            lowerResult.includes("the user is asking") ||
+            lowerResult.includes("the api path") ||
+            lowerResult.includes("module=account") ||
+            lowerResult.includes("addresstokenbalance") ||
+            lowerResult.includes("chainid:") ||
+            lowerResult.includes("api pro tier") ||
+            lowerResult.includes("zerion api") ||
+            lowerResult.includes("alternative api") ||
+            lowerResult.includes("requires a paid") ||
+            lowerResult.includes("suggestion:") ||
+            lowerResult.includes("current access level") ||
+            lowerResult.includes("i recommend using") ||
+            lowerResult.includes("for comprehensive") ||
+            lowerResult.includes("explore alternative");
+
+        // If it's a system/API message, don't render anything
+        if (isSystemMessage) {
+            return null;
+        }
+
+        // Otherwise, render the string in a styled container
         return (
             <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm">{result}</p>
@@ -281,9 +424,29 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
 
                         // Clean value of existing signs to avoid ++/--
                         const cleanValue = valueDisplay.replace(/^[+-]/, '');
-                        const sign = tx.direction === "IN" ? "+" : "-";
-                        const finalValueDisplay = `${sign}${cleanValue}`;
-                        const valueColor = tx.direction === "IN" ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400";
+
+                        // Determine how to display the value based on transaction type
+                        const txTypeLower = tx.txType?.toLowerCase() || '';
+                        const isTradeOrSwap = txTypeLower === 'trade' || txTypeLower.includes('swap');
+                        const isApproveOrRevoke = txTypeLower === 'approve' || txTypeLower === 'revoke' || txTypeLower === 'revoke_delegation';
+                        const isDeployOrExecute = txTypeLower === 'deploy' || txTypeLower === 'execute';
+
+                        let finalValueDisplay = cleanValue;
+                        let valueColor = "text-zinc-600 dark:text-zinc-300";
+
+                        if (isTradeOrSwap) {
+                            // Trades/swaps already have arrow in formatted string
+                            valueColor = "text-blue-600 dark:text-blue-400";
+                        } else if (isApproveOrRevoke || isDeployOrExecute) {
+                            // Approvals/deploys don't need +/- signs
+                            valueColor = "text-amber-600 dark:text-amber-400";
+                        } else if (tx.direction === "IN") {
+                            finalValueDisplay = `+${cleanValue}`;
+                            valueColor = "text-emerald-600 dark:text-emerald-400";
+                        } else if (tx.direction === "OUT") {
+                            finalValueDisplay = `-${cleanValue}`;
+                            valueColor = "text-rose-600 dark:text-rose-400";
+                        }
 
                         // Get explorer URL for transaction
                         const txExplorerUrl = tx.explorerUrl || `${chainConfig.explorer}/tx/${tx.hash}`;
@@ -339,9 +502,9 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
                                 </div>
 
                                 {/* Desktop Layout (>= 640px) */}
-                                <div className="hidden sm:flex items-center justify-between">
+                                <div className="hidden sm:grid sm:grid-cols-3 sm:items-center">
                                     {/* Left: Icon + Type + Time */}
-                                    <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex items-center gap-3 min-w-0 justify-self-start">
                                         <div
                                             className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bgColor}`}
                                         >
@@ -358,7 +521,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
                                     </div>
 
                                     {/* Center: Value */}
-                                    <div className="flex flex-col items-center text-center px-2">
+                                    <div className="flex flex-col items-center text-center px-2 justify-self-center">
                                         <span
                                             className={`font-semibold text-sm tabular-nums ${valueColor}`}
                                         >
@@ -372,7 +535,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
                                     </div>
 
                                     {/* Right: Counterparty + Link */}
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 justify-self-end">
                                         <div className="flex flex-col items-end">
                                             <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                                 {addressLabel}

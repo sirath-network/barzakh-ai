@@ -171,6 +171,98 @@ const removeMarkdownTables = (content: string): string => {
   return content.replace(tableRegex, "").trim();
 };
 
+// Helper to filter out internal system/API explanatory content from tool responses
+// This removes paragraphs that explain API errors, chain queries, or internal processing
+const filterSystemExplanatoryContent = (content: string, hasOnchainTools: boolean): string => {
+  if (!hasOnchainTools || !content) return content;
+
+  // Split content into paragraphs and filter out system explanatory ones
+  const paragraphs = content.split(/\n\n+/);
+
+  const filteredParagraphs = paragraphs.filter(paragraph => {
+    const text = paragraph.toLowerCase().trim();
+
+    // Skip empty paragraphs
+    if (!text) return false;
+
+    // Filter out paragraphs that look like API/system explanations
+    const systemPatterns = [
+      // API error explanations
+      /etherscan api/i,
+      /api\s*(pro|subscription|call|returned|endpoint|path|v2)/i,
+      /\*\*pro endpoint\*\*/i,
+      /requires\s*(a\s+)?(paid\s+)?subscription/i,
+      /upgrade\s+(to|your)\s+(api\s+)?pro/i,
+      /\$\d+\/month/i,
+      /api pro tier/i,
+      /pro endpoint/i,
+      // Internal query explanations - expanded patterns
+      /the user is asking/i,
+      /i see you are (looking|trying)/i,
+      /the query was executed/i,
+      /as no specific chain was mentioned/i,
+      /chainid[:\s]+\d+/i,
+      /chain\s*id[:\s]+\d+/i,
+      /\(chainid[:\s]?\d+\)/i,
+      // API path explanations
+      /the api path required/i,
+      /the most relevant api path/i,
+      /module=account/i,
+      /action=addresstokenbalance/i,
+      // Cannot fulfill messages
+      /i cannot fulfill/i,
+      /i am unable to/i,
+      /unable to retrieve/i,
+      /cannot fetch/i,
+      /cannot be fulfilled/i,
+      /unfortunately,?\s*i cannot/i,
+      // Token balance internal messages  
+      /api subscription limitations/i,
+      /erc-20 token (balances|holdings)/i,
+      /native eth balance/i,
+      /\*\*result:\*\*/i,
+      /\*\*suggestion:\*\*/i,
+      /\*\*on\s+\w+\s+mainnet/i,
+      // Chain-specific mentions in error context
+      /on\s+\*?\*?(ethereum|polygon|arbitrum|optimism|base|bsc|bnb)\s+mainnet\*?\*?/i,
+      /on\s+\*?\*?chain\s*id/i,
+      // Internal processing messages and recommendations
+      /using a dedicated (portfolio|service|api)/i,
+      /consider using\s+(the\s+)?(zerion|a dedicated)/i,
+      /i recommend using/i,
+      /zerion api/i,
+      /alternative apis/i,
+      /explore alternative/i,
+      /dedicated portfolio/i,
+      /for comprehensive (token|portfolio)/i,
+      /token holdings data/i,
+      /which (is often free|often provides)/i,
+      /provides (this information|more detailed)/i,
+      /free and (provides|more detailed)/i,
+      // Technical API details that shouldn't be shown
+      /\.?\/\?module=/i,
+      /addresstokenbalance/i,
+      /api response indicates/i,
+      /current access level/i,
+      /current etherscan api access/i,
+      /to access this data/i,
+      /to get this data/i,
+      /part of the.*api pro/i,
+    ];
+
+    // Check if paragraph matches any system pattern
+    for (const pattern of systemPatterns) {
+      if (pattern.test(text)) {
+        return false; // Filter out this paragraph
+      }
+    }
+
+    return true; // Keep this paragraph
+  });
+
+  return filteredParagraphs.join('\n\n').trim();
+};
+
 
 const PurePreviewMessage = ({
   chatId,
@@ -689,7 +781,7 @@ const PurePreviewMessage = ({
 
                             // Special handling: Remove markdown tables if Transaction History tool was used
                             // logic: if simplified content has table, and we have transaction tool, user wants just the UI
-                            const hasTxHistory = completedTools?.some(t =>
+                            const hasOnchainTools = completedTools?.some(t =>
                               t.toolName === 'getSolanaWalletTransactions' ||
                               t.toolName === 'translateTransactions' ||
                               t.toolName === 'getEvmOnchainDataUsingZerion' ||
@@ -704,11 +796,14 @@ const PurePreviewMessage = ({
                               t.toolName === 'getWormholeApiData' ||
                               t.toolName === 'getSeiApiData'
                             );
-                            if (hasTxHistory && filteredContent) {
+                            if (hasOnchainTools && filteredContent) {
                               filteredContent = removeMarkdownTables(filteredContent);
+                              // Also filter out system/API explanatory content
+                              filteredContent = filterSystemExplanatoryContent(filteredContent, true);
                             }
 
-                            // Don't render empty content after filtering
+                            // Don't render empty content (or just whitespace) after filtering
+                            // Return null BEFORE rendering the styled container to prevent empty rounded boxes
                             if (!filteredContent || filteredContent.trim().length === 0) {
                               return null;
                             }
@@ -728,8 +823,11 @@ const PurePreviewMessage = ({
                                       <div className="flex flex-col gap-2">
                                         {(message.content as any[]).map((part, index) => {
                                           if (part.type === "text") {
-                                            const filteredText = filterPreambleContent(part.text, true);
-                                            if (!filteredText) return null;
+                                            let filteredText = filterPreambleContent(part.text, true);
+                                            if (hasOnchainTools) {
+                                              filteredText = filterSystemExplanatoryContent(filteredText, true);
+                                            }
+                                            if (!filteredText || filteredText.trim().length === 0) return null;
                                             return <MarkdownAny key={index} allMessages={allMessages}>{filteredText}</MarkdownAny>;
                                           }
                                           if (part.type === "image" && typeof part.image === 'string') {

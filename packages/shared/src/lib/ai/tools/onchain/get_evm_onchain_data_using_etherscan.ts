@@ -39,7 +39,7 @@ async function fetchSupportedChains() {
 
 export const getEvmOnchainDataUsingEtherscan = tool({
   description:
-    "Get real-time data from 68+ EVM blockchains using Etherscan API V2. Supports Ethereum, Polygon, BSC, Base, Arbitrum, Optimism, Avalanche, Mantle, Linea, Blast, Scroll, Sonic, Berachain, Sei, Abstract, Unichain, Monad, and many more chains including their testnets.",
+    "FALLBACK ONLY - Use for contract ABIs, source code, verification status, and block/log queries. DO NOT USE for transaction history or token balances - use getEvmOnchainDataUsingZerion instead! Supports 68+ chains via Etherscan API V2.",
   parameters: z.object({
     userQuery: z.string().describe("Query of user."),
     chainId: z.number().optional().describe("Chain ID for Etherscan API V2. If not specified, will be auto-detected from the query or default to 1 (Ethereum Mainnet)."),

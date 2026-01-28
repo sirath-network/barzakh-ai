@@ -63,7 +63,7 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   // =========================================================
   // CROSS-CHAIN & BRIDGING (RELAY)
   // =========================================================
-  getRelaySupportedChains: () => "Listing supported cross-chain networks",
+  getRelaySupportedChains: () => "Fetching supported cross-chain networks",
   getRelayQuote: (params) => {
     const token = params?.toToken || "tokens";
     return `Calculating bridge route for ${token}`;
@@ -119,7 +119,7 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   getMantleTokenBalance: () => "Checking Mantle tokens",
   getMantleGasPrice: () => "Checking Mantle gas fees",
   getMantleTokenTransfers: () => "Tracking Mantle transfers",
-  getMantleTokenList: () => "Listing Mantle tokens",
+  getMantleTokenList: () => "Fetching Mantle tokens",
   getMantleRollupInfo: () => "Checking Mantle L2 state",
   getMantleContractABI: () => "Fetching Mantle contract ABI",
 
@@ -139,7 +139,7 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   getZkEVMBalance: () => "Checking zkEVM balance",
   getZkEVMPortfolio: () => "Scanning zkEVM portfolio",
   getZkEVMTransactionHistory: () => "Fetching zkEVM history",
-  getZkEVMTokenList: () => "Listing zkEVM tokens",
+  getZkEVMTokenList: () => "Fetching zkEVM tokens",
   getZkEVMGasPrice: () => "Estimating zkEVM gas",
 
   // x402
