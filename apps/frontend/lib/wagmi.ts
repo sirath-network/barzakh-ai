@@ -1,7 +1,4 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { http } from 'wagmi';
-import { createConfig } from 'wagmi';
-// All chains from viem/chains - includes 200+ EVM chains
+import { http, createConfig, createStorage, cookieStorage } from 'wagmi';
 import {
   mainnet,
   optimism,
@@ -22,7 +19,7 @@ import {
   gnosis,
   celo,
   cronos,
-  cronosTestnet, // For x402 payments
+  cronosTestnet,
   mantle,
   metis,
   taiko,
@@ -50,16 +47,12 @@ import {
   zircuit,
   superseed,
   unichain,
-  monad, // High-throughput L1 EVM
-  hyperEvm, // Hyperliquid EVM
-  cronoszkEVM, // Cronos zkEVM
+  monad,
+  hyperEvm,
+  cronoszkEVM,
 } from 'viem/chains';
 
-
-
-// All supported chains for wallet connections
-const supportedChains = [
-  // Core chains
+export const supportedChains = [
   mainnet,
   optimism,
   arbitrum,
@@ -112,33 +105,20 @@ const supportedChains = [
   hyperEvm,
 ] as const;
 
-// WalletConnect Project ID - Get yours at https://cloud.walletconnect.com/
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '';
+export const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '';
 
-// Create a minimal SSR-safe config for server-side rendering
-// This avoids initializing WalletConnect and other browser-dependent connectors on the server
-const createWagmiConfig = () => {
-  // Build transports object dynamically from supported chains
-  const transports = Object.fromEntries(
-    supportedChains.map((chain) => [chain.id, http()])
-  ) as any;
+// Build transports dynamically
+const transports = Object.fromEntries(
+  supportedChains.map((chain) => [chain.id, http()])
+) as Record<number, ReturnType<typeof http>>;
 
-  // On server, create a minimal config without connectors that need browser APIs
-  if (typeof window === 'undefined') {
-    return createConfig({
-      chains: supportedChains,
-      transports,
-      ssr: true,
-    });
-  }
-
-  // On client, use the full RainbowKit config with all connectors
-  return getDefaultConfig({
-    appName: 'Barzakh AI',
-    projectId,
-    chains: supportedChains,
-    ssr: true,
-  });
-};
-
-export const config = createWagmiConfig();
+// Server-safe config (no connectors - they're added client-side)
+export const config = createConfig({
+  chains: supportedChains,
+  transports,
+  multiInjectedProviderDiscovery: false, // Disable to prevent duplicate wallets
+  ssr: true,
+  storage: createStorage({
+    storage: cookieStorage,
+  }),
+});

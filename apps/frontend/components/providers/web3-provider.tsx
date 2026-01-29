@@ -1,38 +1,58 @@
 'use client';
 
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
-import { type State, WagmiProvider } from 'wagmi';
+import { type State, WagmiProvider, createConfig, http } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { config } from '@/lib/wagmi';
+import { connectors, supportedChains } from '@/lib/wagmi-client';
 import { useTheme } from 'next-themes';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import '@rainbow-me/rainbowkit/styles.css';
 import { DynamicWalletProvider } from './dynamic-wallet-provider';
+import { cookieStorage, createStorage } from 'wagmi';
 
 interface Web3ProviderProps {
   children: React.ReactNode;
   initialState?: State;
 }
 
+// Build transports dynamically
+const transports = Object.fromEntries(
+  supportedChains.map((chain) => [chain.id, http()])
+) as Record<number, ReturnType<typeof http>>;
+
+// Client config with connectors (created once)
+const clientConfig = createConfig({
+  chains: supportedChains,
+  connectors,
+  transports,
+  multiInjectedProviderDiscovery: false,
+  ssr: true,
+  storage: createStorage({
+    storage: cookieStorage,
+  }),
+});
+
 function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) {
   const { resolvedTheme } = useTheme();
 
   const theme = useMemo(() => {
-    const baseTheme = resolvedTheme === 'dark'
-      ? darkTheme({
-        accentColor: '#fdfdfdff',
-        accentColorForeground: 'white',
-        borderRadius: 'medium',
-        fontStack: 'system',
-        overlayBlur: 'small',
-      })
-      : lightTheme({
-        accentColor: '#000000ff',
-        accentColorForeground: 'white',
-        borderRadius: 'medium',
-        fontStack: 'system',
-        overlayBlur: 'small',
-      });
+    const baseTheme =
+      resolvedTheme === 'dark'
+        ? darkTheme({
+          accentColor: '#fdfdfdff',
+          accentColorForeground: 'white',
+          borderRadius: 'medium',
+          fontStack: 'system',
+          overlayBlur: 'small',
+        })
+        : lightTheme({
+          accentColor: '#000000ff',
+          accentColorForeground: 'white',
+          borderRadius: 'medium',
+          fontStack: 'system',
+          overlayBlur: 'small',
+        });
 
     return baseTheme;
   }, [resolvedTheme]);
@@ -55,36 +75,32 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
 export function Web3Provider({ children, initialState }: Web3ProviderProps) {
   const [mounted, setMounted] = useState(false);
 
-  // Create query client inside component to avoid SSR issues
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        // Prevent refetching on window focus in development
-        refetchOnWindowFocus: false,
-        // Prevent retries that could cause multiple WalletConnect inits
-        retry: false,
-      },
-    },
-  }));
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: false,
+          },
+        },
+      })
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Always render children inside WagmiProvider so hooks work during SSR
-  // Only wrap with RainbowKitProvider after hydration to avoid SSR issues with wallet UI
-  // DynamicWalletProvider wraps everything to enable non-EVM wallet connections (Solana, Bitcoin, Tron)
+  // Use server config during SSR, client config after mount
+  const activeConfig = mounted ? clientConfig : config;
+
   return (
     <DynamicWalletProvider>
-      <WagmiProvider config={config} initialState={initialState}>
+      <WagmiProvider config={activeConfig} initialState={initialState}>
         <QueryClientProvider client={queryClient}>
           {mounted ? (
-            <RainbowKitProviderWrapper>
-              {children}
-            </RainbowKitProviderWrapper>
+            <RainbowKitProviderWrapper>{children}</RainbowKitProviderWrapper>
           ) : (
-            // During SSR/hydration, render children directly without RainbowKit wrapper
-            // This allows wagmi hooks to work, just without RainbowKit UI
             children
           )}
         </QueryClientProvider>

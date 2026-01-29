@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@tavily/core": "^0.0.3",
-    "turbo": "2.7.6",
+    "turbo": "2.8.0",
     "zod": "3.25.76"
   },
   "pnpm": {
