@@ -823,10 +823,7 @@ const PurePreviewMessage = ({
 
                             return (
                               <div
-                                className="bg-muted/50 text-foreground px-4 py-2 shadow-sm max-w-full"
-                                style={{
-                                  borderRadius: '15px 15px 15px 15px'
-                                }}
+                                className="text-foreground max-w-full"
                               >
                                 <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                   <div className="flex-1 min-w-0 max-w-full">
@@ -859,10 +856,7 @@ const PurePreviewMessage = ({
                           // No tools - render content with same styled container
                           return (
                             <div
-                              className="bg-muted/50 text-foreground px-4 py-1 shadow-sm max-w-full"
-                              style={{
-                                borderRadius: '0px 15px 15px 15px'
-                              }}
+                              className="text-foreground max-w-full"
                             >
                               <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                 <div className="flex-1 min-w-0 max-w-full">

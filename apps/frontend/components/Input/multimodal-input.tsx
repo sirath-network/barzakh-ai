@@ -114,10 +114,9 @@ function PureStopButton({
   return (
     <Button
       className={cn(
-        "group rounded-xl p-2.5 h-fit w-fit relative",
-        "bg-transparent hover:bg-transparent text-red-500 hover:text-red-600",
-        "dark:text-red-500 dark:hover:text-red-400",
-        "transition-colors duration-200"
+        "rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200",
+        "bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800",
+        "text-red-500 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400"
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -126,7 +125,7 @@ function PureStopButton({
       }}
       aria-label="Stop generating"
     >
-      <Square size={24} className="fill-current" />
+      <Square size={14} strokeWidth={3} className="fill-current" />
     </Button>
   );
 }
@@ -149,32 +148,27 @@ function PureSendButton({
   return (
     <motion.div
       key="send-button"
-      initial={{ scale: 0.85, opacity: 0 }}
+      initial={{ scale: 0.8, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.85, opacity: 0 }}
-      transition={{
-        duration: 0.15,
-        ease: [0.4, 0, 0.2, 1] // Smooth ease-out curve
-      }}
+      exit={{ scale: 0.8, opacity: 0 }}
+      transition={{ duration: 0.15 }}
     >
       <Button
         className={cn(
-          "group rounded-xl p-2.5 h-fit w-fit relative",
-          "bg-transparent hover:bg-transparent text-gray-600 dark:text-zinc-400",
-          "hover:text-gray-900 dark:hover:text-zinc-200",
-          "disabled:text-gray-300 dark:disabled:text-zinc-600",
-          "disabled:cursor-not-allowed",
-          "transition-colors duration-200"
+          "rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200",
+          "bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800",
+          "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100",
+          "disabled:opacity-50 disabled:cursor-not-allowed"
         )}
         onClick={(event) => {
           event.preventDefault();
           submitForm();
         }}
         disabled={isDisabled}
-        title={isUploading ? "Please wait for file uploads to complete" : "Send Messages"}
-        aria-label={isUploading ? "Please wait for file uploads to complete" : "Send Messages"}
+        title={isUploading ? "Please wait for file uploads to complete" : "Send Message"}
+        aria-label={isUploading ? "Please wait for file uploads to complete" : "Send Message"}
       >
-        <SendHorizontal size={24} className="relative z-10" />
+        <SendHorizontal size={16} strokeWidth={2.5} className="ml-0.5" />
       </Button>
     </motion.div>
   );
@@ -252,6 +246,7 @@ function PureMultimodalInput({
   const safeMessages = messages ?? [];
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
   const { width } = useWindowSize();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -276,25 +271,51 @@ function PureMultimodalInput({
 
   // Dynamic rotating placeholders with typewriter effect
   const placeholders = useMemo(() => [
-    // Web Search - Advanced
-    "Research MEV strategies on Ethereum",
+    // Web Search
     "Find alpha on upcoming token unlocks",
-    // On-chain Analytics - Advanced
-    "Trace smart money accumulation patterns",
-    "Detect unusual DEX volume spikes",
+    "Research MEV strategies on Ethereum",
     // Imagine (AI Image Generation)
     "Generate cyberpunk wallet interface",
     "Design tokenomics infographic",
-    // Sei Blockchain - Advanced
-    "Analyze Sei parallel execution metrics",
-    // Wormhole Cross-chain - Advanced
-    "Compare Wormhole vs LayerZero flows",
-    // Coding & Smart Contracts - Advanced
+    // On-Chain Analytics
+    "Trace smart money accumulation patterns",
+    "Analyze whale wallet movements",
+    // Coding & Smart Contracts
     "Audit this flash loan contract",
     "Optimize gas in my ERC-4337 code",
-    // Research & Analysis - Advanced
-    "Model impermanent loss scenarios",
-    "Backtest this trading strategy",
+    // Mantle
+    "Analyze Mantle L2 gas efficiency",
+    "Track MNT staking yields",
+    // Aptos
+    "Explore Aptos Move modules",
+    "Check APT validator performance",
+    // Wormhole
+    "Track cross-chain bridge flows",
+    "Compare Wormhole vs LayerZero",
+    // Cronos & Cronos zkEVM
+    "Analyze CRO DeFi ecosystem",
+    "Monitor Cronos zkEVM TVL growth",
+    // Credit Coin
+    "Explore CTC lending protocols",
+    "Track Credit Coin RWA metrics",
+    // Vana
+    "Analyze Vana data marketplace",
+    "Check VANA token distribution",
+    // Zeta
+    "Monitor ZetaChain omnichain dApps",
+    "Track ZETA cross-chain volume",
+    // Flow
+    "Analyze Flow NFT marketplace",
+    "Check FLOW staking rewards",
+    // Sei
+    "Analyze Sei parallel execution",
+    "Track SEI DEX order flow",
+    // Solana
+    "Trace Solana MEV opportunities",
+    "Analyze SOL validator performance",
+    // Monad
+    "Explore Monad parallel EVM",
+    "Track Monad metrics",
   ], []);
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -444,12 +465,12 @@ function PureMultimodalInput({
   }, [attachments, ensureInlineImage]);
 
   const adjustHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(
-        textareaRef.current.scrollHeight,
+    if (textareaRef.current && ghostRef.current) {
+      const height = Math.min(
+        ghostRef.current.scrollHeight,
         MAX_HEIGHT
-      )}px`;
+      );
+      textareaRef.current.style.height = `${height}px`;
     }
   };
 
@@ -954,23 +975,20 @@ function PureMultimodalInput({
               damping: 30,
               bounce: 0.25,
             }}
-            className="absolute inset-x-0 mx-auto w-fit -top-14 z-50"
+            className="hidden md:block absolute inset-x-0 mx-auto w-fit -top-14 z-50"
           >
             <button
               onClick={scrollMessagesToBottom}
               className={cn(
-                "group relative overflow-hidden",
+                "group relative flex items-center justify-center", // Added flex centering
                 "w-10 h-10 rounded-full",
-                "bg-gradient-to-br from-white to-neutral-50/80 dark:from-neutral-800 dark:to-neutral-900/80",
-                "backdrop-blur-xl border-2 border-neutral-200/50 dark:border-neutral-700/50",
-                "text-sm font-semibold text-neutral-700 dark:text-neutral-200",
-                "shadow-lg shadow-neutral-500/20 hover:shadow-xl hover:shadow-neutral-500/30",
-                "hover:border-neutral-300/60 dark:hover:border-neutral-600/60",
-                "transform transition-all duration-300 ease-out",
-                "hover:-translate-y-1 active:translate-y-0",
-                "before:absolute before:inset-0 before:bg-gradient-to-br",
-                "before:from-neutral-100/30 before:to-transparent dark:before:from-neutral-700/30",
-                "before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-300"
+                "bg-background/80 dark:bg-neutral-800/80", // Flat solid background with slight transparency
+                "backdrop-blur-sm", // Keep subtle blur for modern feel but flat
+                "border border-border/50", // Simple border
+                "text-neutral-700 dark:text-neutral-200",
+                "shadow-sm hover:shadow-md", // Subtle shadow
+                "hover:bg-accent hover:text-accent-foreground", // Standard hover state
+                "transition-all duration-200" // Simple transition
               )}
               aria-label="Scroll to bottom"
             >
@@ -984,10 +1002,8 @@ function PureMultimodalInput({
 
       <div
         className={cn(
-          "relative w-full flex flex-col rounded-2xl transition-all duration-300",
-          "bg-gradient-to-b from-white to-neutral-50/80 dark:from-neutral-900 dark:to-neutral-950/80",
-          "backdrop-blur-xl border-1 shadow-lg",
-          "border-neutral-200/80 dark:border-neutral-800/80",
+          "relative w-full flex flex-col rounded-3xl transition-all duration-300",
+          "bg-zinc-100 dark:bg-zinc-800",
           "overflow-hidden"
         )}
         onFocus={() => setIsFocused(true)}
@@ -1042,25 +1058,33 @@ function PureMultimodalInput({
             )}
         </AnimatePresence>
 
-        <div className="relative flex items-end w-full px-2 pt-2 pb-2">
+        <div className="relative flex items-end w-full px-2 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
           {/* Custom animated placeholder - only when not focused */}
           {!input && messages.length === 0 && !isFocused && (
             <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center text-neutral-500 dark:text-neutral-500 text-base">
               <span>{displayedText}</span>
             </div>
           )}
+          {/* Ghost element for height calculation */}
+          <div
+            ref={ghostRef}
+            className="invisible absolute top-0 left-0 -z-50 w-full overflow-hidden break-words whitespace-pre-wrap pl-4 pr-4 py-2.5 md:py-3.5 text-base leading-relaxed"
+            aria-hidden="true"
+          >
+            {input + ' '}
+          </div>
           <Textarea
             ref={textareaRef}
             placeholder={messages.length > 0 ? "Reply Barzakh" : (isFocused ? "Ask Barzakh" : "")}
             value={input}
             onChange={handleInput}
             className={cn(
-              "pl-4 pr-14 py-3.5 text-base",
-              "bg-transparent border-0 focus:ring-0 focus-visible:ring-0",
+              "pl-4 pr-4 py-2.5 md:py-3.5 text-base",
+              "!bg-transparent border-0 focus:ring-0 focus-visible:ring-0",
               "placeholder:text-neutral-500 dark:placeholder:text-neutral-500",
-              "resize-none"
+              "resize-none transition-[height] duration-200 ease-out"
             )}
-            style={{ maxHeight: `${MAX_HEIGHT}px` }}
+            style={{ maxHeight: `${MAX_HEIGHT}px`, backgroundColor: 'transparent' }}
             rows={1}
             onKeyDown={(event) => {
               // On mobile/tablet (width < 768), Enter adds a new line
@@ -1079,20 +1103,6 @@ function PureMultimodalInput({
             }}
             onPaste={handlePaste}
           />
-          <div className="absolute right-3 bottom-3.5 flex items-center gap-2">
-            {isLoading ? (
-              <StopButton stop={stop} setMessages={setMessages} />
-            ) : (
-              <AnimatePresence>
-                <SendButton
-                  input={input}
-                  submitForm={submitForm}
-                  uploadQueue={uploadQueue}
-                  hasAttachments={attachments.length > 0}
-                />
-              </AnimatePresence>
-            )}
-          </div>
         </div>
 
         <input
@@ -1114,7 +1124,7 @@ function PureMultimodalInput({
               transition={{ duration: 0.2 }}
               className="overflow-hidden relative z-20"
             >
-              <div className="flex items-center justify-between w-full px-2 pb-2 pt-1">
+              <div className="flex items-center justify-between w-full px-2 pb-1.5 md:pb-2 pt-0.5 md:pt-1">
                 <div className="flex flex-row gap-1 items-center">
                   <AttachmentsButton
                     fileInputRef={fileInputRef}
@@ -1139,6 +1149,24 @@ function PureMultimodalInput({
                       }
                     />
                   )}
+
+                  {/* Moved Send/Stop Buttons to the right of ModelSelector */}
+                  {/* Moved Send/Stop Buttons to the right of ModelSelector */}
+                  {isLoading ? (
+                    <StopButton stop={stop} setMessages={setMessages} />
+                  ) : (
+                    <AnimatePresence>
+                      {/* Only show SendButton if there is text input or attachments */}
+                      {(input.length > 0 || attachments.length > 0) && (
+                        <SendButton
+                          input={input}
+                          submitForm={submitForm}
+                          uploadQueue={uploadQueue}
+                          hasAttachments={attachments.length > 0}
+                        />
+                      )}
+                    </AnimatePresence>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1152,22 +1180,24 @@ function PureMultimodalInput({
         Barzakh can make mistakes, so double-check it
       </p>
 
-      {messages.length === 0 && input.length === 0 && (
-        <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
-          <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
-            <span>By sending a message to Barzakh, you agree to our </span>
-            <a href="/terms-of-service" className="underline hover:text-accent-foreground transition-colors">
-              Terms of Service
-            </a>
-            <span> and have read our </span>
-            <a href="/privacy-policy" className="underline hover:text-accent-foreground transition-colors">
-              Privacy Policy
-            </a>
-            .
+      {
+        messages.length === 0 && input.length === 0 && (
+          <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
+            <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
+              <span>By sending a message to Barzakh, you agree to our </span>
+              <a href="/terms-of-service" className="underline hover:text-accent-foreground transition-colors">
+                Terms of Service
+              </a>
+              <span> and have read our </span>
+              <a href="/privacy-policy" className="underline hover:text-accent-foreground transition-colors">
+                Privacy Policy
+              </a>
+              .
+            </div>
           </div>
-        </div>
-      )}
-    </motion.div>
+        )
+      }
+    </motion.div >
   );
 }
 

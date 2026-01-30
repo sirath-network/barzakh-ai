@@ -87,8 +87,8 @@ const SearchLoadingState = ({
       <AccordionItem value="search" className="border-none">
         <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
-              <GlobeAny className="h-4 w-4 text-neutral-500" />
+            <div className="p-2 rounded-lg bg-muted/40">
+              <GlobeAny className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ const SearchLoadingState = ({
               <Badge
                 key={i}
                 variant="secondary"
-                className="px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex-shrink-0"
+                className="px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground flex-shrink-0 border border-border/50"
               >
                 <SearchAny className="h-3 w-3 mr-1.5" />
                 {query}
@@ -125,20 +125,20 @@ const SearchLoadingState = ({
             {[...Array(previewCount)].map((_, i) => (
               <div
                 key={i}
-                className="w-full bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm"
+                className="w-full bg-card rounded-xl border border-border/50 shadow-sm"
               >
                 <div className="p-4 animate-pulse">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800" />
+                    <div className="w-10 h-10 rounded-lg bg-muted/40" />
                     <div className="space-y-2 flex-1">
-                      <div className="h-4 w-3/4 bg-neutral-100 dark:bg-neutral-800 rounded" />
-                      <div className="h-3 w-1/2 bg-neutral-100 dark:bg-neutral-800 rounded" />
+                      <div className="h-4 w-3/4 bg-muted/40 rounded" />
+                      <div className="h-3 w-1/2 bg-muted/40 rounded" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800 rounded" />
-                    <div className="h-3 w-full bg-neutral-100 dark:bg-neutral-800 rounded" />
-                    <div className="h-3 w-2/3 bg-neutral-100 dark:bg-neutral-800 rounded" />
+                    <div className="h-3 w-full bg-muted/40 rounded" />
+                    <div className="h-3 w-full bg-muted/40 rounded" />
+                    <div className="h-3 w-2/3 bg-muted/40 rounded" />
                   </div>
                 </div>
               </div>
@@ -152,40 +152,40 @@ const SearchLoadingState = ({
 
 // ResultCard component
 const ResultCard = ({ result }: { result: SearchResult }) => (
-  <div className="w-full h-full bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md transition-all flex flex-col">
+  <div className="w-full h-full bg-card rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-all flex flex-col group">
     <div className="p-4 flex-grow">
       <div className="flex items-center gap-2.5 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-muted/40 flex items-center justify-center overflow-hidden flex-shrink-0">
           <img
             src={`https://www.google.com/s2/favicons?sz=128&domain=${new URL(result.url).hostname
               }`}
             alt={`${new URL(result.url).hostname} favicon`}
-            className="w-6 h-6 object-contain"
+            className="w-6 h-6 object-contain opacity-70 group-hover:opacity-100 transition-opacity"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
           />
         </div>
         <div className="min-w-0">
-          <h3 className="font-medium text-sm truncate">{result.title}</h3>
+          <h3 className="font-medium text-sm truncate text-foreground">{result.title}</h3>
           <a
             href={result.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center gap-1"
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
           >
             <span className="truncate">{new URL(result.url).hostname}</span>
             <ExternalLinkAny className="h-3 w-3 flex-shrink-0" />
           </a>
         </div>
       </div>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3 break-words">
+      <p className="text-sm text-muted-foreground line-clamp-3 break-words">
         {result.content}
       </p>
     </div>
     {result.published_date && (
-      <div className="p-4 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-        <time className="text-xs text-neutral-500 flex items-center gap-1.5">
+      <div className="p-4 pt-3 border-t border-border/50">
+        <time className="text-xs text-muted-foreground flex items-center gap-1.5">
           <CalendarAny className="h-3 w-3" />
           {new Date(result.published_date).toLocaleDateString()}
         </time>
@@ -352,8 +352,8 @@ const MultiSearch: React.FC<{
         <AccordionItem value="search" className="border-none">
           <AccordionTrigger className="p-0 hover:no-underline data-[state=open]:mb-2 data-[state=closed]:mb-2">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800">
-                <GlobeAny className="h-4 w-4 text-neutral-500" />
+              <div className="p-2 rounded-lg bg-muted/40">
+                <GlobeAny className="h-4 w-4 text-muted-foreground" />
               </div>
               <h2 className="font-medium text-left">Web Search Results</h2>
             </div>
@@ -362,7 +362,7 @@ const MultiSearch: React.FC<{
           <AccordionContent className="mt-4 pt-0 border-0">
             <div className="flex overflow-x-auto gap-2 mb-4 no-scrollbar pb-1">
               {result.web.map((search, i) => (
-                <Badge key={i} variant="secondary" className="px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex-shrink-0">
+                <Badge key={i} variant="secondary" className="px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground flex-shrink-0 border border-border/50">
                   <SearchAny className="h-3 w-3 mr-1.5" />
                   {search.query}
                 </Badge>
@@ -397,7 +397,7 @@ const MultiSearch: React.FC<{
                   <button
                     type="button"
                     onClick={handleToggleShowAll}
-                    className="px-4 py-1.5 text-sm font-sm rounded-full bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-neutral-900 transition-all"
+                    className="px-4 py-1.5 text-sm font-sm rounded-full bg-card border border-border/50 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all shadow-sm"
                   >
                     {showAll ? "Show Less" : "Show More"}
                   </button>

@@ -474,7 +474,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:col-span-2 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm"
+          className="md:col-span-2 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 shadow-sm"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-zinc-100/50 dark:to-zinc-900/50 pointer-events-none" />
 
@@ -529,7 +529,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           animate={{ opacity: 1, y: 0 }}
           whileHover={isSolanaWallet ? {} : { scale: 1.01 }}
           transition={{ delay: 0.1 }}
-          className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer group'}`}
+          className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-600 cursor-pointer group'}`}
           onClick={toggleProtocols}
         >
           <div className="p-6 h-full flex flex-col">
@@ -597,7 +597,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         animate={{ opacity: 1, scale: 1 }}
                         whileHover={{ scale: 1.01 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
+                        className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700/50 p-4 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
                       >
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
@@ -698,7 +698,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: isExpanded ? 1 : 1.005 }}
                 transition={{ delay: index * 0.05 }}
-                className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
+                className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
               >
                 <button
                   onClick={() => toggleChainExpansion(chain)}
@@ -810,7 +810,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           animate={{ opacity: 1, y: 0 }}
           whileHover={isSolanaWallet ? {} : { scale: 1.01 }}
           transition={{ delay: 0.2 }}
-          className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer group'}`}
+          className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-600 cursor-pointer group'}`}
           onClick={toggleNfts}
         >
           <div className="p-6 h-full flex flex-col">
@@ -881,7 +881,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         animate={{ opacity: 1, scale: 1 }}
                         whileHover={{ scale: 1.01 }}
                         transition={{ delay: idx * 0.05 }}
-                        className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200"
+                        className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700/50 p-3 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
                       >
                         <div className="aspect-square relative rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-900 mb-3">
                           {collection.imageUrl ? (

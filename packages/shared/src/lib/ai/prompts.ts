@@ -333,24 +333,63 @@ const groupTools = {
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
   ] as const,
-  wormhole: ["webSearch", "getWormholeApiData"] as const,
+  wormhole: [
+    "webSearch",
+    "getWormholeApiData",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
+  ] as const,
   creditcoin: [
     "webSearch",
     "getSiteContent",
     "getCreditcoinStats",
     "getCreditcoinApiData",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   vana: [
     "webSearch",
     "getSiteContent",
     "getVanaStats",
     "getVanaApiData",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   flow: [
     "webSearch",
     "getSiteContent",
     "getFlowStats",
     "getFlowApiData",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   aptos: [
     "webSearch",
@@ -359,18 +398,45 @@ const groupTools = {
     "getAptosScanApiData",
     "aptosNames",
     "defiLlama",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   zeta: [
     "webSearch",
     "getSiteContent",
     "getZetaApiData",
     "getZetaStats",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   sei: [
     "webSearch",
     "getSiteContent",
     "getSeiApiData",
     "getSeiStats",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   monad: [
     "webSearch",
@@ -386,6 +452,15 @@ const groupTools = {
     "getMonadStats",
     "translateTransactions",
     "defiLlama",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   solana: [
     "webSearch",
@@ -397,6 +472,10 @@ const groupTools = {
     "getRelayQuote",
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
   coding: [
     "webSearch",
@@ -433,6 +512,7 @@ const groupTools = {
     // x402 Payment Tools
     "initiateX402Payment",
     "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
     // Crypto.com AI Agent SDK
     "queryCryptoComAI",
     "getCryptoComChainStats",
@@ -476,6 +556,10 @@ const groupTools = {
     "getRelayQuote",
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
 } as const;
 

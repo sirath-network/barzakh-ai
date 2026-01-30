@@ -85,7 +85,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   return (
     <>
-      <SidebarAny className="group-data-[side=left]:border-r-0 custom-scrollbar bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-sm border-r border-border/50">
+      <SidebarAny className="group-data-[side=left]:border-r-0 custom-scrollbar bg-background/95 backdrop-blur-sm border-r border-border/50 shadow-xl">
         <SidebarHeaderAny className="p-3 border-b border-border/30 overflow-hidden">
           <SidebarMenuAny className="custom-scrollbar">
             {/* 3. Use AnimatePresence for header */}

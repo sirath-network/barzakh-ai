@@ -20,14 +20,17 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Chrome, Safari, Opera */
+    display: none;
+    /* Chrome, Safari, Opera */
   }
 }
 
@@ -67,12 +70,13 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 240 5.9% 10%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 240 5.9% 10%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 240 5.9% 10%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
@@ -138,22 +142,23 @@
 /* Responsive breakpoints for mobile optimization */
 @media (max-width: 640px) {
   .code-block-container {
-    margin: 1rem -1rem; /* Extend to screen edges on mobile */
+    margin: 1rem -1rem;
+    /* Extend to screen edges on mobile */
     border-radius: 0;
     border-left: none;
     border-right: none;
   }
-  
+
   .code-block-header {
     padding: 0.75rem 1rem;
   }
-  
+
   .code-block-content {
     padding: 1rem;
     font-size: 0.875rem;
     line-height: 1.5;
   }
-  
+
   .code-block-output {
     padding: 1rem;
     font-size: 0.875rem;
@@ -165,7 +170,7 @@
     padding: 0.75rem;
     font-size: 0.8125rem;
   }
-  
+
   .code-block-output {
     padding: 0.75rem;
     font-size: 0.8125rem;
@@ -187,9 +192,12 @@
 
 /* Loading animation enhancement */
 @keyframes pulse-subtle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -199,6 +207,7 @@
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(400%);
   }
@@ -226,11 +235,11 @@
   .code-block-container {
     border-width: 2px;
   }
-  
+
   .code-block-header {
     border-bottom-width: 2px;
   }
-  
+
   .code-block-output {
     border-top-width: 2px;
   }
@@ -241,7 +250,7 @@
   .animate-spin {
     animation: none;
   }
-  
+
   .loading-pulse {
     animation: none;
   }
@@ -255,21 +264,22 @@
 
 /* Mobile-specific overflow prevention */
 @media (max-width: 768px) {
+
   /* Ensure all containers stay within viewport */
   #chat-scroll {
     max-width: 100vw;
     overflow-x: hidden !important;
   }
-  
+
   /* Force all pre and code elements to respect max-width */
   pre {
     max-width: 100% !important;
     overflow-x: auto !important;
   }
-  
+
   /* Ensure all message bubbles respect viewport */
-  [data-role="user"] > div,
-  [data-role="assistant"] > div {
+  [data-role="user"]>div,
+  [data-role="assistant"]>div {
     max-width: 100% !important;
   }
 }
@@ -280,8 +290,10 @@
 }
 
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 /* Thin scrollbar like ChatGPT - always visible */
@@ -291,7 +303,8 @@
 }
 
 .custom-scrollbar {
-  scrollbar-width: thin;  /* Firefox */
+  scrollbar-width: thin;
+  /* Firefox */
   scrollbar-color: rgba(80, 80, 80, 0.6) transparent;
 }
 
@@ -329,7 +342,7 @@
     display: none;
     width: 0;
   }
-  
+
   .custom-scrollbar {
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -418,7 +431,7 @@
     overflow-x: hidden;
     max-width: 100vw;
   }
-  
+
   /* Prevent horizontal overflow on mobile */
   html {
     overflow-x: hidden;
@@ -478,7 +491,7 @@
   @apply bg-background dark:bg-zinc-800 outline-none selection:bg-zinc-900 !important;
 }
 
-.ͼo.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.ͼo.cm-focused>.cm-scroller>.cm-selectionLayer .cm-selectionBackground,
 .ͼo.cm-selectionBackground,
 .ͼo.cm-content::selection {
   @apply bg-zinc-200 dark:bg-zinc-900 !important;
@@ -516,8 +529,8 @@
 }
 
 /* RainbowKit modal overlay (the dark backdrop) */
-body > [data-rk] > div[role="dialog"],
-body > [data-rk] > div[aria-modal="true"] {
+body>[data-rk]>div[role="dialog"],
+body>[data-rk]>div[aria-modal="true"] {
   z-index: 99999 !important;
 }
 

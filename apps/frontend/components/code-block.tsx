@@ -61,12 +61,13 @@ const CodeActions = ({ onCopy, isCopied, isCompact = false }: CodeActionsProps) 
   const CheckAny = Check as any;
   const CopyAny = Copy as any;
   return (
-  <div className="flex items-center space-x-2">
-    <button onClick={onCopy} className={`flex items-center space-x-1.5 ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-muted text-muted-foreground rounded-md border hover:bg-accent transition-colors`} aria-label="Copy code to clipboard">
-      {isCopied ? <span role="status" className="flex items-center space-x-1.5 font-medium"><CheckAny className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copied</span></span> : <span className="flex items-center space-x-1.5"><CopyAny className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copy</span></span>}
-    </button>
-  </div>
-)};
+    <div className="flex items-center space-x-2">
+      <button onClick={onCopy} className={`flex items-center space-x-1.5 ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-muted text-muted-foreground rounded-md border hover:bg-accent transition-colors`} aria-label="Copy code to clipboard">
+        {isCopied ? <span role="status" className="flex items-center space-x-1.5 font-medium"><CheckAny className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copied</span></span> : <span className="flex items-center space-x-1.5"><CopyAny className={isCompact ? "w-3 h-3" : "w-4 h-4"} /><span>Copy</span></span>}
+      </button>
+    </div>
+  )
+};
 
 
 // --- MAIN COMPONENT ---
@@ -102,12 +103,12 @@ export function CodeBlock({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   useEffect(() => {
     document.body.style.overflow = isFullscreen ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [isFullscreen]);
-  
+
   // Effect to handle horizontal resize event
   useEffect(() => {
     const handleResizeWidthMove = (e: MouseEvent | TouchEvent) => {
@@ -120,7 +121,7 @@ export function CodeBlock({
       // Limit size
       if (newWidth < 20) newWidth = 20;
       if (newWidth > 80) newWidth = 80;
-      
+
       setPanelWidth(newWidth);
     };
 
@@ -145,7 +146,7 @@ export function CodeBlock({
       document.removeEventListener('touchend', handleResizeWidthEnd);
     };
   }, [isResizingWidth]);
-  
+
   const handleResizeWidthStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     setIsResizingWidth(true);
@@ -154,7 +155,7 @@ export function CodeBlock({
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   };
-  
+
   const language = (/language-(\w+)/.exec(className || '')?.[1] || 'text').toLowerCase() as Language;
   const codeContent = String(children).trim();
   const lineCount = codeContent.split('\n').length;
@@ -163,7 +164,7 @@ export function CodeBlock({
   // Smart filename detection from code content
   const detectFileNameFromContent = (code: string, lang: string): string => {
     const lines = code.split('\n').slice(0, 5); // Check first 5 lines
-    
+
     // Try to find file path in comments
     for (const line of lines) {
       // Python, Bash, SQL: # path/to/file.ext
@@ -172,14 +173,14 @@ export function CodeBlock({
         const fullPath = hashMatch[1];
         return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
       }
-      
+
       // JavaScript/TypeScript/CSS: // path/to/file.ext
       const slashMatch = line.match(/^\/\/\s+(.+?\.(js|ts|jsx|tsx|html|css|json|txt|yaml|yml|md))\s*$/i);
       if (slashMatch) {
         const fullPath = slashMatch[1];
         return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
       }
-      
+
       // HTML: <!-- path/to/file.ext -->
       const htmlMatch = line.match(/^<!--\s+(.+?\.(html|htm))\s+-->\s*$/i);
       if (htmlMatch) {
@@ -188,7 +189,7 @@ export function CodeBlock({
       }
     }
 
-    
+
     // Fallback: Smart defaults based on language
     const smartDefaults: Record<string, string> = {
       python: 'main.py',
@@ -249,27 +250,27 @@ export function CodeBlock({
       </code>
     );
   }
-  
+
   const CodeContentDisplay = ({ inModal = false }) => (
     <div className={`flex-1 bg-card ${inModal ? 'overflow-auto' : 'relative'}`}>
-      <SyntaxHighlighter 
-        language={language} 
-        style={grayscale} 
-        showLineNumbers={showLineNumbers} 
-        wrapLines={true} 
-        customStyle={{ 
-          margin: 0, 
-          padding: '1rem', 
-          backgroundColor: 'transparent', 
-          fontSize: inModal ? '14px' : '13px', 
+      <SyntaxHighlighter
+        language={language}
+        style={grayscale}
+        showLineNumbers={showLineNumbers}
+        wrapLines={true}
+        customStyle={{
+          margin: 0,
+          padding: '1rem',
+          backgroundColor: 'transparent',
+          fontSize: inModal ? '14px' : '13px',
           minWidth: '100%',
-          ...(inModal && { height: '100%' }) 
-        }} 
-        codeTagProps={{ 
-          style: { 
-            fontFamily: '"SF Mono", "Monaco", "Inconsolata", monospace', 
-            lineHeight: '1.6' 
-          } 
+          ...(inModal && { height: '100%' })
+        }}
+        codeTagProps={{
+          style: {
+            fontFamily: '"SF Mono", "Monaco", "Inconsolata", monospace',
+            lineHeight: '1.6'
+          }
         }}
       >
         {codeContent}
@@ -296,8 +297,8 @@ export function CodeBlock({
   return (
     <>
       <div className="my-4 max-w-full overflow-hidden text-sm group">
-        <div className="border rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
-          <div className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 border-b">
+        <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
+          <div className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b">
             <CodeHeader fileName={fileName} langName={langConfig.name} lineCount={lineCount} />
             <div className="flex items-center gap-2">
               <button
@@ -308,10 +309,10 @@ export function CodeBlock({
                 <ExternalLinkAny className="w-3 h-3" />
                 <span className="hidden sm:inline">Open</span>
               </button>
-              <button 
-                onClick={handleToggleView} 
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-background text-foreground border rounded-md hover:bg-muted transition-colors" 
-                aria-expanded={isExpanded} 
+              <button
+                onClick={handleToggleView}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-background text-foreground border rounded-md hover:bg-muted transition-colors"
+                aria-expanded={isExpanded}
                 aria-label={isExpanded ? 'Hide code block' : 'Show code block'}
               >
                 {isExpanded ? (
@@ -328,41 +329,41 @@ export function CodeBlock({
               </button>
             </div>
           </div>
-          
+
           {isExpanded && !isMobile && (
             <div className="flex flex-row relative" style={{ height: '400px' }}>
               {/* Panel Kode */}
-              <div 
-                className="flex-1 overflow-auto border-r" 
+              <div
+                className="flex-1 overflow-auto border-r"
                 style={{ width: `${panelWidth}%`, minWidth: '20%' }}
               >
                 <div className="flex items-center justify-end px-4 py-2 bg-card border-b">
-                  <CodeActions 
-                    onCopy={handleCopy} 
-                    isCopied={isCopied} 
-                    isCompact={true} 
+                  <CodeActions
+                    onCopy={handleCopy}
+                    isCopied={isCopied}
+                    isCompact={true}
                   />
                 </div>
                 <CodeContentDisplay />
               </div>
-              
+
               {/* Handle Resize */}
               <div
-                className="absolute top-0 bottom-0 w-2 cursor-col-resize bg-muted hover:bg-accent transition-colors z-10"
-                style={{ left: `calc(${panelWidth}% - 4px)` }}
+                className="absolute top-0 bottom-0 w-1 cursor-col-resize bg-border hover:bg-primary/50 transition-colors z-10"
+                style={{ left: `calc(${panelWidth}% - 2px)` }}
                 onMouseDown={handleResizeWidthStart}
                 onTouchStart={handleResizeWidthStart}
               />
-              
+
               {/* Panel Preview */}
-              <div 
-                className="flex-1 overflow-auto bg-muted" 
+              <div
+                className="flex-1 overflow-auto bg-muted/10"
                 style={{ width: `${100 - panelWidth}%`, minWidth: '20%' }}
               >
                 <div className="p-4 h-full">
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-                    <Code2Any className="w-8 h-8 mb-2 text-muted-foreground" />
-                    <p className="text-center">Extended code view</p>
+                    <Code2Any className="w-8 h-8 mb-2 text-muted-foreground/50" />
+                    <p className="text-center text-sm">Extended code view</p>
                   </div>
                 </div>
               </div>

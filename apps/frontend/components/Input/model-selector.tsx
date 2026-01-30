@@ -354,7 +354,7 @@ export function ModelSelector({
   const BottomSheetAny = BottomSheet as any;
 
   return (
-    <div className={cn("relative mr-0 sm:mr-1 mt-1", className)}>
+    <div className={cn("relative mr-0 sm:mr-1", className)}>
       <DropdownMenuAny
         open={isDesktop && isExpanded}
         onOpenChange={handleDropdownOpenChange}
@@ -397,20 +397,14 @@ export function ModelSelector({
         <DropdownMenuContentAny
           align="end"
           className={cn(
-            "w-[360px] p-0 rounded-2xl animate-in fade-in-0 zoom-in-95",
-            "mt-2 mr-1 sm:mr-2 backdrop-blur-md",
-            isDarkTheme
-              ? "bg-neutral-950/95 border border-neutral-800 shadow-2xl shadow-black/40"
-              : "bg-white/95 border border-neutral-200 shadow-[0_25px_65px_rgba(15,23,42,0.18)]"
+            "w-[360px] p-0",
+            "bg-background",
+            "border-2 shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95",
+            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
           )}
-          sideOffset={10}
+          sideOffset={8}
         >
-          <div
-            className={cn(
-              "p-4 pb-2 border-b",
-              isDarkTheme ? "border-neutral-800" : "border-neutral-200/80"
-            )}
-          >
+          <div className="p-2 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
@@ -419,23 +413,14 @@ export function ModelSelector({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
-                  "w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border",
-                  "focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors duration-150",
-                  isDarkTheme
-                    ? "border-neutral-800 bg-neutral-900/80 text-neutral-100 placeholder:text-neutral-400"
-                    : "border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-500 shadow-[0_1px_2px_rgba(15,23,42,0.08)] focus:border-primary/50"
+                  "w-full pl-9 pr-3 py-2 text-sm rounded-md border-0",
+                  "bg-transparent focus:outline-none focus:ring-1 focus:ring-primary/30"
                 )}
                 disabled={isUpdating}
               />
             </div>
           </div>
-          <div
-            className={cn(
-              "max-h-80 overflow-y-auto custom-scrollbar px-3 pb-4 pt-2",
-              !isDarkTheme &&
-              "bg-gradient-to-b from-white/75 via-white/30 to-transparent"
-            )}
-          >
+          <div className="max-h-72 overflow-y-auto custom-scrollbar p-2">
             <ModelOptionList
               selectedModelId={selectedModelId}
               onSelect={handleSelect}

@@ -168,46 +168,46 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
   };
 
   return (
-    <div className={`relative bg-gray-900 border border-gray-700 rounded-lg overflow-hidden transition-all duration-300 ${isFullscreen
-        ? 'fixed inset-4 z-50 h-[calc(100vh-2rem)] w-[calc(100vw-2rem)]'
-        : 'w-full h-96 md:h-[500px] lg:h-[600px]'
+    <div className={`relative bg-card border rounded-lg overflow-hidden transition-all duration-300 shadow-sm ${isFullscreen
+      ? 'fixed inset-4 z-50 h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] shadow-2xl'
+      : 'w-full h-96 md:h-[500px] lg:h-[600px]'
       }`}>
       {/* Header */}
-      <div className="flex items-center justify-between bg-gray-800 px-3 py-2 border-b border-gray-700">
+      <div className="flex items-center justify-between bg-secondary/30 backdrop-blur-sm px-3 py-2 border-b">
         <div className="flex items-center gap-2">
-          <TerminalAny className="w-4 h-4 text-green-400" />
-          <span className="text-sm font-medium text-gray-300">Python Editor</span>
+          <TerminalAny className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Python Editor</span>
           {status === 'streaming' && (
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-              <span className="text-xs text-orange-400">Streaming...</span>
+              <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-orange-500 font-medium">Streaming</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {/* Mobile: Show fewer buttons */}
-          <div className="hidden sm:flex items-center gap-1">
+          <div className="hidden sm:flex items-center gap-1.5">
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              className="flex items-center justify-center h-7 w-7 text-muted-foreground hover:text-foreground bg-background border rounded-md hover:bg-muted transition-colors shadow-sm"
               title="Settings"
             >
-              <SettingsAny className="w-4 h-4" />
+              <SettingsAny className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={copyToClipboard}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              className="flex items-center justify-center h-7 w-7 text-muted-foreground hover:text-foreground bg-background border rounded-md hover:bg-muted transition-colors shadow-sm"
               title="Copy Code"
             >
-              <CopyAny className="w-4 h-4" />
+              <CopyAny className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={downloadCode}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              className="flex items-center justify-center h-7 w-7 text-muted-foreground hover:text-foreground bg-background border rounded-md hover:bg-muted transition-colors shadow-sm"
               title="Download"
             >
-              <DownloadAny className="w-4 h-4" />
+              <DownloadAny className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -215,34 +215,34 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
           <div className="sm:hidden relative">
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              className="flex items-center justify-center h-7 w-7 text-muted-foreground hover:text-foreground bg-background border rounded-md hover:bg-muted transition-colors shadow-sm"
             >
-              <SettingsAny className="w-4 h-4" />
+              <SettingsAny className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <button
             onClick={toggleFullscreen}
-            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+            className="flex items-center justify-center h-7 w-7 text-muted-foreground hover:text-foreground bg-background border rounded-md hover:bg-muted transition-colors shadow-sm"
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
-            {isFullscreen ? <Minimize2Any className="w-4 h-4" /> : <Maximize2Any className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2Any className="w-3.5 h-3.5" /> : <Maximize2Any className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="absolute top-12 right-2 bg-gray-800 border border-gray-600 rounded-lg p-3 z-10 min-w-48 shadow-lg">
-          <h3 className="text-sm font-medium text-white mb-2">Editor Settings</h3>
+        <div className="absolute top-12 right-2 bg-popover border text-popover-foreground rounded-lg p-3 z-10 min-w-48 shadow-lg">
+          <h3 className="text-sm font-medium mb-2">Editor Settings</h3>
 
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-gray-300 block mb-1">Font Size</label>
+              <label className="text-xs text-muted-foreground block mb-1">Font Size</label>
               <select
                 value={fontSize}
                 onChange={(e) => setFontSize(Number(e.target.value))}
-                className="w-full bg-gray-700 text-white text-xs rounded px-2 py-1 border border-gray-600"
+                className="w-full bg-background text-foreground text-xs rounded px-2 py-1 border"
               >
                 <option value={12}>12px</option>
                 <option value={14}>14px</option>
@@ -252,37 +252,37 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-xs text-gray-300">Line Numbers</label>
+              <label className="text-xs text-muted-foreground">Line Numbers</label>
               <input
                 type="checkbox"
                 checked={lineNumbers}
                 onChange={(e) => setLineNumbers(e.target.checked)}
-                className="text-blue-500"
+                className="text-primary"
               />
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="text-xs text-gray-300">Word Wrap</label>
+              <label className="text-xs text-muted-foreground">Word Wrap</label>
               <input
                 type="checkbox"
                 checked={wordWrap}
                 onChange={(e) => setWordWrap(e.target.checked)}
-                className="text-blue-500"
+                className="text-primary"
               />
             </div>
 
             {/* Mobile actions */}
-            <div className="sm:hidden pt-2 border-t border-gray-600 space-y-2">
+            <div className="sm:hidden pt-2 border-t space-y-2">
               <button
                 onClick={copyToClipboard}
-                className="w-full flex items-center gap-2 text-xs text-gray-300 hover:text-white p-1"
+                className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground p-1"
               >
                 <CopyAny className="w-3 h-3" />
                 Copy Code
               </button>
               <button
                 onClick={downloadCode}
-                className="w-full flex items-center gap-2 text-xs text-gray-300 hover:text-white p-1"
+                className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground p-1"
               >
                 <DownloadAny className="w-3 h-3" />
                 Download
@@ -300,12 +300,12 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
       />
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between bg-gray-800 px-3 py-1 text-xs text-gray-400 border-t border-gray-700">
+      <div className="flex items-center justify-between bg-secondary/30 backdrop-blur-sm px-3 py-1 text-xs text-muted-foreground border-t">
         <div className="flex items-center gap-4">
           <span>Python</span>
           <span>UTF-8</span>
           {isCurrentVersion && (
-            <span className="text-green-400">● Current Version</span>
+            <span className="text-green-500 font-medium">● Current Version</span>
           )}
         </div>
         <div className="flex items-center gap-4">
@@ -319,7 +319,7 @@ function PureCodeEditor({ content, onSaveContent, status, isCurrentVersion, curr
       {/* Fullscreen overlay backdrop */}
       {isFullscreen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
           onClick={toggleFullscreen}
         />
       )}

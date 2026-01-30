@@ -362,7 +362,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
 
         // Otherwise, render the string in a styled container
         return (
-            <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900">
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm">{result}</p>
             </div>
         );
@@ -371,7 +371,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
     // Handle error response
     if (result.error) {
         return (
-            <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900">
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm">{result.error}</p>
             </div>
         );
@@ -382,7 +382,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
 
     if (!transactions || transactions.length === 0) {
         return (
-            <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <div className="w-full max-w-full font-sans p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900">
                 <p className="text-zinc-500 dark:text-zinc-400 text-sm">
                     No transactions found for this wallet on {chainConfig.name} in the last ~4 months.
                 </p>
@@ -405,7 +405,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
             </div>
 
             {/* Transactions List */}
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
                 <div className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
                     {transactions.map((tx, index) => {
                         const style = getTransactionStyle(tx.direction, tx.txType);

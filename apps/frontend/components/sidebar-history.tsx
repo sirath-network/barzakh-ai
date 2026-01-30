@@ -203,7 +203,7 @@ const PureChatItem = ({
           className={`
             flex-1 rounded-lg transition-all duration-200 border-0
             ${isActive
-              ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary hover:from-primary/20 hover:to-primary/10"
+              ? "bg-primary/10 text-primary hover:bg-primary/15"
               : "hover:bg-muted/60"
             }
           `}
@@ -536,7 +536,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       <SidebarGroupAny className="h-full">
         <SidebarGroupContentAny className="h-full flex items-center justify-center">
           <div className="px-4 py-8 text-center">
-            <div className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-xl p-6 border border-border/20">
+            <div className="bg-muted/20 rounded-xl p-6 border border-border/20">
               <div className="text-muted-foreground text-sm font-medium mb-2">
                 No conversations yet
               </div>
