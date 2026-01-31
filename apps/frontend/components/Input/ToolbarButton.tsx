@@ -6,6 +6,7 @@ import {
 import { cn, SearchGroup } from "@barzakh/shared/lib/utils/utils";
 import { motion } from "@/lib/framer-motion";
 import Image from "next/image";
+import { useTheme } from "next-themes";
 
 interface ToolbarButtonProps {
   group: SearchGroup;
@@ -24,6 +25,18 @@ const MotionButton = motion.button as React.FC<
 export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps) => {
   const Icon = group.icon;
   const iconImg = group.img;
+  const { resolvedTheme } = useTheme();
+
+  // Resolve the image source based on theme
+  const getImageSrc = (): string => {
+    if (!iconImg) return "";
+    if (typeof iconImg === "string") return iconImg;
+    // For themed images, use resolvedTheme to pick the right variant
+    // dark theme uses 'dark' image, light theme uses 'light' image
+    return resolvedTheme === "dark" ? iconImg.dark : iconImg.light;
+  };
+
+  const imageSrc = getImageSrc();
 
   const HoverCardAny = HoverCard as any;
   const HoverCardTriggerAny = HoverCardTrigger as any;
@@ -49,11 +62,11 @@ export const ToolbarButton = ({ group, isSelected, onClick }: ToolbarButtonProps
           )}
           transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          {iconImg ? (
+          {imageSrc ? (
             <div className="w-7 h-7 rounded-full  p-0 m-0 object-cover object-center overflow-clip">
               <Image
-                src={iconImg}
-                alt={iconImg}
+                src={imageSrc}
+                alt={group.name}
                 width={50}
                 height={50}
                 className="bg-white w-full h-full "

@@ -48,6 +48,19 @@ async function getCurrentCronosBlock(testnet = false): Promise<number> {
 }
 
 /**
+ * Format crypto amounts with K/M/B suffixes for large values
+ */
+function formatCryptoAmount(value: number): string {
+    const abs = Math.abs(value);
+    if (abs >= 1e9) return (value / 1e9).toFixed(2) + "B";
+    if (abs >= 1e6) return (value / 1e6).toFixed(2) + "M";
+    if (abs >= 1e3) return (value / 1e3).toFixed(2) + "K";
+    if (abs >= 1) return value.toFixed(2);
+    if (abs >= 0.0001) return value.toFixed(4);
+    return value.toFixed(6);
+}
+
+/**
  * Get Cronos wallet balance
  */
 export const getCronosBalance = tool({
@@ -452,9 +465,10 @@ export const getCronosGasPrice = tool({
 /**
  * Get Cronos transaction history for an address
  * Note: Uses dynamic block range (last 2,000,000 blocks ~4 months) for reliability
+ * Also fetches token transfers to show actual token amounts for swap/transfer transactions
  */
 export const getCronosTransactionHistory = tool({
-    description: "Get transaction history for a wallet address on Cronos blockchain. Returns list of transactions from last 2,000,000 blocks.",
+    description: "Get transaction history for a wallet address on Cronos blockchain. Returns list of transactions from last 2,000,000 blocks with token transfer details.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
         page: z.number().optional().describe("Page number (default: 1)"),
@@ -479,15 +493,86 @@ export const getCronosTransactionHistory = tool({
             console.log(`[Cronos] Fetching txs from block ${startBlock} to ${currentBlock}`);
 
             const apiKey = process.env.CRONOS_EXPLORER_API_KEY || "";
-            const apiUrl = `${CRONOS_EXPLORER_API}?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=${page}&offset=${Math.min(limit, 100)}&sort=${sort}${apiKey ? `&apikey=${apiKey}` : ""}`;
 
-            const response = await fetch(apiUrl);
+            // Fetch normal transactions, token transfers, and internal transactions in parallel using v2 API
+            const [txResponse, tokenTxResponse, internalTxResponse] = await Promise.all([
+                fetch(`${CRONOS_EXPLORER_API_V2}?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=${page}&offset=${Math.min(limit * 2, 100)}&sort=${sort}${apiKey ? `&apikey=${apiKey}` : ""}`),
+                fetch(`${CRONOS_EXPLORER_API_V2}?module=account&action=tokentx&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=1&offset=200${apiKey ? `&apikey=${apiKey}` : ""}`),
+                fetch(`${CRONOS_EXPLORER_API_V2}?module=account&action=txlistinternal&address=${address}&startblock=${startBlock}&endblock=${currentBlock}&page=1&offset=200${apiKey ? `&apikey=${apiKey}` : ""}`)
+            ]);
 
-            if (!response.ok) {
-                throw new Error(`Cronos Explorer API request failed: ${response.status}`);
+            if (!txResponse.ok) {
+                throw new Error(`Cronos Explorer API request failed: ${txResponse.status}`);
             }
 
-            const data = await response.json();
+            const [data, tokenData, internalData] = await Promise.all([
+                txResponse.json(),
+                tokenTxResponse.ok ? tokenTxResponse.json() : { status: "0", result: [] },
+                internalTxResponse.ok ? internalTxResponse.json() : { status: "0", result: [] }
+            ]);
+
+            // Build a map of token transfers by transaction hash
+            const tokenTransfersByHash: Map<string, Array<{
+                direction: string;
+                amount: string;
+                symbol: string;
+                formatted: string;
+                tokenName: string;
+                contractAddress: string;
+            }>> = new Map();
+
+            // Process ERC-20 token transfers
+            if (tokenData.status === "1" && Array.isArray(tokenData.result)) {
+                for (const tokenTx of tokenData.result) {
+                    const hash = tokenTx.hash.toLowerCase();
+                    const isFrom = tokenTx.from.toLowerCase() === address.toLowerCase();
+                    const decimals = parseInt(tokenTx.tokenDecimal) || 18;
+                    const rawAmount = parseFloat(tokenTx.value) / Math.pow(10, decimals);
+                    const sign = isFrom ? "-" : "+";
+
+                    const transfer = {
+                        direction: isFrom ? "Sent" : "Received",
+                        amount: formatCryptoAmount(rawAmount),
+                        symbol: tokenTx.tokenSymbol || "???",
+                        formatted: `${sign}${formatCryptoAmount(rawAmount)} ${tokenTx.tokenSymbol || "???"}`,
+                        tokenName: tokenTx.tokenName || "Unknown Token",
+                        contractAddress: tokenTx.contractAddress,
+                    };
+
+                    if (!tokenTransfersByHash.has(hash)) {
+                        tokenTransfersByHash.set(hash, []);
+                    }
+                    tokenTransfersByHash.get(hash)!.push(transfer);
+                }
+            }
+
+            // Process internal transactions (native CRO transfers from swaps/contract calls)
+            if (internalData.status === "1" && Array.isArray(internalData.result)) {
+                for (const intTx of internalData.result) {
+                    const hash = intTx.hash.toLowerCase();
+                    const isReceiving = intTx.to.toLowerCase() === address.toLowerCase();
+                    const valueCRO = parseFloat(intTx.value) / 1e18;
+
+                    // Only add if there's a significant value (skip dust/0 value transfers)
+                    if (valueCRO > 0.000001) {
+                        const sign = isReceiving ? "+" : "-";
+
+                        const transfer = {
+                            direction: isReceiving ? "Received" : "Sent",
+                            amount: formatCryptoAmount(valueCRO),
+                            symbol: "CRO",
+                            formatted: `${sign}${formatCryptoAmount(valueCRO)} CRO`,
+                            tokenName: "Cronos",
+                            contractAddress: "",
+                        };
+
+                        if (!tokenTransfersByHash.has(hash)) {
+                            tokenTransfersByHash.set(hash, []);
+                        }
+                        tokenTransfersByHash.get(hash)!.push(transfer);
+                    }
+                }
+            }
 
             if (data.status !== "1" || !data.result) {
                 // No transactions found is not an error
@@ -507,26 +592,84 @@ export const getCronosTransactionHistory = tool({
             const transactions = data.result.map((tx: any) => {
                 // Determine direction
                 const isFrom = tx.from.toLowerCase() === address.toLowerCase();
-                const isTo = tx.to.toLowerCase() === address.toLowerCase();
+                const isTo = tx.to?.toLowerCase() === address.toLowerCase();
                 let direction = "SELF";
                 if (isFrom && !isTo) direction = "OUT";
                 else if (isTo && !isFrom) direction = "IN";
 
-                // Format value
+                // Format native value
                 const valueWei = BigInt(tx.value);
                 const valueCRO = Number(valueWei) / 1e18;
-                const valueFormatted = `${valueCRO.toFixed(6)} CRO`;
+
+                // Get token transfers for this transaction
+                const tokenTransfers = tokenTransfersByHash.get(tx.hash.toLowerCase()) || [];
+
+                // IMPORTANT: Also include native CRO value from the main transaction if significant
+                // This ensures native CRO sends/receives show up even when there are token transfers
+                if (valueCRO > 0.000001) {
+                    const sign = direction === "OUT" ? "-" : "+";
+                    tokenTransfers.push({
+                        direction: direction === "OUT" ? "Sent" : "Received",
+                        amount: formatCryptoAmount(valueCRO),
+                        symbol: "CRO",
+                        formatted: `${sign}${formatCryptoAmount(valueCRO)} CRO`,
+                        tokenName: "Cronos",
+                        contractAddress: "",
+                    });
+                }
+
+                const hasTokenTransfers = tokenTransfers.length > 0;
 
                 // Determine type from method or direction
                 let txType = "Transaction";
                 if (tx.functionName) {
-                    if (tx.functionName.toLowerCase().includes("swap")) txType = "Swap";
-                    else if (tx.functionName.toLowerCase().includes("approve")) txType = "Approve";
-                    else if (tx.functionName.toLowerCase().includes("transfer")) txType = "Transfer";
-                    else if (tx.functionName.toLowerCase().includes("mint")) txType = "Mint";
-                    else txType = "Contract"; // Generic contract interaction
+                    const funcLower = tx.functionName.toLowerCase();
+                    if (funcLower.includes("swap")) txType = "Trade";
+                    else if (funcLower.includes("approve")) txType = "Approve";
+                    else if (funcLower.includes("transfer")) txType = "Transfer";
+                    else if (funcLower.includes("mint")) txType = "Mint";
+                    else if (funcLower.includes("burn")) txType = "Burn";
+                    else if (funcLower.includes("deposit")) txType = "Deposit";
+                    else if (funcLower.includes("withdraw")) txType = "Withdraw";
+                    else if (funcLower.includes("claim")) txType = "Claim";
+                    else txType = "Contract";
                 } else if (valueCRO > 0) {
                     txType = direction === "IN" ? "Receive" : "Send";
+                } else if (hasTokenTransfers) {
+                    // If no CRO value but has token transfers, it's likely a token transfer
+                    txType = tokenTransfers.length > 1 ? "Trade" : "Transfer";
+                }
+
+                // Build value display
+                let valueFormatted: string;
+                let tokenTransferData: any = undefined;
+
+                if (hasTokenTransfers) {
+                    // Use token transfer data for display
+                    if (tokenTransfers.length === 1) {
+                        // Single token transfer
+                        valueFormatted = tokenTransfers[0].formatted;
+                        tokenTransferData = tokenTransfers[0];
+                    } else if (tokenTransfers.length === 2) {
+                        // Likely a swap - show as "X TOKEN → Y TOKEN"
+                        const outTransfer = tokenTransfers.find(t => t.direction === "Sent");
+                        const inTransfer = tokenTransfers.find(t => t.direction === "Received");
+                        if (outTransfer && inTransfer) {
+                            // Use pre-formatted amounts (already have K/M/B formatting)
+                            valueFormatted = `${outTransfer.amount} ${outTransfer.symbol} → ${inTransfer.amount} ${inTransfer.symbol}`;
+                            txType = "Trade";
+                        } else {
+                            valueFormatted = tokenTransfers.map(t => t.formatted).join(", ");
+                        }
+                        tokenTransferData = tokenTransfers;
+                    } else {
+                        // Multiple transfers
+                        valueFormatted = tokenTransfers.map(t => t.formatted).join(", ");
+                        tokenTransferData = tokenTransfers;
+                    }
+                } else {
+                    // Use native CRO value (fallback)
+                    valueFormatted = `${formatCryptoAmount(valueCRO)} CRO`;
                 }
 
                 return {
@@ -534,10 +677,11 @@ export const getCronosTransactionHistory = tool({
                     blockNumber: parseInt(tx.blockNumber),
                     timestamp: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
                     from: tx.from,
-                    to: tx.to,
+                    to: tx.to || "",
                     value: valueFormatted,
                     direction,
                     txType,
+                    tokenTransfer: tokenTransferData,
                     gasUsed: tx.gasUsed,
                     gasPrice: (parseInt(tx.gasPrice) / 1e9).toFixed(2) + " Gwei",
                     txFee: ((parseInt(tx.gasUsed) * parseInt(tx.gasPrice)) / 1e18).toFixed(6) + " CRO",

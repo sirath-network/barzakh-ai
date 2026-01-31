@@ -374,6 +374,24 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
+    // Generic EVM/Ethereum (routes to on_chain for Zerion/generic tools)
+    // This allows users to explicitly switch from a chain-specific context to generic EVM
+    {
+        id: 'evm',
+        intent: 'on_chain',
+        patterns: [
+            /\b(on|for|with)\s+(ethereum|evm|eth\s*mainnet|mainnet)\b/i,
+            /\b(ethereum|evm)\s+(compatible|network|chain|mainnet|wallet|portfolio)\b/i,
+            /\betherscan\b/i,
+            /\bzerion\b/i,
+            /\b(all|any|generic|multi[-\s]?chain)\s+(evm|chains?|networks?)\b/i,
+        ],
+        keywords: ['ethereum mainnet', 'ethereum network', 'evm compatible', 'evm network',
+            'on ethereum', 'on evm', 'etherscan', 'zerion', 'multi-chain', 'generic evm'],
+        tokens: ['ETH'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
 ];
 
 /**
@@ -417,27 +435,55 @@ const INTENT_PATTERNS: IntentPattern[] = [
     {
         intent: "imagine",
         patterns: [
-            // Creation
-            /\b(generate|create|make|draw|design|render|paint|sketch)\b.*\b(image|picture|art|photo|illustration|artwork|logo|icon|banner|character|avatar|portrait|landscape|drawing|painting)\b/i,
-            /\b(image|picture|art|photo|illustration|character|avatar|portrait)\b.*\b(of|for|about|showing|depicting|representing)\b/i,
+            // =========================================================================
+            // CREATION PATTERNS - Clear image generation intent
+            // =========================================================================
+            /\b(generate|create|make|draw|design|render|paint|sketch)\b.*\b(image|picture|art|photo|illustration|artwork|logo|icon|banner|character|avatar|portrait|landscape|drawing|painting|poster|flyer|thumbnail|cover|wallpaper|background|overlay|mockup|template)\b/i,
+            /\b(image|picture|art|photo|illustration|character|avatar|portrait|banner|poster|thumbnail)\b.*\b(of|for|about|showing|depicting|representing|with|containing)\b/i,
             /\b(visualize|depict|illustrate)\b/i,
 
-            // Modification / Editing - SPECIFIC PATTERNS
+            // Promotional/Marketing content creation (universal)
+            /\b(promo|promotional|marketing|advertising|ad)\s*(banner|poster|flyer|image|design|material|content)\b/i,
+            /\b(banner|poster|flyer)\s*(promo|promotional|design|for|image|ad|marketing)\b/i,
+
+            // Streaming/Social media content (universal)
+            /\b(stream|streaming|youtube|twitch|tiktok|instagram|facebook)\s*(banner|thumbnail|overlay|background|cover|art)\b/i,
+            /\b(profile|channel)\s*(picture|image|art|banner|cover)\b/i,
+            /\b(background|overlay)\s*(for|of|image|design)?\s*(stream|streaming|live|video|channel)\b/i,
+
+            // Design with text/typography
+            /\b(design|create|make|generate)\b.*\b(with|containing|include|including)\s*(text|words?|title|heading|caption)\b/i,
+
+            // =========================================================================
+            // MODIFICATION / EDITING PATTERNS
+            // =========================================================================
             /\b(regenerate|remake|redo|version|style|modify|change|edit|transform|convert|alter)\b.*\b(image|picture|art|photo|it|this|that)\b/i,
             /\b(make|turn|change|transform|convert)\b.*\b(it|this|image)\b.*\b(into|holding|wearing|background|look like|with|containing|showing)\b/i,
             /\b(add|remove|delete|erase)\b.*\b(from|to|in)\b.*\b(image|picture|photo|it|this)\b/i,
             /\b(change|switch|swap|replace)\b.*\b(background|color|style|lighting|perspective)\b/i,
 
-            // Style-specific
+            // =========================================================================
+            // STYLE-SPECIFIC PATTERNS
+            // =========================================================================
             /\b(in|with)\b.*\b(style|aesthetic|look|vibe)\b/i,
-            /\b(anime|manga|comic|realistic|3d|pixel|watercolor|oil|cyberpunk|vaporwave|gothic|steampunk)\b.*\b(style|art|render)\b/i,
+            /\b(anime|manga|comic|realistic|3d|pixel|watercolor|oil|cyberpunk|vaporwave|gothic|steampunk|vintage|retro|neon|minimalist|futuristic)\b.*\b(style|art|render)\b/i,
+
+            // Brand/Logo style references
+            /\b(like|similar\s+to)\s*(the\s+)?(logo|brand|style)\s*(of)?\b/i,
         ],
         keywords: [
+            // Core image generation keywords
             "generate image", "create image", "draw", "make a picture", "generate art", "create artwork",
             "design logo", "render", "midjourney", "dall-e", "stable diffusion", "flux", "ideogram",
             "regenerate", "remake", "repaint", "outpaint", "inpaint",
+            // Art styles
             "anime style", "pixel art", "watercolor", "oil painting", "3d render", "photorealistic",
             "concept art", "digital art", "illustration", "sketch", "drawing",
+            // Promotional/Marketing
+            "promo banner", "promotional poster", "marketing image", "ad design", "flyer design",
+            // Streaming/Social content
+            "youtube thumbnail", "twitch overlay", "stream banner", "channel art", "cover image",
+            "profile picture", "avatar", "wallpaper", "background image",
         ],
         priority: 100,
     },

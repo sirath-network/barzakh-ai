@@ -42,6 +42,11 @@ const CHAIN_CONFIG: Record<string, { explorer: string; symbol: string; name: str
         symbol: "CRO",
         name: "Cronos Testnet",
     },
+    "cronos-zkevm": {
+        explorer: "https://explorer.zkevm.cronos.org",
+        symbol: "zkCRO",
+        name: "Cronos zkEVM",
+    },
     creditcoin: {
         explorer: "https://creditcoin.subscan.io",
         symbol: "CTC",
@@ -138,6 +143,102 @@ const formatNumber = (num: number): string => {
     if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
     if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
     return num.toFixed(2);
+};
+
+// Format token transfers intelligently for display
+const formatTokenTransfers = (
+    tokenTransfer: EvmTransaction['tokenTransfer'],
+    txType: string
+): { display: string; isComplex: boolean; transfers?: any[] } => {
+    if (!tokenTransfer) {
+        return { display: "0", isComplex: false };
+    }
+
+    // Single transfer
+    if (!Array.isArray(tokenTransfer)) {
+        return { display: tokenTransfer.formatted, isComplex: false };
+    }
+
+    // Multiple transfers - need smart formatting
+    const transfers = tokenTransfer;
+    const txTypeLower = txType?.toLowerCase() || '';
+    const isSwap = txTypeLower === 'trade' || txTypeLower.includes('swap');
+
+    if (transfers.length === 0) {
+        return { display: "0", isComplex: false };
+    }
+
+    if (transfers.length === 1) {
+        return { display: transfers[0].formatted, isComplex: false };
+    }
+
+    // For swaps with exactly 2 transfers, show "X → Y" format
+    if (transfers.length === 2 && isSwap) {
+        const outTransfer = transfers.find(t => t.direction === "Sent");
+        const inTransfer = transfers.find(t => t.direction === "Received");
+        if (outTransfer && inTransfer) {
+            const outAmt = parseFloat(outTransfer.amount);
+            const inAmt = parseFloat(inTransfer.amount);
+            const outDisplay = outAmt >= 1000 ? formatNumber(outAmt) : outAmt.toFixed(2);
+            const inDisplay = inAmt >= 1000 ? formatNumber(inAmt) : inAmt.toFixed(2);
+            return {
+                display: `${outDisplay} ${outTransfer.symbol} → ${inDisplay} ${inTransfer.symbol}`,
+                isComplex: false
+            };
+        }
+    }
+
+    // For complex multi-step trades (3+ transfers)
+    // Find the main sent and received tokens (largest amounts or first/last)
+    const sentTransfers = transfers.filter(t => t.direction === "Sent");
+    const receivedTransfers = transfers.filter(t => t.direction === "Received");
+
+    if (isSwap && sentTransfers.length > 0 && receivedTransfers.length > 0) {
+        // Find the primary sent (largest amount out)
+        const primarySent = sentTransfers.reduce((max, t) =>
+            parseFloat(t.amount) > parseFloat(max.amount) ? t : max
+        );
+        // Find the primary received (largest amount in)  
+        const primaryReceived = receivedTransfers.reduce((max, t) =>
+            parseFloat(t.amount) > parseFloat(max.amount) ? t : max
+        );
+
+        const outAmt = parseFloat(primarySent.amount);
+        const inAmt = parseFloat(primaryReceived.amount);
+        const outDisplay = outAmt >= 1000 ? formatNumber(outAmt) : outAmt.toFixed(2);
+        const inDisplay = inAmt >= 1000 ? formatNumber(inAmt) : inAmt.toFixed(2);
+
+        const extraCount = transfers.length - 2;
+        const extraText = extraCount > 0 ? ` (+${extraCount})` : '';
+
+        return {
+            display: `${outDisplay} ${primarySent.symbol} → ${inDisplay} ${primaryReceived.symbol}${extraText}`,
+            isComplex: true,
+            transfers
+        };
+    }
+
+    // Fallback for non-swap multi-token transactions
+    // Just show first 2 and count
+    if (transfers.length > 2) {
+        const firstTwo = transfers.slice(0, 2).map(t => {
+            const amt = parseFloat(t.amount);
+            const amtDisplay = amt >= 1000 ? formatNumber(amt) : amt.toFixed(2);
+            const sign = t.direction === "Received" ? "+" : "-";
+            return `${sign}${amtDisplay} ${t.symbol}`;
+        });
+        return {
+            display: `${firstTwo.join(", ")} (+${transfers.length - 2})`,
+            isComplex: true,
+            transfers
+        };
+    }
+
+    // 2 transfers that aren't a swap pattern
+    return {
+        display: transfers.map(t => t.formatted).join(", "),
+        isComplex: false
+    };
 };
 
 // Truncate address
@@ -300,6 +401,12 @@ const detectChain = (network: string): { explorer: string; symbol: string; name:
     if (networkLower.includes("cronos") && networkLower.includes("test")) {
         return CHAIN_CONFIG["cronos-testnet"];
     }
+    if (networkLower.includes("cronos") && networkLower.includes("zkevm")) {
+        return CHAIN_CONFIG["cronos-zkevm"];
+    }
+    if (networkLower.includes("zkevm") && networkLower.includes("cronos")) {
+        return CHAIN_CONFIG["cronos-zkevm"];
+    }
     if (networkLower.includes("cronos")) {
         return CHAIN_CONFIG.cronos;
     }
@@ -411,19 +518,13 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
                         const style = getTransactionStyle(tx.direction, tx.txType);
                         const IconComponent = style.icon;
 
-                        // Parse value for display
-                        let valueDisplay = tx.value || "0";
-                        // Handle token transfer display
-                        if (tx.tokenTransfer) {
-                            if (Array.isArray(tx.tokenTransfer)) {
-                                valueDisplay = tx.tokenTransfer.map(t => t.formatted).join(", ");
-                            } else {
-                                valueDisplay = tx.tokenTransfer.formatted;
-                            }
-                        }
+                        // Parse value for display using smart formatting
+                        const tokenFormatted = formatTokenTransfers(tx.tokenTransfer, tx.txType);
+                        let valueDisplay = tokenFormatted.display || tx.value || "0";
 
-                        // Clean value of existing signs to avoid ++/--
-                        const cleanValue = valueDisplay.replace(/^[+-]/, '');
+                        // Clean value of existing signs to avoid ++/-- (but keep → for swaps)
+                        const hasArrow = valueDisplay.includes('→');
+                        const cleanValue = hasArrow ? valueDisplay : valueDisplay.replace(/^[+-]/, '');
 
                         // Determine how to display the value based on transaction type
                         const txTypeLower = tx.txType?.toLowerCase() || '';
@@ -434,7 +535,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
                         let finalValueDisplay = cleanValue;
                         let valueColor = "text-zinc-600 dark:text-zinc-300";
 
-                        if (isTradeOrSwap) {
+                        if (isTradeOrSwap || hasArrow) {
                             // Trades/swaps already have arrow in formatted string
                             valueColor = "text-blue-600 dark:text-blue-400";
                         } else if (isApproveOrRevoke || isDeployOrExecute) {

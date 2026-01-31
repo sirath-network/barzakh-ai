@@ -290,7 +290,15 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         }
       });
 
-      setProtocolPositions(Array.from(protocolMap.values()).sort((a, b) => b.totalValue - a.totalValue));
+      // Filter out protocols with total value below $1
+      const filteredPositions = Array.from(protocolMap.values())
+        .map(pos => ({
+          ...pos,
+          tokens: pos.tokens.filter(t => t.value >= 1) // Hide dust tokens
+        }))
+        .filter(pos => pos.totalValue >= 1) // Hide dust protocols
+        .sort((a, b) => b.totalValue - a.totalValue);
+      setProtocolPositions(filteredPositions);
     } catch (error) {
       console.error('Error fetching protocol positions:', error);
       setProtocolPositions([]);
@@ -394,14 +402,25 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
   // Auto-expand chain breakdown when there's only a few chains (better UX)
   // Works for all chains including Solana now that it uses the same expandable view
+  // Use a ref to track which chains we've already auto-expanded to prevent infinite loops
+  const autoExpandedChainsRef = React.useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Reset auto-expanded tracking when wallet changes
+    autoExpandedChainsRef.current = new Set();
+  }, [result.id]);
+
   useEffect(() => {
     // Auto-expand if there are 1-3 chains to show token details immediately
     if (chains.length > 0 && chains.length <= 3) {
       const chainsToExpand = chains.slice(0, Math.min(chains.length, 2)); // Expand up to 2 chains
+
       chainsToExpand.forEach(([chain]) => {
-        if (!expandedChains[chain] && !chainTokens[chain]) {
-          // Trigger expansion for each chain
-          toggleChainExpansion(chain);
+        // Only auto-expand if we haven't already done so for this chain
+        if (!autoExpandedChainsRef.current.has(chain) && !expandedChains[chain] && !chainTokens[chain]) {
+          autoExpandedChainsRef.current.add(chain);
+          // Use setTimeout to avoid calling setState during render
+          setTimeout(() => toggleChainExpansion(chain), 0);
         }
       });
     }
@@ -450,7 +469,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
           price: position.attributes?.price || 0,
           icon: position.attributes?.fungible_info?.icon?.url || undefined,
           change24h: position.attributes?.changes?.percent_1d // Attempt to get 24h change if available
-        })) || [];
+        })).filter((t: ChainTokenDetail) => t.value >= 1) || []; // Hide dust tokens below $1
 
         setChainTokens(prev => ({ ...prev, [chain]: tokens }));
       } catch (error) {
@@ -527,7 +546,6 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={isSolanaWallet ? {} : { scale: 1.01 }}
           transition={{ delay: 0.1 }}
           className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-600 cursor-pointer group'}`}
           onClick={toggleProtocols}
@@ -595,7 +613,6 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         key={idx}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.01 }}
                         transition={{ delay: idx * 0.05 }}
                         className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700/50 p-4 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
                       >
@@ -629,7 +646,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         </div>
 
                         <div className="space-y-3">
-                          {position.tokens.map((token, tIdx) => (
+                          {position.tokens.filter(t => t.value >= 1).map((token, tIdx) => (
                             <div key={tIdx} className="flex justify-between items-start">
                               <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-3">
                                 {token.icon ? (
@@ -696,7 +713,6 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 key={chain}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: isExpanded ? 1 : 1.005 }}
                 transition={{ delay: index * 0.05 }}
                 className="group overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
               >
@@ -750,7 +766,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                             <div className="col-span-6 sm:col-span-4 text-right">Value</div>
                           </div>
 
-                          {tokens.map((token, idx) => (
+                          {tokens.filter(t => t.value >= 1).map((token, idx) => (
                             <motion.div
                               key={idx}
                               initial={{ opacity: 0 }}
@@ -808,7 +824,6 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={isSolanaWallet ? {} : { scale: 1.01 }}
           transition={{ delay: 0.2 }}
           className={`md:col-span-1 relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700/50 bg-white dark:bg-zinc-900 shadow-sm transition-colors ${isSolanaWallet ? 'cursor-default opacity-75' : 'hover:border-zinc-300 dark:hover:border-zinc-600 cursor-pointer group'}`}
           onClick={toggleNfts}
@@ -879,7 +894,6 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                         key={idx}
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ scale: 1.01 }}
                         transition={{ delay: idx * 0.05 }}
                         className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-700/50 p-3 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
                       >

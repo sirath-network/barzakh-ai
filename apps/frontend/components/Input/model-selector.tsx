@@ -114,10 +114,7 @@ const ModelOptionList = ({
           isDarkTheme
             ? "text-neutral-100/90 hover:bg-neutral-800/80 focus:bg-neutral-800/80"
             : "text-neutral-900 hover:bg-neutral-50 focus:bg-neutral-50",
-          isSelected &&
-          (isDarkTheme
-            ? "bg-neutral-800 text-foreground"
-            : "bg-white text-neutral-900 ring-1 ring-neutral-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)]")
+          isSelected && "bg-accent/60 ring-1 ring-primary/30"
         );
 
         const content = (

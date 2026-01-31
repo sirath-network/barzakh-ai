@@ -163,56 +163,228 @@ export const getZkEVMBalance = tool({
 
 /**
  * Get transaction history on Cronos zkEVM
- * Endpoint: account/getTxsByAddress
- * Note: API limits block range to max 
+ * Endpoint: account/getTxsByAddress + getERC20TransferByAddress + getInternalTxsByAddress
+ * Note: API limits block range to max 10,000 blocks per request, so we paginate
+ * Merges token transfers and internal transactions for accurate display
  */
 export const getZkEVMTransactionHistory = tool({
     description: "Get the latest transactions for a wallet address on Cronos zkEVM (Chain ID 388). Use for zkEVM transaction history.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        blockRange: z.number().optional().default(2000000).describe("Number of recent blocks to search (default: 2000000)"),
+        blockRange: z.number().optional().default(100000).describe("Number of recent blocks to search (default: 100000, fetched in 10k chunks)"),
     }),
-    execute: async ({ address, blockRange = 2000000 }) => {
+    execute: async ({ address, blockRange = 100000 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) {
                 return { error: "Invalid address format", details: "Address must be 0x followed by 40 hex characters" };
             }
 
-            // First, get current block number
+            // Get current block number
             const blockData = await zkevmApiRequest("ethproxy", "getBlockNumber", {});
             const currentBlock = parseInt(blockData.result, 16);
-            const startBlock = Math.max(0, currentBlock - blockRange);
+            const targetStartBlock = Math.max(0, currentBlock - blockRange);
 
-            console.log(`[zkEVM] Fetching txs from block ${startBlock} to ${currentBlock}`);
+            console.log(`[zkEVM] Fetching txs, token transfers, and internal txs from block ${targetStartBlock} to ${currentBlock}`);
 
-            const data = await zkevmApiRequest("account", "getTxsByAddress", {
-                address,
-                startBlock: startBlock.toString(),
-                endBlock: currentBlock.toString(),
+            // API limits to 10,000 blocks per request - fetch in parallel chunks
+            const CHUNK_SIZE = 10000;
+            const MAX_CHUNKS = 5; // Reduce to 5 chunks since we're fetching 3 types
+
+            const allTxs: any[] = [];
+            const allTokenTransfers: any[] = [];
+            const allInternalTxs: any[] = [];
+
+            // Build requests for all chunks
+            let endBlock = currentBlock;
+            let chunksProcessed = 0;
+
+            while (endBlock > targetStartBlock && chunksProcessed < MAX_CHUNKS) {
+                const startBlock = Math.max(targetStartBlock, endBlock - CHUNK_SIZE);
+
+                try {
+                    // Fetch all 3 types in parallel for this chunk
+                    const [txData, tokenData, internalData] = await Promise.all([
+                        zkevmApiRequest("account", "getTxsByAddress", {
+                            address,
+                            startBlock: startBlock.toString(),
+                            endBlock: endBlock.toString(),
+                        }).catch(() => ({ result: [] })),
+                        zkevmApiRequest("account", "getERC20TransferByAddress", {
+                            address,
+                            startBlock: startBlock.toString(),
+                            endBlock: endBlock.toString(),
+                        }).catch(() => ({ result: [] })),
+                        zkevmApiRequest("account", "getInternalTxsByAddress", {
+                            address,
+                            startBlock: startBlock.toString(),
+                            endBlock: endBlock.toString(),
+                        }).catch(() => ({ result: [] })),
+                    ]);
+
+                    // Collect all data
+                    const txList = txData.result || txData.items || [];
+                    const tokenList = tokenData.result || tokenData.items || [];
+                    const internalList = internalData.result || internalData.items || [];
+
+                    allTxs.push(...txList);
+                    allTokenTransfers.push(...tokenList);
+                    allInternalTxs.push(...internalList);
+
+                } catch (chunkError: any) {
+                    console.error(`[zkEVM] Chunk ${startBlock}-${endBlock} failed:`, chunkError.message);
+                }
+
+                endBlock = startBlock;
+                chunksProcessed++;
+            }
+
+            // Group token transfers by transaction hash
+            const tokenTransfersByHash = new Map<string, any[]>();
+            for (const transfer of allTokenTransfers) {
+                const hash = (transfer.transactionHash || transfer.hash || "").toLowerCase();
+                if (!hash) continue;
+
+                const toAddr = typeof transfer.to === 'object' ? transfer.to?.address : transfer.to;
+                const isReceiving = (toAddr || "").toLowerCase() === address.toLowerCase();
+
+                // Extract token metadata - API returns it nested in tokenMetadata object
+                const tokenMeta = transfer.tokenMetadata || {};
+                const tokenSymbol = tokenMeta.tokenSymbol || transfer.tokenSymbol || "TOKEN";
+                const tokenName = tokenMeta.tokenName || transfer.tokenName || "Unknown Token";
+                const decimals = parseInt(tokenMeta.decimals || transfer.tokenDecimal || "18", 10);
+                const contractAddress = tokenMeta.tokenAddress || transfer.contractAddress || "";
+
+                const rawValue = BigInt(transfer.value || "0");
+                const tokenAmount = Number(rawValue) / Math.pow(10, decimals);
+                const sign = isReceiving ? "+" : "-";
+
+                const transferData = {
+                    direction: isReceiving ? "Received" : "Sent",
+                    amount: tokenAmount.toFixed(6),
+                    symbol: tokenSymbol,
+                    formatted: `${sign}${tokenAmount.toFixed(4)} ${tokenSymbol}`,
+                    tokenName: tokenName,
+                    contractAddress: contractAddress,
+                };
+
+                if (!tokenTransfersByHash.has(hash)) {
+                    tokenTransfersByHash.set(hash, []);
+                }
+                tokenTransfersByHash.get(hash)!.push(transferData);
+            }
+
+            // Add internal transactions (native zkCRO from contract calls/swaps)
+            for (const intTx of allInternalTxs) {
+                const hash = (intTx.transactionHash || intTx.hash || "").toLowerCase();
+                if (!hash) continue;
+
+                const intToAddr = typeof intTx.to === 'object' ? intTx.to?.address : intTx.to;
+                const isReceiving = (intToAddr || "").toLowerCase() === address.toLowerCase();
+                const valueZkCRO = parseFloat(intTx.value || "0") / 1e18;
+
+                if (valueZkCRO > 0.000001) {
+                    const sign = isReceiving ? "+" : "-";
+                    const transferData = {
+                        direction: isReceiving ? "Received" : "Sent",
+                        amount: valueZkCRO.toFixed(6),
+                        symbol: "zkCRO",
+                        formatted: `${sign}${valueZkCRO.toFixed(4)} zkCRO`,
+                        tokenName: "Cronos zkEVM",
+                        contractAddress: "",
+                    };
+
+                    if (!tokenTransfersByHash.has(hash)) {
+                        tokenTransfersByHash.set(hash, []);
+                    }
+                    tokenTransfersByHash.get(hash)!.push(transferData);
+                }
+            }
+
+            // Build final transaction list with merged token data
+            const transactions = allTxs.map((tx: any) => {
+                const hash = (tx.transactionHash || tx.hash || "").toLowerCase();
+                const isFrom = (tx.from?.address || tx.from || "").toLowerCase() === address.toLowerCase();
+                const isTo = (tx.to?.address || tx.to || "").toLowerCase() === address.toLowerCase();
+
+                let direction = "SELF";
+                if (isFrom && !isTo) direction = "OUT";
+                else if (isTo && !isFrom) direction = "IN";
+
+                // Native value
+                const valueWei = BigInt(tx.value || "0");
+                const valueZkCRO = Number(valueWei) / 1e18;
+
+                // Get merged token transfers
+                const tokenTransfers = tokenTransfersByHash.get(hash);
+                const hasTokenTransfers = tokenTransfers && tokenTransfers.length > 0;
+
+                // Determine transaction type
+                let txType = "Transaction";
+                if (hasTokenTransfers && tokenTransfers!.length > 1) {
+                    txType = "Trade";
+                } else if (hasTokenTransfers) {
+                    txType = "Transfer";
+                } else if (valueZkCRO > 0) {
+                    txType = direction === "IN" ? "Receive" : "Send";
+                }
+
+                // Build display value
+                let valueFormatted: string;
+                let tokenTransferData: any = undefined;
+
+                if (hasTokenTransfers) {
+                    if (tokenTransfers!.length === 1) {
+                        valueFormatted = tokenTransfers![0].formatted;
+                        tokenTransferData = tokenTransfers![0];
+                    } else if (tokenTransfers!.length === 2) {
+                        const outTransfer = tokenTransfers!.find(t => t.direction === "Sent");
+                        const inTransfer = tokenTransfers!.find(t => t.direction === "Received");
+                        if (outTransfer && inTransfer) {
+                            valueFormatted = `${parseFloat(outTransfer.amount).toFixed(4)} ${outTransfer.symbol} → ${parseFloat(inTransfer.amount).toFixed(4)} ${inTransfer.symbol}`;
+                        } else {
+                            valueFormatted = tokenTransfers!.map(t => t.formatted).join(", ");
+                        }
+                        tokenTransferData = tokenTransfers;
+                    } else {
+                        valueFormatted = tokenTransfers!.map(t => t.formatted).join(", ");
+                        tokenTransferData = tokenTransfers;
+                    }
+                } else {
+                    const sign = direction === "IN" ? "+" : direction === "OUT" ? "-" : "";
+                    valueFormatted = `${sign}${valueZkCRO.toFixed(6)} zkCRO`;
+                }
+
+                return {
+                    hash: tx.transactionHash || tx.hash,
+                    from: tx.from?.address || tx.from,
+                    to: tx.to?.address || tx.to,
+                    value: valueFormatted,
+                    direction,
+                    txType,
+                    timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
+                    blockNumber: tx.blockNumber,
+                    status: tx.status === 1 || tx.isError === "0" ? "Success" : "Failed",
+                    tokenTransfer: tokenTransferData,
+                    explorerUrl: `https://explorer.zkevm.cronos.org/tx/${tx.transactionHash || tx.hash}`,
+                };
             });
 
-            // Handle response format from API
-            const txList = data.result || data.items || [];
-            const transactions = txList.map((tx: any) => ({
-                hash: tx.transactionHash || tx.hash,
-                from: typeof tx.from === 'object' ? tx.from.address : tx.from,
-                to: typeof tx.to === 'object' ? tx.to.address : tx.to,
-                value: tx.value ? `${(Number(BigInt(tx.value)) / 1e18).toFixed(6)} zkCRO` : "0 zkCRO",
-                timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
-                blockNumber: tx.blockNumber,
-                gasUsed: tx.gas || tx.gasUsed,
-                status: tx.status === 1 || tx.isError === "0" ? "Success" : "Failed",
-                methodId: tx.methodId,
-            }));
+            // Sort by block number descending (newest first) and deduplicate
+            const seen = new Set<string>();
+            const uniqueTxs = transactions.filter(tx => {
+                if (seen.has(tx.hash)) return false;
+                seen.add(tx.hash);
+                return true;
+            });
+            uniqueTxs.sort((a, b) => (b.blockNumber || 0) - (a.blockNumber || 0));
 
             return {
                 address,
                 network: "Cronos zkEVM Mainnet",
                 chainId: 388,
-                blockRange: { from: startBlock, to: currentBlock },
-                transactionCount: transactions.length,
-                totalRecords: data.pagination?.totalRecord || transactions.length,
-                transactions,
+                blockRange: { from: targetStartBlock, to: currentBlock },
+                transactionCount: uniqueTxs.length,
+                transactions: uniqueTxs.slice(0, 50),
                 timestamp: new Date().toISOString(),
                 explorerUrl: `https://explorer.zkevm.cronos.org/address/${address}`,
             };
@@ -319,49 +491,72 @@ export const getZkEVMGasPrice = tool({
 /**
  * Get ERC-20 token transfers for a wallet on Cronos zkEVM
  * Endpoint: account/getERC20TransferByAddress
- * Note: API limits block range to max 
+ * Note: API limits block range to max 10,000 blocks per request, so we paginate
  */
 export const getZkEVMTokenTransfers = tool({
     description: "Get ERC-20 token transfer history for a wallet on Cronos zkEVM (Chain ID 388).",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        blockRange: z.number().optional().default(2000000).describe("Number of recent blocks to search (default: 2000000)"),
+        blockRange: z.number().optional().default(100000).describe("Number of recent blocks to search (default: 100000, fetched in 10k chunks)"),
     }),
-    execute: async ({ address, blockRange = 2000000 }) => {
+    execute: async ({ address, blockRange = 100000 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) return { error: "Invalid wallet address format" };
 
             // Get current block number first
             const blockData = await zkevmApiRequest("ethproxy", "getBlockNumber", {});
             const currentBlock = parseInt(blockData.result, 16);
-            const startBlock = Math.max(0, currentBlock - blockRange);
+            const targetStartBlock = Math.max(0, currentBlock - blockRange);
 
-            const data = await zkevmApiRequest("account", "getERC20TransferByAddress", {
-                address,
-                startBlock: startBlock.toString(),
-                endBlock: currentBlock.toString(),
-            });
+            // API limits to 10,000 blocks per request, so paginate in chunks
+            const CHUNK_SIZE = 10000;
+            const MAX_CHUNKS = 10;
+            const allTransfers: any[] = [];
 
-            const txList = data.result || data.items || [];
-            const transfers = txList.map((tx: any) => ({
-                hash: tx.transactionHash || tx.hash,
-                from: typeof tx.from === 'object' ? tx.from.address : tx.from,
-                to: typeof tx.to === 'object' ? tx.to.address : tx.to,
-                tokenName: tx.tokenName,
-                tokenSymbol: tx.tokenSymbol,
-                tokenDecimal: tx.tokenDecimal,
-                value: tx.value,
-                contractAddress: tx.contractAddress,
-                timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
-            }));
+            let endBlock = currentBlock;
+            let chunksProcessed = 0;
+
+            while (endBlock > targetStartBlock && chunksProcessed < MAX_CHUNKS) {
+                const startBlock = Math.max(targetStartBlock, endBlock - CHUNK_SIZE);
+
+                try {
+                    const data = await zkevmApiRequest("account", "getERC20TransferByAddress", {
+                        address,
+                        startBlock: startBlock.toString(),
+                        endBlock: endBlock.toString(),
+                    });
+
+                    const txList = data.result || data.items || [];
+                    for (const tx of txList) {
+                        // Extract token metadata from nested object
+                        const tokenMeta = tx.tokenMetadata || {};
+                        allTransfers.push({
+                            hash: tx.transactionHash || tx.hash,
+                            from: typeof tx.from === 'object' ? tx.from.address : tx.from,
+                            to: typeof tx.to === 'object' ? tx.to.address : tx.to,
+                            tokenName: tokenMeta.tokenName || tx.tokenName || "Unknown Token",
+                            tokenSymbol: tokenMeta.tokenSymbol || tx.tokenSymbol || "TOKEN",
+                            tokenDecimal: tokenMeta.decimals || tx.tokenDecimal || "18",
+                            value: tx.value,
+                            contractAddress: tokenMeta.tokenAddress || tx.contractAddress || "",
+                            timestamp: tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : null,
+                        });
+                    }
+                } catch (chunkError: any) {
+                    console.error(`[zkEVM] Token transfer chunk ${startBlock}-${endBlock} failed:`, chunkError.message);
+                }
+
+                endBlock = startBlock;
+                chunksProcessed++;
+            }
 
             return {
                 address,
                 network: "Cronos zkEVM Mainnet",
                 chainId: 388,
-                blockRange: { from: startBlock, to: currentBlock },
-                transferCount: transfers.length,
-                transfers,
+                blockRange: { from: targetStartBlock, to: currentBlock },
+                transferCount: allTransfers.length,
+                transfers: allTransfers.slice(0, 50),
                 timestamp: new Date().toISOString(),
             };
         } catch (error: any) {
@@ -374,46 +569,67 @@ export const getZkEVMTokenTransfers = tool({
 /**
  * Get internal transactions for a wallet on Cronos zkEVM
  * Endpoint: account/getInternalTxsByAddress
- * Note: API limits block range to max 
+ * Note: API limits block range to max 10,000 blocks per request, so we paginate
  */
 export const getZkEVMInternalTxList = tool({
     description: "Get internal transactions for a wallet on Cronos zkEVM (Chain ID 388).",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        blockRange: z.number().optional().default(2000000).describe("Number of recent blocks to search (default: 2000000)"),
+        blockRange: z.number().optional().default(100000).describe("Number of recent blocks to search (default: 100000, fetched in 10k chunks)"),
     }),
-    execute: async ({ address, blockRange = 2000000 }) => {
+    execute: async ({ address, blockRange = 100000 }) => {
         try {
             if (!address.startsWith("0x") || address.length !== 42) return { error: "Invalid wallet address format" };
 
             // Get current block number first
             const blockData = await zkevmApiRequest("ethproxy", "getBlockNumber", {});
             const currentBlock = parseInt(blockData.result, 16);
-            const startBlock = Math.max(0, currentBlock - blockRange);
+            const targetStartBlock = Math.max(0, currentBlock - blockRange);
 
-            const data = await zkevmApiRequest("account", "getInternalTxsByAddress", {
-                address,
-                startBlock: startBlock.toString(),
-                endBlock: currentBlock.toString(),
-            });
+            // API limits to 10,000 blocks per request, so paginate in chunks
+            const CHUNK_SIZE = 10000;
+            const MAX_CHUNKS = 10;
+            const allTransactions: any[] = [];
 
-            const txList = data.result || data.items || [];
-            const transactions = txList.map((tx: any) => ({
-                hash: tx.transactionHash || tx.hash,
-                from: typeof tx.from === 'object' ? tx.from.address : tx.from,
-                to: typeof tx.to === 'object' ? tx.to.address : tx.to,
-                value: tx.value ? `${(Number(BigInt(tx.value)) / 1e18).toFixed(6)} zkCRO` : "0 zkCRO",
-                type: tx.type,
-                isError: tx.isError,
-            }));
+            let endBlock = currentBlock;
+            let chunksProcessed = 0;
+
+            while (endBlock > targetStartBlock && chunksProcessed < MAX_CHUNKS) {
+                const startBlock = Math.max(targetStartBlock, endBlock - CHUNK_SIZE);
+
+                try {
+                    const data = await zkevmApiRequest("account", "getInternalTxsByAddress", {
+                        address,
+                        startBlock: startBlock.toString(),
+                        endBlock: endBlock.toString(),
+                    });
+
+                    const txList = data.result || data.items || [];
+                    for (const tx of txList) {
+                        allTransactions.push({
+                            hash: tx.transactionHash || tx.hash,
+                            from: typeof tx.from === 'object' ? tx.from.address : tx.from,
+                            to: typeof tx.to === 'object' ? tx.to.address : tx.to,
+                            value: tx.value ? `${(Number(BigInt(tx.value)) / 1e18).toFixed(6)} zkCRO` : "0 zkCRO",
+                            type: tx.type,
+                            isError: tx.isError,
+                        });
+                    }
+                } catch (chunkError: any) {
+                    console.error(`[zkEVM] Internal tx chunk ${startBlock}-${endBlock} failed:`, chunkError.message);
+                }
+
+                endBlock = startBlock;
+                chunksProcessed++;
+            }
 
             return {
                 address,
                 network: "Cronos zkEVM Mainnet",
                 chainId: 388,
-                blockRange: { from: startBlock, to: currentBlock },
-                transactionCount: transactions.length,
-                transactions,
+                blockRange: { from: targetStartBlock, to: currentBlock },
+                transactionCount: allTransactions.length,
+                transactions: allTransactions.slice(0, 50),
                 timestamp: new Date().toISOString(),
             };
         } catch (error: any) {
