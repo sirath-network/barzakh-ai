@@ -490,7 +490,7 @@ const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string;
   const components = useMemo(() => createComponents(allWebFiles), [allWebFiles]);
 
   return (
-    <div className="markdown-body max-w-full min-w-0">
+    <div className="markdown-body max-w-full min-w-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
         {filteredChildren}
       </ReactMarkdown>

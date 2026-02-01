@@ -734,7 +734,7 @@ const PurePreviewMessage = ({
                             if (textContent.trim()) {
                               return (
                                 <div
-                                  className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
+                                  className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 py-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
                                   style={{
                                     borderRadius: '15px 15px 0px 15px'
                                   }}

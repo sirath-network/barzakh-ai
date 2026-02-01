@@ -2,15 +2,14 @@
 
 import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { useEffect, useState } from "react";
+import { cn } from "@barzakh/shared/lib/utils/utils";
 
 interface ThinkingAnimationProps {
     statusText?: string;
 }
 
-// Komponen animasi 'Thinking' yang diperbaiki
 export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
-    // Keep track of the last non-empty status to prevent flickering back to generic "Thinking"
-    // when a tool finishes but the LLM is still preparing the response
+    // Keep track of the last non-empty status
     const [lastValidStatus, setLastValidStatus] = useState<string | undefined>(undefined);
 
     useEffect(() => {
@@ -19,115 +18,50 @@ export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
         }
     }, [statusText]);
 
-    // Use dynamic status text if provided, otherwise fallback to last valid status, then "Processing"
-    const displayText = statusText || lastValidStatus || "Processing";
-    const containerVariants = {
-        hidden: {
-            opacity: 0,
-            y: 2,
-        },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0,
-                staggerChildren: 0,
-            },
-        },
-    };
-
-    const textVariants = {
-        hidden: {
-            opacity: 0,
-            x: -5,
-        },
-        visible: {
-            opacity: 1,
-            x: 0,
-            transition: {
-                duration: 0,
-            },
-        },
-    };
-
-    const dotsContainerVariants = {
-        hidden: {
-            opacity: 0,
-        },
-        visible: {
-            opacity: 1,
-            transition: {
-                duration: 0,
-                staggerChildren: 0.08,
-            },
-        },
-    };
-
-    const dotVariants = {
-        hidden: {
-            opacity: 0.3,
-            scale: 0.7,
-        },
-        visible: {
-            opacity: [0.3, 1, 0.3],
-            scale: [0.7, 1, 0.7],
-            transition: {
-                duration: 1.4,
-                repeat: Infinity,
-                ease: "easeInOut",
-            },
-        },
-    };
+    const displayText = statusText || lastValidStatus || "Thinking";
 
     return (
-        <motion.div
-            className="flex items-center gap-3 py-3 px-1"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit={{
-                opacity: 0,
-                y: -5,
-                transition: { duration: 0.25, ease: "easeIn" }
-            }}
-        >
-            {/* Text di sebelah kiri */}
+        <div className="flex items-center h-8 gap-3 px-1">
             <AnimatePresence mode="wait">
-                <motion.span
+                <motion.div
                     key={displayText}
-                    className="text-sm font-medium text-muted-foreground select-none leading-none"
-                    variants={textVariants}
-                    initial={{ opacity: 0, x: -5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 5 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative overflow-hidden"
                 >
-                    {displayText}
-                </motion.span>
+                    <span
+                        className={cn(
+                            "text-sm font-medium bg-clip-text text-transparent bg-[length:200%_auto] tracking-tight",
+                            // Light mode: Medium Gray -> Black -> Medium Gray
+                            "bg-gradient-to-r from-gray-500 via-gray-900 to-gray-500",
+                            // Dark mode: Zinc 500 -> White -> Zinc 500
+                            "dark:from-zinc-500 dark:via-white dark:to-zinc-500",
+                            "animate-shimmer"
+                        )}
+                        style={{
+                            backgroundSize: "200% 100%",
+                            WebkitBackgroundClip: "text",
+                            backgroundClip: "text",
+                            animation: "shimmer 1.5s linear infinite",
+                            willChange: "background-position"
+                        }}
+                    >
+                        {displayText}
+                    </span>
+                    <style jsx global>{`
+                        @keyframes shimmer {
+                            0% {
+                                background-position: 200% center;
+                            }
+                            100% {
+                                background-position: -200% center;
+                            }
+                        }
+                    `}</style>
+                </motion.div>
             </AnimatePresence>
-
-            {/* Dots animation di sebelah kanan dengan baseline alignment */}
-            <motion.div
-                className="flex items-center gap-1 h-[14px]"
-                variants={dotsContainerVariants}
-                style={{ alignItems: 'center' }}
-            >
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-                <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60"
-                    variants={dotVariants}
-                    style={{ transformOrigin: 'center center' }}
-                />
-            </motion.div>
-        </motion.div>
+        </div>
     );
 };

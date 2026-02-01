@@ -78,7 +78,7 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
     const address = params?.address || params?.walletAddress;
     if (address) {
       const short = address.slice(0, 6);
-      return `Analyzing portfolio for ${short}...`;
+      return `Analyzing portfolio for ${short}`;
     }
     return "Scanning EVM assets and positions";
   },
