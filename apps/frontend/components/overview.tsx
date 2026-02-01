@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "next-auth";
 import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
+import { Skeleton } from "./ui/skeleton";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -79,9 +80,7 @@ export const Overview = ({ user }: OverviewProps) => {
               <div className="relative">
                 {userImage ? (
                   isLoadingAvatar ? (
-                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center">
-                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    </div>
+                    <Skeleton className="w-16 h-16 rounded-full" />
                   ) : (
                     <img
                       src={signedAvatarUrl || userImage}

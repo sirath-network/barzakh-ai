@@ -19,6 +19,7 @@ import useSWR from "swr";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
 import { handleLogout } from "@/lib/auth-utils";
 import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   DropdownMenu,
@@ -139,9 +140,7 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
           <div className="flex w-full items-center justify-start gap-3">
             {user?.image ? (
               isLoadingAvatar ? (
-                <div className={`rounded-full shadow-sm bg-muted/30 flex items-center justify-center ${compact ? 'w-8 h-8' : 'w-8 h-8'}`}>
-                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                </div>
+                <Skeleton className={`rounded-full ${compact ? 'w-8 h-8' : 'w-8 h-8'}`} />
               ) : (
                 <img
                   src={signedAvatarUrl || user.image}
@@ -189,9 +188,7 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             {user.image ? (
               isLoadingAvatar ? (
-                <div className="rounded-full w-8 h-8 bg-muted/30 flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                </div>
+                <Skeleton className="w-8 h-8 rounded-full" />
               ) : (
                 <img
                   src={signedAvatarUrl || user.image}

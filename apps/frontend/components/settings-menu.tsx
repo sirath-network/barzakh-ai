@@ -23,6 +23,7 @@ import { useView, type SettingsPageType } from "@/context/view-context";
 // Pastikan useSidebar sudah diimpor
 import { useSidebar } from "./ui/sidebar";
 import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ButtonAny = Button as any;
 const SunIconAny = SunIcon as any;
@@ -89,9 +90,7 @@ export function SettingsMenu({
         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center ${!user?.image ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
           {user?.image ? (
             isLoadingAvatar ? (
-              <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-              </div>
+              <Skeleton className="w-full h-full rounded-full" />
             ) : (
               <img
                 src={signedAvatarUrl || user.image}

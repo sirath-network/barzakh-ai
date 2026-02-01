@@ -9,6 +9,7 @@ import clsx from "clsx";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
+import { Skeleton } from "./ui/skeleton";
 
 // --- ICONS & HELPERS (Moved outside the component) ---
 
@@ -219,9 +220,7 @@ export const PreviewAttachment = ({
         >
           {isImage ? (
             isLoadingSignedUrl ? (
-              <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-2xl">
-                <div className="animate-spin w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
-              </div>
+              <Skeleton className="w-full h-full rounded-2xl" />
             ) : (
               <img
                 key={displayUrl}
@@ -382,9 +381,7 @@ export const PreviewAttachment = ({
           <div className="w-full h-full flex items-center justify-center pt-14 pb-4 px-4">
             {isImage ? (
               isLoadingSignedUrl ? (
-                <div className="max-w-full max-h-[85vh] flex items-center justify-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full" />
-                </div>
+                <Skeleton className="w-full h-[50vh] rounded-2xl" />
               ) : (
                 <img
                   src={displayUrl}

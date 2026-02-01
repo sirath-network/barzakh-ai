@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { Download, Eye, X, AlertCircle, Share2, ChevronLeft, ChevronRight, Images, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
+import { Skeleton } from "./ui/skeleton";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -456,11 +457,8 @@ export function AIGeneratedImage({
 
   if (isLoadingSignedUrl) {
     return (
-      <div className={cn("w-full flex items-center justify-center py-16", className)}>
-        <div className="flex flex-col items-center gap-3">
-          {(() => { const Loader2Any = Loader2 as any; return <Loader2Any className="w-8 h-8 animate-spin text-muted-foreground" />; })()}
-          <p className="text-sm text-muted-foreground">Loading image...</p>
-        </div>
+      <div className={cn("w-full", className)}>
+        <Skeleton className="w-full h-64 md:h-80 rounded-3xl" />
       </div>
     );
   }

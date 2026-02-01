@@ -9,6 +9,7 @@ import DeleteAccountModal from "./delete-account-modal";
 import ImageCropModal from "./image-crop-modal";
 import { RESERVED_USERNAMES, isReservedUsername } from "@/lib/reserved-usernames";
 import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -336,9 +337,7 @@ export default function AccountSettingsPage() {
                         <div className={`w-20 h-20 rounded-full shadow-lg overflow-hidden flex items-center justify-center ${(!avatar || isLoadingAvatar) ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
                           {avatar ? (
                             isLoadingAvatar ? (
-                              <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                              </div>
+                              <Skeleton className="w-full h-full rounded-full" />
                             ) : signedAvatarUrl ? (
                               <img
                                 src={signedAvatarUrl}
