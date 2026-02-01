@@ -178,7 +178,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                         {/* Marble Header Image */}
                         <div className="relative h-32 w-full overflow-hidden">
                             <Image
-                                src="/images/barzakh/banner/marble-new.png"
+                                src="/images/barzakh/banner/x402-art.png"
                                 alt="Marble Texture"
                                 fill
                                 className="object-cover opacity-80"
@@ -249,7 +249,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                     {/* Marble Header Image */}
                     <div className="relative h-32 w-full overflow-hidden">
                         <Image
-                            src="/images/barzakh/banner/marble-new.png"
+                            src="/images/barzakh/banner/x402-art.png"
                             alt="Marble Texture"
                             fill
                             className="object-cover opacity-80"
@@ -512,7 +512,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                 {/* Marble Header Image */}
                 <div className="relative h-32 w-full overflow-hidden">
                     <Image
-                        src="/images/barzakh/banner/marble-new.png"
+                        src="/images/barzakh/banner/x402-art.png"
                         alt="Marble Texture"
                         fill
                         className="object-cover opacity-80"

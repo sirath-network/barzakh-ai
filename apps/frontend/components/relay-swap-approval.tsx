@@ -1014,7 +1014,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 {/* Marble Header Image */}
                 <div className="relative h-32 w-full overflow-hidden">
                     <Image
-                        src="/images/barzakh/banner/marble-new.png"
+                        src="/images/barzakh/banner/relay-art.png"
                         alt="Marble Texture"
                         fill
                         className="object-cover opacity-80"

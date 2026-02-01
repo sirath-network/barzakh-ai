@@ -203,6 +203,84 @@ paths:
         "200":
           description: Verification successful
 
+  /api/2fa/setup:
+    post:
+      tags: [Authentication]
+      operationId: setup2FA
+      summary: Initiate 2FA setup
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: QR code and secret generated
+
+  /api/2fa/verify:
+    post:
+      tags: [Authentication]
+      operationId: verify2FA
+      summary: Verify 2FA token/setup
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                action:
+                  type: string
+                  enum: [enable, verify, disable]
+      responses:
+        "200":
+          description: Verification successful
+
+  /api/2fa/backup-codes:
+    post:
+      tags: [Authentication]
+      operationId: regenerateBackupCodes
+      summary: Regenerate 2FA backup codes
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: New codes generated
+
+  /api/2fa/login-verify:
+    post:
+      tags: [Authentication]
+      operationId: loginVerify2FA
+      summary: Verify 2FA during login flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token]
+              properties:
+                email:
+                  type: string
+                  format: email
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Token valid
+
+  /api/2fa/status:
+    get:
+      tags: [Authentication]
+      operationId: get2FAStatus
+      summary: Check 2FA status
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Status retrieved
+
   # ============================================
   # BILLING ENDPOINTS
   # ============================================
@@ -310,6 +388,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaymentMethodsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/billing/payment-methods/set-default:
+    post:
+      tags: [Billing]
+      operationId: setDefaultPaymentMethod
+      summary: Set default payment method
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMethodId]
+              properties:
+                paymentMethodId:
+                  type: string
+      responses:
+        "200":
+          description: Default payment method updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -578,6 +681,51 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           description: Settlement failed
+
+  /api/billing/x402/transactions:
+    get:
+      tags: [Billing]
+      operationId: getX402Transactions
+      summary: List X402 payment transactions
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: starting_after
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transactions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        amountCents:
+                          type: integer
+                        status:
+                          type: string
+                        transactionHash:
+                          type: string
+                        createdAt:
+                          type: number
+                  hasMore:
+                    type: boolean
+                  nextCursor:
+                    type: string
 
   # ============================================
   # WALLET VERIFICATION ENDPOINTS
@@ -1101,6 +1249,79 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/proxy-file:
+    post:
+      tags: [Files]
+      operationId: proxyFile
+      summary: Proxy text file from R2
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileUrl]
+              properties:
+                fileUrl:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: File content retrieved
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/r2/signed-url:
+    get:
+      tags: [Files]
+      operationId: getSignedR2Url
+      summary: Get signed URL for R2 object access
+      description: |
+        Generates a short-lived (15 min) signed URL for accessing private R2 objects.
+        Requires authentication.
+      security:
+        - SessionAuth: []
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+            description: The R2 object key (e.g., ai-images/123.png)
+        - name: internalSecret
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Secret for internal service communication
+      responses:
+        "200":
+          description: Signed URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signedUrl:
+                    type: string
+                    format: uri
+                    description: The temporary signed URL
+                  expiresAt:
+                    type: string
+                    format: date-time
+                    description: Expiration timestamp
+                  key:
+                    type: string
+                    description: The object key
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/persist-image:
     post:
       tags: [Files]
@@ -1581,6 +1802,158 @@ paths:
   # ============================================
   # BACKEND API - CHAT COMPLETIONS
   # ============================================
+  /api/set-model-cookie:
+    post:
+      tags: [System]
+      operationId: setModelCookie
+      summary: Set preferred AI model cookie
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [model]
+              properties:
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Cookie set
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/reset-limit:
+    post:
+      tags: [System]
+      operationId: resetMessageLimit
+      summary: Reset daily message limit (Dev/Admin)
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Limit reset
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # WALLET SETTINGS ENDPOINTS
+  # ============================================
+  /api/settings/wallet/bind:
+    post:
+      tags: [Account]
+      operationId: bindWallet
+      summary: Bind wallet address to account
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address, signature, message]
+              properties:
+                address:
+                  type: string
+                signature:
+                  type: string
+                message:
+                  type: string
+                password:
+                  type: string
+                twoFactorToken:
+                  type: string
+                emailOtp:
+                  type: string
+      responses:
+        "200":
+          description: Wallet bound successfully
+        "409":
+          description: Wallet already bound to another account
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/settings/wallet/bind/send-otp:
+    post:
+      tags: [Account]
+      operationId: sendWalletBindOtp
+      summary: Send OTP for wallet binding
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: OTP sent
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  
+  /api/settings/wallet/nonce:
+    get:
+      tags: [Account]
+      operationId: getWalletBindNonce
+      summary: Get nonce for wallet binding
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: Nonce generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nonce:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/settings/wallet/unbind:
+    post:
+      tags: [Account]
+      operationId: unbindWallet
+      summary: Unbind wallet from account
+      security:
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                twoFactorToken:
+                  type: string
+                emailOtp:
+                  type: string
+      responses:
+        "200":
+          description: Wallet unbound
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/settings/wallet/unbind/send-otp:
+    post:
+      tags: [Account]
+      operationId: sendWalletUnbindOtp
+      summary: Send OTP for wallet unbinding
+      security:
+        - SessionAuth: []
+      responses:
+        "200":
+          description: OTP sent
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/chat/completions:
     post:
       tags: [Chat, Security]

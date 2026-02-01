@@ -65,7 +65,7 @@ export function restoreOriginalImageUrls(content: any): any {
     if (part.type === 'image' && part.image) {
       const isGoogleAIUrl = part.image.includes('generativelanguage.googleapis.com') ||
         part.image.includes('generative-ai-image-store.googleapis.com');
-      const isR2Storage = part.image.includes('r2.barzakh.tech');
+      const isR2Storage = part.image.includes('r2.barzakh.tech') || part.image.includes('.r2.cloudflarestorage.com');
       const isVercelBlob = part.image.includes('blob.vercel-storage.com');
       const isPermanentStorage = isR2Storage || isVercelBlob;
 
@@ -118,7 +118,7 @@ export function cleanToolResult(result: any): any {
 
     // Check if URLs are using permanent storage (R2 or Vercel Blob)
     const allPermanentStorage = result.imageUrls.every((url: string) =>
-      url.includes('r2.barzakh.tech') || url.includes('blob.vercel-storage.com')
+      url.includes('r2.barzakh.tech') || url.includes('.r2.cloudflarestorage.com') || url.includes('blob.vercel-storage.com')
     );
 
     if (allPermanentStorage) {
@@ -128,7 +128,7 @@ export function cleanToolResult(result: any): any {
 
     // If any URLs are NOT permanent storage, log a warning
     const nonPermanentUrls = result.imageUrls.filter((url: string) =>
-      !url.includes('r2.barzakh.tech') && !url.includes('blob.vercel-storage.com')
+      !url.includes('r2.barzakh.tech') && !url.includes('.r2.cloudflarestorage.com') && !url.includes('blob.vercel-storage.com')
     );
     if (nonPermanentUrls.length > 0) {
       console.warn('⚠️  Tool result contains non-permanent URLs:', nonPermanentUrls);

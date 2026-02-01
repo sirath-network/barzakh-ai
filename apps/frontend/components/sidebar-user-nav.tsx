@@ -18,6 +18,7 @@ import { useTheme } from "next-themes";
 import useSWR from "swr";
 import { fetcher } from "@barzakh/shared/lib/utils/utils";
 import { handleLogout } from "@/lib/auth-utils";
+import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
 
 import {
   DropdownMenu,
@@ -55,6 +56,9 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
   const { setView } = useView();
+
+  // Use signed URL for R2 storage avatars
+  const { url: signedAvatarUrl, isLoading: isLoadingAvatar } = useSignedR2Url(user?.image);
 
   // Fetch subscription status in real-time for immediate updates after subscription
   const { data: subscriptionData } = useSWR<SubscriptionResponse>(
@@ -134,20 +138,26 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
         >
           <div className="flex w-full items-center justify-start gap-3">
             {user?.image ? (
-              <img
-                src={user.image}
-                alt="User Avatar"
-                width={32}
-                height={32}
-                className={`rounded-full shadow-sm object-cover transition-all duration-200 ${compact
-                  ? 'w-8 h-8 cursor-pointer'
-                  : 'w-8 h-8'
-                  }`}
-                onError={(e: any) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
+              isLoadingAvatar ? (
+                <div className={`rounded-full shadow-sm bg-muted/30 flex items-center justify-center ${compact ? 'w-8 h-8' : 'w-8 h-8'}`}>
+                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                </div>
+              ) : (
+                <img
+                  src={signedAvatarUrl || user.image}
+                  alt="User Avatar"
+                  width={32}
+                  height={32}
+                  className={`rounded-full shadow-sm object-cover transition-all duration-200 ${compact
+                    ? 'w-8 h-8 cursor-pointer'
+                    : 'w-8 h-8'
+                    }`}
+                  onError={(e: any) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              )
             ) : null}
             <div className={`rounded-full shadow-sm bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center transition-all duration-200 ${user?.image ? 'hidden' : ''} ${compact
               ? 'w-8 h-8 cursor-pointer'
@@ -178,17 +188,23 @@ export function SidebarUserNav({ user, compact = false }: SidebarUserNavProps) {
         <DropdownMenuLabelAny className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             {user.image ? (
-              <img
-                src={user.image}
-                alt={user.name || "User"}
-                width={32}
-                height={32}
-                className="rounded-full w-8 h-8 object-cover"
-                onError={(e: any) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
+              isLoadingAvatar ? (
+                <div className="rounded-full w-8 h-8 bg-muted/30 flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                </div>
+              ) : (
+                <img
+                  src={signedAvatarUrl || user.image}
+                  alt={user.name || "User"}
+                  width={32}
+                  height={32}
+                  className="rounded-full w-8 h-8 object-cover"
+                  onError={(e: any) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              )
             ) : null}
             <div className={`rounded-full w-8 h-8 bg-gradient-to-br from-primary/30 to-primary/60 flex items-center justify-center border border-border/30 ${user.image ? 'hidden' : ''}`}>
               <span className="text-xs font-bold text-white">

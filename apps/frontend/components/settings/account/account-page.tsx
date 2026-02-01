@@ -8,6 +8,7 @@ import { User, Image as ImageIcon, AtSign, Save, Upload, Trash2, CheckCircle, Al
 import DeleteAccountModal from "./delete-account-modal";
 import ImageCropModal from "./image-crop-modal";
 import { RESERVED_USERNAMES, isReservedUsername } from "@/lib/reserved-usernames";
+import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -30,6 +31,9 @@ export default function AccountSettingsPage() {
     status: "idle",
     message: ""
   });
+
+  // Use signed URL for R2 storage avatars
+  const { url: signedAvatarUrl, isLoading: isLoadingAvatar } = useSignedR2Url(avatar);
 
   useEffect(() => {
     if (session?.user) {
@@ -329,20 +333,39 @@ export default function AccountSettingsPage() {
                     </label>
                     <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6">
                       <div className="relative">
-                        <div className={`w-20 h-20 rounded-full shadow-lg overflow-hidden flex items-center justify-center ${!avatar ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
+                        <div className={`w-20 h-20 rounded-full shadow-lg overflow-hidden flex items-center justify-center ${(!avatar || isLoadingAvatar) ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
                           {avatar ? (
-                            <img
-                              src={avatar}
-                              alt="Avatar Preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Hide broken image and show fallback
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
+                            isLoadingAvatar ? (
+                              <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                              </div>
+                            ) : signedAvatarUrl ? (
+                              <img
+                                src={signedAvatarUrl}
+                                alt="Avatar Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // Hide broken image and show fallback
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                                  if (fallback) fallback.classList.remove('hidden');
+                                }}
+                              />
+                            ) : (
+                              // Fallback to original avatar URL if signed URL fails
+                              <img
+                                src={avatar}
+                                alt="Avatar Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                                  if (fallback) fallback.classList.remove('hidden');
+                                }}
+                              />
+                            )
                           ) : null}
-                          <span className={`text-3xl font-bold text-white ${avatar ? 'hidden' : ''}`}>
+                          <span className={`avatar-fallback text-3xl font-bold text-white absolute inset-0 flex items-center justify-center ${(avatar && !isLoadingAvatar) ? 'hidden' : ''}`}>
                             {(fullName?.charAt(0) || session?.user?.email?.charAt(0) || 'U').toUpperCase()}
                           </span>
                         </div>

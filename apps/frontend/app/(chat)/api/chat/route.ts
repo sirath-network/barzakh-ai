@@ -33,6 +33,7 @@ import {
   performAISecurityCheck,
   type SecurityCheckResult,
 } from "@/lib/security";
+import { resolveR2UrlsInMessages } from "@/lib/r2-url-resolver";
 
 // Function to validate and clean messages
 function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
@@ -447,13 +448,13 @@ export async function POST(request: Request) {
           // Check for image URLs in tool results
           if (part.type === 'tool-result' && part.result) {
             const resultStr = JSON.stringify(part.result);
-            if (resultStr.includes('r2.barzakh') || resultStr.includes('ai-generated') || resultStr.includes('ai-images')) {
+            if (resultStr.includes('r2.barzakh') || resultStr.includes('.r2.cloudflarestorage.com') || resultStr.includes('ai-generated') || resultStr.includes('ai-images')) {
               return true;
             }
           }
           // Check for text references to generated images
           if (part.type === 'text' && typeof part.text === 'string') {
-            if (part.text.includes('[Generated image:') || part.text.includes('r2.barzakh.tech/ai-images')) {
+            if (part.text.includes('[Generated image:') || part.text.includes('r2.barzakh.tech/ai-images') || part.text.includes('.r2.cloudflarestorage.com')) {
               return true;
             }
           }
@@ -570,6 +571,10 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
   // SOLUTION 1: Clean messages before passing to streamText
   const cleanedMessages = validateAndCleanMessages(messages);
 
+  // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI
+  // This is needed because the old custom domain no longer exists
+  const resolvedMessages = await resolveR2UrlsInMessages(cleanedMessages);
+
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
 
@@ -612,7 +617,7 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
         const result = streamText({
           model: myProvider.languageModel(effectiveModel),
           system: systemPrompt,
-          messages: cleanedMessages, // Use cleaned messages
+          messages: resolvedMessages, // Use resolved messages with signed R2 URLs
           maxSteps: 4,
           maxRetries: 3, // Retry up to 3 times on failure
           experimental_activeTools: safeActiveTools,

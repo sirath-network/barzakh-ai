@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "next-auth";
+import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -39,6 +40,9 @@ export const Overview = ({ user }: OverviewProps) => {
 
   const userImage = user?.image;
 
+  // Use signed URL for R2 storage avatars
+  const { url: signedAvatarUrl, isLoading: isLoadingAvatar } = useSignedR2Url(userImage);
+
   // Show avatar if user is logged in AND has set up username or name
   const showAvatar = !!(user?.username || user?.name);
 
@@ -74,17 +78,23 @@ export const Overview = ({ user }: OverviewProps) => {
             <div>
               <div className="relative">
                 {userImage ? (
-                  <img
-                    src={userImage}
-                    alt={displayName}
-                    width={64}
-                    height={64}
-                    className="w-16 h-16 rounded-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
+                  isLoadingAvatar ? (
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <img
+                      src={signedAvatarUrl || userImage}
+                      alt={displayName}
+                      width={64}
+                      height={64}
+                      className="w-16 h-16 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  )
                 ) : null}
                 <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-primary/60 ${userImage ? 'hidden' : ''}`}>
                   <span className="text-2xl font-bold text-white">

@@ -32,30 +32,46 @@ Barzakh AI has two deployment targets:
 
 | Endpoint | Method | Auth Required | Rate Limit | Description |
 |----------|--------|---------------|------------|-------------|
-| `/api/2fa/*` | POST | Yes | 10/min | Two-factor authentication |
+| `/api/2fa/setup` | POST | Yes | 5/15min | 2FA setup initiation |
+| `/api/2fa/verify` | POST | Yes | 5/5min | 2FA verification |
+| `/api/2fa/backup-codes` | POST | Yes | 3/hour | Regenerate backup codes |
+| `/api/2fa/login-verify` | POST | No* | 5/15min | 2FA login verification |
+| `/api/2fa/status` | GET | Yes | 30/min | Check 2FA status |
 | `/api/account/delete` | DELETE | Yes | 5/hour | Account deletion |
 | `/api/billing/subscription` | GET | Yes | 30/min | Get subscription status |
 | `/api/billing/create-checkout-session` | POST | Yes | 10/min | Create Stripe checkout |
 | `/api/billing/manage-subscription` | POST | Yes | 10/min | Manage subscription |
 | `/api/billing/cancel-subscription` | POST | Yes | 5/hour | Cancel subscription |
 | `/api/billing/payment-methods` | GET | Yes | 30/min | List payment methods |
+| `/api/billing/payment-methods/set-default` | POST | Yes | 10/min | Set default payment method |
 | `/api/billing/create-setup-intent` | POST | Yes | 10/min | Add payment method |
 | `/api/billing/invoices` | GET | Yes | 30/min | List invoices |
 | `/api/changes-email/*` | POST | Yes | 5/hour | Email change requests |
 | `/api/chat` | GET, DELETE | Yes | 60/min | Chat operations |
 | `/api/files/upload` | POST | Yes | 20/min | File uploads |
 | `/api/proxy-image` | POST | Yes | 100/min | Image proxy |
+| `/api/proxy-file` | POST | Yes | 60/min | Proxy text files (R2) |
 | `/api/persist-image` | POST | Yes | 50/min | Image persistence |
+| `/api/r2/signed-url` | GET | Yes | 60/min | Get signed URL for R2 object |
+| `/api/set-model-cookie` | POST | Yes | 30/min | Set AI model preference |
 | `/api/settings` | GET, PATCH | Yes | 30/min | User settings |
+| `/api/settings/wallet/bind` | POST | Yes | 10/min | Bind wallet address |
+| `/api/settings/wallet/bind/send-otp` | POST | Yes | 3/10min | Send wallet bind OTP |
+| `/api/settings/wallet/nonce` | GET | Yes | 30/min | Get wallet bind nonce |
+| `/api/settings/wallet/unbind` | POST | Yes | 5/hour | Unbind wallet address |
+| `/api/settings/wallet/unbind/send-otp` | POST | Yes | 3/10min | Send wallet unbind OTP |
+| `/api/relay/swap-tracking` | GET, POST | Yes | 30/min | Track cross-chain swaps |
 | `/api/auth/*` | ALL | Partial | 20/min | NextAuth endpoints |
 | `/api/webhooks/stripe` | POST | No* | 100/min | Stripe webhooks |
 | `/api/billing/x402/subscribe` | POST | Yes | 10/min | Initiate x402 payment |
 | `/api/billing/x402/settle` | POST | Yes | 10/min | Settle x402 payment |
 | `/api/billing/x402/verify` | POST | Yes | 20/min | Verify transaction |
 | `/api/billing/x402/verify-wallet` | GET/POST | Yes | 20/min | Wallet signature verification |
+| `/api/billing/x402/transactions` | GET | Yes | 20/min | List x402 transactions |
 | `/api/zerion/*` | GET | Yes | 60/min | Zerion API proxy |
 | `/api/cron/check-subscriptions` | GET | No* | 4/day | x402 subscription expiry check |
 | `/api/messagelimitcron` | GET | No* | 1/day | Daily message limit reset |
+| `/api/reset-limit` | POST | Yes | 5/hour | Reset message limit |
 
 > *Webhook endpoints use signature verification instead of session auth
 

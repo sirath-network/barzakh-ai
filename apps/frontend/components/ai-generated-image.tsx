@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "@/lib/framer-motion";
-import { Download, Eye, X, AlertCircle, Share2, ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { Download, Eye, X, AlertCircle, Share2, ChevronLeft, ChevronRight, Images, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { checkUrlExpiration } from "@/lib/image-storage";
+import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
 import { toast } from "sonner";
 
 interface AIGeneratedImageProps {
@@ -41,24 +42,29 @@ export function AIGeneratedImage({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
-  // Get current image for display
+  // Get signed URL for R2 images
+  const { url: signedUrl, isLoading: isLoadingSignedUrl, error: signedUrlError } = useSignedR2Url(imageUrl);
+
+  // Get current image for display (use signed URL if available)
+  const displayUrl = signedUrl || imageUrl;
   const currentImage = allImages && allImages.length > 1
     ? allImages[currentImageIndex]
-    : imageUrl;
+    : displayUrl;
 
   const isMobile = useIsMobile();
 
   // Check if URL is expired on component mount
   useEffect(() => {
     // Only check expiration for URLs that have signed URL parameters
-    if (imageUrl.includes('X-Goog-Expires') || imageUrl.includes('Expires')) {
-      const urlInfo = checkUrlExpiration(imageUrl);
+    const urlToCheck = displayUrl;
+    if (urlToCheck && (urlToCheck.includes('X-Goog-Expires') || urlToCheck.includes('Expires') || urlToCheck.includes('X-Amz-Expires'))) {
+      const urlInfo = checkUrlExpiration(urlToCheck);
       if (urlInfo.isExpired) {
         setIsExpiredUrl(true);
         setImageError(true);
       }
     }
-  }, [imageUrl]);
+  }, [displayUrl]);
 
   // Fallback mobile detection for cases where useIsMobile might not work
   const [isMobileDevice, setIsMobileDevice] = useState(false);
@@ -448,7 +454,18 @@ export function AIGeneratedImage({
     setImageError(true);
   };
 
-  if (imageError) {
+  if (isLoadingSignedUrl) {
+    return (
+      <div className={cn("w-full flex items-center justify-center py-16", className)}>
+        <div className="flex flex-col items-center gap-3">
+          {(() => { const Loader2Any = Loader2 as any; return <Loader2Any className="w-8 h-8 animate-spin text-muted-foreground" />; })()}
+          <p className="text-sm text-muted-foreground">Loading image...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (imageError || signedUrlError) {
     return (
       <div className="max-w-full p-6 bg-muted/50 rounded-2xl border border-border/40 text-center">
         <div className="text-muted-foreground">
@@ -498,7 +515,7 @@ export function AIGeneratedImage({
         {/* Enhanced Image Container */}
         <div className="relative overflow-hidden rounded-3xl w-full bg-transparent">
           <img
-            src={imageUrl}
+            src={displayUrl}
             alt={alt}
             className="block w-full h-auto object-contain"
             style={{
@@ -771,6 +788,10 @@ export function AIGeneratedImageCompact({
   const [isDownloading, setIsDownloading] = useState(false);
   const isMobile = useIsMobile();
 
+  // Get signed URL for R2 images
+  const { url: signedUrl, isLoading: isLoadingSignedUrl } = useSignedR2Url(imageUrl);
+  const displayUrl = signedUrl || imageUrl;
+
   // Fallback mobile detection
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
@@ -987,7 +1008,7 @@ export function AIGeneratedImageCompact({
       <div className="relative group border border-border/20 rounded-3xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/20 shadow-lg hover:shadow-xl transition-all duration-300 w-full"
       >
         <img
-          src={imageUrl}
+          src={displayUrl}
           alt={alt}
           className="block w-full h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
           style={{ maxHeight: 'min(400px, 60vh)', maxWidth: '100%' }}

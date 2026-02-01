@@ -734,6 +734,7 @@ flowchart TB
 | **Polyglot Files** | Images with code | Magic byte validation |
 | **Sponge Attacks** | DoS via complexity | Token limits, timeouts |
 | **Data Exfiltration** | PII in outputs | Regex-based redaction |
+| **Unauthorized Access** | Direct object access | Private R2 buckets + Short-lived (15m) Signed URLs |
 
 ---
 

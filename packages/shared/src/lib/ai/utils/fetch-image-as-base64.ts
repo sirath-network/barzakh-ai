@@ -59,29 +59,37 @@ export async function fetchImageAsBase64(
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  // Check if this is a legacy R2 URL (r2.barzakh.tech domain no longer exists)
+  // Skip direct fetch and go straight to proxy for these URLs
+  const isLegacyR2Url = url.includes('r2.barzakh.tech');
 
-    const response = await fetch(url, {
-      headers: getDefaultHeaders(),
-      signal: controller.signal,
-    });
+  if (!isLegacyR2Url) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    clearTimeout(timeoutId);
+      const response = await fetch(url, {
+        headers: getDefaultHeaders(),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}: ${response.statusText || "Unknown error"}`
-      );
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText || "Unknown error"}`
+        );
+      }
+
+      const mimeType = response.headers.get("content-type") || "image/jpeg";
+      const buffer = await response.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString("base64");
+      return { base64, mimeType };
+    } catch (directFetchError) {
+      console.warn(`Direct fetch failed for ${url}:`, directFetchError);
     }
-
-    const mimeType = response.headers.get("content-type") || "image/jpeg";
-    const buffer = await response.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    return { base64, mimeType };
-  } catch (directFetchError) {
-    console.warn(`Direct fetch failed for ${url}:`, directFetchError);
+  } else {
+    console.log(`[fetchImageAsBase64] Legacy R2 URL detected, using proxy: ${url}`);
   }
 
   try {

@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
 // Pastikan useSidebar sudah diimpor
 import { useSidebar } from "./ui/sidebar";
+import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
 
 const ButtonAny = Button as any;
 const SunIconAny = SunIcon as any;
@@ -70,6 +71,9 @@ export function SettingsMenu({
     setMounted(true);
   }, []);
 
+  // Use signed URL for R2 storage avatars
+  const { url: signedAvatarUrl, isLoading: isLoadingAvatar } = useSignedR2Url(user?.image);
+
   const handleMenuClick = (page: SettingsPageType) => {
     setView(page);
     setOpen(false);
@@ -84,16 +88,22 @@ export function SettingsMenu({
       <div className="flex items-center p-3 mb-2 space-x-3 sm:space-x-4">
         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center ${!user?.image ? 'bg-gradient-to-br from-primary/30 to-primary/60' : ''}`}>
           {user?.image ? (
-            <img
-              src={user.image}
-              alt={user.name ?? "User Avatar"}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Hide broken image and show fallback initial
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
+            isLoadingAvatar ? (
+              <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              </div>
+            ) : (
+              <img
+                src={signedAvatarUrl || user.image}
+                alt={user.name ?? "User Avatar"}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Hide broken image and show fallback initial
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            )
           ) : null}
           <span className={`text-2xl sm:text-3xl font-bold text-white ${user?.image ? 'hidden' : ''}`}>
             {(user?.name?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase()}

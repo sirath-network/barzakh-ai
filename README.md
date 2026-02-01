@@ -630,6 +630,7 @@ flowchart TB
 | **Polyglot Files** | Images containing executable code | Magic byte validation, metadata stripping |
 | **Sponge Attacks** | DoS via expensive computations | Token limits, complexity analysis, timeouts |
 | **Data Exfiltration** | PII/secrets in AI outputs | Output filtering, regex-based redaction |
+| **Unauthorized Access** | Direct object access | Private R2 buckets + Short-lived (15m) Signed URLs |
 
 ---
 

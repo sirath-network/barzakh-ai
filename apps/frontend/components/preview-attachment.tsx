@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { useSignedR2Url } from "@/hooks/use-signed-r2-url";
 
 // --- ICONS & HELPERS (Moved outside the component) ---
 
@@ -144,6 +145,10 @@ export const PreviewAttachment = ({
   const [isHovered, setIsHovered] = useState(false);
   const [fileContent, setFileContent] = useState<string | null>(null);
 
+  // Use signed URL for R2 storage images
+  const { url: signedUrl, isLoading: isLoadingSignedUrl } = useSignedR2Url(url || '');
+  const displayUrl = signedUrl || url;
+
   // Load file content for code files
   const loadFileContent = async () => {
     if (!isCodeFile || fileContent !== null) return;
@@ -213,13 +218,19 @@ export const PreviewAttachment = ({
           onTouchEnd={() => setIsHovered(false)}
         >
           {isImage ? (
-            <img
-              key={url}
-              src={url}
-              alt={name ?? "Image attachment"}
-              loading="lazy"
-              className="w-full h-full object-cover rounded-2xl"
-            />
+            isLoadingSignedUrl ? (
+              <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-2xl">
+                <div className="animate-spin w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
+              </div>
+            ) : (
+              <img
+                key={displayUrl}
+                src={displayUrl}
+                alt={name ?? "Image attachment"}
+                loading="lazy"
+                className="w-full h-full object-cover rounded-2xl"
+              />
+            )
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 p-3">
               <div className="relative transition-transform duration-500 ease-out group-hover/card:scale-110">
@@ -370,11 +381,17 @@ export const PreviewAttachment = ({
           {/* Content */}
           <div className="w-full h-full flex items-center justify-center pt-14 pb-4 px-4">
             {isImage ? (
-              <img
-                src={url}
-                alt={name ?? "Image attachment"}
-                className="max-w-full max-h-[85vh] object-contain rounded-2xl"
-              />
+              isLoadingSignedUrl ? (
+                <div className="max-w-full max-h-[85vh] flex items-center justify-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full" />
+                </div>
+              ) : (
+                <img
+                  src={displayUrl}
+                  alt={name ?? "Image attachment"}
+                  className="max-w-full max-h-[85vh] object-contain rounded-2xl"
+                />
+              )
             ) : (
               <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700 shadow-2xl max-w-4xl w-full">
                 <div className="flex items-center justify-between bg-gradient-to-r from-gray-800 to-gray-750 px-4 py-3 border-b border-gray-600">

@@ -123,7 +123,7 @@ export async function POST(request: Request) {
 
         console.log("Image URLs received in API:", imageUrls);
         console.log("Image URL sources:", imageUrls.map(url => {
-          if (url.includes('r2.barzakh.tech')) return 'Cloudflare R2 Storage';
+          if (url.includes('r2.barzakh.tech') || url.includes('.r2.cloudflarestorage.com')) return 'Cloudflare R2 Storage';
           if (url.includes('blob.vercel-storage.com')) return 'Vercel Blob Storage (legacy)';
           if (url.includes('generativelanguage.googleapis.com')) return 'Google AI';
           if (url.includes('storage.googleapis.com')) return 'Google Cloud Storage';
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
         if (imageUrls.length > 0) {
           // Check if URLs are from our storage (R2 or legacy Vercel Blob)
-          const r2Urls = imageUrls.filter(url => url.includes('r2.barzakh.tech'));
+          const r2Urls = imageUrls.filter(url => url.includes('r2.barzakh.tech') || url.includes('.r2.cloudflarestorage.com'));
           const vercelBlobUrls = imageUrls.filter(url => url.includes('blob.vercel-storage.com'));
           const googleAUrls = imageUrls.filter(url => url.includes('generativelanguage.googleapis.com'));
 

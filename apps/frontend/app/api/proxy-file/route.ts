@@ -25,8 +25,9 @@ export async function POST(request: NextRequest) {
     // Security: Only allow certain domains
     const allowedDomains = [
       // Cloudflare R2 Storage (primary)
-      'r2.barzakh.tech',
-      'r2.cloudflarestorage.com',
+      'r2.barzakh.tech', // Legacy custom domain
+      'r2.cloudflarestorage.com', // New R2 endpoint
+      'cloudflarestorage.com', // For signed URLs
       // Development
       'localhost',
       '127.0.0.1',

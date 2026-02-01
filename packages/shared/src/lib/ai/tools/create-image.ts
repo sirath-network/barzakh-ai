@@ -102,6 +102,7 @@ async function persistGeneratedImages(imageUrls: string[]): Promise<string[]> {
       (url) =>
         typeof url === "string" &&
         !url.includes("r2.barzakh.tech") &&
+        !url.includes(".r2.cloudflarestorage.com") &&
         !url.includes("blob.vercel-storage.com")
     );
 
@@ -121,7 +122,7 @@ async function persistGeneratedImages(imageUrls: string[]): Promise<string[]> {
         continue;
       }
 
-      if (url.includes("r2.barzakh.tech") || url.includes("blob.vercel-storage.com")) {
+      if (url.includes("r2.barzakh.tech") || url.includes(".r2.cloudflarestorage.com") || url.includes("blob.vercel-storage.com")) {
         results[index] = url;
         continue;
       }
@@ -195,7 +196,7 @@ async function persistGeneratedImages(imageUrls: string[]): Promise<string[]> {
 // Function to validate and prioritize image URLs
 function validateImageUrls(urls: string[]): { validUrls: string[]; warnings: string[] } {
   const warnings: string[] = [];
-  const r2Urls = urls.filter(url => url.includes('r2.barzakh.tech'));
+  const r2Urls = urls.filter(url => url.includes('r2.barzakh.tech') || url.includes('.r2.cloudflarestorage.com'));
   const vercelBlobUrls = urls.filter(url => url.includes('blob.vercel-storage.com'));
   const googleAUrls = urls.filter(url =>
     url.includes('generativelanguage.googleapis.com') ||

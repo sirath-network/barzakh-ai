@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Cloudflare R2 uses S3-compatible API
 // Required env vars:
@@ -142,11 +143,19 @@ export function getR2PublicUrl(key: string): string {
 }
 
 /**
- * Check if a URL is from our R2 storage
+ * Check if a URL is from our R2 storage or is an R2 key
  */
 export function isR2Url(url: string): boolean {
-  if (!R2_PUBLIC_URL) return false;
-  return url.startsWith(R2_PUBLIC_URL);
+  if (!url) return false;
+  // Check for r2:// prefix (used for stored keys)
+  if (url.startsWith('r2://')) return true;
+  // Check for R2 cloudflarestorage.com domain (new format)
+  if (url.includes('.r2.cloudflarestorage.com')) return true;
+  // Check for public URL env var
+  if (R2_PUBLIC_URL && url.startsWith(R2_PUBLIC_URL)) return true;
+  // Check for legacy R2 custom domain (backward compatibility)
+  if (url.includes('r2.barzakh.tech')) return true;
+  return false;
 }
 
 /**
@@ -193,3 +202,87 @@ function getMimeType(filename: string): string {
 
   return mimeTypes[ext || ''] || 'application/octet-stream';
 }
+
+/**
+ * Generate a presigned URL for reading an R2 object
+ * @param key - The object key in R2 (e.g., 'ai-images/image.png')
+ * @param expiresIn - Time in seconds until the URL expires (default: 3600 = 1 hour)
+ * @returns A presigned URL that grants temporary read access
+ */
+export async function getSignedR2Url(
+  key: string,
+  expiresIn: number = 3600
+): Promise<string> {
+  if (!R2_BUCKET_NAME) {
+    throw new Error('R2_BUCKET_NAME environment variable is not set');
+  }
+
+  const client = getS3Client();
+
+  const command = new GetObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+  });
+
+  const signedUrl = await getSignedUrl(client, command, { expiresIn });
+  return signedUrl;
+}
+
+/**
+ * Extract the R2 object key from a URL or r2:// prefixed key
+ * @param urlOrKey - Either a full R2 URL, r2:// prefixed key, or raw key
+ * @returns The object key (e.g., 'ai-images/image.png')
+ */
+export function extractR2Key(urlOrKey: string): string | null {
+  if (!urlOrKey) return null;
+
+  // Handle r2:// prefix
+  if (urlOrKey.startsWith('r2://')) {
+    return urlOrKey.slice(5); // Remove 'r2://'
+  }
+
+  // Handle cloudflarestorage.com URLs (new format)
+  // Format: https://<account-id>.r2.cloudflarestorage.com/<bucket>/<key>
+  const cloudflareMatch = urlOrKey.match(/https?:\/\/[^\/]+\.r2\.cloudflarestorage\.com\/[^\/]+\/(.+)/);
+  if (cloudflareMatch) {
+    return cloudflareMatch[1];
+  }
+
+  // Handle full R2 public URL from env var
+  if (R2_PUBLIC_URL && urlOrKey.startsWith(R2_PUBLIC_URL)) {
+    const publicUrlBase = R2_PUBLIC_URL.replace(/\/$/, '');
+    return urlOrKey.slice(publicUrlBase.length + 1); // Remove base URL + slash
+  }
+
+  // Handle legacy r2.barzakh.tech URLs (backward compatibility)
+  const r2Match = urlOrKey.match(/https?:\/\/r2\.barzakh\.tech\/(.+)/);
+  if (r2Match) {
+    return r2Match[1];
+  }
+
+  // If it looks like a path (no protocol), assume it's already a key
+  if (!urlOrKey.includes('://')) {
+    return urlOrKey;
+  }
+
+  return null;
+}
+
+/**
+ * Check if a value is an R2 key (not a full URL)
+ * Keys start with r2:// or are path-like strings without protocol
+ */
+export function isR2Key(value: string): boolean {
+  if (!value) return false;
+  return value.startsWith('r2://') ||
+    (!value.includes('://') && value.includes('/') && !value.startsWith('/'));
+}
+
+/**
+ * Convert an R2 key to the r2:// prefixed format for storage
+ */
+export function toR2KeyFormat(key: string): string {
+  if (key.startsWith('r2://')) return key;
+  return `r2://${key}`;
+}
+

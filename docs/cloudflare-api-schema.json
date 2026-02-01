@@ -1697,6 +1697,75 @@
         }
       }
     },
+    "/api/r2/signed-url": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "getSignedR2Url",
+        "summary": "Get signed URL for R2 object access",
+        "description": "Generates a short-lived (15 min) signed URL for accessing private R2 objects.\nRequires authentication.\n",
+        "security": [
+          {
+            "SessionAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The R2 object key (e.g., ai-images/123.png)"
+            }
+          },
+          {
+            "name": "internalSecret",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Secret for internal service communication"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed URL generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "signedUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "The temporary signed URL"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Expiration timestamp"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "The object key"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/persist-image": {
       "post": {
         "tags": [

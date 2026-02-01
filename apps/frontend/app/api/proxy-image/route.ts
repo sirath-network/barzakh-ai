@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       // Cloudflare R2 Storage (primary storage)
       'r2.barzakh.tech',
       'r2.cloudflarestorage.com',
+      'cloudflarestorage.com', // For signed URLs
       'pub-', // R2 public bucket subdomain pattern
 
       // Firebase Storage
@@ -170,6 +171,57 @@ export async function POST(request: NextRequest) {
           'Content-Type': mimeType,
           'Content-Length': buffer.length.toString(),
           'Cache-Control': 'public, max-age=31536000',
+        },
+      });
+    }
+
+    // ============================================
+    // HANDLE LEGACY r2.barzakh.tech URLs
+    // This domain no longer exists, redirect to signed URL API
+    // ============================================
+    if (url.hostname === 'r2.barzakh.tech') {
+      console.log('[proxy-image] Legacy r2.barzakh.tech URL detected, using signed URL...');
+
+      // Extract the key from the legacy URL
+      const legacyKey = url.pathname.slice(1); // Remove leading slash
+
+      // Get signed URL from our API (use internal secret for server-to-server auth)
+      const internalSecret = process.env.INTERNAL_API_SECRET || 'dev-internal-secret';
+      const signedUrlResponse = await fetch(
+        new URL('/api/r2/signed-url', request.url).toString() +
+        `?key=${encodeURIComponent(legacyKey)}&internalSecret=${encodeURIComponent(internalSecret)}`
+      );
+
+      if (!signedUrlResponse.ok) {
+        console.error('[proxy-image] Failed to get signed URL for legacy R2 key:', legacyKey);
+        return NextResponse.json({ error: 'Failed to access R2 storage' }, { status: 500 });
+      }
+
+      const signedUrlData = await signedUrlResponse.json();
+      const signedUrl = signedUrlData.signedUrl;
+
+      if (!signedUrl) {
+        return NextResponse.json({ error: 'Failed to get signed URL' }, { status: 500 });
+      }
+
+      // Fetch from the signed URL instead
+      const signedResponse = await fetch(signedUrl, {
+        signal: AbortSignal.timeout(mobile ? 45000 : 30000),
+      });
+
+      if (!signedResponse.ok) {
+        return NextResponse.json({ error: `R2 fetch failed: ${signedResponse.status}` }, { status: signedResponse.status });
+      }
+
+      const imageBuffer = Buffer.from(await signedResponse.arrayBuffer());
+      const contentType = signedResponse.headers.get('Content-Type') || 'image/png';
+
+      return new NextResponse(imageBuffer, {
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': imageBuffer.length.toString(),
+          'Cache-Control': 'public, max-age=3600', // Cache for 1 hour (signed URL lifetime)
+          'Access-Control-Allow-Origin': '*',
         },
       });
     }
