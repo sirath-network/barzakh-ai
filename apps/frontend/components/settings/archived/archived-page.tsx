@@ -269,9 +269,9 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-zinc-900/50 dark:to-zinc-950 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
             {/* Header skeleton */}
             <div className="p-8 border-b border-gray-200 dark:border-zinc-800/30">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -309,7 +309,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-zinc-900/50 dark:to-zinc-950 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="mb-6 md:mb-8">
@@ -326,7 +326,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content Card */}
-          <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+          <div className="lg:col-span-2 bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
             <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
@@ -497,7 +497,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                 <h3 className="text-lg font-bold text-foreground">Quick Actions</h3>
               </div>
@@ -517,7 +517,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               </div>
             </div>
             {/* Archive Info */}
-            <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                 <h3 className="text-lg font-bold text-foreground mb-2">About Archives</h3>
                 <p className="text-muted-foreground text-sm">How archiving works</p>
@@ -556,7 +556,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
         </div>
 
         {/* Help Section */}
-        <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
+        <div className="mt-4 md:mt-6 bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>

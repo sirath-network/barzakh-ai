@@ -67,7 +67,7 @@ export function BillingHistoryCard({
   const isTemporarilyDisabled = !hasX402Transactions && !hasInvoices && !isLoading;
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-zinc-900/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm relative">
       {/* Blur overlay for temporarily disabled state */}
       {isTemporarilyDisabled && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-black/70 backdrop-blur-sm rounded-2xl">

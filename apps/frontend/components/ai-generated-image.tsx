@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "@/lib/framer-motion";
-import { Download, Eye, X, AlertCircle, Share, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, Eye, X, AlertCircle, Share2, ChevronLeft, ChevronRight, Images } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "./ui/dialog";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { checkUrlExpiration } from "@/lib/image-storage";
+import { toast } from "sonner";
 
 interface AIGeneratedImageProps {
   imageUrl: string;
@@ -520,22 +521,115 @@ export function AIGeneratedImage({
 
       {/* Shared Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] p-2 flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="sr-only">
+        <DialogContent
+          className="max-w-[100vw] w-full h-full max-h-[100vh] p-0 overflow-hidden border-none bg-black/95 rounded-none sm:rounded-none"
+          onOpenAutoFocus={(e: Event) => e.preventDefault()}
+          hideCloseButton
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>
               AI Generated Image Preview
             </DialogTitle>
           </DialogHeader>
-          <div className="relative flex-1 flex items-center justify-center min-h-0 overflow-hidden">
+
+          {/* Custom Header Bar */}
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                aria-label="Close preview"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="text-sm text-white font-medium">Barzakh AI</span>
+            </div>
+
+            {/* Action Icons - Right side (Desktop only) */}
+            <div className="hidden md:flex items-center gap-6">
+              {/* Image counter for multiple images */}
+              {allImages && allImages.length > 1 && (
+                <span className="text-white/70 text-sm mr-2">
+                  {currentImageIndex + 1} / {allImages.length}
+                </span>
+              )}
+
+              {/* Share Icon */}
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: 'AI Generated Image',
+                      url: currentImage
+                    }).catch(() => { });
+                  } else {
+                    window.open(currentImage, '_blank');
+                  }
+                }}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                aria-label="Share"
+              >
+                {(() => { const ShareAny = Share2 as any; return <ShareAny className="w-5 h-5 text-white" />; })()}
+              </button>
+
+              {/* Copy Icon */}
+              <button
+                onClick={async () => {
+                  try {
+                    // Use proxy to fetch image (avoids CORS)
+                    const response = await fetch('/api/proxy-image', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ imageUrl: currentImage, forceDownload: true }),
+                    });
+
+                    if (!response.ok) throw new Error('Failed to fetch image');
+
+                    const blob = await response.blob();
+
+                    // Create a ClipboardItem with the image blob
+                    const item = new ClipboardItem({ [blob.type]: blob });
+                    await navigator.clipboard.write([item]);
+
+                    toast.success('Copied to clipboard');
+                  } catch (error) {
+                    console.error('Failed to copy image:', error);
+                    // Fallback: copy URL if image copy fails
+                    await navigator.clipboard.writeText(currentImage);
+                    toast.success('Copied link to clipboard');
+                  }
+                }}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                aria-label="Copy image"
+              >
+                {(() => { const ImagesAny = Images as any; return <ImagesAny className="w-5 h-5 text-white" />; })()}
+              </button>
+
+              {/* Download Icon */}
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="p-2 rounded-full hover:bg-white/10 transition-colors disabled:opacity-50"
+                aria-label="Download"
+              >
+                {isDownloading ? (
+                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  (() => { const DownloadAny = Download as any; return <DownloadAny className="w-5 h-5 text-white" />; })()
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="w-full h-full flex items-center justify-center pt-14 pb-20 md:pb-4 px-4">
             <img
               src={currentImage}
               alt={alt}
-              className="rounded-lg object-contain"
+              className="max-w-full max-h-[75vh] md:max-h-[85vh] object-contain rounded-2xl"
               style={{
-                maxWidth: 'min(95vw, 1200px)',
-                maxHeight: '85vh',
-                width: 'auto',
-                height: 'auto',
                 aspectRatio: imageDimensions ? `${imageDimensions.width} / ${imageDimensions.height}` : 'auto'
               }}
               onLoad={(e) => {
@@ -549,17 +643,12 @@ export function AIGeneratedImage({
             {/* Navigation for multiple images */}
             {allImages && allImages.length > 1 && (
               <>
-                {/* Image counter */}
-                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm">
-                  {currentImageIndex + 1} / {allImages.length}
-                </div>
-
                 {/* Previous button */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={goToPreviousImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 rounded-full"
                 >
                   {(() => { const ChevronLeftAny = ChevronLeft as any; return <ChevronLeftAny className="h-5 w-5" />; })()}
                 </Button>
@@ -569,27 +658,79 @@ export function AIGeneratedImage({
                   variant="ghost"
                   size="icon"
                   onClick={goToNextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 rounded-full"
                 >
                   {(() => { const ChevronRightAny = ChevronRight as any; return <ChevronRightAny className="h-5 w-5" />; })()}
                 </Button>
               </>
             )}
+          </div>
 
-            {/* Preview Actions */}
-            <div className="absolute bottom-4 right-4 flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="bg-white/90 hover:bg-white text-black shadow-lg"
-              >
-                {(() => { const DownloadAny = Download as any; return <DownloadAny className="w-4 h-4 mr-1" />; })()}
-                {isDownloading ? 'Downloading...' : 'Download'}
-              </Button>
-            </div>
+          {/* Mobile Bottom Action Bar */}
+          <div className="md:hidden absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-20 px-4 py-4 bg-gradient-to-t from-black/80 to-transparent">
+            {/* Share */}
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'AI Generated Image',
+                    url: currentImage
+                  }).catch(() => { });
+                } else {
+                  window.open(currentImage, '_blank');
+                }
+              }}
+              className="flex flex-col items-center gap-1.5 text-white"
+              aria-label="Share"
+            >
+              {(() => { const ShareAny = Share2 as any; return <ShareAny className="w-6 h-6" />; })()}
+              <span className="text-xs">Share</span>
+            </button>
 
+            {/* Copy */}
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/proxy-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imageUrl: currentImage, forceDownload: true }),
+                  });
+
+                  if (!response.ok) throw new Error('Failed to fetch image');
+
+                  const blob = await response.blob();
+                  const item = new ClipboardItem({ [blob.type]: blob });
+                  await navigator.clipboard.write([item]);
+
+                  toast.success('Copied to clipboard');
+                } catch (error) {
+                  console.error('Failed to copy image:', error);
+                  await navigator.clipboard.writeText(currentImage);
+                  toast.success('Copied link to clipboard');
+                }
+              }}
+              className="flex flex-col items-center gap-1.5 text-white"
+              aria-label="Copy image"
+            >
+              {(() => { const ImagesAny = Images as any; return <ImagesAny className="w-6 h-6" />; })()}
+              <span className="text-xs">Copy</span>
+            </button>
+
+            {/* Save/Download */}
+            <button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="flex flex-col items-center gap-1.5 text-white disabled:opacity-50"
+              aria-label="Save"
+            >
+              {isDownloading ? (
+                <div className="w-6 h-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                (() => { const DownloadAny = Download as any; return <DownloadAny className="w-6 h-6" />; })()
+              )}
+              <span className="text-xs">Save</span>
+            </button>
           </div>
         </DialogContent>
       </Dialog>

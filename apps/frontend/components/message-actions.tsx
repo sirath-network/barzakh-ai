@@ -60,7 +60,11 @@ export function PureMessageActions({
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = async () => {
-    await copyToClipboard(message.content);
+    // Strip internal image URL metadata before copying
+    const cleanContent = message.content
+      .replace(/\n*\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[^\]]+\]/g, '')
+      .trim();
+    await copyToClipboard(cleanContent);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };

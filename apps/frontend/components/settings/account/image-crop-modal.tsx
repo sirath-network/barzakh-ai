@@ -462,7 +462,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
 
             {/* Canvas Area - Much smaller for mobile */}
             <div className="flex flex-col items-center">
-              <div ref={containerRef} className="relative bg-zinc-50 dark:bg-zinc-950 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-zinc-200 dark:border-zinc-800">
+              <div ref={containerRef} className="relative bg-zinc-50 dark:bg-zinc-950 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-zinc-900/50 dark:to-zinc-950 rounded-lg sm:rounded-xl p-2 sm:p-3 border border-zinc-200 dark:border-zinc-800">
 
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-lg sm:rounded-xl z-10">

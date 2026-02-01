@@ -272,7 +272,7 @@ export default function PlanDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-zinc-900/50 dark:to-zinc-950 p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4 md:mb-6">
@@ -295,7 +295,7 @@ export default function PlanDetailPage() {
                 className={`
                   px-3 sm:px-4 md:px-6 py-2 rounded-md text-xs sm:text-sm font-semibold uppercase transition-all
                   ${billingCycle === cycle
-                    ? "bg-gray-900 dark:bg-black/80 text-white dark:text-white shadow-sm"
+                    ? "bg-gray-900 dark:bg-zinc-900/80 text-white dark:text-white shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-transparent"
                   }
                 `}
@@ -324,7 +324,7 @@ export default function PlanDetailPage() {
               <div
                 key={plan.id}
                 className={`
-                  bg-white dark:bg-black/80 rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-sm
+                  bg-white dark:bg-zinc-900/80 rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-sm
                   ${isExactCurrentPlan ? "border-gray-400 dark:border-zinc-500" : "border-gray-200 dark:border-zinc-800/50"}
                   hover:border-gray-500 dark:hover:border-zinc-500/50 transition-all
                 `}

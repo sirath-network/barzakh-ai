@@ -667,16 +667,11 @@ const PurePreviewMessage = ({
                             <div className="flex flex-wrap gap-2 justify-end w-full">
                               {/* Render experimental_attachments if available */}
                               {message.experimental_attachments?.map((attachment) => (
-                                <div
+                                <PreviewAttachmentAny
                                   key={attachment.url}
-                                  className="bg-muted/30 p-2 border border-border/20 shadow-sm"
-                                  style={{ borderRadius: '15px 15px 10px 15px' }}
-                                >
-                                  <PreviewAttachmentAny
-                                    attachment={attachment}
-                                    size={getAttachmentSize(attachment)}
-                                  />
-                                </div>
+                                  attachment={attachment}
+                                  size={getAttachmentSize(attachment)}
+                                />
                               ))}
 
                               {/* Also render images from content array if no experimental_attachments */}
@@ -684,22 +679,39 @@ const PurePreviewMessage = ({
                                 message.content
                                   .filter(part => part.type === 'image' && typeof part.image === 'string')
                                   .map((part, index) => {
+                                    // Try to extract filename from URL (R2 uploads have format: timestamp-id-filename.ext)
+                                    let imageName = `Image ${index + 1}`;
+                                    if (part.image && typeof part.image === 'string' && !part.image.startsWith('data:')) {
+                                      try {
+                                        const url = new URL(part.image);
+                                        const pathname = url.pathname;
+                                        // R2 URL format: /uploads/1234567890-abcdef-originalfilename.jpg
+                                        const filename = pathname.split('/').pop();
+                                        if (filename) {
+                                          // Remove the timestamp-id prefix (format: timestamp-id-filename)
+                                          const parts = filename.split('-');
+                                          if (parts.length >= 3) {
+                                            // Join everything after the first two parts (timestamp and id)
+                                            imageName = parts.slice(2).join('-');
+                                          } else {
+                                            imageName = filename;
+                                          }
+                                        }
+                                      } catch (e) {
+                                        // If URL parsing fails, use default name
+                                      }
+                                    }
                                     const attachment = {
-                                      name: `Image ${index + 1}`,
+                                      name: imageName,
                                       url: part.image,
                                       contentType: 'image/*'
                                     };
                                     return (
-                                      <div
+                                      <PreviewAttachmentAny
                                         key={`content-image-${index}`}
-                                        className="bg-muted/30 p-2 border border-border/20 shadow-sm"
-                                        style={{ borderRadius: '15px 15px 10px 15px' }}
-                                      >
-                                        <PreviewAttachmentAny
-                                          attachment={attachment}
-                                          size={getAttachmentSize(attachment)}
-                                        />
-                                      </div>
+                                        attachment={attachment}
+                                        size={getAttachmentSize(attachment)}
+                                      />
                                     );
                                   })
                               }

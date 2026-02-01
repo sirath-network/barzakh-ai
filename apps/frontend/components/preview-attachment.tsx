@@ -2,7 +2,7 @@
 
 import type { Attachment } from "ai";
 import { LoaderIcon } from "./icons";
-import { X, Code, Download } from "lucide-react";
+import { X, Code } from "lucide-react";
 import { motion } from "@/lib/framer-motion";
 import { useMemo, useState } from "react";
 import clsx from "clsx";
@@ -142,7 +142,6 @@ export const PreviewAttachment = ({
   // Preview states
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [fileContent, setFileContent] = useState<string | null>(null);
 
   // Load file content for code files
@@ -165,25 +164,7 @@ export const PreviewAttachment = ({
     setIsPreviewOpen(true);
   };
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = name || 'download';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+
 
   const PreviewContainer = ({ children }: { children: React.ReactNode }) =>
     isImage || !url ? (
@@ -221,7 +202,10 @@ export const PreviewAttachment = ({
     >
       <PreviewContainer>
         <div
-          className="bg-gradient-to-br from-muted/40 to-muted/20 w-full h-full rounded-2xl relative flex items-center justify-center border border-border/20 shadow-lg overflow-hidden group/card cursor-pointer touch-manipulation focus:ring-2 focus:ring-primary/50 focus:outline-none"
+          className={clsx(
+            "w-full h-full relative flex items-center justify-center cursor-pointer touch-manipulation focus:ring-2 focus:ring-primary/50 focus:outline-none",
+            isImage ? "" : "rounded-2xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/20 border border-border/20 shadow-lg group/card"
+          )}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           onClick={handlePreview}
@@ -229,15 +213,13 @@ export const PreviewAttachment = ({
           onTouchEnd={() => setIsHovered(false)}
         >
           {isImage ? (
-            <div className="relative w-full h-full overflow-hidden">
-              <img
-                key={url}
-                src={url}
-                alt={name ?? "Image attachment"}
-                loading="lazy"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <img
+              key={url}
+              src={url}
+              alt={name ?? "Image attachment"}
+              loading="lazy"
+              className="w-full h-full object-cover rounded-2xl"
+            />
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 p-3">
               <div className="relative transition-transform duration-500 ease-out group-hover/card:scale-110">
@@ -347,22 +329,54 @@ export const PreviewAttachment = ({
 
       {/* Preview Dialog */}
       <DialogAny open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContentAny className="max-w-6xl w-full p-2">
-          <DialogHeaderAny>
-            <DialogTitleAny className="sr-only">
+        <DialogContentAny
+          className="max-w-[100vw] w-full h-full max-h-[100vh] p-0 overflow-hidden border-none bg-black/95 rounded-none sm:rounded-none"
+          onOpenAutoFocus={(e: Event) => e.preventDefault()}
+          hideCloseButton
+        >
+          <DialogHeaderAny className="sr-only">
+            <DialogTitleAny>
               {isImage ? 'Image Preview' : 'Code Preview'}
             </DialogTitleAny>
           </DialogHeaderAny>
-          <div className="relative">
+
+          {/* Custom Header Bar */}
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/60 backdrop-blur-sm">
+            <button
+              onClick={() => setIsPreviewOpen(false)}
+              className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              aria-label="Close preview"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-2">
+              {isImage ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21,15 16,10 5,21" />
+                </svg>
+              ) : (
+                <Code className="w-[18px] h-[18px] text-gray-400" />
+              )}
+              <span className="text-sm text-white font-medium truncate max-w-[60vw]">
+                {name || (isImage ? 'Image' : 'File')}
+              </span>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="w-full h-full flex items-center justify-center pt-14 pb-4 px-4">
             {isImage ? (
               <img
                 src={url}
                 alt={name ?? "Image attachment"}
-                className="w-full h-auto rounded-lg"
-                style={{ maxHeight: '80vh', objectFit: 'contain' }}
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl"
               />
             ) : (
-              <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700 shadow-2xl">
+              <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700 shadow-2xl max-w-4xl w-full">
                 <div className="flex items-center justify-between bg-gradient-to-r from-gray-800 to-gray-750 px-4 py-3 border-b border-gray-600">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
@@ -373,20 +387,8 @@ export const PreviewAttachment = ({
                       {fileExtension}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ButtonAny
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleDownload}
-                      disabled={isDownloading}
-                      className="text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      {isDownloading ? 'Downloading...' : 'Download'}
-                    </ButtonAny>
-                  </div>
                 </div>
-                <div className="p-4 max-h-96 overflow-auto bg-gray-900/50">
+                <div className="p-4 max-h-[60vh] overflow-auto bg-gray-900/50">
                   {fileContent ? (
                     <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">
                       {fileContent}
@@ -400,22 +402,6 @@ export const PreviewAttachment = ({
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Image Preview Actions */}
-            {isImage && (
-              <div className="absolute bottom-4 right-4 flex gap-2">
-                <ButtonAny
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                  className="bg-white/95 hover:bg-white text-gray-700 hover:text-gray-900 shadow-xl border-white/20 backdrop-blur-sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {isDownloading ? 'Downloading...' : 'Download'}
-                </ButtonAny>
               </div>
             )}
           </div>

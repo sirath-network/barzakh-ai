@@ -253,7 +253,7 @@ export function SubscriptionCard({
     : formatStatus(rawStatus);
 
   return (
-    <div className="bg-white dark:bg-black/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-visible backdrop-blur-sm relative">
+    <div className="bg-white dark:bg-zinc-900/80 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 overflow-visible backdrop-blur-sm relative">
       <div className="p-8 space-y-3">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
           Your Subscription

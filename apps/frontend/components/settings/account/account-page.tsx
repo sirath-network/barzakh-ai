@@ -296,7 +296,7 @@ export default function AccountSettingsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-zinc-900/50 dark:to-zinc-950 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6 md:mb-8">
             <div className="flex items-center gap-3 mb-3 md:mb-4">
@@ -312,7 +312,7 @@ export default function AccountSettingsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form Card */}
-            <div className="lg:col-span-2 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+            <div className="lg:col-span-2 bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
               <div className="p-6 md:p-8 border-b border-border">
                 <h2 className="text-lg md:text-xl font-bold text-foreground mb-2">Profile Information</h2>
                 <p className="text-muted-foreground text-sm">
@@ -519,7 +519,7 @@ export default function AccountSettingsPage() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Profile Tips */}
-              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
                 <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                   <h3 className="text-lg font-bold text-foreground mb-2">Profile Tips</h3>
                   <p className="text-muted-foreground text-sm">Create a great profile</p>
@@ -565,7 +565,7 @@ export default function AccountSettingsPage() {
               </div>
 
               {/* Account Security */}
-              <div className="bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+              <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
                 <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
                   <h3 className="text-lg font-bold text-foreground mb-2">Account Security</h3>
                   <p className="text-muted-foreground text-sm">Keep your account safe</p>
@@ -626,7 +626,7 @@ export default function AccountSettingsPage() {
           </div>
 
           {/* Help Section */}
-          <div className="mt-4 md:mt-6 bg-white dark:bg-black/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
+          <div className="mt-4 md:mt-6 bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm md:text-base font-bold text-foreground mb-1">Need Help?</h3>
