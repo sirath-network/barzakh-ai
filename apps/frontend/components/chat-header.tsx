@@ -69,7 +69,7 @@ function PureChatHeader({
   const ChevronLeftAny = ChevronLeft as any;
 
   return (
-    <div className={`flex flex-col sticky top-0 z-10 backdrop-blur-sm ${title ? 'bg-gray-50/95 dark:bg-zinc-900/95' : 'bg-zinc-50/95 dark:bg-zinc-900/95'}`}>
+    <div className={`flex flex-col sticky top-0 z-10 backdrop-blur-sm bg-white/95 dark:bg-zinc-900/95`}>
       <header className="flex md:grid md:grid-cols-3 items-center w-full h-16 px-2 md:px-4 relative justify-between">
         {/* === Left Section === */}
         <div className="flex items-center gap-2 justify-start min-w-0 z-20">

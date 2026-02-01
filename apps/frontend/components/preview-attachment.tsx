@@ -330,7 +330,7 @@ export const PreviewAttachment = ({
       {/* Preview Dialog */}
       <DialogAny open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContentAny
-          className="max-w-[100vw] w-full h-full max-h-[100vh] p-0 overflow-hidden border-none bg-black/95 rounded-none sm:rounded-none"
+          className="max-w-[100vw] w-full h-full max-h-[100vh] p-0 overflow-hidden border-none bg-white/80 dark:bg-black/80 rounded-none sm:rounded-none"
           onOpenAutoFocus={(e: Event) => e.preventDefault()}
           hideCloseButton
         >
@@ -341,27 +341,27 @@ export const PreviewAttachment = ({
           </DialogHeaderAny>
 
           {/* Custom Header Bar */}
-          <div className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3 bg-black/60 backdrop-blur-sm">
+          <div className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3">
             <button
               onClick={() => setIsPreviewOpen(false)}
-              className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
               aria-label="Close preview"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-800 dark:text-white">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
             <div className="flex items-center gap-2">
               {isImage ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 dark:text-gray-400">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21,15 16,10 5,21" />
                 </svg>
               ) : (
-                <Code className="w-[18px] h-[18px] text-gray-400" />
+                <Code className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400" />
               )}
-              <span className="text-sm text-white font-medium truncate max-w-[60vw]">
+              <span className="text-sm text-gray-800 dark:text-white font-medium truncate max-w-[60vw]">
                 {name || (isImage ? 'Image' : 'File')}
               </span>
             </div>

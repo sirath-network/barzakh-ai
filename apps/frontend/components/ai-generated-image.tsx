@@ -522,7 +522,7 @@ export function AIGeneratedImage({
       {/* Shared Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent
-          className="max-w-[100vw] w-full h-full max-h-[100vh] p-0 overflow-hidden border-none bg-black/95 rounded-none sm:rounded-none"
+          className="max-w-[100vw] w-full h-full max-h-[100vh] p-0 overflow-hidden border-none bg-white/80 dark:bg-black/80 rounded-none sm:rounded-none"
           onOpenAutoFocus={(e: Event) => e.preventDefault()}
           hideCloseButton
         >
@@ -537,21 +537,21 @@ export function AIGeneratedImage({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsPreviewOpen(false)}
-                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 aria-label="Close preview"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-800 dark:text-white">
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span className="text-sm text-white font-medium">Barzakh AI</span>
+              <span className="text-sm text-gray-800 dark:text-white font-medium">Barzakh AI</span>
             </div>
 
             {/* Action Icons - Right side (Desktop only) */}
             <div className="hidden md:flex items-center gap-6">
               {/* Image counter for multiple images */}
               {allImages && allImages.length > 1 && (
-                <span className="text-white/70 text-sm mr-2">
+                <span className="text-gray-600 dark:text-white/70 text-sm mr-2">
                   {currentImageIndex + 1} / {allImages.length}
                 </span>
               )}
@@ -568,10 +568,10 @@ export function AIGeneratedImage({
                     window.open(currentImage, '_blank');
                   }
                 }}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 aria-label="Share"
               >
-                {(() => { const ShareAny = Share2 as any; return <ShareAny className="w-5 h-5 text-white" />; })()}
+                {(() => { const ShareAny = Share2 as any; return <ShareAny className="w-5 h-5 text-gray-800 dark:text-white" />; })()}
               </button>
 
               {/* Copy Icon */}
@@ -601,23 +601,23 @@ export function AIGeneratedImage({
                     toast.success('Copied link to clipboard');
                   }
                 }}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 aria-label="Copy image"
               >
-                {(() => { const ImagesAny = Images as any; return <ImagesAny className="w-5 h-5 text-white" />; })()}
+                {(() => { const ImagesAny = Images as any; return <ImagesAny className="w-5 h-5 text-gray-800 dark:text-white" />; })()}
               </button>
 
               {/* Download Icon */}
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors disabled:opacity-50"
+                className="p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
                 aria-label="Download"
               >
                 {isDownloading ? (
-                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-800 dark:border-white border-t-transparent" />
                 ) : (
-                  (() => { const DownloadAny = Download as any; return <DownloadAny className="w-5 h-5 text-white" />; })()
+                  (() => { const DownloadAny = Download as any; return <DownloadAny className="w-5 h-5 text-gray-800 dark:text-white" />; })()
                 )}
               </button>
             </div>
@@ -648,7 +648,7 @@ export function AIGeneratedImage({
                   variant="ghost"
                   size="icon"
                   onClick={goToPreviousImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 rounded-full"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-gray-200/80 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white hover:bg-gray-300/80 dark:hover:bg-black/80 rounded-full"
                 >
                   {(() => { const ChevronLeftAny = ChevronLeft as any; return <ChevronLeftAny className="h-5 w-5" />; })()}
                 </Button>
@@ -658,7 +658,7 @@ export function AIGeneratedImage({
                   variant="ghost"
                   size="icon"
                   onClick={goToNextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 rounded-full"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 bg-gray-200/80 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white hover:bg-gray-300/80 dark:hover:bg-black/80 rounded-full"
                 >
                   {(() => { const ChevronRightAny = ChevronRight as any; return <ChevronRightAny className="h-5 w-5" />; })()}
                 </Button>
@@ -667,7 +667,7 @@ export function AIGeneratedImage({
           </div>
 
           {/* Mobile Bottom Action Bar */}
-          <div className="md:hidden absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-20 px-4 py-4 bg-gradient-to-t from-black/80 to-transparent">
+          <div className="md:hidden absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-20 px-4 py-4 bg-gradient-to-t from-white/80 dark:from-black/80 to-transparent">
             {/* Share */}
             <button
               onClick={() => {
@@ -680,7 +680,7 @@ export function AIGeneratedImage({
                   window.open(currentImage, '_blank');
                 }
               }}
-              className="flex flex-col items-center gap-1.5 text-white"
+              className="flex flex-col items-center gap-1.5 text-gray-800 dark:text-white"
               aria-label="Share"
             >
               {(() => { const ShareAny = Share2 as any; return <ShareAny className="w-6 h-6" />; })()}
@@ -710,7 +710,7 @@ export function AIGeneratedImage({
                   toast.success('Copied link to clipboard');
                 }
               }}
-              className="flex flex-col items-center gap-1.5 text-white"
+              className="flex flex-col items-center gap-1.5 text-gray-800 dark:text-white"
               aria-label="Copy image"
             >
               {(() => { const ImagesAny = Images as any; return <ImagesAny className="w-6 h-6" />; })()}
@@ -721,11 +721,11 @@ export function AIGeneratedImage({
             <button
               onClick={handleDownload}
               disabled={isDownloading}
-              className="flex flex-col items-center gap-1.5 text-white disabled:opacity-50"
+              className="flex flex-col items-center gap-1.5 text-gray-800 dark:text-white disabled:opacity-50"
               aria-label="Save"
             >
               {isDownloading ? (
-                <div className="w-6 h-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-800 dark:border-white border-t-transparent" />
               ) : (
                 (() => { const DownloadAny = Download as any; return <DownloadAny className="w-6 h-6" />; })()
               )}
