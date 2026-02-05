@@ -289,7 +289,7 @@ export default function Page() {
             {/* Marble header image */}
             <div className="relative h-40 overflow-hidden">
               <Image
-                src="/images/barzakh/banner/marble-origin.png"
+                src="/images/barzakh/banner/marble.png"
                 alt="Decorative marble"
                 fill
                 priority

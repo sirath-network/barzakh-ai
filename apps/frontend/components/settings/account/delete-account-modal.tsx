@@ -238,7 +238,7 @@ export default function DeleteAccountModal({
                 type="text"
                 value={confirmationText}
                 onChange={(e) => setConfirmationText(e.target.value)}
-                className="w-full px-4 py-3 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 font-mono tracking-wide"
+                className="w-full px-4 py-2.5 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 font-mono tracking-wider text-sm"
                 placeholder="DELETE"
                 disabled={isDeleting}
               />
@@ -264,7 +264,7 @@ export default function DeleteAccountModal({
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
+                    className="w-full pl-10 pr-4 py-2.5 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-sm"
                     placeholder="Enter your password"
                     disabled={isDeleting}
                   />
@@ -283,7 +283,7 @@ export default function DeleteAccountModal({
                       type="text"
                       value={twoFactorToken}
                       onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      className="w-full pl-10 pr-4 py-3 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 font-mono tracking-widest text-lg"
+                      className="w-full pl-10 pr-4 py-2.5 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 font-mono tracking-wider text-sm"
                       placeholder="000000"
                       maxLength={6}
                       disabled={isDeleting}
@@ -305,7 +305,7 @@ export default function DeleteAccountModal({
                         type="text"
                         value={emailOtp}
                         onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="w-full pl-10 pr-4 py-3 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 font-mono tracking-widest text-lg"
+                        className="w-full pl-10 pr-4 py-2.5 border rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 font-mono tracking-wider text-sm"
                         placeholder="000000"
                         maxLength={6}
                         disabled={isDeleting}
@@ -315,10 +315,10 @@ export default function DeleteAccountModal({
                       type="button"
                       onClick={sendEmailOtp}
                       disabled={isSendingOtp || otpCooldown > 0 || isDeleting}
-                      className="px-4 py-3 bg-zinc-900 dark:bg-white text-zinc-50 dark:text-zinc-900 rounded-xl font-medium text-sm hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm"
+                      className="px-4 py-2.5 bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 rounded-xl font-medium text-xs hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shadow-sm border border-transparent dark:border-zinc-200/50"
                     >
                       {isSendingOtp ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : otpCooldown > 0 ? (
                         `${otpCooldown}s`
                       ) : (

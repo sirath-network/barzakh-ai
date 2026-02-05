@@ -34,12 +34,7 @@ export default function ResetPassword() {
     message: "",
   });
 
-  // Password visibility state for marble banner
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  const handlePasswordVisibilityChange = (isVisible: boolean) => {
-    setIsPasswordVisible(isVisible);
-  };
 
   const [state, formAction] = useActionState<
     VerifyAndResetPasswordActionState,
@@ -125,7 +120,7 @@ export default function ResetPassword() {
             {/* Marble header image */}
             <div className="relative h-40 overflow-hidden">
               <Image
-                src={isPasswordVisible ? "/images/barzakh/banner/marble.png" : "/images/barzakh/banner/marble-origin.png"}
+                src="/images/barzakh/banner/marble.png"
                 alt="Decorative marble"
                 fill
                 priority
@@ -154,7 +149,6 @@ export default function ResetPassword() {
                   passwordNeeded={true}
                   passwordConfirmNeeded={true}
                   fieldErrors={state.fieldErrors}
-                  onPasswordVisibilityChange={handlePasswordVisibilityChange}
                   onValidationChange={handleValidationChange}
                   compact={true}
                 >

@@ -95,7 +95,7 @@ export function BillingHistoryCard({
                   ? (!canGoPreviousX402 || isPaginatingX402)
                   : (!canGoPrevious || isPaginating)
                 }
-                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -108,7 +108,7 @@ export function BillingHistoryCard({
                   ? (!canGoNextX402 || isPaginatingX402)
                   : (!canGoNext || isPaginating)
                 }
-                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-red-700/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 sm:px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800/40 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -126,7 +126,7 @@ export function BillingHistoryCard({
           <div className="space-y-4">
             {/* Desktop Table View */}
             <div className="hidden md:block">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-red-900/40 text-sm">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-800/50 text-sm">
                 <thead className="bg-gray-50 dark:bg-black/40">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">
@@ -146,7 +146,7 @@ export function BillingHistoryCard({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-red-900/30">
+                <tbody className="divide-y divide-gray-200 dark:divide-zinc-800/50">
                   {x402Data?.transactions.map((tx) => (
                     <tr key={tx.id}>
                       <td className="px-4 py-3 text-gray-900 dark:text-white">
@@ -179,7 +179,7 @@ export function BillingHistoryCard({
                             href={tx.explorerUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-red-300 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-white transition-colors"
                           >
                             <span className="font-mono text-xs">{truncateHash(tx.transactionHash)}</span>
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -243,7 +243,7 @@ export function BillingHistoryCard({
                           href={tx.explorerUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-red-200"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-white"
                         >
                           <span className="font-mono text-xs">{truncateHash(tx.transactionHash)}</span>
                           <ExternalLink className="w-3 h-3" />
@@ -262,7 +262,7 @@ export function BillingHistoryCard({
         ) : hasInvoices ? (
           <div className="space-y-4">
             <div className="hidden md:block">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-red-900/40 text-sm">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-800/50 text-sm">
                 <thead className="bg-gray-50 dark:bg-black/40">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">
@@ -279,7 +279,7 @@ export function BillingHistoryCard({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-red-900/30">
+                <tbody className="divide-y divide-gray-200 dark:divide-zinc-800/50">
                   {data?.invoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td className="px-4 py-3 text-gray-900 dark:text-white">
@@ -306,7 +306,7 @@ export function BillingHistoryCard({
                             href={invoice.invoicePdf ?? invoice.hostedInvoiceUrl ?? "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm font-semibold text-gray-900 underline decoration-dashed underline-offset-4 hover:text-gray-600 dark:text-white dark:hover:text-red-400"
+                            className="text-sm font-semibold text-gray-900 underline decoration-dashed underline-offset-4 hover:text-gray-600 dark:text-white dark:hover:text-zinc-200"
                           >
                             Download PDF
                           </a>
@@ -362,7 +362,7 @@ export function BillingHistoryCard({
                           href={invoice.invoicePdf ?? invoice.hostedInvoiceUrl ?? "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-semibold text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-red-200 underline decoration-dashed underline-offset-4"
+                          className="text-sm font-semibold text-gray-700 hover:text-gray-500 dark:text-zinc-300 dark:hover:text-white underline decoration-dashed underline-offset-4"
                         >
                           Download
                         </a>
