@@ -16,6 +16,7 @@ const VALID_MODELS = [
   "xai-grok-4.1-fast",
 
   "title-model",
+  "block-model",
 ];
 
 export async function POST(request: Request) {

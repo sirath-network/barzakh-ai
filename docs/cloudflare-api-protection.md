@@ -308,7 +308,7 @@ Verified Human: Allow
 
 ## API Shield Schema
 
-### OpenAPI Schema for Backend (`api.barzakh.ai`)
+### OpenAPI Schema for Backend (`staging.barzakh.tech`)
 
 ```yaml
 openapi: "3.0.0"
@@ -318,7 +318,7 @@ info:
   description: OpenAI-compatible chat completions API
 
 servers:
-  - url: https://api.barzakh.ai
+  - url: https://staging.barzakh.tech
 
 security:
   - BearerAuth: []
@@ -597,4 +597,4 @@ CRON_SECRET=your-cron-secret-key
 
 ## Contact
 
-For billing or security questions: [Contact Support](https://barzakh.ai/contact)
+For billing or security questions: [Contact Support](https://barzakh.framer.ai/contact)

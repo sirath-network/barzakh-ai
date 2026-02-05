@@ -50,7 +50,8 @@ export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
                     >
                         {displayText}
                     </span>
-                    <style jsx global>{`
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
                         @keyframes shimmer {
                             0% {
                                 background-position: 200% center;
@@ -59,7 +60,7 @@ export const ThinkingAnimation = ({ statusText }: ThinkingAnimationProps) => {
                                 background-position: -200% center;
                             }
                         }
-                    `}</style>
+                    `}} />
                 </motion.div>
             </AnimatePresence>
         </div>

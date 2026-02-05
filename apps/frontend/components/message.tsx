@@ -575,9 +575,27 @@ const PurePreviewMessage = ({
                     ];
 
                     // Filter to only tools that have renderable components
-                    const renderableTools = otherCompletedTools?.filter(
+                    let renderableTools = otherCompletedTools?.filter(
                       tool => tool.state === 'result' && renderableToolNames.includes(tool.toolName)
                     ) || [];
+
+                    // Deduplicate getEvmOnchainDataUsingZerion calls - prefer portfolio data
+                    // This prevents duplicate renders when AI makes multiple API calls
+                    const zerionTools = renderableTools.filter(
+                      (tool: any) => tool.toolName === 'getEvmOnchainDataUsingZerion'
+                    );
+                    if (zerionTools.length > 1) {
+                      // Find the best one: prefer portfolio type, otherwise first one
+                      const portfolioTool = zerionTools.find(
+                        (tool: any) => tool.result?.type === 'portfolio'
+                      );
+                      const bestZerionTool = portfolioTool || zerionTools[0];
+
+                      // Filter out all Zerion tools except the best one
+                      renderableTools = renderableTools.filter(
+                        (tool: any) => tool.toolName !== 'getEvmOnchainDataUsingZerion' || tool === bestZerionTool
+                      );
+                    }
 
                     if (renderableTools.length === 0) return null;
 
@@ -605,8 +623,10 @@ const PurePreviewMessage = ({
                             getCronosTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             getMonadTransactionHistory: <EvmTransactionHistoryAny result={result} />,
                             getZkEVMTransactionHistory: <EvmTransactionHistoryAny result={result} />,
-                            // Map generic and other chain tools to EvmTransactionHistory
-                            getEvmOnchainDataUsingZerion: <EvmTransactionHistoryAny result={result} />,
+                            // Zerion tool can return either portfolio or transaction data
+                            getEvmOnchainDataUsingZerion: result?.type === 'portfolio'
+                              ? <PortfolioTableAny result={result} />
+                              : <EvmTransactionHistoryAny result={result} />,
                             getEvmOnchainDataUsingEtherscan: <EvmTransactionHistoryAny result={result} />,
                             getCreditcoinApiData: <EvmTransactionHistoryAny result={result} />,
                             getVanaApiData: <EvmTransactionHistoryAny result={result} />,

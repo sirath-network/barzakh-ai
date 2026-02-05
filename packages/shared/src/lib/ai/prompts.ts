@@ -1745,7 +1745,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "google-gemini-2.5-flash-preview") {
+  if (selectedChatModel === "xai-grok-4.1-fast") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

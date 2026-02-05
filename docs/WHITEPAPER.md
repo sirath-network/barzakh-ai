@@ -122,7 +122,7 @@ flowchart TB
         Anthropic["Anthropic Claude"]
         xAI["xAI Grok"]
         Zhipu["Zhipu GLM-4.7"]
-        Comet["CometAPI Aggregator"]
+        OpenRouter["as an AI Aggregator"]
     end
     
     subgraph Layer5["Layer 5: Blockchain Tools"]
@@ -258,27 +258,28 @@ import { openai } from "@ai-sdk/openai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
-const cometai = createOpenAI({
-  baseURL: "https://api.cometapi.com/v1",
-  apiKey: process.env.COMETAPI_API_KEY,
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-export const myProvider = customProvider({
+export const myProvider: any = customProvider({
   languageModels: {
     "openai-gpt-4o": openai("gpt-4o"),
     "openai-gpt-4.1": openai("gpt-4.1-2025-04-14"),
-    "openai-gpt-5.1": cometai("gpt-5.1"),
-    "openai-gpt-5.2": cometai("gpt-5.2"),
-    "anthropic-opus-4.5": cometai("claude-opus-4-5-20251101-thinking"),
-    "anthropic-haiku-4.5": cometai("claude-haiku-4-5-20251001"),
-    "google-gemini-3-flash": cometai("gemini-3-flash"),
-    "google-gemini-2.5-flash-preview": cometai("google-gemini-2.5-flash-preview"),
-    "xai-grok-4.1-fast": cometai("grok-4-1-fast-non-reasoning"),
-    "zai-glm-4.7": cometai("glm-4.7"),
+    "openai-gpt-5.1": openrouter("openai/gpt-5.1"),
+    "openai-gpt-5.2": openrouter("openai/gpt-5.2"),
+    "anthropic-opus-4.5": openrouter("anthropic/claude-opus-4.5"),
+    "anthropic-haiku-4.5": openrouter("anthropic/claude-haiku-4.5"),
+    "google-gemini-3-flash": openrouter("google/gemini-3-flash-preview"),
+    "google-gemini-2.5-flash-preview": openrouter("google/gemini-2.5-flash"),
+    "xai-grok-4.1-fast": openrouter("x-ai/grok-4.1-fast"),
+    "zai-glm-4.7": openrouter("z-ai/glm-4.7"),
 
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
   },
+  imageModels: {},
 });
 ```
 
@@ -288,14 +289,14 @@ export const myProvider = customProvider({
 |----------|--------------|----------|----------|----------|
 | `openai-gpt-4o` | **GPT 4o** | OpenAI | Speed | Fast queries, simple tasks |
 | `openai-gpt-4.1` | **GPT 4.1** | OpenAI | Reasoning | Multi-step analysis |
-| `openai-gpt-5.1` | **GPT 5.1** | CometAPI | Frontier | Complex blockchain analysis |
-| `openai-gpt-5.2` | **GPT 5.2** | CometAPI | Advanced | Research-grade tasks |
-| `zai-glm-4.7` | **GLM 4.7** | CometAPI | Multilingual | broad coverage |
-| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | CometAPI | Speed | Fast, lightweight tasks |
-| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | CometAPI | Deep Analysis | Code generation, extended reasoning |
-| `google-gemini-3-flash` | **Gemini 3 Flash** | CometAPI | Speed | Fast Gemini responses |
-| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | Preview | Experimental tasks |
-| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | Speed | Fast reasoning |
+| `openai-gpt-5.1` | **GPT 5.1** | OpenRouter | Frontier | Complex blockchain analysis |
+| `openai-gpt-5.2` | **GPT 5.2** | OpenRouter | Advanced | Research-grade tasks |
+| `zai-glm-4.7` | **GLM 4.7** | OpenRouter | Multilingual | broad coverage |
+| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | OpenRouter | Speed | Fast, lightweight tasks |
+| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | OpenRouter | Deep Analysis | Code generation, extended reasoning |
+| `google-gemini-3-flash` | **Gemini 3 Flash** | OpenRouter | Speed | Fast Gemini responses |
+| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | OpenRouter | Preview | Experimental tasks |
+| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | OpenRouter | Speed | Fast reasoning |
 
 
 ### Intent Classification System

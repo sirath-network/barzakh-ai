@@ -34,11 +34,11 @@ let clientCache: Record<number, CdcAiAgentClient> = {};
  */
 function getClient(chainId: number): CdcAiAgentClient {
     if (!clientCache[chainId]) {
-        // Try to get OpenAI key, or fallback to CometAPI key
-        const apiKey = process.env.OPENAI_API_KEY || process.env.COMETAPI_API_KEY;
+        // Try to get OpenAI key, or fallback to OpenRouter key
+        const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
 
         if (!apiKey) {
-            throw new Error("Missing API Key: OPENAI_API_KEY or COMETAPI_API_KEY is required for Crypto.com AI Agent SDK");
+            throw new Error("Missing API Key: OPENAI_API_KEY or OPENROUTER_API_KEY is required for Crypto.com AI Agent SDK");
         }
 
         clientCache[chainId] = createClient({

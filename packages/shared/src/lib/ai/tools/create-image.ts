@@ -285,65 +285,36 @@ function extractCandidateParts(candidate: any): any[] {
   return [];
 }
 
-const COMET_GEMINI_ENDPOINT =
-  process.env.COMETAPI_IMAGE_ENDPOINT ||
-  "https://api.cometapi.com/v1beta/models/gemini-2.5-flash-image:generateContent";
+const OPENROUTER_GEMINI_ENDPOINT =
+  process.env.OPENROUTER_IMAGE_ENDPOINT ||
+  "https://openrouter.ai/api/v1/chat/completions";
 
 async function generateGeminiImage(
   prompt: string,
   input_image_urls?: string[]
 ): Promise<string[]> {
-  const apiKey = process.env.COMETAPI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    throw new Error("COMETAPI_API_KEY environment variable is not set");
+    throw new Error("OPENROUTER_API_KEY environment variable is not set");
   }
 
   const sanitizedPrompt = sanitizePrompt(prompt);
-  const parts: Array<
-    | {
-      text: string;
-    }
-    | {
-      inline_data: {
-        mime_type: string;
-        data: string;
-      };
-    }
-  > = [
-      {
-        text: sanitizedPrompt,
-      },
-    ];
 
+  // Convert input images to base64 if provided (OpenRouter/Google can't fetch private URLs)
+  let base64Images: Array<{ base64: string; mimeType: string }> = [];
   if (input_image_urls && input_image_urls.length > 0) {
-    const base64Images = await Promise.all(
+    const fetchedImages = await Promise.all(
       input_image_urls.map((url) => fetchImageAsBase64(url))
     );
-
-    const validImages = base64Images.filter(
+    base64Images = fetchedImages.filter(
       (item): item is { base64: string; mimeType: string } =>
         item !== null && !!item.base64
     );
-
-    if (validImages.length > 0) {
-      validImages.forEach(({ base64, mimeType }) => {
-        parts.push({
-          inline_data: {
-            mime_type: mimeType,
-            data: base64,
-          },
-        });
-      });
-    } else {
-      parts[0] = {
-        text: `Note: Unable to access the original image for editing. Generating a new image based on the request: "${sanitizedPrompt}"`,
-      };
-    }
   }
 
   const maxImages = Math.max(
     1,
-    Number(process.env.COMETAPI_IMAGE_COUNT || "1")
+    Number(process.env.OPENROUTER_IMAGE_COUNT || "1")
   );
   const imagePromises = Array.from({ length: maxImages }, async (_, index) => {
     if (index > 0) {
@@ -351,25 +322,34 @@ async function generateGeminiImage(
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    const aspectRatio = process.env.COMETAPI_IMAGE_ASPECT_RATIO;
-    const generationConfig: Record<string, any> = {
-      responseModalities: ["IMAGE"],
-    };
+    // Build messages array for OpenRouter chat completions format
+    const messages: Array<{
+      role: string;
+      content: Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    }> = [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: base64Images.length > 0 ? sanitizedPrompt : sanitizedPrompt },
+          ],
+        },
+      ];
 
-    if (aspectRatio) {
-      generationConfig.imageConfig = {
-        aspectRatio,
-      };
+    // Add input images as base64 data URLs
+    if (base64Images.length > 0) {
+      for (const { base64, mimeType } of base64Images) {
+        messages[0].content.push({
+          type: "image_url",
+          image_url: { url: `data:${mimeType};base64,${base64}` },
+        });
+      }
     }
 
     const requestBody = {
-      contents: [
-        {
-          role: "user",
-          parts,
-        },
-      ],
-      generationConfig,
+      model: "google/gemini-2.5-flash-image",
+      messages,
+      modalities: ["image", "text"],
+      max_tokens: 4096,
     };
 
     const maxRetries = 3;
@@ -383,10 +363,10 @@ async function generateGeminiImage(
           );
         }
 
-        const response = await fetch(COMET_GEMINI_ENDPOINT, {
+        const response = await fetch(OPENROUTER_GEMINI_ENDPOINT, {
           method: "POST",
           headers: {
-            Authorization: apiKey,
+            Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(requestBody),
@@ -401,34 +381,72 @@ async function generateGeminiImage(
         }
 
         const data = await response.json();
-        const candidates = Array.isArray(data?.candidates)
-          ? data.candidates
-          : [];
 
-        for (const candidate of candidates) {
-          const parts = extractCandidateParts(candidate);
-          const inlinePart = parts.find(
-            (part: any) =>
-              part?.inline_data?.data || part?.inlineData?.data
-          );
+        // OpenRouter returns images in message.images array
+        const choices = Array.isArray(data?.choices) ? data.choices : [];
 
-          if (inlinePart) {
-            const inlineData = inlinePart.inline_data ?? inlinePart.inlineData;
-            if (inlineData?.data) {
-              const mimeType = inlineData.mime_type ?? inlineData.mimeType ?? "image/png";
-              const base64 = inlineData.data;
-              return `data:${mimeType};base64,${base64}`;
+        for (const choice of choices) {
+          const message = choice?.message;
+
+          // Check for images array in message (OpenRouter image generation format)
+          if (Array.isArray(message?.images) && message.images.length > 0) {
+            for (const image of message.images) {
+              if (image?.image_url?.url) {
+                return image.image_url.url;
+              }
+              // Also check for imageUrl (camelCase variant)
+              if (image?.imageUrl?.url) {
+                return image.imageUrl.url;
+              }
+            }
+          }
+
+          const content = message?.content;
+          if (typeof content === "string") {
+            // Check if content is raw base64 image data (PNG starts with iVBOR, JPEG with /9j/)
+            if (content.startsWith("iVBOR") || content.startsWith("/9j/")) {
+              return `data:image/png;base64,${content}`;
+            }
+
+            // Check if content already is a data URL
+            if (content.startsWith("data:image/")) {
+              return content;
+            }
+
+            // Extract image URLs from markdown format ![...](url)
+            const imageUrlMatch = content.match(/!\[.*?\]\((https?:\/\/[^)]+)\)/);
+            if (imageUrlMatch && imageUrlMatch[1]) {
+              return imageUrlMatch[1];
+            }
+            // Also check for direct URL in content
+            const directUrlMatch = content.match(/(https?:\/\/[^\s"<>]+\.(?:png|jpg|jpeg|gif|webp))/i);
+            if (directUrlMatch && directUrlMatch[1]) {
+              return directUrlMatch[1];
+            }
+          }
+
+          // Check for multimodal content with image parts
+          if (Array.isArray(content)) {
+            for (const part of content) {
+              if (part?.type === "image_url" && part?.image_url?.url) {
+                return part.image_url.url;
+              }
+              // Handle base64 image data if present
+              if (part?.type === "image" && part?.data) {
+                const mimeType = part.mime_type ?? "image/png";
+                return `data:${mimeType};base64,${part.data}`;
+              }
             }
           }
         }
 
         console.error(
-          "Gemini image generation returned no inline image data",
+          "OpenRouter image generation returned no image data",
           JSON.stringify(data)
         );
 
         throw new Error(
-          "Gemini image generation succeeded but no image data was returned"
+          "Image generation succeeded but no image data was returned"
         );
       } catch (error) {
         const normalizedError = toError(error);

@@ -24,7 +24,7 @@ export const getVanaApiData = tool({
       const allPaths = await getAllPaths(openapidata);
       console.log("use prompt is -- ", userQuery);
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
+        model: myProvider.languageModel("xai-grok-4.1-fast"),
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n

@@ -18,9 +18,9 @@ import { z } from "zod";
 
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
     // coding now allows user to select from a subset of models
-    imagine: "google-gemini-2.5-flash-preview",
+    imagine: "xai-grok-4.1-fast",
     // multimodal requires a vision-capable model for image analysis
-    multimodal: "google-gemini-2.5-flash-preview",
+    multimodal: "xai-grok-4.1-fast",
     // Chain-specific tools removed - they can use any model the user selects
 };
 
@@ -62,7 +62,7 @@ interface IntentPattern {
 const FOLLOW_UP_PATTERNS: RegExp[] = [
     // Direct continuations
     /^(now|then|next|also|and)\s+/i,
-    /^(show|get|give|provide|fetch)\s*(me|us)?\s*(more|the|some|another|\d+|recent|latest)/i,
+    /^(show|get|give|provide|fetch)\s*(me|us)?\s*(at\s+least|more|the|some|another|\d+|recent|latest|all)/i,
     /^(what|how)\s+about\s+/i,
     /^can\s+you\s+(also|show|get|provide)/i,
 
@@ -107,7 +107,7 @@ const SEMANTIC_ACTIONS: Record<string, SemanticAction> = {
     },
     transactions: {
         patterns: [
-            /\b(show|get|view|fetch|provide)\s*(\d+\s+)?(recent|latest|last)?\s*(transactions?|tx|history|activity)/i,
+            /\b(show|get|view|fetch|provide|list)\s*(((at\s+)?least|limit|last|recent|latest)\s*)?(\d+)?\s*(transactions?|txs?|history|activity)/i,
             /\btransaction\s*history\b/i,
             /\brecent\s*(transactions?|activity)\b/i,
         ],
@@ -1009,7 +1009,7 @@ Only use the "${chatContext}" context if the address format is compatible or no 
     // Helper function to attempt LLM classification
     const attemptLLMClassification = async (attempt: number = 1): Promise<any> => {
         const { object } = await generateObject({
-            model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
+            model: myProvider.languageModel("xai-grok-4.1-fast"),
             schema: z.object({
                 primaryIntent: z.enum([
                     "imagine",

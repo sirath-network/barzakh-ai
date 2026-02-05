@@ -623,7 +623,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       </AlertDialogAny>
 
       {/* Add these styles to ensure scrollbar is visible */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         div[style*="overflow-y: auto"]::-webkit-scrollbar {
           width: 6px !important;
           display: block !important;
@@ -642,7 +643,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
         div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
           background: hsl(var(--muted-foreground) / 0.5) !important;
         }
-      `}</style>
+      `}} />
     </>
   );
 }

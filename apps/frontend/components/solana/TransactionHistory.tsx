@@ -240,9 +240,9 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ result }) => {
                                 </div>
 
                                 {/* Desktop Layout (>= 640px) */}
-                                <div className="hidden sm:flex items-center justify-between">
+                                <div className="hidden sm:grid sm:grid-cols-3 sm:items-center">
                                     {/* Left: Icon + Type + Time */}
-                                    <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex items-center gap-3 min-w-0 justify-self-start">
                                         <div
                                             className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bgColor}`}
                                         >
@@ -259,24 +259,26 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ result }) => {
                                     </div>
 
                                     {/* Center: Token + Amount */}
-                                    {primaryTransfer && (
-                                        <div className="flex flex-col items-center text-center px-2">
-                                            <span
-                                                className={`font-semibold text-sm tabular-nums ${valueColor}`}
-                                            >
-                                                {sign}
-                                                {formatCrypto(primaryTransfer.amount)} {primaryTransfer.symbol}
-                                            </span>
-                                            {primaryTransfer.valueUsd !== null && (
-                                                <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                                                    ${formatNumber(primaryTransfer.valueUsd)}
+                                    <div className="flex flex-col items-center text-center px-2 justify-self-center">
+                                        {primaryTransfer && (
+                                            <>
+                                                <span
+                                                    className={`font-semibold text-sm tabular-nums ${valueColor}`}
+                                                >
+                                                    {sign}
+                                                    {formatCrypto(primaryTransfer.amount)} {primaryTransfer.symbol}
                                                 </span>
-                                            )}
-                                        </div>
-                                    )}
+                                                {primaryTransfer.valueUsd !== null && (
+                                                    <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                                                        ${formatNumber(primaryTransfer.valueUsd)}
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
 
                                     {/* Right: Counterparty + Link */}
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 justify-self-end">
                                         <div className="flex flex-col items-end">
                                             <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                                 {addressLabel}

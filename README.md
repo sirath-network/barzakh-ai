@@ -110,7 +110,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 │  ┌───────────────────────────────────────────────────────────────────────────────┐  │
 │  │                           LLM Provider Abstraction                            │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │  │
-│  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   CometAPI       │ │  │
+│  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   OpenRouter       │ │  │
 │  │  │ GPT-4o/5 │  │ Claude   │  │  Grok 2  │  │ GLM-4.7  │  │  (Aggregator)    │ │  │
 │  │  │ o1/o3    │  │ Opus 4.5 │  │   4.1    │  │  Plus    │  │  Multi-Provider  │ │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │  │
@@ -277,20 +277,20 @@ sequenceDiagram
 |----------|--------------|----------|---------------|----------|
 | `openai-gpt-4o` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
 | `openai-gpt-4.1` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
-| `openai-gpt-5.1` | **GPT 5.1** | CometAPI | `gpt-5.1` | Experimental, next-gen |
-| `openai-gpt-5.2` | **GPT 5.2** | CometAPI | `gpt-5.2` | Experimental, advanced |
-| `zai-glm-4.7` | **GLM 4.7** | CometAPI | `glm-4.7` | Multilingual |
-| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | CometAPI | `claude-haiku-4-5-20251001` | Fast, lightweight Claude |
-| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | CometAPI | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
-| `google-gemini-3-flash` | **Gemini 3 Flash** | CometAPI | `gemini-3-flash` | Fast Gemini responses |
-| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | CometAPI | `google-gemini-2.5-flash-preview` | Preview Gemini tasks |
-| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | CometAPI | `grok-4-1-fast-non-reasoning` | Fast reasoning |
+| `openai-gpt-5.1` | **GPT 5.1** | OpenRouter | `gpt-5.1` | Experimental, next-gen |
+| `openai-gpt-5.2` | **GPT 5.2** | OpenRouter | `gpt-5.2` | Experimental, advanced |
+| `zai-glm-4.7` | **GLM 4.7** | OpenRouter | `glm-4.7` | Multilingual |
+| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | OpenRouter | `claude-haiku-4-5-20251001` | Fast, lightweight Claude |
+| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | OpenRouter | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
+| `google-gemini-3-flash` | **Gemini 3 Flash** | OpenRouter | `gemini-3-flash` | Fast Gemini responses |
+| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | OpenRouter | `google-gemini-2.5-flash-preview` | Preview Gemini tasks |
+| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | OpenRouter | `grok-4-1-fast-non-reasoning` | Fast reasoning |
 
 ### Image Generation
 
 | Model ID | Display Name | Provider | Description |
 |----------|--------------|----------|-------------|
-| `gemini-2.5-flash-image` | **Gemini 2.5 Flash Image** | CometAPI | Fast, high-fidelity image generation |
+| `gemini-2.5-flash-image` | **Gemini 2.5 Flash Image** | OpenRouter | Fast, high-fidelity image generation |
 
 
 ### Intent Classification & Routing
@@ -755,7 +755,7 @@ GOOGLE_CLIENT_SECRET=...
 # AI Providers
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
-COMETAPI_API_KEY=...
+OPENROUTER_API_KEY=...
 GOOGLE_GENERATIVE_AI_API_KEY=...
 
 # Payments

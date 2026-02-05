@@ -382,20 +382,19 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   };
 
   useEffect(() => {
-    // Skip DeFi/NFT fetches for Solana addresses (not supported by Zerion yet)
-    // REMOVED EAGER FETCHING to prevent rate limiting
-    // Data will be fetched lazily when user expands the sections
+    // Eagerly fetch DeFi and NFT data so status counts are immediately visible
+    // The detailed lists remain collapsed - only counts show by default
 
-    // Auto-mark as fetched if it's a Solana address (so we don't try to fetch later)
     const isSolana = isSolanaAddress(result.id);
     if (isSolana) {
+      // Solana DeFi/NFTs not supported by Zerion yet
       setHasFetchedProtocols(true);
       setHasFetchedNfts(true);
     } else {
-      // Eagerly fetch NFTs so the user doesn't see "Loading..." when expanding
-      // We still lazy load DeFi protocols to save some requests
-      fetchNftPortfolio();
+      // Fetch data immediately so counts are available
+      fetchProtocolPositions();
       fetchNftCollections();
+      fetchNftPortfolio();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result.id, currency]);
@@ -430,14 +429,21 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const toggleProtocols = () => {
     // Don't allow expand for Solana (not supported)
     if (isSolanaAddress(result.id)) return;
-    if (!showProtocols && protocolPositions.length === 0) fetchProtocolPositions();
+    // Only fetch if not already fetched/fetching and no data
+    if (!showProtocols && !hasFetchedProtocols && protocolPositions.length === 0) {
+      fetchProtocolPositions();
+    }
     setShowProtocols(!showProtocols);
   };
 
   const toggleNfts = () => {
     // Don't allow expand for Solana (not supported)
     if (isSolanaAddress(result.id)) return;
-    if (!showNfts && nftCollections.length === 0) fetchNftCollections();
+    // Only fetch if not already fetched/fetching and no data
+    if (!showNfts && !hasFetchedNfts && nftCollections.length === 0) {
+      fetchNftCollections();
+      fetchNftPortfolio();
+    }
     setShowNfts(!showNfts);
   };
 
@@ -762,7 +768,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                           {/* Table Header */}
                           <div className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                             <div className="col-span-6 sm:col-span-5">Asset</div>
-                            <div className="col-span-3 text-right hidden sm:block">Price</div>
+                            <div className="col-span-3 text-center hidden sm:block">Price</div>
                             <div className="col-span-6 sm:col-span-4 text-right">Value</div>
                           </div>
 
@@ -795,11 +801,23 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                                 </div>
                               </div>
 
-                              <div className="col-span-3 text-right hidden sm:block">
+                              <div className="col-span-3 text-center hidden sm:block">
                                 <div className="text-sm text-zinc-900 dark:text-white tabular-nums">${formatCrypto(token.price)}</div>
-                                {/* Mini Sparkline Placeholder - Visual only since we lack history data */}
-                                <div className="h-1 w-12 ml-auto mt-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                  <div className={`h-full w-2/3 rounded-full ${Math.random() > 0.5 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                {/* Mini Sparkline / Change Indicator */}
+                                <div className="h-1 w-12 mx-auto mt-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${token.change24h !== undefined
+                                      ? token.change24h >= 0 ? 'bg-emerald-500' : 'bg-rose-500'
+                                      : 'bg-zinc-300 dark:bg-zinc-600'
+                                      }`}
+                                    style={{
+                                      // Scale: 5x multiplier (5% change = 25% width), Min: 20%, Max: 100%
+                                      // A full bar now represents a ~20% move or greater
+                                      width: token.change24h
+                                        ? `${Math.min(Math.max(Math.abs(token.change24h) * 5, 20), 100)}%`
+                                        : '30%'
+                                    }}
+                                  />
                                 </div>
                               </div>
 

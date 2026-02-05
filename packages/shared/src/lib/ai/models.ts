@@ -2,98 +2,10 @@ import { openai } from "@ai-sdk/openai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
-// CometAPI provider (OpenAI-compatible)
-// Custom fetch to normalize non-standard responses from some models (e.g., Gemini)
-// that return `type: null` instead of `type: "function"` in tool_calls
-const normalizedFetch: typeof fetch = async (url, options) => {
-  const response = await fetch(url, options);
-
-  // Only process streaming responses
-  if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
-    return response;
-  }
-
-  const reader = response.body.getReader();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  const transformedStream = new ReadableStream({
-    async start(controller) {
-      try {
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            if (buffer.trim()) {
-              controller.enqueue(encoder.encode(buffer));
-            }
-            controller.close();
-            break;
-          }
-
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
-
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || ""; // Keep the last partial line in the buffer
-
-          const transformedLines: string[] = [];
-
-          for (const line of lines) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-              try {
-                const jsonStr = line.slice(6);
-                if (jsonStr.trim()) {
-                  const parsed = JSON.parse(jsonStr);
-
-                  // Normalize tool_calls: if type is null, set to "function"
-                  if (parsed.choices) {
-                    for (const choice of parsed.choices) {
-                      if (choice.delta?.tool_calls) {
-                        choice.delta.tool_calls.forEach((toolCall: any, index: number) => {
-                          if (toolCall.type === null) {
-                            toolCall.type = "function";
-                          }
-                          if (toolCall.index === undefined) {
-                            toolCall.index = index;
-                          }
-                        });
-                      }
-                    }
-                  }
-
-                  transformedLines.push('data: ' + JSON.stringify(parsed));
-                }
-              } catch {
-                // If parsing fails, pass through unchanged
-                transformedLines.push(line);
-              }
-            } else {
-              transformedLines.push(line);
-            }
-          }
-
-          if (transformedLines.length > 0) {
-            controller.enqueue(encoder.encode(transformedLines.join('\n') + '\n'));
-          }
-        }
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
-
-  return new Response(transformedStream, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers,
-  });
-};
-
-const cometai = createOpenAI({
-  baseURL: "https://api.cometapi.com/v1",
-  apiKey: process.env.COMETAPI_API_KEY,
-  fetch: normalizedFetch,
+// OpenRouter provider (OpenAI-compatible)
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 export const DEFAULT_CHAT_MODEL: string = "google-gemini-2.5-flash-preview";
@@ -102,14 +14,14 @@ export const myProvider: any = customProvider({
   languageModels: {
     "openai-gpt-4o": openai("gpt-4o"),
     "openai-gpt-4.1": openai("gpt-4.1-2025-04-14"),
-    "openai-gpt-5.1": cometai("gpt-5.1"),
-    "openai-gpt-5.2": cometai("gpt-5.2"),
-    "anthropic-opus-4.5": cometai("claude-opus-4-5-20251101-thinking"),
-    "anthropic-haiku-4.5": cometai("claude-haiku-4-5-20251001"),
-    "google-gemini-3-flash": cometai("gemini-3-flash"),
-    "google-gemini-2.5-flash-preview": cometai("gemini-2.5-flash-preview-09-2025"),
-    "xai-grok-4.1-fast": cometai("grok-4-1-fast-non-reasoning"),
-    "zai-glm-4.7": cometai("glm-4.7"),
+    "openai-gpt-5.1": openrouter("openai/gpt-5.1"),
+    "openai-gpt-5.2": openrouter("openai/gpt-5.2"),
+    "anthropic-opus-4.5": openrouter("anthropic/claude-opus-4.5"),
+    "anthropic-haiku-4.5": openrouter("anthropic/claude-haiku-4.5"),
+    "google-gemini-3-flash": openrouter("google/gemini-3-flash-preview"),
+    "google-gemini-2.5-flash-preview": openrouter("google/gemini-2.5-flash"),
+    "xai-grok-4.1-fast": openrouter("x-ai/grok-4.1-fast"),
+    "zai-glm-4.7": openrouter("z-ai/glm-4.7"),
 
     "title-model": openai("gpt-4-turbo"),
     "block-model": openai("gpt-4o"),
@@ -188,6 +100,6 @@ export const imagineModels: Array<ImagineModel> = [
     id: "gemini-2.5-flash-image",
     name: "Gemini 2.5 Flash Image",
     description:
-      "Gemini 2.5 Flash Image via CometAPI for fast, high-fidelity generations.",
+      "Gemini 2.5 Flash Image via OpenRouter for fast, high-fidelity generations.",
   },
 ];

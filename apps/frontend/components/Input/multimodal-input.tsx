@@ -37,9 +37,9 @@ import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
   // coding now allows user to select from CODING_ALLOWED_MODELS
-  imagine: "google-gemini-2.5-flash-preview",
+  imagine: "xai-grok-4.1-fast",
   // multimodal requires a vision-capable model for image analysis
-  multimodal: "google-gemini-2.5-flash-preview",
+  multimodal: "xai-grok-4.1-fast",
 };
 
 // Models allowed for coding tools - subset of all models

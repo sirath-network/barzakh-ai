@@ -145,7 +145,7 @@ export const getEvmOnchainDataUsingZerion = tool({
       let queriedAddress: string | null = null;
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
+        model: myProvider.languageModel("xai-grok-4.1-fast"),
         system: `You are an intelligent API assistant for Zerion blockchain data. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
 
         ## 🚨 ABSOLUTE RULES (MUST FOLLOW):
@@ -208,7 +208,18 @@ export const getEvmOnchainDataUsingZerion = tool({
         **Parameters:**
         - \`filter[chain_ids]\`: filter by chains
         - \`filter[operation_types]\`: trade, send, receive, etc.
-        - \`page[size]\`: results per page
+        - \`page[size]\`: results per page (default: 10 is auto-added if not specified)
+        
+        **⚠️ CRITICAL: PAGINATION BEHAVIOR:**
+        - Default (no count specified): DON'T add page[size], system will auto-add 10
+        - **DETECT NUMBER REQUESTS:** Look for patterns like:
+          - "20 transactions", "at least 20", "show 50", "give me 30", "more transactions"
+          - "provide at least X", "I want X", "fetch X", "get X transactions"
+          - "all transactions" → use page[size]=100 (maximum)
+        - **When user specifies a count or "all":** YOU MUST add \`page[size]=X\` explicitly in the URL!
+        - Example: User says "provide at least 20" → URL must include \`page[size]=20\`
+        - Example: User says "all recent transactions" → URL must include \`page[size]=100\`
+        - Maximum: 100 per request
 
         ### 🔗 Supported Chain IDs
         Use these exact values for \`filter[chain_ids]\`:
@@ -357,11 +368,22 @@ export const getEvmOnchainDataUsingZerion = tool({
                   console.log("⚠️ Decoded HTML entities in URL");
                 }
 
-                // Auto-add trash filter for transaction queries to exclude spam/scam
-                if (cleanUrl.includes('/transactions') && !cleanUrl.includes('filter[trash]')) {
-                  const separator = cleanUrl.includes('?') ? '&' : '?';
-                  cleanUrl += `${separator}filter[trash]=only_non_trash`;
-                  console.log("🗑️ Added trash filter to exclude spam transactions");
+                // Auto-add defaults for transaction queries
+                if (cleanUrl.includes('/transactions')) {
+                  // Add trash filter to exclude spam/scam if not already present
+                  if (!cleanUrl.includes('filter[trash]')) {
+                    const separator = cleanUrl.includes('?') ? '&' : '?';
+                    cleanUrl += `${separator}filter[trash]=only_non_trash`;
+                    console.log("🗑️ Added trash filter to exclude spam transactions");
+                  }
+
+                  // Add default page size of 10 if not specified (for faster responses)
+                  // Users can still request more transactions explicitly (e.g., "show 50 transactions")
+                  if (!cleanUrl.includes('page[size]')) {
+                    const separator = cleanUrl.includes('?') ? '&' : '?';
+                    cleanUrl += `${separator}page[size]=10`;
+                    console.log("📄 Added default page size of 10 for transactions");
+                  }
                 }
 
                 console.log("fetching --- ", cleanUrl);
@@ -393,20 +415,84 @@ export const getEvmOnchainDataUsingZerion = tool({
                 const json = await response.json();
                 console.log("✅ Fetched API response successfully");
 
-                // Capture data if it looks like transactions or portfolio
-                if (json?.data && (url.includes('/transactions') || url.includes('/positions'))) {
-                  fetchedData = json;
+                // Capture data based on endpoint type with priority:
+                // 1. Portfolio data (highest priority - don't overwrite)
+                // 2. Transactions (for transaction history)
+                // 3. Positions are NOT captured for UI - they're token holdings, handled by AI agent
+                if (json?.data) {
+                  const isPortfolioUrl = url.includes('/portfolio') && !url.includes('/nft-portfolio');
+                  const isTransactionsUrl = url.includes('/transactions');
 
-                  // Extract address from URL if possible to ensure we have the correct wallet context
-                  // URL format: .../wallets/{address}/...
+                  // Extract address from URL
                   const walletMatch = url.match(/\/wallets\/([^/]+)/);
                   if (walletMatch && walletMatch[1]) {
                     queriedAddress = walletMatch[1];
                     console.log("Captured queried address:", queriedAddress);
                   }
+
+                  // Portfolio takes priority - only capture if not already set or if this is portfolio
+                  if (isPortfolioUrl) {
+                    fetchedData = json;
+                    (fetchedData as any).__dataType = 'portfolio';
+                    console.log("Captured portfolio data for UI");
+                  } else if (isTransactionsUrl && (fetchedData as any)?.__dataType !== 'portfolio') {
+                    // Only capture transactions if we don't already have portfolio data
+                    fetchedData = json;
+                    (fetchedData as any).__dataType = 'transactions';
+                    console.log("Captured transaction data for UI");
+                  }
+                  // Note: /positions/ data is NOT captured - it's handled by the AI agent response
                 }
 
-                return json; // Return parsed JSON data for further processing
+                // IMPORTANT: Limit data size to prevent token limit issues with large wallets
+                // Return summarized data to the AI agent, but keep full data for UI rendering
+                let filteredJson = json;
+                if (Array.isArray(json?.data) && json.data.length > 0) {
+                  const isPositionsUrl = url.includes('/positions');
+                  const isTransactionsUrl = url.includes('/transactions');
+                  const isNftUrl = url.includes('/nft-positions') || url.includes('/nft-collections');
+
+                  // Limit positions (sort by value, take top items)
+                  if (isPositionsUrl && json.data.length > 30) {
+                    console.log(`📊 Filtering ${json.data.length} positions to top 30 by value`);
+                    const sortedPositions = [...json.data].sort((a: any, b: any) => {
+                      const aValue = a?.attributes?.value || 0;
+                      const bValue = b?.attributes?.value || 0;
+                      return bValue - aValue;
+                    });
+                    filteredJson = {
+                      ...json,
+                      data: sortedPositions.slice(0, 30),
+                      _filtered: true,
+                      _originalCount: json.data.length,
+                      _summary: `Showing top 30 positions by value out of ${json.data.length} total`
+                    };
+                  }
+
+                  // Limit transactions (recent first, max 20)
+                  if (isTransactionsUrl && json.data.length > 20) {
+                    console.log(`📊 Filtering ${json.data.length} transactions to 20`);
+                    filteredJson = {
+                      ...json,
+                      data: json.data.slice(0, 20),
+                      _filtered: true,
+                      _originalCount: json.data.length
+                    };
+                  }
+
+                  // Limit NFTs
+                  if (isNftUrl && json.data.length > 20) {
+                    console.log(`📊 Filtering ${json.data.length} NFTs to 20`);
+                    filteredJson = {
+                      ...json,
+                      data: json.data.slice(0, 20),
+                      _filtered: true,
+                      _originalCount: json.data.length
+                    };
+                  }
+                }
+
+                return filteredJson; // Return filtered JSON to AI agent (UI uses fetchedData)
               } catch (error: any) {
                 console.error("Error fetching API data:", error);
                 return {
@@ -423,6 +509,54 @@ export const getEvmOnchainDataUsingZerion = tool({
       // If we captured structured data, transform and return it for the UI
       if (fetchedData && fetchedData.data) {
         try {
+          // Check if this is portfolio data (not transactions)
+          if ((fetchedData as any).__dataType === 'portfolio') {
+            // Transform Zerion portfolio response to PortfolioData format
+            const portfolioAttr = fetchedData.data.attributes || {};
+
+            // Build positions_distribution_by_chain from the response
+            const chainDistribution: { [key: string]: number } = {};
+            if (portfolioAttr.positions_distribution_by_chain) {
+              for (const [chain, value] of Object.entries(portfolioAttr.positions_distribution_by_chain)) {
+                chainDistribution[chain] = typeof value === 'number' ? value : 0;
+              }
+            }
+
+            // Build positions_distribution_by_type
+            const typeDistribution = portfolioAttr.positions_distribution_by_type || {};
+
+            console.log("Returning structured portfolio data for UI");
+            return {
+              type: "portfolio" as const,
+              id: queriedAddress || fetchedData.data.id || "",
+              currency: "usd",
+              attributes: {
+                positions_distribution_by_type: {
+                  wallet: typeDistribution.wallet || 0,
+                  deposited: typeDistribution.deposited || typeDistribution.deposit || 0,
+                  borrowed: typeDistribution.borrowed || typeDistribution.loan || 0,
+                  locked: typeDistribution.locked || 0,
+                  staked: typeDistribution.staked || 0,
+                },
+                positions_distribution_by_chain: chainDistribution,
+                total: {
+                  positions: portfolioAttr.total?.positions || null,
+                },
+                changes: {
+                  absolute_1d: portfolioAttr.changes?.absolute_1d || 0,
+                  percent_1d: portfolioAttr.changes?.percent_1d || 0,
+                },
+              },
+            };
+          }
+
+          // Only process as transaction history if data type is explicitly 'transactions'
+          // This prevents positions data from being incorrectly displayed as transactions
+          if ((fetchedData as any).__dataType !== 'transactions') {
+            // No structured UI data to return - let AI agent response handle it
+            return aiAgentResponse.text;
+          }
+
           // Normalize Zerion response to EvmTransactionHistoryResponse
           const items = Array.isArray(fetchedData.data) ? fetchedData.data : [fetchedData.data];
 
@@ -580,7 +714,10 @@ export const getEvmOnchainDataUsingZerion = tool({
               to: recipient,
               value: primaryTransfer?.value ? primaryTransfer?.value.toString() : '0',
               tokenTransfer,
-              explorerUrl: getTxExplorerUrl(chainIdString, attr.hash || item.id),
+              // Only generate explorer URL if we have a valid transaction hash (starts with 0x)
+              explorerUrl: attr.hash && attr.hash.startsWith('0x')
+                ? getTxExplorerUrl(chainIdString, attr.hash)
+                : undefined,
               chain: chainIdString,
               // Additional metadata
               dappName,

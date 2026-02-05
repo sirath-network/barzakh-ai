@@ -47,7 +47,7 @@ export async function generateTitleFromUserMessage({
   }
 
   const { text: title } = await generateText({
-    model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
+    model: myProvider.languageModel("xai-grok-4.1-fast"),
     system: `\n
     - Generate a creative, concise, and intelligent title (3-6 words) for this chat based on the user's first message.
     - Focus on the core intent, topic, or question rather than just summarizing words.
