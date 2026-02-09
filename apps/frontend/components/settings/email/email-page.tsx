@@ -586,7 +586,7 @@ export default function EmailSettingsPage() {
               <p className="text-xs md:text-sm text-muted-foreground">Having trouble changing your email? Our support team is here to help.</p>
             </div>
             <button
-              onClick={() => window.open("https://barzakh.framer.ai/contact", "_blank")}
+              onClick={() => window.open("https://www.barzakh.tech/contact", "_blank")}
               className="bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-gray-800 dark:text-white px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors border border-gray-300 dark:border-white/20 text-xs md:text-sm"
             >
               Contact Support

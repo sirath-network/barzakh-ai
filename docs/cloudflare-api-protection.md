@@ -597,4 +597,4 @@ CRON_SECRET=your-cron-secret-key
 
 ## Contact
 
-For billing or security questions: [Contact Support](https://barzakh.framer.ai/contact)
+For billing or security questions: [Contact Support](https://www.barzakh.tech/contact)
