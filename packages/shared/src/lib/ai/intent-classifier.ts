@@ -211,7 +211,8 @@ const CHAIN_REGISTRY: ChainInfo[] = [
             /\bhigh\s*throughput\s*evm\b/i,
         ],
         keywords: ['monad', 'mon token', 'monad network', 'monad mainnet', 'monad portfolio',
-            'monadscan', 'parallelized evm', 'shmonad', 'monad l1', 'keone hon'],
+            'monadscan', 'parallelized evm', 'shmonad', 'monad l1', 'keone hon',
+            'nad.fun', 'nadfun', 'nadapp'],
         tokens: ['MON'],
         addressFormat: 'evm',
         isEvm: true,
@@ -663,6 +664,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "monad portfolio", "on monad", "monadscan", "gmonad", "shmonad",
             "parallelized evm", "parallel execution", "monad db", "monad evm",
             "high throughput evm", "monad l1", "keone hon",
+            "nad.fun", "nadfun", "nadapp", "buy on nad", "sell on nad",
         ],
         priority: 95,
     },
@@ -1249,6 +1251,21 @@ export async function classifyIntent(
             );
             // Don't return here - let it fall through to context logic (Step 2)
         } else {
+            // Before returning generic on_chain, check if message mentions chain-specific tokens
+            // e.g. "Trade 100 MON for Penguin" should route to 'monad' not 'on_chain'
+            if (patternResult.primaryIntent === 'on_chain') {
+                const detectedChain = detectChainFromRegistry(message);
+                if (detectedChain && detectedChain.intent !== 'on_chain') {
+                    console.log(
+                        `[INTENT] Swap/trade with chain-specific token detected: ${detectedChain.id} (overriding on_chain) in ${Date.now() - startTime} ms`
+                    );
+                    return {
+                        ...patternResult,
+                        primaryIntent: detectedChain.intent,
+                        indicators: [...patternResult.indicators, `chain_token_override:${detectedChain.id}`],
+                    };
+                }
+            }
             console.log(
                 `[INTENT] Pattern match: ${patternResult.primaryIntent} (${patternResult.confidence.toFixed(2)}) in ${Date.now() - startTime} ms`
             );
