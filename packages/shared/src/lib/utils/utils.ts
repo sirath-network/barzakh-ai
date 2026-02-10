@@ -245,16 +245,6 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: "",
   },
   {
-    id: "cronos",
-    name: "Cronos",
-    description: "Everything Cronos. Search, transactions and more",
-    icon: Network,
-    img: {
-      light: "/images/icon/cronos/cronos-dark.png",
-      dark: "/images/icon/cronos/cronos-light.png",
-    },
-  },
-  {
     id: "monad",
     name: "Monad",
     description: "Everything Monad. Search, transactions and more.",
@@ -282,6 +272,16 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: {
       light: "/images/icon/aptos/aptos-dark.png",
       dark: "/images/icon/aptos/aptos-light.png",
+    },
+  },
+  {
+    id: "cronos",
+    name: "Cronos",
+    description: "Everything Cronos. Search, transactions and more",
+    icon: Network,
+    img: {
+      light: "/images/icon/cronos/cronos-dark.png",
+      dark: "/images/icon/cronos/cronos-light.png",
     },
   },
   {

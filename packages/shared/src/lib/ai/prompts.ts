@@ -21,6 +21,7 @@ import {
   getMonadTokenPositions,
 } from "./tools/monad/monad-tools";
 import { getMonadStats } from "./tools/monad/get-stats";
+import { searchNadFunTokens } from "./tools/monad/nadfun-tools";
 import { getEvmOnchainDataUsingEtherscan } from "./tools/onchain/get_evm_onchain_data_using_etherscan";
 import { getEvmOnchainDataUsingZerion } from "./tools/onchain/get_evm_onchain_data_using_zerion";
 import { getSiteContent } from "./tools/scrap-site";
@@ -445,6 +446,7 @@ const groupTools = {
     "getMonadNFTs",
     "getMonadTokenPositions",
     "getMonadStats",
+    "searchNadFunTokens",
     "translateTransactions",
     "defiLlama",
     // Relay Protocol for cross-chain swaps
@@ -591,6 +593,7 @@ export const allTools = {
   getMonadNFTs,
   getMonadTokenPositions,
   getMonadStats,
+  searchNadFunTokens,
   getAptosStats,
   getAptosApiData,
   aptosNames,
@@ -1313,6 +1316,13 @@ Remember that the native token units are in MON, not ETH.
    - **CRITICAL**: Call \`getRelayQuote\` DIRECTLY with token symbols. DO NOT web search first!
    - The Relay tool auto-resolves tokens via API (including meme tokens like MOLANDAK, EMO, MOXY).
    - **NEVER use webSearch to find token info before calling swap tools.**
+
+6. nad.fun Token Launchpad (Search & Trade)
+   - **SEARCH FIRST**: If the user asks to buy/sell a token on nad.fun (e.g. "Buy Penguin") but does NOT provide the contract address (0x...), you MUST use \`searchNadFunTokens\` first.
+   - **PRESENT OPTIONS**: Show the user the search results (Name, Symbol, Address, Price, Image) and ask them to confirm which one they mean.
+   - **EXECUTE WITH RELAY**: Once the user confirms the token (and you have its 0x address), use the **Relay Protocol tools** (\`getRelayQuote\`, \`prepareRelayTransaction\`) to execute the trade.
+   - **CRITICAL**: All nad.fun tokens are on **Monad (Chain ID 143)**. You MUST explicitly pass \`toChainId: 143\` to the Relay tool. Do NOT ask the user for the chain.
+   - **Wallet Connection**: As always, do not ask for the wallet address upfront. Use the 'connect later' workflow (tool handles placeholders).
 `,
 
   cronos: `Role & Functionality
