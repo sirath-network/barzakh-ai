@@ -54,7 +54,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 | Feature | Description |
 |---------|-------------|
 | **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.5, Grok 4.1, GLM 4.7 with intelligent routing |
-| **50+ Blockchain Tools** | Chain-specific analyzers for Cronos, EVM, Aptos, Solana, Flow, SEI, Zeta, Monad |
+| **50+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM, Aptos, Solana, Flow, SEI, Zeta |
 | **x402 Gasless Payments** | EIP-3009/EIP-712 gasless USDC payments on Cronos |
 | **VVS DEX Integration** | Swap quotes, liquidity pools, and token lists from VVS Finance |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, Cloudflare API Shield |
@@ -98,7 +98,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
 │  │  Chat Engine    │  │ AI Orchestrator │  │  Tool Executor  │  │ Stream Processor│ │
 │  │  Vercel AI SDK  │  │  Multi-Model    │  │   50+ Tools     │  │   SSE/Chunks    │ │
-│  │    v4.1.17      │  │  Intent Router  │  │   12 Chains     │  │  Transfer-Enc   │ │
+│  │    v4.1.17      │  │  Intent Router  │  │   14+ Chains    │  │  Transfer-Enc   │ │
 │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘ │
 └───────────┼────────────────────┼────────────────────┼────────────────────┼──────────┘
             │                    │                    │                    │
@@ -133,8 +133,8 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
 │  │  │  Solana  │  │   Zeta   │  │  Monad   │  │ Wormhole │  │    Vana/CC       │   │  │
-│  │  │   RPC    │  │  ZetaVM  │  │   Next   │  │  Bridge  │  │  Data Networks   │   │  │
-│  │  │  DeFi    │  │  Testnet │  │   Gen    │  │  X-Chain │  │    Protocol      │   │  │
+│  │  │   RPC    │  │  ZetaVM  │  │ Mainnet  │  │  Bridge  │  │  Data Networks   │   │  │
+│  │  │  DeFi    │  │  Testnet │  │ nad.fun  │  │  X-Chain │  │    Protocol      │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
@@ -254,7 +254,7 @@ sequenceDiagram
 |----------|-------------|
 | **Wallet** | Wagmi 2.19, RainbowKit 2.2.9 |
 | **Ethereum** | Viem 2.41, ethers.js v6 |
-| **Chains** | Cronos, Ethereum, Polygon, Aptos, Solana, Flow, SEI |
+| **Chains** | Monad, Cronos, Ethereum, Polygon, Aptos, Solana, Flow, SEI + 50 via Relay |
 | **Protocols** | EIP-3009 (TransferWithAuthorization), EIP-712, EIP-191 |
 
 ### Infrastructure
@@ -348,7 +348,7 @@ flowchart LR
 | **Flow** | 3 | Cadence scripts, NFT collections |
 | **SEI** | 4 | Cosmos queries, IBC transfers |
 | **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
-| **Monad** | 3 | Next-gen EVM (testnet) |
+| **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
 | **Wormhole** | 2 | Cross-chain bridge, guardian verification |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
 
@@ -388,6 +388,7 @@ const zkevmTools = {
 | **Flow** | `@onflow/fcl` | Mainnet | Flow Access Node | Cadence, NFTs |
 | **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
 | **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
+| **Monad** | `viem` + Zerion API | Mainnet (143) | Monad RPC | MON, portfolio, DeFi, NFTs, nad.fun |
 
 ### Relay Protocol Cross-Chain Swaps
 
@@ -413,10 +414,105 @@ const relayTools = {
 ```
 
 **Features:**
-- **15+ Supported Chains**: Ethereum, Base, Optimism, Arbitrum, Polygon, and more
+- **50+ Supported Chains**: Ethereum, Monad, Base, Optimism, Arbitrum, Polygon, Solana, and more
 - **Swap Completion Tracking**: Prevents duplicate swaps with server-side persistence
 - **Optimized Routing**: Best rates via Relay's solver network
 - **MEV Protection**: Protected transactions via Relay infrastructure
+
+---
+
+### Monad Ecosystem (Deep Integration)
+
+Barzakh AI provides **10 dedicated Monad tools** for comprehensive interaction with the Monad blockchain (Chain ID 143), a high-performance parallelized EVM L1:
+
+#### Monad On-Chain Tools
+
+| Tool | Function |
+|------|----------|
+| `getMonadBalance` | Native MON balance for any wallet |
+| `getMonadTransaction` | Transaction details by hash |
+| `getMonadGasPrice` | Current gas price estimation |
+| `getMonadTransactionHistory` | Full transaction history (Zerion API) |
+| `getMonadPortfolio` | Complete portfolio: tokens, DeFi, NFTs |
+| `getMonadDefiPositions` | DeFi positions (lending, staking, LP) |
+| `getMonadNFTs` | NFT holdings and collections |
+| `getMonadTokenPositions` | All token balances with USD values |
+| `getMonadStats` | Blockchain statistics via MonadScan |
+| `searchNadFunTokens` | Search nad.fun tokens by name/symbol/address |
+
+#### nad.fun Token Launchpad Integration
+
+Native integration with **nad.fun**, Monad's bonding curve token launchpad:
+
+```mermaid
+flowchart LR
+    A["User: Buy Penguin"] --> B["searchNadFunTokens"]
+    B --> C["Present Results\n(Name, Price, Address)"]
+    C --> D["User Confirms Token"]
+    D --> E["Relay Protocol\n(toChainId: 143)"]
+    E --> F["In-Chat Approval UI"]
+    F --> G["Sign & Execute"]
+```
+
+- **Search First**: The AI queries `api.nadapp.net` to find tokens matching the user's query
+- **Smart Chain Routing**: All nad.fun tokens are automatically routed to Monad (Chain ID 143)
+- **Relay Execution**: Trades execute via Relay Protocol with cross-chain support
+- **Monad Meme Token Support**: MOLANDAK, EMO, MOXY, CHOG, MOYAKI, DAK, and more are pre-mapped for instant chain inference
+
+---
+
+### 🎯 Try It — Monad Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+#### 💰 Portfolio & Balances
+```
+What is the MON balance of 0x96973F7B83A3c785d94e0a6d8712174aBb81b748?
+```
+```
+Show me the full portfolio for 0x96973F7B83A3c785d94e0a6d8712174aBb81b748 on Monad
+```
+
+#### 🔄 Token Swaps (Relay Protocol)
+```
+Swap 1000 MON to USDC on Monad
+```
+```
+Swap 1 ETH from Ethereum to MON on Monad
+```
+```
+Get a quote to swap MON to MOLANDAK
+```
+
+#### 🐸 nad.fun Token Trading
+```
+Search for Penguin tokens on nad.fun
+```
+```
+Buy Nietzschean Penguin on nad.fun
+```
+```
+What are the trending tokens on nad.fun?
+```
+
+#### 🌉 Cross-Chain
+```
+Bridge 1000 USDC from Base to Monad
+```
+```
+What chains does Relay support?
+```
+
+#### 🔍 Exploration
+```
+Show me the latest transactions on Monad
+```
+```
+What is the current gas price on Monad?
+```
+```
+Tell me about the Monad ecosystem and upcoming events
+```
 
 ---
 

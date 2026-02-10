@@ -39,7 +39,8 @@
 **Barzakh AI** is an enterprise-grade, multi-model AI platform that revolutionizes blockchain analytics and DeFi interaction through intelligent orchestration. Built as a production-ready Turborepo monorepo with Next.js 16.1 and React 19, the platform uniquely combines:
 
 - **Multi-Model AI Fusion**: Orchestrates GPT-5.x, Claude Opus 4.5, GLM 4.7, and 6+ frontier models with intelligent intent-based routing
-- **50+ Blockchain Tools**: Native integrations across 13+ blockchain ecosystems (Cronos, Mantle, Ethereum, Aptos, Solana, Flow, SEI, Zeta, Monad)
+- **50+ Blockchain Tools**: Native integrations across 14+ blockchain ecosystems (Monad, Cronos, Mantle, Ethereum, Aptos, Solana, Flow, SEI, Zeta) with 50+ chains via Relay Protocol
+- **Monad Deep Integration**: 10 dedicated Monad tools including nad.fun token launchpad search & trade, portfolio tracking, DeFi positions, NFTs, and smart chain inference for Monad meme tokens
 - **x402 Gasless Payments**: Revolutionary EIP-3009 implementation enabling zero-gas cryptocurrency subscriptions on Cronos
 - **VVS DEX Integration**: Real-time swap quotes, liquidity pool analysis, and DeFi intelligence from VVS Finance
 - **Enterprise Security**: 5-layer defense architecture with prompt injection defense, 2FA, and wallet authentication
@@ -50,7 +51,7 @@ The platform processes blockchain queries through a sophisticated intent classif
 
 | Metric | Value |
 |--------|-------|
-| Blockchain Chains Supported | 13+ |
+| Blockchain Chains Supported | 14+ (50+ via Relay) |
 | AI Models Integrated | 6+ |
 | Blockchain Tools | 50+ |
 | System Prompt Size | 69KB+ |
@@ -113,7 +114,7 @@ flowchart TB
     subgraph Layer3["Layer 3: Core Services"]
         Chat["Chat Engine Vercel AI SDK v4.1.17"]
         Orch["AI Orchestrator Multi-Model Router"]
-        Tools["Tool Executor 50+ Tools, 12 Chains"]
+        Tools["Tool Executor 50+ Tools, 14+ Chains"]
         Stream["Stream Processor SSE/Chunks"]
     end
     
@@ -133,7 +134,7 @@ flowchart TB
         SEI["SEI Cosmos SDK"]
         Solana["Solana RPC"]
         Zeta["Zeta ZetaVM"]
-        Monad["Monad Next Gen"]
+        Monad["Monad Mainnet"]
     end
     
     subgraph Layer6["Layer 6: Data Persistence"]
@@ -382,7 +383,7 @@ export const FORCED_MODEL_BY_GROUP = {
 
 ### Multi-Chain Tool Architecture
 
-The platform provides **50+ specialized tools** across 12+ blockchain ecosystems:
+The platform provides **50+ specialized tools** across 14+ blockchain ecosystems:
 
 #### Cronos Ecosystem Tools
 
@@ -440,7 +441,7 @@ Native L2 support for **Mantle Network** (Chain ID: 5000) with comprehensive por
 
 ### Relay Protocol Cross-Chain Swaps
 
-Native integration with **Relay Protocol** enables cross-chain token swaps across 15+ networks:
+Native integration with **Relay Protocol** enables cross-chain token swaps across 50+ networks:
 
 | Tool | Function |
 |------|----------|
@@ -465,12 +466,65 @@ export const getRelaySwapQuote = tool({
 });
 ```
 
-**Supported Chains**: Ethereum, Base, Optimism, Arbitrum, Polygon, Avalanche, BNB Chain, Scroll, zkSync, Linea, Blast, Mode, Zora, **Mantle**, and more.
+**Supported Chains**: Ethereum, **Monad**, Base, Optimism, Arbitrum, Polygon, Avalanche, BNB Chain, Scroll, zkSync, Linea, Blast, Mode, Zora, **Mantle**, Solana, and 35+ more.
 
 **Features**:
 - **Swap Completion Tracking**: Server-side persistence prevents duplicate swaps
 - **MEV Protection**: Transactions protected via Relay solver network
 - **Dynamic Decimals**: Automatic token decimal fetching from Relay Currencies API
+- **Smart Chain Inference**: Automatic chain detection for chain-specific tokens (MON → 143, SOL → Solana, etc.)
+
+### Monad Ecosystem (Deep Integration)
+
+Barzakh AI provides **10 dedicated tools** for comprehensive Monad blockchain interaction (Chain ID 143), making it one of the platform's most deeply integrated chains:
+
+#### Monad On-Chain Tools
+
+| Tool | Data Source | Function |
+|------|-------------|----------|
+| `getMonadBalance` | Monad RPC | Native MON balance for any wallet |
+| `getMonadTransaction` | Monad RPC | Transaction details by hash |
+| `getMonadGasPrice` | Monad RPC | Current gas price estimation |
+| `getMonadTransactionHistory` | Zerion API | Full transaction history with token details |
+| `getMonadPortfolio` | Zerion API | Complete portfolio: tokens, DeFi, NFTs |
+| `getMonadDefiPositions` | Zerion API | DeFi protocol positions (lending, staking, LP) |
+| `getMonadNFTs` | Zerion API | NFT holdings and collections |
+| `getMonadTokenPositions` | Zerion API | All token balances with USD values |
+| `getMonadStats` | MonadScan | Blockchain statistics screenshot |
+| `searchNadFunTokens` | nad.fun API | Search bonding curve tokens by name/symbol/address |
+
+#### nad.fun Token Launchpad Integration
+
+Native integration with **nad.fun**, Monad's bonding curve token launchpad, enables a conversational search-and-trade workflow:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as User
+    participant AI as Barzakh AI Agent
+    participant NadFun as nad.fun API
+    participant Relay as Relay Protocol
+    participant Wallet as User Wallet
+    participant Monad as Monad Chain
+
+    User->>AI: "Buy Penguin on nad.fun"
+    AI->>NadFun: searchNadFunTokens("Penguin")
+    NadFun-->>AI: Token results (name, symbol, address, price, image)
+    AI-->>User: Present matched tokens with details
+    User->>AI: Confirm token selection
+    AI->>Relay: prepareRelayTransaction(toChainId: 143, tokenAddress)
+    Relay-->>AI: Transaction data + approval UI
+    AI-->>User: In-chat swap approval card
+    User->>Wallet: Sign transaction
+    Wallet->>Monad: Execute on-chain
+    Monad-->>User: TX confirmed (MonadScan link)
+```
+
+**Key Design Decisions:**
+- **Search-First Strategy**: AI always searches nad.fun API before executing trades to prevent buying the wrong token
+- **Automatic Chain ID**: All nad.fun tokens are hardcoded to Monad (Chain ID 143) — the AI never asks the user for chain
+- **Monad Meme Token Inference**: Tokens like MOLANDAK, EMO, MOXY, CHOG, MOYAKI, DAK, MCAT, NINJA, SMON are pre-mapped for instant chain routing
+- **Relay Protocol Execution**: Trades execute via Relay's solver network with MEV protection and dynamic decimal handling
 
 ### Tool Grouping by Intent
 
@@ -510,6 +564,19 @@ const groupTools = {
         "getMantleBlockInfo",
         "getMantleContractABI",
         "getRelayQuote",
+    ],
+    monad: [
+        "webSearch",
+        "getMonadBalance",
+        "getMonadTransaction",
+        "getMonadGasPrice",
+        "getEvmOnchainDataUsingZerion",
+        "searchNadFunTokens",
+        "getRelayQuote",
+        "prepareRelayTransaction",
+        "defiLlama",
+        "translateTransactions",
+        "getMonadStats",
     ],
     // ... 10+ more chain groups
 };
@@ -937,12 +1004,20 @@ quadrantChart
 ### Phase 1: Foundation (Completed ✅)
 
 - [x] Multi-model AI orchestration (GPT-4o to GPT-5.2)
-- [x] 50+ blockchain tools across 12+ chains
+- [x] 50+ blockchain tools across 14+ chains
 - [x] x402 gasless payment protocol
 - [x] VVS Finance DEX integration
 - [x] Intent classification system
 - [x] 5-layer security architecture
 - [x] 2FA + wallet authentication
+
+### Phase 1.5: Monad Integration (Completed ✅)
+
+- [x] 10 Monad-specific tools (RPC + Zerion + MonadScan)
+- [x] nad.fun token launchpad search & trade via Relay
+- [x] Smart chain inference for Monad meme tokens
+- [x] Monad-aware system prompt with MON context
+- [x] In-chat swap approval UI with Dynamic SDK wallet
 
 ### Phase 2: Expansion (Q1 2026)
 
@@ -982,6 +1057,9 @@ See [cloudflare-api-schema.yaml](./cloudflare-api-schema.yaml) for the complete 
 | **EIP-3009** | Ethereum standard for TransferWithAuthorization |
 | **EIP-712** | Typed structured data hashing and signing |
 | **VVS** | VVS Finance, the leading DEX on Cronos |
+| **Monad** | High-performance parallelized EVM L1 (Chain ID 143) |
+| **nad.fun** | Monad's bonding curve token launchpad |
+| **Relay Protocol** | Cross-chain swap and bridge aggregator (50+ chains) |
 | **Intent Classification** | Automatic routing of queries to appropriate tools |
 | **SSE** | Server-Sent Events for real-time streaming |
 | **RSC** | React Server Components for optimal performance |
@@ -993,14 +1071,17 @@ See [cloudflare-api-schema.yaml](./cloudflare-api-schema.yaml) for the complete 
 3. Vercel AI SDK Documentation - https://sdk.vercel.ai/docs
 4. VVS Finance Developer Docs - https://docs.vvs.finance
 5. Cronos Developer Documentation - https://docs.cronos.org
+6. Monad Documentation - https://docs.monad.xyz
+7. nad.fun API - https://api.nadapp.net
+8. Relay Protocol Documentation - https://docs.relay.link
 
 
 ## Conclusion
 
-**Barzakh AI** represents a paradigm shift in blockchain intelligence platforms. By combining multi-model AI orchestration with native multi-chain integration and innovative gasless payment protocols, we deliver an experience that is simultaneously:
+**Barzakh AI** represents a paradigm shift in blockchain intelligence platforms. By combining multi-model AI orchestration with native multi-chain integration — particularly deep **Monad ecosystem support** including nad.fun token trading — and innovative gasless payment protocols, we deliver an experience that is simultaneously:
 
 - **More Intelligent**: 6+ frontier models with intent-based routing
-- **More Connected**: 50+ tools across 12+ blockchain ecosystems
+- **More Connected**: 50+ tools across 14+ blockchain ecosystems (Monad, Cronos, Ethereum, and more)
 - **More Secure**: 5-layer defense architecture
 - **More Accessible**: x402 gasless crypto subscriptions
 
