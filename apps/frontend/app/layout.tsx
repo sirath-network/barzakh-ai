@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Web3Provider } from "@/components/providers/web3-provider";
 import { SessionProvider } from "next-auth/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import Script from "next/script";
 import "./globals.css";
 
 const baseUrl = "https://chat.barzakh.tech";
@@ -163,6 +164,19 @@ export default async function RootLayout({
               <Toaster position="top-center" />
               {children}
               <SpeedInsights />
+              {/* Google Analytics */}
+              <Script
+                strategy="afterInteractive"
+                src="https://www.googletagmanager.com/gtag/js?id=G-DGYDVV92XF"
+              />
+              <Script id="google-analytics" strategy="afterInteractive">
+                {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-DGYDVV92XF');
+        `}
+              </Script>
             </Web3Provider>
           </ThemeProvider>
         </SessionProvider>
