@@ -89,6 +89,8 @@ const toolIcons: Record<string, React.ElementType> = {
   getRelayQuote: BarChart3Any,
   getRelayBridgeQuote: BarChart3Any,
   prepareRelayTransaction: ArrowRightLeftAny,
+  // nad.fun Tools
+  searchNadFunTokens: BarChart3Any,
 };
 
 // HELPER: Small component to render each tool icon
@@ -114,9 +116,11 @@ import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
 import { generateStatusFromMessage } from "@/lib/status-generator";
 import { X402PaymentApproval } from "./x402-payment-approval";
 import { RelaySwapApproval } from "./relay-swap-approval";
+import NadFunTokenSearch from "./nadfun-token-search";
 
 const X402PaymentApprovalAny = X402PaymentApproval as any;
 const RelaySwapApprovalAny = RelaySwapApproval as any;
+const NadFunTokenSearchAny = NadFunTokenSearch as any;
 
 // Helper to remove AI preamble narration when tools are used
 // This filters out phrases like "I'll search for..." that create bad UX
@@ -572,6 +576,8 @@ const PurePreviewMessage = ({
                       'getRelayQuote',
                       'getRelayBridgeQuote',
                       'prepareRelayTransaction',
+                      // nad.fun Tools
+                      'searchNadFunTokens',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -657,6 +663,8 @@ const PurePreviewMessage = ({
                             getRelayQuote: <RelaySwapApprovalAny result={result} />,
                             getRelayBridgeQuote: <RelaySwapApprovalAny result={result} />,
                             prepareRelayTransaction: <RelaySwapApprovalAny result={result} />,
+                            // nad.fun Tools
+                            searchNadFunTokens: <NadFunTokenSearchAny result={result} />,
                           };
 
                           return (

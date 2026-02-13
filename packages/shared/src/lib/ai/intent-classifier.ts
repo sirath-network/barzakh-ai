@@ -650,6 +650,8 @@ const INTENT_PATTERNS: IntentPattern[] = [
         patterns: [
             /\bmonad\b/i,
             /\bmon\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\b(swap|trade|buy|sell|exchange|convert)\b.*\bmon\b/i,
+            /\bmon\b.*\b(to|for|into)\b/i,
             /\bmonad\s*(mainnet|testnet|network|chain|evm|l1|wallet|portfolio)\b/i,
             /\bmonadscan\b/i,
             /\bgmonad\b/i,
@@ -665,6 +667,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "parallelized evm", "parallel execution", "monad db", "monad evm",
             "high throughput evm", "monad l1", "keone hon",
             "nad.fun", "nadfun", "nadapp", "buy on nad", "sell on nad",
+            "buy mon", "sell mon", "swap mon", "trade mon",
         ],
         priority: 95,
     },
@@ -993,8 +996,10 @@ CRITICAL RULES:
    - Example: "show recent transactions" -> "${chatContext}" (NOT "on_chain")
    - Example: "now show NFTs" -> "${chatContext}" (NOT "on_chain")
 
-2. SWAP/BRIDGE ACTIONS: Always route swap/bridge requests to "on_chain" regardless of context.
+2. SWAP/BRIDGE ACTIONS: Route swap/bridge requests to "on_chain" UNLESS the swap involves chain-specific native tokens.
    - Example: "swap ETH to USDC" -> "on_chain"
+   - Example: "swap MON to DAK" -> "monad" (MON is Monad's native token, DAK is a Monad ecosystem token)
+   - Example: "trade MON for MOLANDAK" -> "monad" (both are Monad ecosystem tokens)
    - Example: "bridge to Base" -> "on_chain"
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):

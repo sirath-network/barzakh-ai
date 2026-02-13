@@ -1131,6 +1131,25 @@ Examples:
         const fromInference = resolveChainWithInference(providedFromChainId, fromToken);
         const toInference = resolveChainWithInference(providedToChainId, toToken);
 
+        // SMART SAME-CHAIN FALLBACK: If one side resolved but the other didn't,
+        // try to find the unknown token on the resolved chain via Relay API.
+        // Only if the token is actually found do we proceed — this never breaks cross-chain
+        // because we verify the token exists before committing to the chain.
+        if (fromInference.chainId && !toInference.chainId && !MULTI_CHAIN_TOKENS.includes(toToken.toUpperCase())) {
+            const found = await searchTokenByTerm(toToken, fromInference.chainId);
+            if (found) {
+                toInference.chainId = fromInference.chainId;
+                toInference.wasInferred = true;
+                toInference.message = `Found ${toToken} on ${CHAIN_NAMES[fromInference.chainId] || `chain ${fromInference.chainId}`} via API lookup`;
+            }
+        } else if (!fromInference.chainId && toInference.chainId && !MULTI_CHAIN_TOKENS.includes(fromToken.toUpperCase())) {
+            const found = await searchTokenByTerm(fromToken, toInference.chainId);
+            if (found) {
+                fromInference.chainId = toInference.chainId;
+                fromInference.wasInferred = true;
+                fromInference.message = `Found ${fromToken} on ${CHAIN_NAMES[toInference.chainId] || `chain ${toInference.chainId}`} via API lookup`;
+            }
+        }
         // If we couldn't determine source chain, return helpful error
         if (!fromInference.chainId) {
             const upperToken = fromToken.toUpperCase();
@@ -1142,6 +1161,16 @@ Examples:
                     suggestions: upperToken === 'ETH'
                         ? ['Ethereum (1)', 'Optimism (10)', 'Arbitrum (42161)', 'Base (8453)', 'Linea (59144)']
                         : ['Ethereum (1)', 'Polygon (137)', 'Arbitrum (42161)', 'Base (8453)', 'Optimism (10)'],
+                };
+            }
+            // If the OTHER side resolved to Monad, the unknown token is likely a nad.fun token
+            if (toInference.chainId === 143) {
+                return {
+                    status: "nadfun_search_required",
+                    error: `Token "${fromToken}" is not indexed by Relay on Monad. It may be a nad.fun token.`,
+                    action: `You MUST now call searchNadFunTokens with query "${fromToken}". DO NOT ask the user about chains. Show the nad.fun search results and let the user pick the correct token. Then use its contract address to call getRelayQuote again with fromChainId=143 and toChainId=143.`,
+                    search_query: fromToken,
+                    chain: "Monad (143)",
                 };
             }
             return {
@@ -1163,6 +1192,16 @@ Examples:
                     suggestions: upperToken === 'ETH'
                         ? ['Ethereum (1)', 'Optimism (10)', 'Arbitrum (42161)', 'Base (8453)', 'Linea (59144)']
                         : ['Ethereum (1)', 'Polygon (137)', 'Arbitrum (42161)', 'Base (8453)', 'Optimism (10)'],
+                };
+            }
+            // If the OTHER side resolved to Monad, the unknown token is likely a nad.fun token
+            if (fromInference.chainId === 143) {
+                return {
+                    status: "nadfun_search_required",
+                    error: `Token "${toToken}" is not indexed by Relay on Monad. It may be a nad.fun token.`,
+                    action: `You MUST now call searchNadFunTokens with query "${toToken}". DO NOT ask the user about chains. Show the nad.fun search results and let the user pick the correct token. Then use its contract address to call getRelayQuote again with fromChainId=143 and toChainId=143.`,
+                    search_query: toToken,
+                    chain: "Monad (143)",
                 };
             }
             return {
@@ -1563,6 +1602,26 @@ Examples:
         // Smart chain inference - resolve chains from tokens if not explicitly provided
         const fromInference = resolveChainWithInference(providedFromChainId, fromToken);
         const toInference = resolveChainWithInference(providedToChainId, toToken);
+
+        // SMART SAME-CHAIN FALLBACK: If one side resolved but the other didn't,
+        // try to find the unknown token on the resolved chain via Relay API.
+        // Only if the token is actually found do we proceed — this never breaks cross-chain
+        // because we verify the token exists before committing to the chain.
+        if (fromInference.chainId && !toInference.chainId && !MULTI_CHAIN_TOKENS.includes(toToken.toUpperCase())) {
+            const found = await searchTokenByTerm(toToken, fromInference.chainId);
+            if (found) {
+                toInference.chainId = fromInference.chainId;
+                toInference.wasInferred = true;
+                toInference.message = `Found ${toToken} on ${CHAIN_NAMES[fromInference.chainId] || `chain ${fromInference.chainId}`} via API lookup`;
+            }
+        } else if (!fromInference.chainId && toInference.chainId && !MULTI_CHAIN_TOKENS.includes(fromToken.toUpperCase())) {
+            const found = await searchTokenByTerm(fromToken, toInference.chainId);
+            if (found) {
+                fromInference.chainId = toInference.chainId;
+                fromInference.wasInferred = true;
+                fromInference.message = `Found ${fromToken} on ${CHAIN_NAMES[toInference.chainId] || `chain ${toInference.chainId}`} via API lookup`;
+            }
+        }
 
         // If we couldn't determine chains, return helpful error
         if (!fromInference.chainId) {

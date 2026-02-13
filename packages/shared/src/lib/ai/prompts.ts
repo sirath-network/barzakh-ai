@@ -21,7 +21,7 @@ import {
   getMonadTokenPositions,
 } from "./tools/monad/monad-tools";
 import { getMonadStats } from "./tools/monad/get-stats";
-import { searchNadFunTokens } from "./tools/monad/nadfun-tools";
+import { searchNadFunTokens, getNadFunTokenInfo, getNadFunMarketData, getNadFunHoldings } from "./tools/monad/nadfun-tools";
 import { getEvmOnchainDataUsingEtherscan } from "./tools/onchain/get_evm_onchain_data_using_etherscan";
 import { getEvmOnchainDataUsingZerion } from "./tools/onchain/get_evm_onchain_data_using_zerion";
 import { getSiteContent } from "./tools/scrap-site";
@@ -328,6 +328,10 @@ const groupTools = {
     "getRelayQuote",
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
+    // Monad nad.fun token tools (fallback for unknown Monad tokens)
+    "searchNadFunTokens",
+    "getNadFunTokenInfo",
+    "getNadFunMarketData",
   ] as const,
   wormhole: [
     "webSearch",
@@ -447,6 +451,9 @@ const groupTools = {
     "getMonadTokenPositions",
     "getMonadStats",
     "searchNadFunTokens",
+    "getNadFunTokenInfo",
+    "getNadFunMarketData",
+    "getNadFunHoldings",
     "translateTransactions",
     "defiLlama",
     // Relay Protocol for cross-chain swaps
@@ -594,6 +601,9 @@ export const allTools = {
   getMonadTokenPositions,
   getMonadStats,
   searchNadFunTokens,
+  getNadFunTokenInfo,
+  getNadFunMarketData,
+  getNadFunHoldings,
   getAptosStats,
   getAptosApiData,
   aptosNames,
@@ -769,14 +779,16 @@ We support instant cross-chain swaps between **EVM** (Ethereum, Base, Arbitrum, 
 **NEVER use web search to look up tokens for swaps.** The Relay tools handle token resolution automatically.
 1. **FIRST**: Call \`getRelayQuote\` directly with the token symbols (MON, MOLANDAK, SOL, etc.)
 2. The tool will auto-resolve tokens via Relay API
-3. **ONLY IF the tool explicitly fails** with "token not found": ask user for the token contract address
-4. **NEVER** use \`webSearch\` to find token information before calling the swap tool
+3. **IF the tool returns \`status: "nadfun_search_required"\`**: This means the token is on Monad but not indexed by Relay. **Immediately** call \`searchNadFunTokens\` with the \`search_query\` from the response. DO NOT ask the user about chains. Show the nad.fun results, let the user pick, then use the contract address with \`getRelayQuote\` (fromChainId=143, toChainId=143).
+4. **ONLY IF both Relay AND nad.fun search fail**: ask user for the token contract address
+5. **NEVER** use \`webSearch\` to find token information before calling the swap tool
 
 **Examples:**
 ✅ "Swap 5k MON to MOLANDAK" → Call getRelayQuote(fromToken="MON", toToken="MOLANDAK") DIRECTLY
+✅ "Trade 100 MON to DAK" → getRelayQuote returns nadfun_search_required → searchNadFunTokens("DAK") → user picks → getRelayQuote with contract address
 ✅ "Swap SOL to ETH" → Call getRelayQuote(fromToken="SOL", toToken="ETH") DIRECTLY  
-❌ Do NOT web search for "Molandak token" before calling swap
 ❌ Do NOT web search for token contract addresses
+❌ Do NOT ask "which chain?" when MON is involved — it's always Monad (143)
 
 2. **If NO address found:**
    - ❌ DO NOT use web search to find "top tokens by market cap"
@@ -1313,15 +1325,22 @@ Remember that the native token units are in MON, not ETH.
 
 5. Token Swaps on Monad
    - User Intent: Swap tokens on Monad (e.g., MON to MOLANDAK, MON to USDC).
-   - **CRITICAL**: Call \`getRelayQuote\` DIRECTLY with token symbols. DO NOT web search first!
-   - The Relay tool auto-resolves tokens via API (including meme tokens like MOLANDAK, EMO, MOXY).
+   - **⚠️ NEVER ASK WHICH CHAIN. The chain is ALWAYS Monad (Chain ID 143)**. Both fromChainId and toChainId are 143. Period.
+   - **STEP 1**: Call \`getRelayQuote\` with token symbols AND explicit chain IDs: fromChainId=143, toChainId=143.
+   - **STEP 2 — NADFUN FALLBACK**: If \`getRelayQuote\` returns \`status: "nadfun_search_required"\`, **immediately** call \`searchNadFunTokens\` with the \`search_query\` from the response. The Relay API only indexes ~20 well-known Monad tokens. Thousands of other tokens exist on nad.fun.
+   - **STEP 3**: Show the nad.fun results (they render as rich UI cards automatically). Ask the user to confirm which token they want. Then call \`getRelayQuote\` again using the token's **contract address** (0x...) as the token parameter, with fromChainId=143 and toChainId=143.
    - **NEVER use webSearch to find token info before calling swap tools.**
+   - **NEVER ask the user about chains, networks, or which blockchain.** You already know it's Monad.
 
 6. nad.fun Token Launchpad (Search & Trade)
-   - **SEARCH FIRST**: If the user asks to buy/sell a token on nad.fun (e.g. "Buy Penguin") but does NOT provide the contract address (0x...), you MUST use \`searchNadFunTokens\` first.
-   - **PRESENT OPTIONS**: Show the user the search results (Name, Symbol, Address, Price, Image) and ask them to confirm which one they mean.
-   - **EXECUTE WITH RELAY**: Once the user confirms the token (and you have its 0x address), use the **Relay Protocol tools** (\`getRelayQuote\`, \`prepareRelayTransaction\`) to execute the trade.
-   - **CRITICAL**: All nad.fun tokens are on **Monad (Chain ID 143)**. You MUST explicitly pass \`toChainId: 143\` to the Relay tool. Do NOT ask the user for the chain.
+   - **SEARCH FIRST**: If the user asks to buy/sell a token by name (e.g. "Buy DAK", "Trade MON to Penguin") but does NOT provide the contract address (0x...), you MUST use \`searchNadFunTokens\` first.
+   - **UI AUTO-RENDERS**: Search results are displayed as interactive cards with pagination (images, prices, market caps, holders, addresses, DEX/CURVE badges). **DO NOT repeat this information in your text response.** Instead, write a short 1-2 sentence recommendation. Good example: "Here are the MOLANDAK results 👆 The top one is the graduated token with the most holders — would you like to swap to that one?" Bad example: listing every token's name, symbol, address, price, and market cap.
+   - **KEEP IT SHORT**: The user can see everything in the cards. Your text should only add insight they can't see — like which token to pick and why. Never list contract addresses or prices in your text when the cards already show them.
+   - **GET MARKET DATA**: Use \`getNadFunMarketData\` to show live price, volume, and holder count for any nad.fun token.
+   - **TOKEN DETAILS**: Use \`getNadFunTokenInfo\` to get detailed metadata (description, graduation status, creator) for a specific token.
+   - **CHECK HOLDINGS**: Use \`getNadFunHoldings\` to show the user's nad.fun portfolio before selling.
+   - **EXECUTE WITH RELAY**: Once the user confirms the token (and you have its 0x address), use the **Relay Protocol tools** (\`getRelayQuote\`, \`prepareRelayTransaction\`) to execute the trade. Always pass fromChainId=143 and toChainId=143.
+   - **CRITICAL**: All nad.fun tokens are on **Monad (Chain ID 143)**. You MUST explicitly pass \`fromChainId: 143\` and \`toChainId: 143\` to the Relay tool. Do NOT ask the user for the chain.
    - **Wallet Connection**: As always, do not ask for the wallet address upfront. Use the 'connect later' workflow (tool handles placeholders).
 `,
 

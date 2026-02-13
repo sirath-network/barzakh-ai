@@ -452,14 +452,18 @@ export default function TwoFactorSettingsPage() {
 
               {/* Disable Section */}
               {status.twoFactorEnabled && (
-                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-zinc-700/50 rounded-xl p-4 md:p-6">
+                <div className="bg-muted/30 border border-border rounded-xl p-4 md:p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <ShieldX className="w-5 h-5 text-red-600 dark:text-red-400" />
-                    <h3 className="font-semibold text-red-800 dark:text-red-300">Disable 2FA</h3>
+                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                      <ShieldX className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground mb-1">Disable 2FA</h3>
+                      <p className="text-sm text-muted-foreground">
+                        To disable 2FA, enter a current 2FA code from your authenticator app:
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-red-700 dark:text-red-200 mb-4">
-                    To disable 2FA, enter a current 2FA code from your authenticator app:
-                  </p>
                   <div className="space-y-4">
                     <OTPInput
                       length={6}
@@ -472,23 +476,6 @@ export default function TwoFactorSettingsPage() {
                       }}
                       onComplete={handleDisableOTPComplete}
                     />
-                    <button
-                      onClick={() => setShowDisableConfirm(true)}
-                      disabled={isDisabling || verificationToken.length !== 6}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {isDisabling ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin"></div>
-                          Disabling...
-                        </>
-                      ) : (
-                        <>
-                          <ShieldX className="w-4 h-4" />
-                          Disable 2FA
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               )}
@@ -640,18 +627,18 @@ export default function TwoFactorSettingsPage() {
       {/* Custom Confirmation Dialog */}
       {showDisableConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-black rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800/50 max-w-md w-full mx-4 overflow-hidden">
+          <div className="bg-background rounded-2xl shadow-2xl border border-border/50 max-w-md w-full mx-4 overflow-hidden">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 dark:border-zinc-800/30">
+            <div className="p-6 border-b border-border/30">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shadow-lg border border-red-200 dark:border-zinc-700/50">
-                  <ShieldX className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                  <ShieldX className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Disable Two-Factor Authentication
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     This action will reduce your account security
                   </p>
                 </div>
@@ -660,14 +647,14 @@ export default function TwoFactorSettingsPage() {
 
             {/* Content */}
             <div className="p-6">
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+              <div className="bg-muted/50 border border-border rounded-xl p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="w-5 h-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-semibold text-red-900 dark:text-red-100 mb-1">
+                    <h4 className="font-semibold text-foreground mb-1">
                       Security Warning
                     </h4>
-                    <p className="text-sm text-red-800 dark:text-red-200">
+                    <p className="text-sm text-muted-foreground">
                       Disabling 2FA will make your account less secure. You'll lose the extra protection against unauthorized access.
                     </p>
                   </div>
@@ -676,10 +663,10 @@ export default function TwoFactorSettingsPage() {
 
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                  <h4 className="font-medium text-foreground mb-2">
                     What happens when you disable 2FA:
                   </h4>
-                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Your account will only be protected by your password</li>
                     <li>• Backup codes will be deleted</li>
                     <li>• You'll need to set up 2FA again to re-enable it</li>
@@ -689,22 +676,22 @@ export default function TwoFactorSettingsPage() {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-gray-200 dark:border-zinc-800/30 bg-gray-50 dark:bg-zinc-900/80">
+            <div className="p-6 border-t border-border/30 bg-muted/30">
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setShowDisableConfirm(false)}
-                  className="flex-1 bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-zinc-800/30 px-4 py-3 rounded-lg font-medium transition-colors border border-gray-200 dark:border-zinc-800/20"
+                  className="flex-1 bg-muted hover:bg-muted/80 text-foreground px-4 py-3 rounded-lg font-medium transition-colors border border-border/50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDisable}
                   disabled={isDisabling}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isDisabling ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin"></div>
                       Disabling...
                     </>
                   ) : (

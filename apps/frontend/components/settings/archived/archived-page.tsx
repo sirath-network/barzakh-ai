@@ -573,25 +573,25 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
         {/* Delete Dialog */}
         <AlertDialogAny open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border border-gray-200 dark:border-red-900/50 bg-white/98 dark:bg-black/95 backdrop-blur-sm shadow-2xl">
+          <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
             <AlertDialogHeaderAny className="space-y-3">
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mx-auto">
-                <Trash2Any className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mx-auto">
+                <Trash2Any className="w-5 h-5 text-muted-foreground" />
               </div>
-              <AlertDialogTitleAny className="text-lg font-bold text-gray-900 dark:text-white text-center">
+              <AlertDialogTitleAny className="text-lg font-semibold text-center">
                 Delete conversation permanently?
               </AlertDialogTitleAny>
-              <AlertDialogDescriptionAny className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center">
+              <AlertDialogDescriptionAny className="text-sm text-muted-foreground leading-relaxed text-center">
                 This action cannot be undone. This will permanently delete your conversation and remove it from our servers forever.
               </AlertDialogDescriptionAny>
             </AlertDialogHeaderAny>
-            <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-center gap-3 mt-6">
-              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border border-gray-300 dark:border-zinc-800/50 hover:bg-gray-50 dark:hover:bg-zinc-800/20 transition-colors duration-200 font-medium">
+            <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
+              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200">
                 Cancel
               </AlertDialogCancelAny>
               <AlertDialogActionAny
                 onClick={handleDelete}
-                className="w-full sm:w-auto rounded-lg bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 text-white transition-colors duration-200 font-semibold shadow-lg"
+                className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
               >
                 Delete Forever
               </AlertDialogActionAny>

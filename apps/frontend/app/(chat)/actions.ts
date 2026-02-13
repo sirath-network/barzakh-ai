@@ -46,7 +46,7 @@ export async function generateTitleFromUserMessage({
     return "New Chat";
   }
 
-  const { text: title } = await generateText({
+  const { text: rawTitle } = await generateText({
     model: myProvider.languageModel("xai-grok-4.1-fast"),
     system: `\n
     - Generate a creative, concise, and intelligent title (3-6 words) for this chat based on the user's first message.
@@ -54,11 +54,25 @@ export async function generateTitleFromUserMessage({
     - If it's a coding question, mention the language or technology.
     - Avoid generic titles like "Hello" or "Question".
     - Do not use quotes, colons, or unnecessary punctuation.
-    - Make it sound like a sleek headline.`,
+    - Do NOT use any markdown formatting. No headers (#, ##, ###), no bold (**), no italic (*), no backticks, no bullet points.
+    - Return only plain text, nothing else.
+    - Make it sound like a sleek headline.
+    - IMPORTANT: Detect the language of the user's message. The title MUST be in the SAME language as the user's message.
+      - User: "Quando começa a copa?" -> Title: "Data Início Copa" (Portuguese)
+      - User: "Como fazer bolo?" -> Title: "Receita de Bolo" (Portuguese)
+      - User: "Hello world" -> Title: "Hello World Intro" (English)`,
     prompt: userText,
   });
 
-  return title;
+  // Strip any markdown formatting that might slip through
+  const title = rawTitle
+    .replace(/^#+\s*/gm, "")   // Remove heading markers (###, ##, #)
+    .replace(/\*{1,2}/g, "")   // Remove bold/italic markers (**, *)
+    .replace(/`/g, "")         // Remove backticks
+    .replace(/^[-*]\s+/gm, "") // Remove bullet points
+    .trim();
+
+  return title || "New Chat";
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {

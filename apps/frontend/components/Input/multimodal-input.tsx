@@ -1151,7 +1151,6 @@ function PureMultimodalInput({
                   )}
 
                   {/* Moved Send/Stop Buttons to the right of ModelSelector */}
-                  {/* Moved Send/Stop Buttons to the right of ModelSelector */}
                   {isLoading ? (
                     <StopButton stop={stop} setMessages={setMessages} />
                   ) : (

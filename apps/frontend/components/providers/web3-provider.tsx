@@ -40,14 +40,14 @@ function RainbowKitProviderWrapper({ children }: { children: React.ReactNode }) 
     const baseTheme =
       resolvedTheme === 'dark'
         ? darkTheme({
-          accentColor: '#fdfdfdff',
+          accentColor: '#6ea7daff',
           accentColorForeground: 'white',
           borderRadius: 'medium',
           fontStack: 'system',
           overlayBlur: 'small',
         })
         : lightTheme({
-          accentColor: '#000000ff',
+          accentColor: '#6ea7daff',
           accentColorForeground: 'white',
           borderRadius: 'medium',
           fontStack: 'system',
