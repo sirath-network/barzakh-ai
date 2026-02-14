@@ -26,36 +26,43 @@
     "overrides": {
       "@tanstack/react-query": "5.90.11",
       "glob": "10.5.0",
-      "axios": "^1.12.0",
+      "axios": ">=1.13.5",
       "postcss": "^8.4.31",
       "jsondiffpatch": "^0.7.2",
       "esbuild": "^0.25.0",
       "prismjs": "^1.30.0",
       "nanoid": "^5.0.9",
-      "qs": "^6.14.1",
+      "qs": ">=6.14.2",
       "preact": ">=10.28.2",
       "hono": ">=4.11.7",
       "h3": ">=1.15.5",
       "undici": ">=6.23.0",
       "lodash": "^4.17.23",
       "valibot": "^1.2.0",
-      "fast-xml-parser": ">=5.3.4"
+      "fast-xml-parser": ">=5.3.4",
+      "langsmith": ">=0.4.6",
+      "markdown-it": ">=14.1.1"
     }
   },
   "resolutions": {
     "@tanstack/react-query": "5.90.11",
     "glob": "10.5.0",
-    "axios": "^1.12.0",
+    "axios": ">=1.13.5",
     "postcss": "^8.4.31",
     "jsondiffpatch": "^0.7.2",
     "esbuild": "^0.25.0",
     "prismjs": "^1.30.0",
     "nanoid": "^5.0.9",
-    "qs": "^6.14.1",
+    "qs": ">=6.14.2",
     "preact": ">=10.28.2",
     "hono": ">=4.11.7",
     "h3": ">=1.15.5",
     "undici": ">=6.23.0",
-    "fast-xml-parser": ">=5.3.4"
+    "fast-xml-parser": ">=5.3.4",
+    "langsmith": ">=0.4.6",
+    "markdown-it": ">=14.1.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
   }
 }

@@ -5,21 +5,20 @@
 </p>
 
 <p align="center">
-  <strong>🧠 AI-Powered Blockchain Intelligence Platform</strong>
+  <strong>🧠 AI-Powered Onchain Agent — Execute Trades, Bridges & DeFi via Natural Language</strong>
 </p>
 
 <p align="center">
-  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/Live-chat.barzakh.tech-blue?style=for-the-badge" alt="Live Demo"></a>&nbsp;
+  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/🚀_Live_-chat.barzakh.tech-F0B90B?style=for-the-badge" alt="Live"></a>&nbsp;
   <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-purple?style=for-the-badge" alt="Whitepaper"></a>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-blue" alt="Relay Protocol">
   <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Next.js-16.1-black?logo=next.js" alt="Next.js">
   <img src="https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black" alt="React">
   <img src="https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/pnpm-8.6-F69220?logo=pnpm&logoColor=white" alt="pnpm">
   <img src="https://img.shields.io/badge/Turborepo-2.7-EF4444?logo=turborepo&logoColor=white" alt="Turborepo">
   <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
@@ -30,6 +29,8 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [BNB Chain Integration](-#bnb-chain-integration)
+- [Development](#development)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [AI Models & Orchestration](#ai-models--orchestration)
@@ -37,29 +38,27 @@
 - [x402 Crypto Payment Protocol](#x402-crypto-payment-protocol)
 - [Security](#security)
 - [Project Structure](#project-structure)
-- [Development](#development)
 - [API Documentation](#api-documentation)
 - [Deployment](#deployment)
-- [Contributing](#contributing)
 - [License](#license)
 
 ---
 
 ## Overview
 
-Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that combines real-time on-chain data with multi-model AI orchestration. Built as a **Turborepo monorepo** with pnpm workspaces, it provides intelligent wallet analysis, DeFi insights, automated blockchain workflows, and gasless crypto payments.
+Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time blockchain data with multi-model AI orchestration. Built as a **Turborepo monorepo** with pnpm workspaces, it enables users to execute cross-chain swaps, bridge assets, analyze wallets, and interact with DeFi protocols — all through natural language conversation.
 
 ### ✨ Key Capabilities
 
 | Feature | Description |
 |---------|-------------|
+| **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
+| **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
 | **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.5, Grok 4.1, GLM 4.7 with intelligent routing |
-| **50+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM, Aptos, Solana, Flow, SEI, Zeta |
-| **x402 Gasless Payments** | EIP-3009/EIP-712 gasless USDC payments on Cronos |
-| **VVS DEX Integration** | Swap quotes, liquidity pools, and token lists from VVS Finance |
-| **Enterprise Security** | 2FA (TOTP), wallet signature auth, Cloudflare API Shield |
-| **Real-time Streaming** | Token-by-token SSE output with Vercel AI SDK |
-| **Subscription Management** | Stripe + x402 crypto payments with automatic expiration handling |
+| **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
+| **65+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI |
+| **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
+| **Gasless Crypto Payments** | x402 protocol with EIP-3009/EIP-712 gasless USDC payments |
 
 ---
 
@@ -97,8 +96,8 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 │                                   CORE SERVICES                                     │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
 │  │  Chat Engine    │  │ AI Orchestrator │  │  Tool Executor  │  │ Stream Processor│ │
-│  │  Vercel AI SDK  │  │  Multi-Model    │  │   50+ Tools     │  │   SSE/Chunks    │ │
-│  │    v4.1.17      │  │  Intent Router  │  │   14+ Chains    │  │  Transfer-Enc   │ │
+│  │  Vercel AI SDK  │  │  Multi-Model    │  │   85+ Tools     │  │   SSE/Chunks    │ │
+│  │    v4.1.17      │  │  Intent Router  │  │   10+ Chains    │  │  Transfer-Enc   │ │
 │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘ │
 └───────────┼────────────────────┼────────────────────┼────────────────────┼──────────┘
             │                    │                    │                    │
@@ -110,7 +109,7 @@ Barzakh AI is an enterprise-grade, full-stack blockchain analytics platform that
 │  ┌───────────────────────────────────────────────────────────────────────────────┐  │
 │  │                           LLM Provider Abstraction                            │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │  │
-│  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   OpenRouter       │ │  │
+│  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   OpenRouter       │  │  
 │  │  │ GPT-4o/5 │  │ Claude   │  │  Grok 2  │  │ GLM-4.7  │  │  (Aggregator)    │ │  │
 │  │  │ o1/o3    │  │ Opus 4.5 │  │   4.1    │  │  Plus    │  │  Multi-Provider  │ │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │  │
@@ -402,22 +401,73 @@ const relayTools = {
   getRelaySupportedTokens // List supported tokens per chain
 };
 
-// Example: Cross-Chain Swap Quote
+// Example: Cross-Chain Swap to BNB Chain
 {
   fromChainId: 8453,        // Base
-  toChainId: 10,            // Optimism
-  fromToken: "0x...",       // ETH
-  toToken: "0x...",         // ETH
-  amount: "0.1",
+  toChainId: 56,            // BNB Chain (BSC)
+  fromToken: "USDC",        // Auto-resolved to contract address
+  toToken: "native",        // BNB
+  amount: "100",
   // Returns: quote, route, fees, estimated time
 }
 ```
 
 **Features:**
-- **50+ Supported Chains**: Ethereum, Monad, Base, Optimism, Arbitrum, Polygon, Solana, and more
+- **85+ Supported Chains**: BNB Chain (BSC), Ethereum, Monad, Base, Optimism, Arbitrum, Polygon, Solana, and more
+- **BNB Chain Support**: Full BSC support (Chain ID 56) — swap, bridge, trade any BSC token
 - **Swap Completion Tracking**: Prevents duplicate swaps with server-side persistence
 - **Optimized Routing**: Best rates via Relay's solver network
 - **MEV Protection**: Protected transactions via Relay infrastructure
+- **Smart Token Decimals**: Automatic decimal resolution via API + hardcoded fallbacks for safety
+
+---
+
+### 🔶 BNB Chain Integration
+
+Barzakh AI provides **native BNB Chain (BSC) support**:
+
+#### Supported BNB Chain Operations
+
+| Operation | Example Prompt | What Happens |
+|-----------|---------------|---------------|
+| **Swap to BNB** | _"Trade 100 USDC on Base for BNB"_ | Cross-chain swap via Relay, tx on BSC |
+| **Swap from BNB** | _"Swap 0.5 BNB to ETH on Ethereum"_ | Bridge + swap from BSC |
+| **BSC Token Swaps** | _"Swap 50 USDT for BNB on BSC"_ | Same-chain swap on BSC |
+| **Cross-chain Bridge** | _"Bridge 1 ETH from Ethereum to BNB Chain"_ | Native token bridge to BSC |
+| **Portfolio Check** | _"Show my portfolio on BNB Chain"_ | Wallet analysis via Zerion |
+| **USD Amounts** | _"Trade $50 worth of BNB to USDC"_ | Auto price conversion + swap |
+
+#### 🎯 Try It — BNB Chain Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+```
+Trade 100 USDC on Base for BNB
+```
+```
+Swap 0.1 BNB to USDC on BSC
+```
+```
+Bridge $20 of ETH from Ethereum to BNB Chain
+```
+```
+What chains does Relay support?
+```
+```
+Get a quote to swap 500 USDT on Arbitrum for BNB
+```
+
+#### How BNB Chain Transactions Work
+
+```mermaid
+flowchart LR
+    A["User: Trade 100 USDC for BNB"] --> B["Intent Classifier"]
+    B --> C["Smart Chain Inference\nBNB → Chain 56"]
+    C --> D["Relay Protocol Quote\n(Best route, fees, time)"]
+    D --> E["In-Chat Approval UI"]
+    E --> F["Wallet Signs TX"]
+    F --> G["Onchain Execution\nTX Hash on BSC"]
+```
 
 ---
 
@@ -810,24 +860,21 @@ barzakh-ai/
 
 ### Prerequisites
 
-| Requirement | Version |
-|-------------|---------|
-| Node.js | 18+ |
-| pnpm | 8.6+ |
-| PostgreSQL | 15+ |
+| Requirement | Version | Install |
+|-------------|---------|--------|
+| Node.js | 18+ | [nodejs.org](https://nodejs.org) |
+| pnpm | 10+ | `npm install -g pnpm` |
+| PostgreSQL | 15+ | [neon.tech](https://neon.tech) (free serverless) or local install |
 
-### Quick Start
+### Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/sirath-network/barzakh-ai.git
-cd barzakh-ai
-
 # Install dependencies
 pnpm install
 
-# Set up environment
+# Configure environment
 cp apps/frontend/.env.example apps/frontend/.env.local
+# Edit .env.local with your API keys (see below)
 
 # Run database migrations
 pnpm --filter frontend db:migrate
@@ -838,43 +885,40 @@ pnpm dev
 
 ### Environment Variables
 
+Create `apps/frontend/.env.local`:
+
 ```env
-# Database
+# ── Database (Required) ──────────────────────────────────────────────────
 DATABASE_URL=postgresql://user:password@host:5432/database?sslmode=require
 
-# Auth
-NEXTAUTH_SECRET=your-secret-key
+# ── Auth (Required) ──────────────────────────────────────────────────────
+NEXTAUTH_SECRET=your-secret-key          # Generate: openssl rand -base64 32
 NEXTAUTH_URL=http://localhost:3000
-GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_ID=...                     # Google OAuth (optional)
 GOOGLE_CLIENT_SECRET=...
 
-# AI Providers
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-OPENROUTER_API_KEY=...
-GOOGLE_GENERATIVE_AI_API_KEY=...
+# ── AI Providers (At least one required) ─────────────────────────────────
+OPENAI_API_KEY=sk-...                    # OpenAI API key
+OPENROUTER_API_KEY=...                   # OpenRouter (gives access to Claude, Grok, Gemini, etc.)
+GOOGLE_GENERATIVE_AI_API_KEY=...         # Gemini image generation
 
-# Payments
+# ── Blockchain / Relay Protocol ──────────────────────────────────────────
+# No API key needed for Relay Protocol — it's open and permissionless!
+
+# ── External APIs (Optional) ─────────────────────────────────────────────
+ZERION_API_KEY=...                       # Wallet portfolio analysis
+TAVILY_API_KEY=...                       # Web search tool
+
+# ── Payments (Optional) ──────────────────────────────────────────────────
 STRIPE_SECRET_KEY=sk_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# x402 Crypto Payments
-CRONOS_RPC_URL=https://evm.cronos.org
-
-# Cronos Explorer APIs
-CRONOS_EXPLORER_API_KEY=...         # Cronos EVM Explorer
-ZKEVM_CRONOS_EXPLORER_API_KEY=...   # Cronos zkEVM Explorer
-
-# External APIs
-ZERION_API_KEY=...
-TAVILY_API_KEY=...
-
-# Storage
+# ── Storage (Optional) ───────────────────────────────────────────────────
 R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 
-# Security
+# ── Security ─────────────────────────────────────────────────────────────
 CRON_SECRET=your-cron-secret
 ```
 
@@ -996,5 +1040,5 @@ MIT License - see [LICENSE](LICENSE)
 </p>
 
 <p align="center">
-  <sub>🚀 Powered by AI | ⛓️ Built on Blockchain | 🔒 Security First</sub>
+  <sub>🚀 AI Agent that executes onchain | ⛓️ 85+ chains via Relay | 🔒 Security First</sub>
 </p>

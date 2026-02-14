@@ -846,11 +846,24 @@ async function searchTokenByTerm(term: string, chainId: number): Promise<TokenIn
         const token = exactMatch || results[0];
 
         if (token && token.address) {
-            console.log(`[Relay] Found token: ${token.symbol} (${token.name}) at ${token.address}`);
-            return {
+            console.log(`[Relay] Found token: ${token.symbol} (${token.name}) at ${token.address}, decimals: ${token.decimals}`);
+            const tokenInfo: TokenInfo = {
                 address: token.address,
                 decimals: token.decimals ?? 18,
             };
+
+            // Cache this token so getTokenDecimals can find it later
+            const existing = chainTokenCache.get(chainId);
+            if (existing) {
+                existing.tokens[token.symbol.toUpperCase()] = tokenInfo;
+            } else {
+                chainTokenCache.set(chainId, {
+                    tokens: { [token.symbol.toUpperCase()]: tokenInfo },
+                    timestamp: Date.now(),
+                });
+            }
+
+            return tokenInfo;
         }
 
         return null;
@@ -894,8 +907,15 @@ async function getTokenDecimals(tokenSymbol: string, chainId: number): Promise<n
     const tokens = await fetchChainTokens(chainId);
     const tokenInfo = tokens[effectiveSymbol];
 
-    if (tokenInfo?.decimals) {
+    if (tokenInfo?.decimals !== undefined) {
         return tokenInfo.decimals;
+    }
+
+    // If fetchChainTokens didn't find it, try a direct search by term
+    // This covers chains where the bulk fetch returns empty (e.g. Base)
+    const searched = await searchTokenByTerm(effectiveSymbol, chainId);
+    if (searched?.decimals !== undefined) {
+        return searched.decimals;
     }
 
     // Fallback: check if it might be a native token by common symbols
@@ -903,6 +923,23 @@ async function getTokenDecimals(tokenSymbol: string, chainId: number): Promise<n
     if (["BTC", "WBTC"].includes(effectiveSymbol) && chainId === 8253038) return 8;
     if (["TRX"].includes(effectiveSymbol) && chainId === 728126428) return 6;
 
+    // Well-known token decimals fallback (in case API doesn't return data)
+    const KNOWN_TOKEN_DECIMALS: Record<string, number> = {
+        "USDC": 6,
+        "USDT": 6,
+        "USDCE": 6,   // Bridged USDC.e
+        "USDbC": 6,    // Bridged USDC on Base
+        "BUSD": 18,
+        "DAI": 18,
+        "WBTC": 8,
+        "TBTC": 18,
+    };
+    if (KNOWN_TOKEN_DECIMALS[effectiveSymbol] !== undefined) {
+        console.warn(`[Relay] Using known decimals fallback for ${effectiveSymbol}: ${KNOWN_TOKEN_DECIMALS[effectiveSymbol]}`);
+        return KNOWN_TOKEN_DECIMALS[effectiveSymbol];
+    }
+
+    console.warn(`[Relay] No decimals info for ${effectiveSymbol} on chain ${chainId}, defaulting to 18. This may cause incorrect amounts!`);
     return 18; // Default to 18 decimals
 }
 
@@ -1782,8 +1819,40 @@ Examples:
 // Helper functions
 
 function resolveTokenAddress(token: string, chainId: number): string {
-    if (token.toLowerCase() === "native" || token.toLowerCase() === "eth" || token.toLowerCase() === "sol") {
+    const symbol = token.toUpperCase();
+
+    // Check if it's the "native" keyword
+    if (symbol === "NATIVE") {
         return getNativeTokenAddress(chainId);
+    }
+
+    // Check if it matches the native token symbol for this chain
+    // e.g. "BNB" on chain 56, "MATIC" on chain 137, "AVAX" on chain 43114
+    const nativeSymbol = NATIVE_SYMBOLS[chainId]?.toUpperCase();
+    if (nativeSymbol && symbol === nativeSymbol) {
+        return getNativeTokenAddress(chainId);
+    }
+
+    // Legacy checks for ETH/SOL as generic terms
+    if (symbol === "ETH" || symbol === "SOL") {
+        // Only return native address if it's actually the native token of the chain
+        // OR if it's one of the chains where ETH is native (which we already cover via NATIVE_SYMBOLS)
+        // But keep this for backward compatibility if needed, though NATIVE_SYMBOLS should cover it.
+        // Let's rely on NATIVE_SYMBOLS mostly, but keeping ETH/SOL as fallbacks for when config might be missing?
+        // Actually, let's just use the NATIVE_SYMBOLS check which is more correct.
+        // But wait, what if user says "ETH" on Optimism? NATIVE_SYMBOLS[10] is ETH. So it matches.
+        // What if user says "SOL" on Solana? NATIVE_SYMBOLS[792703809] is SOL. So it matches.
+
+        // So the explicit check above covers it.
+        // However, if we have "ETH" on a chain where ETH is NOT native (e.g. standard ERC20 on some other chain),
+        // we should NOT return native address.
+        // The original code returned native address for "ETH" regardless of chain? 
+        // Original: if (token.toLowerCase() === "native" || token.toLowerCase() === "eth" || token.toLowerCase() === "sol")
+
+        // If I say "ETH" on Solana, it should NOT be native address (Solana native is SOL).
+        // The original code was a bit loose.
+
+        // Let's stick effectively to: match native symbol OR "native" keyword.
     }
 
     // Check if it's already an address
@@ -1793,8 +1862,8 @@ function resolveTokenAddress(token: string, chainId: number): string {
 
     // Try to resolve from known token addresses
     const chainTokens = TOKEN_ADDRESSES[chainId];
-    if (chainTokens && chainTokens[token.toUpperCase()]) {
-        return chainTokens[token.toUpperCase()];
+    if (chainTokens && chainTokens[symbol]) {
+        return chainTokens[symbol];
     }
 
     // Return as-is if we can't resolve (might be a symbol the SDK understands)
