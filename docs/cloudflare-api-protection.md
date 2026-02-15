@@ -379,7 +379,7 @@ components:
             - openai-gpt-5.2   # GPT 5.2
             - zai-glm-4.7        # GLM 4.7
             - anthropic-haiku-4.5    # Claude Haiku 4.5
-            - anthropic-opus-4.5     # Claude Opus 4.5 Thinking
+            - anthropic-opus-4.6     # Claude Opus 4.6 Thinking
             - google-gemini-3-flash  # Gemini 3 Flash
             - google-gemini-2.5-flash-preview  # Gemini 2.5 Flash Preview
             - xai-grok-4.1-fast  # Grok 4.1 Fast

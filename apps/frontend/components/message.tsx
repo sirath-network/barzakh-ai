@@ -337,6 +337,8 @@ const PurePreviewMessage = ({
         .map(part => part.text)
         .join('\n');
     }
+    // Strip internal image URL metadata from copied text
+    textToCopy = textToCopy.replace(/\n*\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[^\]]+\]/g, '').trim();
 
     if (textToCopy) {
       navigator.clipboard
@@ -758,6 +760,8 @@ const PurePreviewMessage = ({
                                 .filter(text => text.trim())
                                 .join('\n');
                             }
+                            // Strip internal image URL metadata
+                            textContent = textContent.replace(/\n*\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[^\]]+\]/g, '').trim();
 
                             if (textContent.trim()) {
                               return (

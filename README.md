@@ -9,19 +9,19 @@
 </p>
 
 <p align="center">
-  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/🚀_Live_-chat.barzakh.tech-F0B90B?style=for-the-badge" alt="Live"></a>&nbsp;
-  <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-purple?style=for-the-badge" alt="Whitepaper"></a>
+  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/🚀_Live_-chat.barzakh.tech-ede8e8?style=for-the-badge" alt="Live"></a>&nbsp;
+  <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-ede8e8?style=for-the-badge" alt="Whitepaper"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-blue" alt="Relay Protocol">
-  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Next.js-16.1-black?logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=black" alt="React">
-  <img src="https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/Turborepo-2.7-EF4444?logo=turborepo&logoColor=white" alt="Turborepo">
-  <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel">
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
+  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8" alt="Relay Protocol">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-ede8e8?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Next.js-16.1-ede8e8?logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/React-19.2-ede8e8?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/Node.js-18+-ede8e8?logo=node.js&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/Turborepo-2.7-ede8e8?logo=turborepo&logoColor=white" alt="Turborepo">
+  <img src="https://img.shields.io/badge/Vercel-Deployed-ede8e8?logo=vercel" alt="Vercel">
+  <img src="https://img.shields.io/badge/License-MIT-ede8e8" alt="MIT License">
 </p>
 
 ---
@@ -54,7 +54,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
-| **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.5, Grok 4.1, GLM 4.7 with intelligent routing |
+| **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.6, Grok 4.1, GLM 4.7 with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
 | **65+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
@@ -111,7 +111,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │  │
 │  │  │  OpenAI  │  │Anthropic │  │   xAI    │  │  Zhipu   │  │   OpenRouter       │  │  
 │  │  │ GPT-4o/5 │  │ Claude   │  │  Grok 2  │  │ GLM-4.7  │  │  (Aggregator)    │ │  │
-│  │  │ o1/o3    │  │ Opus 4.5 │  │   4.1    │  │  Plus    │  │  Multi-Provider  │ │  │
+│  │  │ o1/o3    │  │ Opus 4.6 │  │   4.1    │  │  Plus    │  │  Multi-Provider  │ │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │  │
 │  └───────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────────────┐  │
@@ -274,22 +274,22 @@ sequenceDiagram
 
 | Model ID | Display Name | Provider | Backend Model | Use Case |
 |----------|--------------|----------|---------------|----------|
-| `openai-gpt-4o` | **GPT 4o** | OpenAI | `gpt-4o` | Fast, lightweight tasks |
-| `openai-gpt-4.1` | **GPT 4.1** | OpenAI | `gpt-4.1-2025-04-14` | Complex, multi-step tasks |
-| `openai-gpt-5.1` | **GPT 5.1** | OpenRouter | `gpt-5.1` | Experimental, next-gen |
-| `openai-gpt-5.2` | **GPT 5.2** | OpenRouter | `gpt-5.2` | Experimental, advanced |
-| `zai-glm-4.7` | **GLM 4.7** | OpenRouter | `glm-4.7` | Multilingual |
-| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | OpenRouter | `claude-haiku-4-5-20251001` | Fast, lightweight Claude |
-| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | OpenRouter | `claude-opus-4-5-20251101-thinking` | Deep analysis, thinking mode |
-| `google-gemini-3-flash` | **Gemini 3 Flash** | OpenRouter | `gemini-3-flash` | Fast Gemini responses |
-| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | OpenRouter | `google-gemini-2.5-flash-preview` | Preview Gemini tasks |
-| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | OpenRouter | `grok-4-1-fast-non-reasoning` | Fast reasoning |
+| `openai-gpt-4o` | **GPT 4o** | OpenRouter | `openai/gpt-4o` | Fast, lightweight tasks |
+| `openai-gpt-4.1` | **GPT 4.1** | OpenRouter | `openai/gpt-4.1` | Complex, multi-step tasks |
+| `openai-gpt-5.1` | **GPT 5.1** | OpenRouter | `openai/gpt-5.1` | Experimental, next-gen |
+| `openai-gpt-5.2` | **GPT 5.2** | OpenRouter | `openai/gpt-5.2` | Experimental, advanced |
+| `zai-glm-4.7` | **GLM 4.7** | OpenRouter | `z-ai/glm-4.7` | Multilingual |
+| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | OpenRouter | `anthropic/claude-haiku-4.5` | Fast, lightweight Claude |
+| `anthropic-opus-4.6` | **Claude Opus 4.6 Thinking** | OpenRouter | `anthropic/claude-opus-4.6` | Deep analysis, thinking mode |
+| `google-gemini-3-flash` | **Gemini 3 Flash** | OpenRouter | `google/gemini-3-flash-preview` | Fast Gemini responses |
+| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | OpenRouter | `google/gemini-2.5-flash` | Preview Gemini tasks |
+| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | OpenRouter | `x-ai/grok-4.1-fast` | Fast reasoning |
 
 ### Image Generation
 
 | Model ID | Display Name | Provider | Description |
 |----------|--------------|----------|-------------|
-| `gemini-2.5-flash-image` | **Gemini 2.5 Flash Image** | OpenRouter | Fast, high-fidelity image generation |
+| `google/gemini-2.5-flash-image` | **Gemini 2.5 Flash Image** | OpenRouter | Fast, high-fidelity image generation |
 
 
 ### Intent Classification & Routing
@@ -1036,7 +1036,7 @@ MIT License - see [LICENSE](LICENSE)
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://github.com/sirath-network">Sirath Network</a></strong>
+  <strong>Built by <a href="https://www.barzakh.tech">Sirath Network</a></strong>
 </p>
 
 <p align="center">

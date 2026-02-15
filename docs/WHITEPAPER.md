@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Document-Whitepaper-blue?style=for-the-badge" alt="Whitepaper">
-  <img src="https://img.shields.io/badge/Status-Production-green?style=for-the-badge" alt="Production">
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License">
+  <img src="https://img.shields.io/badge/Document-Whitepaper-ede8e8?style=for-the-badge" alt="Whitepaper">
+  <img src="https://img.shields.io/badge/Status-Production-ede8e8?style=for-the-badge" alt="Production">
+  <img src="https://img.shields.io/badge/License-MIT-ede8e8?style=for-the-badge" alt="MIT License">
 </p>
 
 ---
@@ -1092,7 +1092,7 @@ The platform stands at the intersection of AI advancement and blockchain innovat
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://github.com/sirath-network">Sirath Network</a></strong>
+  <strong>Built by <a href="https://www.barzakh.tech">Sirath Network</a></strong>
 </p>
 
 <p align="center">

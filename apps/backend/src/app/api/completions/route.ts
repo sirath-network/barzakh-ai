@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
-import { openai } from "@ai-sdk/openai";
 import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { smoothStream, streamText, generateText } from "ai";
 import {
@@ -35,7 +34,7 @@ export async function POST(request: Request) {
       model: model
     } = validatedData;
 
-    myProvider.languageModel("xai-grok-4.1-fast")
+    const languageModel = myProvider.languageModel(model);
     const { tools: activeTools, systemPrompt } = await getGroupConfig(
       "on_chain"
     );
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
     if (!StreamingTrue) {
       // NON STREAMING
       const result = await generateText({
-        model: openai(model),
+        model: languageModel,
         system: systemPrompt,
         prompt: prompt,
         maxSteps: 10,
@@ -83,7 +82,7 @@ export async function POST(request: Request) {
       async start(controller) {
         try {
           const result = streamText({
-            model: openai(model),
+            model: languageModel,
             system: systemPrompt,
             prompt: prompt,
             maxSteps: 10,

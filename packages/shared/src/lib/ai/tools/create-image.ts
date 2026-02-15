@@ -3,6 +3,9 @@ import { z } from "zod";
 import { imagineModels } from "../models";
 import { fetchImageAsBase64 } from "../utils/fetch-image-as-base64";
 
+// Default image model from the imagineModels registry
+const DEFAULT_IMAGE_MODEL = imagineModels[0]?.id ?? "google/gemini-2.5-flash-image";
+
 function getFrontendUrl(): string {
   if (process.env.FRONTEND_URL) {
     return process.env.FRONTEND_URL;
@@ -346,7 +349,7 @@ async function generateGeminiImage(
     }
 
     const requestBody = {
-      model: "google/gemini-2.5-flash-image",
+      model: DEFAULT_IMAGE_MODEL,
       messages,
       modalities: ["image", "text"],
       max_tokens: 4096,
@@ -511,10 +514,11 @@ export const createImage = tool({
       ),
   }),
   execute: async ({ prompt, model, input_images }) => {
-    const selectedModelId = model ?? "gemini-3-pro-image";
-    if (selectedModelId !== "gemini-3-pro-image") {
+    const selectedModelId = model ?? DEFAULT_IMAGE_MODEL;
+    const validModelIds = imagineModels.map((m) => m.id);
+    if (!validModelIds.includes(selectedModelId)) {
       console.warn(
-        `Unsupported imagine model "${selectedModelId}" requested. Falling back to gemini-3-pro-image.`
+        `Unsupported imagine model "${selectedModelId}" requested. Falling back to ${DEFAULT_IMAGE_MODEL}.`
       );
     }
 

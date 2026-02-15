@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
@@ -12,19 +11,16 @@ export const DEFAULT_CHAT_MODEL: string = "google-gemini-2.5-flash-preview";
 
 export const myProvider: any = customProvider({
   languageModels: {
-    "openai-gpt-4o": openai("gpt-4o"),
-    "openai-gpt-4.1": openai("gpt-4.1-2025-04-14"),
+    "openai-gpt-4o": openrouter("openai/gpt-4o"),
+    "openai-gpt-4.1": openrouter("openai/gpt-4.1"),
     "openai-gpt-5.1": openrouter("openai/gpt-5.1"),
     "openai-gpt-5.2": openrouter("openai/gpt-5.2"),
-    "anthropic-opus-4.5": openrouter("anthropic/claude-opus-4.5"),
+    "anthropic-opus-4.6": openrouter("anthropic/claude-opus-4.6"),
     "anthropic-haiku-4.5": openrouter("anthropic/claude-haiku-4.5"),
     "google-gemini-3-flash": openrouter("google/gemini-3-flash-preview"),
     "google-gemini-2.5-flash-preview": openrouter("google/gemini-2.5-flash"),
     "xai-grok-4.1-fast": openrouter("x-ai/grok-4.1-fast"),
     "zai-glm-4.7": openrouter("z-ai/glm-4.7"),
-
-    "title-model": openai("gpt-4-turbo"),
-    "block-model": openai("gpt-4o"),
   },
   imageModels: {},
 });
@@ -83,8 +79,8 @@ export const chatModels: Array<ChatModel> = [
     description: "Lightning-fast Claude responses",
   },
   {
-    id: "anthropic-opus-4.5",
-    name: "Claude Opus 4.5 Thinking",
+    id: "anthropic-opus-4.6",
+    name: "Claude Opus 4.6 Thinking",
     description: "Deep thinking & extended reasoning",
   }
 ];
@@ -97,7 +93,7 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "gemini-2.5-flash-image",
+    id: "google/gemini-2.5-flash-image",
     name: "Gemini 2.5 Flash Image",
     description:
       "Gemini 2.5 Flash Image via OpenRouter for fast, high-fidelity generations.",

@@ -36,20 +36,12 @@ import type { Chat as ChatHistory } from "@/lib/db/schema";
 import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
-  // coding now allows user to select from CODING_ALLOWED_MODELS
-  imagine: "xai-grok-4.1-fast",
+  // coding allows all models (no restriction)
+  imagine: "google-gemini-2.5-flash-preview",
   // multimodal requires a vision-capable model for image analysis
   multimodal: "xai-grok-4.1-fast",
 };
 
-// Models allowed for coding tools - subset of all models
-export const CODING_ALLOWED_MODELS: readonly string[] = [
-  "anthropic-opus-4.5",
-  "anthropic-haiku-4.5",
-
-  "openai-gpt-4.1",
-  "google-gemini-3-flash",
-] as const;
 
 // Lock model selector for groups with forced models (imagine and multimodal)
 const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId | "multimodal"> = new Set([
@@ -1142,11 +1134,7 @@ function PureMultimodalInput({
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}
                       disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
-                      allowedModels={
-                        selectedGroup === "coding"
-                          ? CODING_ALLOWED_MODELS
-                          : undefined
-                      }
+                      allowedModels={undefined}
                     />
                   )}
 

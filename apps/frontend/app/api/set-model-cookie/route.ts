@@ -6,7 +6,7 @@ import { auth } from "@/app/(auth)/auth";
 const VALID_MODELS = [
   "openai-gpt-4o",
   "openai-gpt-4.1",
-  "anthropic-opus-4.5",
+  "anthropic-opus-4.6",
   "anthropic-haiku-4.5",
   "openai-gpt-5.2",
   "zai-glm-4.7",
@@ -14,9 +14,6 @@ const VALID_MODELS = [
   "google-gemini-3-flash",
   "google-gemini-2.5-flash-preview",
   "xai-grok-4.1-fast",
-
-  "title-model",
-  "block-model",
 ];
 
 export async function POST(request: Request) {

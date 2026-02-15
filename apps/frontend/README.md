@@ -15,7 +15,7 @@ This is the frontend package of the Barzakh AI monorepo, built with:
 
 ## Features
 
-- **Multi-Model AI**: GPT-5.x, Claude Opus 4.5, GLM 4.7, and 6+ models
+- **Multi-Model AI**: GPT-5.x, Claude Opus 4.6, GLM 4.7, and 6+ models
 - **50+ Blockchain Tools**: Cronos, Aptos, Solana, SEI, Flow, Zeta, Monad, and more
 - **VVS DEX Integration**: Swap quotes, pool info, token lists
 - **x402 Gasless Payments**: EIP-3009 USDC payments on Cronos
