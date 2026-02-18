@@ -188,6 +188,7 @@ export function Chat({
   const scrollToBottom = useCallback(() => {
     const el = chatContainerRef.current;
     if (el) {
+      setIsAtBottom(true);
       // Small delay to ensure the DOM has updated with the new message
       requestAnimationFrame(() => {
         el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
@@ -397,7 +398,7 @@ export function Chat({
               </div>
             ) : (
               <>
-                <div ref={chatContainerRef} id="chat-scroll" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col [mask-image:linear-gradient(to_bottom,black_0%,black_calc(100%_-_128px),transparent_100%)]">
+                <div ref={chatContainerRef} id="chat-scroll" className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col ${!isAtBottom ? "[mask-image:linear-gradient(to_bottom,black_0%,black_calc(100%_-_40px),transparent_100%)]" : ""}`}>
                   <MessagesAny
                     chatId={activeChatId}
                     isLoading={isLoading}

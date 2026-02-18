@@ -39,7 +39,7 @@
       "undici": ">=6.23.0",
       "lodash": "^4.17.23",
       "valibot": "^1.2.0",
-      "fast-xml-parser": ">=5.3.4",
+      "fast-xml-parser": ">=5.3.6",
       "langsmith": ">=0.4.6",
       "markdown-it": ">=14.1.1"
     }
@@ -58,7 +58,7 @@
     "hono": ">=4.11.7",
     "h3": ">=1.15.5",
     "undici": ">=6.23.0",
-    "fast-xml-parser": ">=5.3.4",
+    "fast-xml-parser": ">=5.3.6",
     "langsmith": ">=0.4.6",
     "markdown-it": ">=14.1.1"
   },
