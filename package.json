@@ -42,7 +42,8 @@
       "fast-xml-parser": ">=5.3.6",
       "langsmith": ">=0.4.6",
       "markdown-it": ">=14.1.1",
-      "ajv": "^8.18.0"
+      "ajv": "^8.18.0",
+      "minimatch": "^10.2.1"
     }
   },
   "resolutions": {
@@ -62,7 +63,8 @@
     "fast-xml-parser": ">=5.3.6",
     "langsmith": ">=0.4.6",
     "markdown-it": ">=14.1.1",
-    "ajv": "^8.18.0"
+    "ajv": "^8.18.0",
+    "minimatch": "^10.2.1"
   },
   "devDependencies": {
     "tsx": "^4.21.0"
