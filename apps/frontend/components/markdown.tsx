@@ -153,10 +153,10 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
 
     // Use div for block elements to avoid <p> nesting issues
     if (hasBlockElements) {
-      return <div className="break-long-words my-3 leading-relaxed">{children}</div>;
+      return <div className="break-long-words my-3 leading-relaxed whitespace-pre-wrap">{children}</div>;
     }
 
-    return <p className="break-long-words my-3 leading-relaxed">{children}</p>;
+    return <p className="break-long-words my-3 leading-relaxed whitespace-pre-wrap">{children}</p>;
   },
 
   ol: ({ node, children, ...props }) => {

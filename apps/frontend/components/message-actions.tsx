@@ -60,10 +60,23 @@ export function PureMessageActions({
   const [isCopied, setIsCopied] = useState(false);
 
   const handleCopy = async () => {
-    // Strip internal image URL metadata before copying
-    const cleanContent = message.content
+    let textToCopy = "";
+    if (typeof message.content === 'string') {
+      textToCopy = message.content;
+    } else if (Array.isArray(message.content)) {
+      textToCopy = (message.content as any[])
+        .filter(part => part.type === 'text')
+        .map(part => part.text)
+        .join('\n');
+    }
+
+    // Strip internal image URL metadata and basic markdown characters before copying
+    let cleanContent = textToCopy
       .replace(/\n*\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[^\]]+\]/g, '')
+      .replace(/\*\*/g, '') // Remove bold markdown
+      .replace(/__/g, '') // Remove underline/bold markdown
       .trim();
+
     await copyToClipboard(cleanContent);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
@@ -190,6 +203,8 @@ export const MessageActions = memo(
   (prevProps, nextProps) => {
     if (!equal(prevProps.vote, nextProps.vote)) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
+    if (prevProps.message.content !== nextProps.message.content) return false;
+    if (prevProps.message.id !== nextProps.message.id) return false;
     return true;
   },
 );
