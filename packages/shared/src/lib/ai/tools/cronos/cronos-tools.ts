@@ -10,15 +10,12 @@ import { z } from "zod";
 
 // Cronos RPC endpoints
 const CRONOS_MAINNET_RPC = "https://cronos-evm-rpc.publicnode.com";
-const CRONOS_TESTNET_RPC = "https://evm-t3.cronos.org";
 
 // Cronos Explorer API (official)
 // v1 API - uses query parameter style (?module=account&action=txlist)
 const CRONOS_EXPLORER_API_V1 = "https://cronos.org/explorer/api";
-const CRONOS_TESTNET_EXPLORER_API_V1 = "https://cronos.org/explorer/testnet/api";
 // v2 API - uses RESTful endpoints (/addresses/{hash}/tokens)
 const CRONOS_EXPLORER_API_V2 = "https://explorer-api.cronos.org/mainnet/api/v2";
-const CRONOS_TESTNET_EXPLORER_API_V2 = "https://explorer-api.cronos.org/testnet/api/v2";
 
 // Alias for backwards compatibility
 const CRONOS_EXPLORER_API = CRONOS_EXPLORER_API_V1;
@@ -26,8 +23,8 @@ const CRONOS_EXPLORER_API = CRONOS_EXPLORER_API_V1;
 /**
  * Helper to get current block number from Cronos RPC
  */
-async function getCurrentCronosBlock(testnet = false): Promise<number> {
-    const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+async function getCurrentCronosBlock(): Promise<number> {
+    const rpcUrl = CRONOS_MAINNET_RPC;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for stability
 
@@ -64,14 +61,13 @@ function formatCryptoAmount(value: number): string {
  * Get Cronos wallet balance
  */
 export const getCronosBalance = tool({
-    description: "Get CRO balance for a wallet address on Cronos EVM (Chain ID 25). NOT for Cronos zkEVM. Supports both mainnet and testnet.",
+    description: "Get CRO balance for a wallet address on Cronos EVM (Chain ID 25). NOT for Cronos zkEVM. Supports mainnet.",
     parameters: z.object({
         address: z.string().describe("Wallet address (0x...)"),
-        testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
     }),
-    execute: async ({ address, testnet = false }) => {
+    execute: async ({ address }) => {
         try {
-            const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+            const rpcUrl = CRONOS_MAINNET_RPC;
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
@@ -105,8 +101,8 @@ export const getCronosBalance = tool({
 
             return {
                 address,
-                network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
-                chainId: testnet ? 338 : 25,
+                network: "Cronos Mainnet",
+                chainId: 25,
                 balance: {
                     wei: balanceWei.toString(),
                     cro: balanceCRO.toFixed(6),
@@ -131,11 +127,10 @@ export const getCronosBlockInfo = tool({
     description: "Get information about a specific block or the latest block on Cronos blockchain.",
     parameters: z.object({
         blockNumber: z.string().optional().describe("Block number in hex (e.g., '0x1234') or 'latest'"),
-        testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
     }),
-    execute: async ({ blockNumber = "latest", testnet = false }) => {
+    execute: async ({ blockNumber = "latest" }) => {
         try {
-            const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+            const rpcUrl = CRONOS_MAINNET_RPC;
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -166,7 +161,7 @@ export const getCronosBlockInfo = tool({
             const block = data.result;
 
             return {
-                network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
+                network: "Cronos Mainnet",
                 blockNumber: parseInt(block.number, 16),
                 blockHash: block.hash,
                 parentHash: block.parentHash,
@@ -194,9 +189,8 @@ export const getCronosTransaction = tool({
     description: "Get details of a specific transaction on Cronos EVM (Chain ID 25) by transaction hash. NOT for Cronos zkEVM.",
     parameters: z.object({
         txHash: z.string().describe("Transaction hash (0x... - must be 66 characters including 0x prefix)"),
-        testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
     }),
-    execute: async ({ txHash, testnet = false }) => {
+    execute: async ({ txHash }) => {
         try {
             // Validate transaction hash format
             const cleanHash = txHash.trim();
@@ -226,7 +220,7 @@ export const getCronosTransaction = tool({
                 };
             }
 
-            const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+            const rpcUrl = CRONOS_MAINNET_RPC;
 
             // Parallelize RPC calls for transaction and receipt
             const controller = new AbortController();
@@ -275,7 +269,7 @@ export const getCronosTransaction = tool({
                 const txFee = gasUsed ? (gasPrice * gasUsed) / 1e18 : null;
 
                 return {
-                    network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
+                    network: "Cronos Mainnet",
                     hash: txHash,
                     status: receipt ? (receipt.status === "0x1" ? "Success" : "Failed") : "Pending",
                     blockNumber: tx.blockNumber ? parseInt(tx.blockNumber, 16) : null,
@@ -314,11 +308,10 @@ export const getCronosTokenBalance = tool({
     parameters: z.object({
         walletAddress: z.string().describe("Wallet address (0x...)"),
         tokenAddress: z.string().describe("CRC-20 token contract address (0x...)"),
-        testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
     }),
-    execute: async ({ walletAddress, tokenAddress, testnet = false }) => {
+    execute: async ({ walletAddress, tokenAddress }) => {
         try {
-            const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+            const rpcUrl = CRONOS_MAINNET_RPC;
 
             const balanceOfSelector = "0x70a08231";
             const paddedAddress = walletAddress.slice(2).padStart(64, "0");
@@ -379,7 +372,7 @@ export const getCronosTokenBalance = tool({
                 const formattedBalance = Number(balance) / Math.pow(10, decimals);
 
                 return {
-                    network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
+                    network: "Cronos Mainnet",
                     wallet: walletAddress,
                     token: tokenAddress,
                     balance: {
@@ -408,11 +401,10 @@ export const getCronosTokenBalance = tool({
 export const getCronosGasPrice = tool({
     description: "Get current gas price on Cronos network for transaction fee estimation.",
     parameters: z.object({
-        testnet: z.boolean().optional().describe("Use testnet instead of mainnet (default: false)"),
     }),
-    execute: async ({ testnet = false }) => {
+    execute: async ({ }) => {
         try {
-            const rpcUrl = testnet ? CRONOS_TESTNET_RPC : CRONOS_MAINNET_RPC;
+            const rpcUrl = CRONOS_MAINNET_RPC;
 
             const response = await fetch(rpcUrl, {
                 method: "POST",
@@ -442,7 +434,7 @@ export const getCronosGasPrice = tool({
             };
 
             return {
-                network: testnet ? "Cronos Testnet" : "Cronos Mainnet",
+                network: "Cronos Mainnet",
                 gasPrice: {
                     wei: gasPriceWei,
                     gwei: gasPriceGwei.toFixed(2),

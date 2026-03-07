@@ -58,7 +58,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
 | **65+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
-| **Gasless Crypto Payments** | x402 protocol with EIP-3009/EIP-712 gasless USDC payments |
+| **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 
 ---
 
@@ -570,7 +570,7 @@ Tell me about the Monad ecosystem and upcoming events
 
 ### Gasless Payment Flow (EIP-3009)
 
-The x402 implementation uses **EIP-3009 TransferWithAuthorization** for gasless USDC payments:
+The x402 implementation uses **EIP-3009 TransferWithAuthorization** for USDC payments on Base:
 
 ```mermaid
 sequenceDiagram
@@ -579,7 +579,7 @@ sequenceDiagram
     participant Frontend as 🖥️ Frontend
     participant API as 📡 Backend API
     participant Wallet as 🔐 Wallet
-    participant Facilitator as ⚡ Cronos Facilitator
+    participant Facilitator as ⚡ x402 Facilitator
     participant Chain as ⛓️ Blockchain
 
     Note over User,Chain: Step 1: Wallet Verification
@@ -619,12 +619,12 @@ sequenceDiagram
 ### EIP-712 Domain & Types
 
 ```typescript
-// EIP-712 Domain for USDC.e on Cronos
+// EIP-712 Domain for USDC on Base
 const domain = {
-  name: "Bridged USDC (Stargate)",
-  version: "1",
-  chainId: 338, // Cronos Testnet
-  verifyingContract: "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
+  name: "USD Coin",
+  version: "2",
+  chainId: 8453,
+  verifyingContract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 };
 
 // EIP-3009 TransferWithAuthorization Types

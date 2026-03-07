@@ -421,7 +421,6 @@ export const getCoinGeckoCroPrice = tool({
                 chain: {
                     name: "Cronos EVM",
                     chainId: 25,
-                    testnetChainId: 338,
                 },
 
                 lastUpdated: data.last_updated,

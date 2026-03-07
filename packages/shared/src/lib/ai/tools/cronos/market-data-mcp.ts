@@ -242,7 +242,6 @@ export const getCronosMarketData = tool({
                 chain: {
                     name: "Cronos EVM",
                     chainId: 25,
-                    testnetChainId: 338,
                     nativeToken: "CRO",
                 },
             };

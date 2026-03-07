@@ -15,11 +15,9 @@ import { createClient } from "@crypto.com/ai-agent-client";
 const CRONOS_CHAINS = {
     // Cronos EVM
     CRONOS_MAINNET: 25,
-    CRONOS_TESTNET: 338,
-    // Cronos zkEVM
+        // Cronos zkEVM
     CRONOS_ZKEVM_MAINNET: 388,
-    CRONOS_ZKEVM_TESTNET: 240,
-} as const;
+    } as const;
 
 type CronosChainKey = keyof typeof CRONOS_CHAINS;
 
@@ -72,10 +70,10 @@ Examples of queries you can make:
 - "What's the gas price on Cronos?"
 - "Get token info for contract 0x..."
 
-Supported networks: Cronos EVM (mainnet/testnet) and Cronos zkEVM (mainnet/testnet).`,
+Supported networks: Cronos EVM (mainnet) and Cronos zkEVM (mainnet).`,
     parameters: z.object({
         query: z.string().describe("Natural language query about Cronos blockchain (e.g., 'What is the balance of 0x...?')"),
-        network: z.enum(["CRONOS_MAINNET", "CRONOS_TESTNET", "CRONOS_ZKEVM_MAINNET", "CRONOS_ZKEVM_TESTNET"])
+        network: z.enum(["CRONOS_MAINNET", "CRONOS_ZKEVM_MAINNET"])
             .optional()
             .default("CRONOS_MAINNET")
             .describe("Which Cronos network to query"),
@@ -125,7 +123,7 @@ Supported networks: Cronos EVM (mainnet/testnet) and Cronos zkEVM (mainnet/testn
 export const getCryptoComChainStats = tool({
     description: "Get comprehensive blockchain statistics for Cronos networks using Crypto.com AI Agent SDK.",
     parameters: z.object({
-        network: z.enum(["CRONOS_MAINNET", "CRONOS_TESTNET", "CRONOS_ZKEVM_MAINNET", "CRONOS_ZKEVM_TESTNET"])
+        network: z.enum(["CRONOS_MAINNET", "CRONOS_ZKEVM_MAINNET"])
             .optional()
             .default("CRONOS_MAINNET")
             .describe("Which Cronos network to get stats for"),
@@ -167,7 +165,7 @@ export const analyzeWalletWithAI = tool({
     description: "Analyze a wallet address on Cronos using Crypto.com AI Agent SDK. NOTE: For token holdings and portfolio on zkEVM, use getZkEVMPortfolio or getZkEVMTokenList instead - this tool only returns native balance.",
     parameters: z.object({
         address: z.string().describe("Wallet address to analyze (0x...)"),
-        network: z.enum(["CRONOS_MAINNET", "CRONOS_TESTNET", "CRONOS_ZKEVM_MAINNET", "CRONOS_ZKEVM_TESTNET"])
+        network: z.enum(["CRONOS_MAINNET", "CRONOS_ZKEVM_MAINNET"])
             .optional()
             .default("CRONOS_MAINNET")
             .describe("Which Cronos network to analyze on. CRITICAL: If the user mentions 'zkEVM', you MUST select CRONOS_ZKEVM_MAINNET."),

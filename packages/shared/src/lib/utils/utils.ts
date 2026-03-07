@@ -203,7 +203,8 @@ export type SearchGroupId =
   | "imagine"
   | "aptos"
   | "cronos"
-  | "mantle";
+  | "mantle"
+  | "yellow";
 
 // Explicit type for search groups to avoid portable type inference issues with LucideIcon
 interface SearchGroupItem {
@@ -351,6 +352,13 @@ export const searchGroups: readonly SearchGroupItem[] = [
       light: "/images/icon/solana/sol-dark.png",
       dark: "/images/icon/solana/sol-light.png",
     },
+  },
+  {
+    id: "yellow",
+    name: "Yellow",
+    description: "Yellow Network: State channels, escrow & cross-chain transfers",
+    icon: Network,
+    img: "",
   }
 ];
 

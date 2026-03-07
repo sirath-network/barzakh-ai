@@ -41,7 +41,7 @@
 - **Multi-Model AI Fusion**: Orchestrates GPT-5.x, Claude Opus 4.5, GLM 4.7, and 6+ frontier models with intelligent intent-based routing
 - **50+ Blockchain Tools**: Native integrations across 14+ blockchain ecosystems (Monad, Cronos, Mantle, Ethereum, Aptos, Solana, Flow, SEI, Zeta) with 50+ chains via Relay Protocol
 - **Monad Deep Integration**: 10 dedicated Monad tools including nad.fun token launchpad search & trade, portfolio tracking, DeFi positions, NFTs, and smart chain inference for Monad meme tokens
-- **x402 Gasless Payments**: Revolutionary EIP-3009 implementation enabling zero-gas cryptocurrency subscriptions on Cronos
+- **x402 Crypto Payments**: Revolutionary EIP-3009 implementation enabling USDC cryptocurrency subscriptions on Base
 - **VVS DEX Integration**: Real-time swap quotes, liquidity pool analysis, and DeFi intelligence from VVS Finance
 - **Enterprise Security**: 5-layer defense architecture with prompt injection defense, 2FA, and wallet authentication
 
@@ -588,7 +588,7 @@ const groupTools = {
 
 ### Overview
 
-The **x402 Protocol** implements gasless cryptocurrency payments using EIP-3009 (TransferWithAuthorization), enabling users to subscribe with USDC on Cronos without paying gas fees.
+The **x402 Protocol** implements cryptocurrency payments using EIP-3009 (TransferWithAuthorization), enabling users to subscribe with USDC on Base with minimal gas fees.
 
 > **Important**: x402 is the industry's first AI-native crypto subscription system, allowing the AI agent to programmatically suggest subscription upgrades with user approval via wallet signature.
 
@@ -601,7 +601,7 @@ sequenceDiagram
     participant Frontend as Frontend
     participant API as Backend API
     participant Wallet as Wallet
-    participant Facilitator as Cronos Facilitator
+    participant Facilitator as x402 Facilitator
     participant Chain as Blockchain
 
     Note over User,Chain: Phase 1: Wallet Verification
@@ -642,12 +642,12 @@ sequenceDiagram
 ### EIP-3009 TransferWithAuthorization
 
 ```typescript
-// EIP-712 Domain for USDC.e on Cronos
+// EIP-712 Domain for USDC on Base
 const domain = {
-    name: "Bridged USDC (Stargate)",
-    version: "1",
-    chainId: 338,  // Cronos Testnet (25 for mainnet)
-    verifyingContract: "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
+    name: "USD Coin",
+    version: "2",
+    chainId: 8453,
+    verifyingContract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 };
 
 // EIP-3009 TransferWithAuthorization Types
@@ -670,7 +670,7 @@ The AI agent can suggest subscription upgrades through a dedicated tool:
 ```typescript
 // x402-transfer.ts
 export const initiateX402Payment = tool({
-    description: `Initiate a subscription payment on Cronos using x402 protocol.
+    description: `Initiate a subscription payment on Base using x402 protocol.
     Supports tier changes (pro <-> ultimate) and cycle changes (monthly/quarterly/yearly).`,
     parameters: z.object({
         planId: z.enum(["pro", "ultimate"]),

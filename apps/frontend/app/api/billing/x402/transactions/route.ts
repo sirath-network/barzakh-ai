@@ -15,17 +15,17 @@ function parseLimit(value: string | null): number {
 
 // USD prices for each plan and billing cycle (in cents)
 const PLAN_PRICES_CENTS: Record<string, Record<string, number>> = {
-    pro: {
-        monthly: 2500,     // $25
-        quarterly: 6600,   // $66
-        yearly: 24000,     // $240
-    },
-    ultimate: {
-        monthly: 25000,    // $250
-        quarterly: 66000,  // $660
-        yearly: 240000,    // $2400
-    },
-};
+        pro: {
+          monthly: 2500,
+          quarterly: 6600,
+          yearly: 24000,
+        },
+        ultimate: {
+          monthly: 25000,
+          quarterly: 66000,
+          yearly: 240000,
+        },
+      };
 
 /**
  * GET /api/billing/x402/transactions
@@ -74,10 +74,8 @@ export async function GET(request: Request) {
 
         // Get blockchain explorer URL based on chainId
         const getExplorerUrl = (chainId: number, txHash: string) => {
-            if (chainId === 25) {
-                return `https://cronoscan.com/tx/${txHash}`;
-            } else if (chainId === 338) {
-                return `https://explorer.cronos.org/testnet/tx/${txHash}`;
+            if (chainId === 8453) {
+                return `https://basescan.org/tx/${txHash}`;
             }
             return null;
         };
@@ -98,7 +96,7 @@ export async function GET(request: Request) {
                 amountCents,
                 currency: "USD",
                 chainId: tx.chainId,
-                chainName: tx.chainId === 25 ? "Cronos" : "Cronos Testnet",
+                chainName: tx.chainId === 8453 ? "Base" : "Base Sepolia",
                 transactionHash: tx.transactionHash,
                 explorerUrl: getExplorerUrl(tx.chainId, tx.transactionHash),
                 status: tx.status,

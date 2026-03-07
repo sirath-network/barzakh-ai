@@ -5,17 +5,17 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useBalance, useSwitchChain, useSignTypedData, useDisconnect, useSignMessage } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { cronosTestnet } from "viem/chains";
+import { base } from "viem/chains";
 import { formatUnits } from "viem";
-import { CreditCard, Check, AlertCircle, Loader2, Sparkles, Zap, Crown, ShieldCheck, Wallet } from "lucide-react";
+import { CreditCard, Check, AlertCircle, Loader2, Sparkles, Zap, Crown, ShieldCheck, Wallet, LogOut } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Type aliases for React 19 compatibility
 const ButtonAny = Button as any;
 
-// devUSDC.e contract on Cronos Testnet
-const USDC_TESTNET_ADDRESS = "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0";
+// USDC contract on Base Mainnet
+const USDC_MAINNET_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const USDC_DECIMALS = 6;
 
 interface PaymentRequest {
@@ -70,8 +70,8 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     const { disconnect } = useDisconnect();
     const { data: usdcBalance, isLoading: isLoadingBalance } = useBalance({
         address,
-        token: USDC_TESTNET_ADDRESS,
-        chainId: cronosTestnet.id
+        token: USDC_MAINNET_ADDRESS,
+        chainId: base.id
     });
 
     const [step, setStep] = useState<"ready" | "verifying" | "signing" | "settling" | "success" | "error">("ready");
@@ -80,7 +80,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     const [signedData, setSignedData] = useState<{
         signature: string;
         authorization: any;
-        paymentHeader: string;
+        paymentPayload: any;
         paymentRequirements: any;
     } | null>(null);
 
@@ -295,7 +295,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     }
 
     const payment = result.paymentRequest;
-    const isWrongChain = isConnected && chain?.id !== cronosTestnet.id;
+    const isWrongChain = isConnected && chain?.id !== base.id;
     const receiverAddress = process.env.NEXT_PUBLIC_X402_RECEIVER_ADDRESS || "0x9355D5006c69aa04077aAA70b2502B2F0Ce93535";
     const usdcAmount = usdToUsdcUnits(payment.usdPrice);
 
@@ -359,12 +359,12 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
             const validBefore = now + 300; // Valid for 5 minutes
             const nonce = generateNonce();
 
-            // EIP-712 domain for USDC.e (must match x402-facilitator.ts)
+            // EIP-712 domain for USDC (must match x402-facilitator.ts)
             const domain = {
-                name: "Bridged USDC (Stargate)",
-                version: "1",
-                chainId: cronosTestnet.id,
-                verifyingContract: USDC_TESTNET_ADDRESS as `0x${string}`,
+                name: "USD Coin",
+                version: "2",
+                chainId: base.id,
+                verifyingContract: USDC_MAINNET_ADDRESS as `0x${string}`,
             };
 
             // EIP-3009 TransferWithAuthorization types
@@ -406,39 +406,39 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                 nonce,
             };
 
-            const paymentHeader = {
-                x402Version: 1,
+            const paymentRequirements = {
                 scheme: "exact",
-                network: "cronos-testnet",
-                payload: {
-                    ...authorization,
-                    signature,
-                    asset: USDC_TESTNET_ADDRESS,
+                network: "eip155:8453",
+                payTo: receiverAddress,
+                asset: USDC_MAINNET_ADDRESS,
+                amount: usdcAmount.toString(),
+                maxTimeoutSeconds: 300,
+                extra: {
+                    name: "USD Coin",
+                    version: "2",
                 },
             };
 
-            const paymentRequirements = {
-                scheme: "exact",
-                network: "cronos-testnet",
-                payTo: receiverAddress,
-                asset: USDC_TESTNET_ADDRESS,
-                maxAmountRequired: usdcAmount.toString(),
-                maxTimeoutSeconds: 300,
-                description: `Barzakh AI ${payment.planName} Plan - ${payment.billingCycle} subscription`,
-                mimeType: "application/json",
+            // Build V2 PaymentPayload object (per x402 V2 spec)
+            const paymentPayload = {
+                x402Version: 2,
+                accepted: paymentRequirements,
+                payload: {
+                    authorization,
+                    signature,
+                    asset: USDC_MAINNET_ADDRESS,
+                },
             };
-
-            const encodedHeader = btoa(JSON.stringify(paymentHeader));
 
             setSignedData({
                 signature,
                 authorization,
-                paymentHeader: encodedHeader,
+                paymentPayload,
                 paymentRequirements,
             });
 
             // Proceed to settlement
-            await settlePayment(encodedHeader, paymentRequirements);
+            await settlePayment(paymentPayload, paymentRequirements);
         } catch (error: any) {
             // Handle user rejection gracefully - check BEFORE logging to avoid Next.js error overlay
             const isUserRejection =
@@ -460,14 +460,14 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     };
 
     // Settle payment via backend
-    const settlePayment = async (paymentHeader: string, paymentRequirements: any) => {
+    const settlePayment = async (paymentPayload: any, paymentRequirements: any) => {
         setStep("settling");
         try {
             const response = await fetch("/api/billing/x402/settle", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    paymentHeader,
+                    paymentPayload,
                     paymentRequirements,
                     planId: payment.planId,
                     billingCycle: payment.billingCycle,
@@ -570,22 +570,39 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                     {/* Payment Info */}
                     {isConnected && !isWrongChain && (
                         <div className="mb-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
+                            <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-200 dark:border-zinc-700/50">
+                                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
+                                    <Wallet className="size-4" />
+                                    <span className="font-medium text-sm">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
+                                </div>
+                                <ConnectButton.Custom>
+                                    {({ openAccountModal }) => (
+                                        <button
+                                            onClick={openAccountModal}
+                                            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                                        >
+                                            <LogOut className="size-3" />
+                                            Disconnect
+                                        </button>
+                                    )}
+                                </ConnectButton.Custom>
+                            </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-zinc-500 dark:text-zinc-400">Amount:</span>
-                                <span className="font-mono font-medium text-zinc-900 dark:text-white">{formattedUsdcAmount} devUSDC.e</span>
+                                <span className="font-mono font-medium text-zinc-900 dark:text-white">{formattedUsdcAmount} USDC</span>
                             </div>
                             {usdcBalance && (
                                 <div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                     <span>Your Balance:</span>
                                     <span className={!hasEnoughBalance ? "text-red-600 dark:text-red-500" : ""}>
-                                        {parseFloat(formatUnits(usdcBalance.value, USDC_DECIMALS)).toFixed(2)} devUSDC.e
+                                        {parseFloat(formatUnits(usdcBalance.value, USDC_DECIMALS)).toFixed(2)} USDC
                                     </span>
                                 </div>
                             )}
                             {payment.isGasless && (
                                 <div className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400 mt-2">
                                     <Sparkles className="size-3" />
-                                    <span>Gasless transaction - no CRO needed!</span>
+                                    <span>Gasless transaction — minimal fees on Base!</span>
                                 </div>
                             )}
                         </div>
@@ -594,7 +611,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                     {/* Status Messages */}
 
                     {step === "error" && (
-                        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+                        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50">
                             <div className="flex items-center gap-2 text-red-600 dark:text-red-500">
                                 <AlertCircle className="size-4" />
                                 <span className="text-sm">{errorMessage}</span>
@@ -623,10 +640,10 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                             </div>
                         ) : isWrongChain ? (
                             <ButtonAny
-                                onClick={() => switchChain?.({ chainId: cronosTestnet.id })}
+                                onClick={() => switchChain?.({ chainId: base.id })}
                                 className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md"
                             >
-                                Switch to Cronos Testnet
+                                Switch to Base
                             </ButtonAny>
                         ) : step === "verifying" || isSigningMessage ? (
                             <ButtonAny disabled className="w-full h-11 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
@@ -641,9 +658,9 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                                         Checking balance...
                                     </ButtonAny>
                                 ) : !hasEnoughBalance ? (
-                                    <ButtonAny disabled className="w-full h-11 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-100 border border-red-200 dark:border-red-700/50 disabled:opacity-100">
+                                    <ButtonAny disabled className="w-full h-11 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-500/20 disabled:opacity-100 font-semibold rounded-md">
                                         <AlertCircle className="size-4 mr-2" />
-                                        Insufficient devUSDC.e Balance
+                                        Insufficient USDC Balance
                                     </ButtonAny>
                                 ) : !walletVerified ? (
                                     <ButtonAny
@@ -659,7 +676,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                                         className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
                                     >
                                         <CreditCard className="size-4 mr-2" />
-                                        Sign & Pay {formattedUsdcAmount} devUSDC.e
+                                        Sign & Pay {formattedUsdcAmount} USDC
                                     </ButtonAny>
                                 )}
                             </>

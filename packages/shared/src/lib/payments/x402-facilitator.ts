@@ -1,10 +1,10 @@
 /**
- * Cronos x402 Facilitator Client
+ * Base x402 Facilitator Client
  * 
- * Implements the x402 payment protocol for gasless USDC.e payments on Cronos.
+ * Implements the x402 payment protocol for USDC payments on Base Mainnet.
  * Uses EIP-3009 transferWithAuthorization for meta-transactions.
  * 
- * @see https://docs.cronos.org/cronos-x402-facilitator/api-reference
+ * @see https://docs.x402.org
  */
 
 // =============================================================================
@@ -12,40 +12,33 @@
 // =============================================================================
 
 /**
- * Facilitator API base URL (same for both mainnet and testnet)
+ * Facilitator API base URL
+ * Uses Coinbase CDP x402 facilitator for Base Mainnet
  */
-export const X402_FACILITATOR_URL = "https://facilitator.cronoslabs.org/v2/x402";
+export const X402_FACILITATOR_URL = process.env.X402_FACILITATOR_URL || "https://facilitator.xpay.sh";
 
 /**
- * Network configurations for Cronos
+ * Network configurations for Base
  */
-export const CRONOS_NETWORKS = {
+export const BASE_NETWORKS = {
     mainnet: {
-        network: "cronos-mainnet",
-        chainId: 25,
-        rpcUrl: "https://evm.cronos.org",
-        usdcAddress: "0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C",
+        network: "eip155:8453",
+        chainId: 8453,
+        rpcUrl: "https://mainnet.base.org",
+        usdcAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         usdcDecimals: 6,
-        usdcSymbol: "USDC.e",
-    },
-    testnet: {
-        network: "cronos-testnet",
-        chainId: 338,
-        rpcUrl: "https://evm-t3.cronos.org",
-        usdcAddress: "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
-        usdcDecimals: 6,
-        usdcSymbol: "devUSDC.e",
-    },
+        usdcSymbol: "USDC",
+    }
 } as const;
 
 /**
- * EIP-712 domain for USDC.e token (EIP-3009)
+ * EIP-712 domain for USDC token (EIP-3009)
  */
-export const getEIP712Domain = (network: "mainnet" | "testnet") => ({
-    name: "Bridged USDC (Stargate)",
-    version: "1",
-    chainId: CRONOS_NETWORKS[network].chainId,
-    verifyingContract: CRONOS_NETWORKS[network].usdcAddress,
+export const getEIP712Domain = (network: "mainnet") => ({
+    name: "USD Coin",
+    version: "2",
+    chainId: BASE_NETWORKS[network].chainId,
+    verifyingContract: BASE_NETWORKS[network].usdcAddress,
 });
 
 /**
@@ -68,18 +61,16 @@ export const TRANSFER_WITH_AUTHORIZATION_TYPES = {
 
 export interface PaymentRequirements {
     scheme: "exact";
-    network: "cronos-testnet" | "cronos-mainnet";
-    payTo: string;
+    network: "eip155:8453";
     asset: string;
-    maxAmountRequired: string;
+    amount: string;
+    payTo: string;
     maxTimeoutSeconds: number;
-    description: string;
-    mimeType: string;
-    outputSchema?: any;
+    extra?: Record<string, unknown>;
 }
 
 export interface X402PaymentHeader {
-    x402Version: 1;
+    x402Version: 2;
     scheme: "exact";
     network: string;
     payload: {
@@ -94,9 +85,18 @@ export interface X402PaymentHeader {
     };
 }
 
+/**
+ * V2 PaymentPayload sent to the facilitator
+ */
+export interface PaymentPayloadV2 {
+    x402Version: 2;
+    accepted: PaymentRequirements;
+    payload: Record<string, unknown>;
+}
+
 export interface VerifyRequest {
-    x402Version: 1;
-    paymentHeader: string; // Base64 encoded X402PaymentHeader
+    x402Version: 2;
+    paymentPayload: PaymentPayloadV2;
     paymentRequirements: PaymentRequirements;
 }
 
@@ -135,16 +135,16 @@ export function generateNonce(): string {
 }
 
 /**
- * Convert USD amount to USDC.e smallest unit (6 decimals)
+ * Convert USD amount to USDC smallest unit (6 decimals)
  * @param usdAmount - Amount in USD (e.g., 25.00)
- * @returns Amount in USDC.e smallest unit as string
+ * @returns Amount in USDC smallest unit as string
  */
 export function usdToUsdcUnits(usdAmount: number): string {
     return Math.floor(usdAmount * 1_000_000).toString();
 }
 
 /**
- * Convert USDC.e smallest unit to USD display
+ * Convert USDC smallest unit to USD display
  * @param units - Amount in smallest unit
  * @returns Amount as USD string
  */
@@ -186,21 +186,21 @@ export function decodePaymentHeader(encoded: string): X402PaymentHeader {
 export function createPaymentRequirements(
     payTo: string,
     usdAmount: number,
-    network: "mainnet" | "testnet" = "testnet",
+    network: "mainnet" = "mainnet",
     timeoutSeconds: number = 300,
-    description: string = "Barzakh AI Subscription Payment",
-    mimeType: string = "application/json"
 ): PaymentRequirements {
-    const config = CRONOS_NETWORKS[network];
+    const config = BASE_NETWORKS[network];
     return {
         scheme: "exact",
         network: config.network,
         payTo,
         asset: config.usdcAddress,
-        maxAmountRequired: usdToUsdcUnits(usdAmount),
+        amount: usdToUsdcUnits(usdAmount),
         maxTimeoutSeconds: timeoutSeconds,
-        description,
-        mimeType,
+        extra: {
+            name: "USD Coin",
+            version: "2",
+        },
     };
 }
 
@@ -211,7 +211,7 @@ export function createTransferAuthorizationTypedData(
     from: string,
     to: string,
     value: string,
-    network: "mainnet" | "testnet" = "testnet",
+    network: "mainnet" = "mainnet",
     validitySeconds: number = 300
 ) {
     const now = Math.floor(Date.now() / 1000);
@@ -246,12 +246,12 @@ export function buildPaymentHeader(
         nonce: string;
     },
     asset: string,
-    network: "mainnet" | "testnet" = "testnet"
+    network: "mainnet" = "mainnet"
 ): string {
     const header: X402PaymentHeader = {
-        x402Version: 1,
+        x402Version: 2,
         scheme: "exact",
-        network: CRONOS_NETWORKS[network].network,
+        network: BASE_NETWORKS[network].network,
         payload: {
             from: authorization.from,
             to: authorization.to,
@@ -270,20 +270,21 @@ export function buildPaymentHeader(
  * Verify payment with x402 facilitator
  */
 export async function verifyPayment(
-    paymentHeader: string,
+    paymentPayload: PaymentPayloadV2,
     paymentRequirements: PaymentRequirements
 ): Promise<VerifyResponse> {
     const requestBody = {
-        x402Version: 1,
-        paymentHeader,
+        x402Version: 2,
+        paymentPayload,
         paymentRequirements,
     };
+
+    console.log("[x402 debug] Sending to facilitator:", JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(`${X402_FACILITATOR_URL}/verify`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X402-Version": "1",
         },
         body: JSON.stringify(requestBody),
     });
@@ -305,18 +306,17 @@ export async function verifyPayment(
  * Settle payment on-chain via x402 facilitator
  */
 export async function settlePayment(
-    paymentHeader: string,
+    paymentPayload: PaymentPayloadV2,
     paymentRequirements: PaymentRequirements
 ): Promise<SettleResponse> {
     const response = await fetch(`${X402_FACILITATOR_URL}/settle`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "X402-Version": "1",
         },
         body: JSON.stringify({
-            x402Version: 1,
-            paymentHeader,
+            x402Version: 2,
+            paymentPayload,
             paymentRequirements,
         }),
     });
@@ -330,9 +330,11 @@ export async function settlePayment(
     }
 
     const data = await response.json();
+    console.log("[x402-facilitator] Raw response from /settle endpoint:", JSON.stringify(data, null, 2));
+    
     return {
         success: true,
-        txHash: data.txHash,
+        txHash: data.txHash || data.hash || data.transactionHash || data.transaction,
         blockNumber: data.blockNumber,
         timestamp: data.timestamp,
     };
@@ -343,7 +345,7 @@ export async function settlePayment(
  */
 export async function checkFacilitatorHealth(): Promise<boolean> {
     try {
-        const response = await fetch("https://facilitator.cronoslabs.org/healthcheck");
+        const response = await fetch(`${X402_FACILITATOR_URL}/healthcheck`);
         return response.ok;
     } catch {
         return false;
@@ -371,7 +373,7 @@ export interface PaymentFlowParams {
     /** Amount in USD */
     usdAmount: number;
     /** Network to use */
-    network?: "mainnet" | "testnet";
+    network?: "mainnet";
     /** Sign function from wallet (returns EIP-712 signature) */
     signTypedData: (typedData: any) => Promise<string>;
 }
@@ -398,7 +400,7 @@ export interface PaymentFlowResult {
  *   payer: "0xBuyer...",
  *   receiver: "0xSeller...",
  *   usdAmount: 25.00,
- *   network: "testnet",
+ *   network: "mainnet",
  *   signTypedData: walletClient.signTypedData,
  * });
  * ```
@@ -406,7 +408,7 @@ export interface PaymentFlowResult {
 export async function executePaymentFlow(
     params: PaymentFlowParams
 ): Promise<PaymentFlowResult> {
-    const { payer, receiver, usdAmount, network = "testnet", signTypedData } = params;
+    const { payer, receiver, usdAmount, network = "mainnet", signTypedData } = params;
 
     try {
         // 1. Create payment requirements
@@ -416,22 +418,26 @@ export async function executePaymentFlow(
         const typedData = createTransferAuthorizationTypedData(
             payer,
             receiver,
-            paymentRequirements.maxAmountRequired,
+            paymentRequirements.amount,
             network
         );
 
         // 3. Sign with wallet
         const signature = await signTypedData(typedData);
 
-        // 4. Build payment header
-        const paymentHeader = buildPaymentHeader(
-            signature,
-            typedData.message,
-            network
-        );
+        // 4. Build V2 paymentPayload
+        const paymentPayload: PaymentPayloadV2 = {
+            x402Version: 2,
+            accepted: paymentRequirements,
+            payload: {
+                ...typedData.message,
+                signature,
+                asset: BASE_NETWORKS[network].usdcAddress,
+            },
+        };
 
         // 5. Verify payment
-        const verifyResult = await verifyPayment(paymentHeader, paymentRequirements);
+        const verifyResult = await verifyPayment(paymentPayload, paymentRequirements);
         if (!verifyResult.isValid) {
             return {
                 success: false,
@@ -440,7 +446,7 @@ export async function executePaymentFlow(
         }
 
         // 6. Settle on-chain
-        const settleResult = await settlePayment(paymentHeader, paymentRequirements);
+        const settleResult = await settlePayment(paymentPayload, paymentRequirements);
 
         return {
             success: settleResult.success,

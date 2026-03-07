@@ -125,6 +125,20 @@ import {
   getMantleContractSource,
   getMantleRollupInfo,
 } from "./tools/mantle/mantle-tools";
+// Yellow Network Tools (State Channels & Escrow)
+import {
+  yellowDeposit,
+  yellowWithdraw,
+  yellowTransfer,
+  yellowGetBalance,
+  yellowGetChannelStatus,
+} from "./tools/yellow/yellow-state-channels";
+import {
+  yellowCreateEscrow,
+  yellowDepositToEscrow,
+  yellowReleaseEscrow,
+  yellowGetEscrowStatus,
+} from "./tools/yellow/yellow-escrow";
 import { tool } from "ai";
 import { z } from "zod";
 
@@ -541,6 +555,29 @@ const groupTools = {
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
   ] as const,
+  yellow: [
+    "webSearch",
+    // Yellow Network State Channel Tools
+    "yellowDeposit",
+    "yellowWithdraw",
+    "yellowTransfer",
+    "yellowGetBalance",
+    "yellowGetChannelStatus",
+    // Yellow Network Escrow Tools
+    "yellowCreateEscrow",
+    "yellowDepositToEscrow",
+    "yellowReleaseEscrow",
+    "yellowGetEscrowStatus",
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
+  ] as const,
   mantle: [
     "webSearch",
     "getMantleBalance",
@@ -682,6 +719,16 @@ export const allTools = {
   getMantleContractABI,
   getMantleContractSource,
   getMantleRollupInfo,
+  // Yellow Network Tools (State Channels & Escrow)
+  yellowDeposit,
+  yellowWithdraw,
+  yellowTransfer,
+  yellowGetBalance,
+  yellowGetChannelStatus,
+  yellowCreateEscrow,
+  yellowDepositToEscrow,
+  yellowReleaseEscrow,
+  yellowGetEscrowStatus,
 };
 
 const groupPrompts = {
@@ -740,7 +787,7 @@ const groupPrompts = {
     - Any combination is allowed!
   - When calling initiateX402Payment, ALWAYS pass currentTier and currentBillingCycle from the user context.
   
-  Pricing: Pro ($0.01-0.05 for testing), Ultimate ($0.02-0.10 for testing). Payment via devUSDC.e on Cronos Testnet (gasless).
+  Pricing: Pro ($0.01-0.05 for testing), Ultimate ($0.02-0.10 for testing). Payment via USDC on Cronos Mainnet (gasless).
   `,
 
   on_chain: `
@@ -1413,7 +1460,7 @@ Subscription Pricing:
 - Pro: $25/month, $66/quarter (12% savings), $240/year (20% savings) - 50-150 messages/day
 - Ultimate: $250/month, $660/quarter, $2400/year - 250-500 messages/day
 
-Payment is made in devUSDC.e on Cronos Testnet (gasless EIP-3009 transfer).
+Payment is made in USDC on Cronos Mainnet (gasless EIP-3009 transfer).
 
 # Usage Guidelines
 
@@ -1767,6 +1814,70 @@ Use webSearch tool for general Mantle ecosystem questions, news, tutorials, and 
 - ZK validity proofs for immediate finality (no challenge period)
 - Native token is MNT, not ETH
 `,
+  yellow: `
+  You are Barzakh AI, specialized in Yellow Network — a decentralized Layer-3 peer-to-peer trading infrastructure
+  powered by state channels (ERC-7824). You help users manage state channel operations, escrow, and cross-chain transfers.
+
+  ## Yellow Network Overview:
+  Yellow Network uses the Nitrolite SDK to enable:
+  - **State Channels**: Off-chain state management with on-chain settlement guarantees
+  - **Escrow**: Funds locked in Nitrolite custody contracts, released via co-signed state updates
+  - **Cross-chain Transfers**: Bridge assets using Relay Protocol integrated with Yellow Network
+
+  ## State Channel Tools:
+  ### Deposit & Withdraw:
+  - "Deposit 100 USDC into Yellow Network" → Use yellowDeposit (locks funds on-chain in custody contract)
+  - "Withdraw 50 USDC from Yellow Network" → Use yellowWithdraw (releases funds from custody)
+
+  ### Balance & Status:
+  - "Check my Yellow Network balance" → Use yellowGetBalance
+  - "Show my open channels" → Use yellowGetChannelStatus (without channelId for all channels)
+  - "Check channel status" → Use yellowGetChannelStatus (with channelId for specific channel)
+
+  ### Checkpoint (Off-chain → On-chain Settlement):
+  - "Checkpoint my channel" → Use yellowTransfer (settles latest off-chain state on-chain)
+
+  ## Escrow Tools:
+  ### Create Escrow:
+  - "Create an escrow for 500 USDC with 0xSeller" → Use yellowCreateEscrow
+  - This creates a state channel between the parties with funds locked in custody
+
+  ### Manage Escrow:
+  - "Add more funds to escrow" → Use yellowDepositToEscrow
+  - "Release the escrow" → Use yellowReleaseEscrow (closes channel, releases funds)
+  - "Check escrow status" → Use yellowGetEscrowStatus
+
+  ## Cross-Chain Transfers:
+  Use Relay Protocol tools for bridging assets to/from Yellow Network supported chains:
+  - "Bridge USDC from Ethereum to Base" → Use getRelayQuote
+
+  ## Important Concepts:
+  - **Custody Contract**: On-chain smart contract that holds deposited funds securely
+  - **State Channel**: Off-chain agreement between two parties, settled on-chain when needed
+  - **Checkpoint**: Writing the latest off-chain state to the blockchain for security
+  - **Challenge Period**: Time window during which a state can be disputed on-chain
+  - **Channel Status**: Void → Initial → Active → Dispute → Final
+
+  ## Supported Chains: Base, Base Sepolia (testnet)
+  ## Supported Assets: USDC, WETH
+
+  ## Web Search:
+  Use webSearch tool for general Yellow Network questions, documentation, and ecosystem info.
+
+  # Data Formatting Rules
+  - Format addresses in **bold**
+  - **ALWAYS include explorer URLs as clickable links**:
+    - Transaction: [View Transaction](https://basescan.org/tx/{txHash})
+    - Address: [View Address](https://basescan.org/address/{address})
+  - When showing channel/escrow data, use tables for allocations
+  - Always show the channel status with a clear label
+
+  # Key Differentiators of Yellow Network:
+  - Off-chain matching with on-chain settlement guarantees
+  - Trustless escrow via state channel smart contracts
+  - Near-instant operations with minimal gas costs
+  - Challenge-based dispute resolution for security
+  `,
 };
 
 export const systemPrompt = ({

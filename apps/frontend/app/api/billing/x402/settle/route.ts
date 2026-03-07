@@ -6,15 +6,15 @@ import { eq } from "drizzle-orm";
 import {
     verifyPayment,
     settlePayment,
-    decodePaymentHeader,
     PaymentRequirements,
+    PaymentPayloadV2,
 } from "@barzakh/shared/lib/payments/x402-facilitator";
 
 /**
  * POST /api/billing/x402/settle
  * 
- * Settles an x402 payment on-chain via the Cronos Facilitator.
- * Expects a Base64-encoded payment header and payment requirements.
+ * Settles an x402 payment on-chain via the x402 Facilitator on Base.
+ * Expects a V2 paymentPayload object and payment requirements.
  */
 export async function POST(request: Request) {
     const session = await auth();
@@ -22,33 +22,30 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { paymentHeader, paymentRequirements, planId, billingCycle } = await request.json();
+    const { paymentPayload, paymentRequirements, planId, billingCycle } = await request.json();
 
-    if (!paymentHeader || !paymentRequirements || !planId) {
+    if (!paymentPayload || !paymentRequirements || !planId) {
         return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
 
     try {
-        // Decode and validate payment header
-        const header = decodePaymentHeader(paymentHeader);
-
-        // Extract payer address from payload (flat structure per x402 spec)
-        const payerAddress = header.payload?.from;
+        // Extract payer address from the V2 payload
+        const payerAddress = paymentPayload.payload?.authorization?.from;
 
         if (!payerAddress) {
             console.error("[x402] Missing payer address in payload");
             return NextResponse.json({
-                error: "Invalid payment header - missing payer address",
-                debug: { payload: header.payload }
+                error: "Invalid payment payload - missing payer address",
+                debug: { payload: paymentPayload.payload }
             }, { status: 400 });
         }
 
         // Check if this nonce has already been used (prevent replay)
-        const nonce = header.payload?.nonce;
+        const nonce = paymentPayload.payload?.authorization?.nonce;
         if (!nonce) {
             console.error("[x402] Missing nonce in payload");
             return NextResponse.json({
-                error: "Invalid payment header - missing nonce"
+                error: "Invalid payment payload - missing nonce"
             }, { status: 400 });
         }
 
@@ -63,7 +60,7 @@ export async function POST(request: Request) {
         }
 
         // Verify payment with facilitator (off-chain validation)
-        const verifyResult = await verifyPayment(paymentHeader, paymentRequirements as PaymentRequirements);
+        const verifyResult = await verifyPayment(paymentPayload as PaymentPayloadV2, paymentRequirements as PaymentRequirements);
 
         if (!verifyResult.isValid) {
             console.error("[x402] Verification failed:", verifyResult.invalidReason);
@@ -74,7 +71,7 @@ export async function POST(request: Request) {
         }
 
         // Settle payment on-chain via facilitator
-        const settleResult = await settlePayment(paymentHeader, paymentRequirements as PaymentRequirements);
+        const settleResult = await settlePayment(paymentPayload as PaymentPayloadV2, paymentRequirements as PaymentRequirements);
 
         if (!settleResult.success) {
             console.error("[x402] Settlement failed:", settleResult.error);
@@ -83,14 +80,26 @@ export async function POST(request: Request) {
                 reason: settleResult.error
             }, { status: 500 });
         }
+        
+        console.log("[x402] Full settlement response:", JSON.stringify(settleResult, null, 2));
         console.log("[x402] Payment settled successfully:", settleResult.txHash);
 
-        // Record transaction (use nonce as unique identifier, store txHash)
+        // Validate that we have a proper blockchain transaction hash
+        if (!settleResult.txHash || !/^0x[a-f0-9]{64}$/i.test(settleResult.txHash)) {
+            console.error("[x402] Invalid transaction hash from facilitator:", settleResult.txHash);
+            console.error("[x402] Full settlement response for debugging:", JSON.stringify(settleResult, null, 2));
+            return NextResponse.json({
+                error: "Invalid transaction hash received from facilitator",
+                debug: { txHash: settleResult.txHash, fullResponse: settleResult }
+            }, { status: 500 });
+        }
+
+        // Record transaction with validated blockchain transaction hash
         await db.insert(x402_transactions).values({
             userId: session.user.id,
-            transactionHash: settleResult.txHash || nonce,
-            chainId: paymentRequirements.network === "cronos-mainnet" ? 25 : 338,
-            amount: paymentRequirements.maxAmountRequired,
+            transactionHash: settleResult.txHash,
+            chainId: paymentRequirements.network === "eip155:8453" ? 8453 : 84532,
+            amount: paymentRequirements.amount,
             tokenAddress: paymentRequirements.asset,
             senderAddress: payerAddress,
             planId: planId,

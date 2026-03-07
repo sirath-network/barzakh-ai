@@ -1,7 +1,7 @@
 /**
  * x402 Transfer Tool
  * 
- * AI-callable tool for initiating x402 subscription payments on Cronos.
+ * AI-callable tool for initiating x402 subscription payments on Base.
  * Enables the AI agent to suggest subscription upgrades programmatically.
  * User approval is still required via wallet signature.
  */
@@ -11,16 +11,16 @@ import { z } from "zod";
 
 // USD prices for each plan and billing cycle (must match backend pricing)
 const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
-    pro: {
-        monthly: 25,
-        quarterly: 66,
-        yearly: 240,
-    },
-    ultimate: {
-        monthly: 250,
-        quarterly: 660,
-        yearly: 2400,
-    },
+  pro: {
+    monthly: 25,
+    quarterly: 66,
+    yearly: 240,
+  },
+  ultimate: {
+    monthly: 250,
+    quarterly: 660,
+    yearly: 2400,
+  },
 };
 
 // Plan features for display
@@ -140,13 +140,13 @@ This tool returns payment requirements that will prompt the user to approve the 
                         amount: savings,
                         percentage: savingsPercentage,
                     } : null,
-                    network: "cronos-testnet",
-                    chainId: 338,
-                    paymentMethod: "devUSDC.e",
-                    tokenAddress: "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0",
+                    network: "eip155:8453",
+                    chainId: 8453,
+                    paymentMethod: "USDC",
+                    tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
                     tokenDecimals: 6,
                     isGasless: true, // EIP-3009 gasless transfer
-                    note: "Payment is made in devUSDC.e on Cronos Testnet. This is a gasless transaction - no CRO needed for gas!",
+                    note: "Payment is made in USDC on Base. Fast and low-cost!",
                 },
                 reason: reason || null,
                 message: `Ready to subscribe to ${planId === "pro" ? "Pro" : "Ultimate"} plan (${billingCycle}) for $${usdPrice}. Please approve the payment below.`,
@@ -207,8 +207,8 @@ export const getSubscriptionInfo = tool({
         return {
             success: true,
             plans,
-            currentNetwork: "Cronos Testnet (for hackathon demo)",
-            paymentMethod: "devUSDC.e (gasless)",
+            currentNetwork: "Base Mainnet",
+            paymentMethod: "USDC (gasless)",
             note: "To subscribe, ask me to 'subscribe to [plan] [cycle]' (e.g., 'subscribe to pro monthly')",
         };
     },

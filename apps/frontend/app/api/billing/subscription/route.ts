@@ -216,14 +216,14 @@ export async function GET(request: Request) {
       // Fixed USD prices for plans in cents
       const PLAN_PRICES_CENTS: Record<string, Record<string, number>> = {
         pro: {
-          monthly: 2500,      // $25
-          quarterly: 6600,    // $66
-          yearly: 24000,      // $240
+          monthly: 2500,
+          quarterly: 6600,
+          yearly: 24000,
         },
         ultimate: {
-          monthly: 25000,     // $250
-          quarterly: 66000,   // $660
-          yearly: 240000,     // $2400
+          monthly: 25000,
+          quarterly: 66000,
+          yearly: 240000,
         },
       };
 

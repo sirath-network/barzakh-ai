@@ -3235,7 +3235,7 @@
             "properties": {
               "chainId": {
                 "type": "integer",
-                "description": "Chain ID (338 for Cronos Testnet)"
+                "description": "Chain ID (25 for Cronos Mainnet)"
               },
               "chainName": {
                 "type": "string",

@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
 import { createPublicClient, http } from "viem";
-import { cronosTestnet } from "viem/chains";
+import { base } from "viem/chains";
 import { db } from "@/lib/db/db";
 import { x402_transactions, user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 // Use a dedicated RPC URL if available for better reliability
-const rpcUrl = process.env.CRONOS_TESTNET_RPC_URL || "https://evm-t3.cronos.org";
+const rpcUrl = process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
 
 const client = createPublicClient({
-  chain: cronosTestnet,
+  chain: base,
   transport: http(rpcUrl),
 });
 
@@ -66,6 +66,11 @@ export async function POST(request: Request) {
 
   if (!transactionHash || !planId) {
     return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+  }
+
+  // Validate transaction hash format (0x followed by 64 hex characters)
+  if (!/^0x[a-f0-9]{64}$/i.test(transactionHash)) {
+    return NextResponse.json({ error: "Invalid transaction hash format" }, { status: 400 });
   }
 
   try {
@@ -155,7 +160,7 @@ export async function POST(request: Request) {
     await db.insert(x402_transactions).values({
       userId: session.user.id,
       transactionHash: transactionHash,
-      chainId: 338, // Cronos EVM Testnet
+      chainId: 8453, // Base Mainnet
       amount: paidAmount.toString(),
       tokenAddress: null, // Native token
       senderAddress: receipt.from,

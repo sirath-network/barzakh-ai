@@ -8,7 +8,7 @@ import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, LogOut, AlertT
 import { formatUnits } from "viem";
 import { useAccount, useBalance, useSwitchChain, useSignTypedData, useSignMessage, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { cronosTestnet } from "viem/chains";
+import { base } from "viem/chains";
 
 interface X402PaymentModalProps {
   isOpen: boolean;
@@ -20,8 +20,8 @@ interface X402PaymentModalProps {
   currentBillingCycle?: string | null;
 }
 
-// USDC.e contract on Cronos Testnet
-const USDC_TESTNET_ADDRESS = "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0";
+// USDC contract on Base Mainnet
+const USDC_MAINNET_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 // Type aliases for React 19 compatibility
 const DialogAny = Dialog as any;
@@ -51,11 +51,11 @@ export function X402PaymentModal({
   // RainbowKit/Wagmi hooks
   const { address, isConnected, chain } = useAccount();
 
-  // USDC.e balance on Cronos Testnet
+  // USDC balance on Cronos Mainnet
   const { data: usdcBalance } = useBalance({
     address: address,
-    token: USDC_TESTNET_ADDRESS,
-    chainId: cronosTestnet.id,
+    token: USDC_MAINNET_ADDRESS,
+    chainId: base.id,
   });
 
   const { switchChain } = useSwitchChain();
@@ -89,7 +89,7 @@ export function X402PaymentModal({
     ((currentTier === "pro" || currentTier === "ultimate") && planId === "free")
   );
 
-  const isOnCorrectChain = chain?.id === cronosTestnet.id;
+  const isOnCorrectChain = chain?.id === base.id;
 
   // Parse USDC balance (6 decimals)
   const userUsdcBalance = usdcBalance ? formatUnits(usdcBalance.value, 6) : "0";
@@ -130,9 +130,9 @@ export function X402PaymentModal({
 
     if (!isOnCorrectChain) {
       try {
-        switchChain({ chainId: cronosTestnet.id });
+        switchChain({ chainId: base.id });
       } catch (error) {
-        toast.error("Please switch to Cronos Testnet");
+        toast.error("Please switch to Base");
       }
       return;
     }
@@ -220,16 +220,16 @@ export function X402PaymentModal({
 
     if (!isOnCorrectChain) {
       try {
-        switchChain({ chainId: cronosTestnet.id });
+        switchChain({ chainId: base.id });
       } catch (error) {
-        toast.error("Please switch to Cronos Testnet");
+        toast.error("Please switch to Base");
       }
       return;
     }
 
     if (hasInsufficientBalance) {
       toast.error(
-        `Insufficient USDC.e balance. You have ${parseFloat(userUsdcBalance).toFixed(2)} but need ${requiredAmount} USDC.e.`
+        `Insufficient USDC balance. You have ${parseFloat(userUsdcBalance).toFixed(2)} but need ${requiredAmount} USDC.`
       );
       return;
     }
@@ -246,12 +246,12 @@ export function X402PaymentModal({
       const validBefore = (now + 300).toString(); // 5 minutes validity
       const value = (requiredAmount * 1_000_000).toString(); // Convert to 6 decimals
 
-      // EIP-712 domain for USDC.e
+      // EIP-712 domain for USDC
       const domain = {
-        name: "Bridged USDC (Stargate)",
-        version: "1",
-        chainId: cronosTestnet.id,
-        verifyingContract: USDC_TESTNET_ADDRESS as `0x${string}`,
+        name: "USD Coin",
+        version: "2",
+        chainId: base.id,
+        verifyingContract: USDC_MAINNET_ADDRESS as `0x${string}`,
       };
 
       // EIP-3009 TransferWithAuthorization types
@@ -284,22 +284,23 @@ export function X402PaymentModal({
         message,
       });
 
-      // Build x402 payment header (matching official format from docs)
-      const paymentHeader = btoa(JSON.stringify({
-        x402Version: 1,
-        scheme: "exact",
-        network: paymentData.paymentRequirements.network,
+      // Build V2 PaymentPayload object (per x402 V2 spec)
+      const paymentPayload = {
+        x402Version: 2,
+        accepted: paymentData.paymentRequirements,
         payload: {
-          from: address,
-          to: paymentData.paymentRequirements.payTo,
-          value: value,
-          validAfter: 0,
-          validBefore: parseInt(validBefore),
-          nonce,
+          authorization: {
+            from: address,
+            to: paymentData.paymentRequirements.payTo,
+            value: value,
+            validAfter: 0,
+            validBefore: parseInt(validBefore),
+            nonce,
+          },
           signature,
           asset: paymentData.paymentRequirements.asset,
         },
-      }));
+      };
 
       // Settle payment via our API
       setStep("settling");
@@ -308,7 +309,7 @@ export function X402PaymentModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paymentHeader,
+          paymentPayload,
           paymentRequirements: paymentData.paymentRequirements,
           planId,
           billingCycle,
@@ -382,7 +383,7 @@ export function X402PaymentModal({
             Pay with Crypto
           </DialogTitleAny>
           <DialogDescriptionAny className="flex items-center gap-1.5">
-            <span>Gasless payment via Cronos x402</span>
+            <span>Payment via x402 on Base</span>
           </DialogDescriptionAny>
         </DialogHeaderAny>
 
@@ -393,10 +394,10 @@ export function X402PaymentModal({
                 <Wallet className="h-6 w-6 text-primary" />
               </div>
               <div className="text-center space-y-2">
-                <h3 className="font-medium">Gasless USDC.e Payment</h3>
+                <h3 className="font-medium">Gasless USDC Payment</h3>
                 <p className="text-sm text-muted-foreground max-w-[280px] mx-auto">
-                  Subscribe to <strong>{planId.toUpperCase()}</strong> using USDC.e on Cronos Testnet.
-                  <span className="text-muted-foreground font-bold"> No gas fees required!</span>
+                  Subscribe to <strong>{planId.toUpperCase()}</strong> using USDC on Base.
+                  <span className="text-muted-foreground font-bold"> Fast and low-cost!</span>
                 </p>
               </div>
 
@@ -453,12 +454,11 @@ export function X402PaymentModal({
                   ) : !isOnCorrectChain ? (
                     /* Step 2: Switch to correct chain */
                     <ButtonAny
-                      onClick={() => switchChain({ chainId: cronosTestnet.id })}
-                      className="w-full"
+                      onClick={() => switchChain({ chainId: base.id })}
+                      className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md border-none"
                       size="lg"
                     >
-                      <AlertCircle className="mr-2 h-4 w-4" />
-                      Switch to Cronos Testnet
+                      Switch to Base
                     </ButtonAny>
                   ) : (
                     /* Step 3: Verify wallet ownership and proceed */
@@ -519,7 +519,7 @@ export function X402PaymentModal({
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">GASLESS PAYMENT</span>
                   </div>
-                  <span className="text-[10px] uppercase tracking-wider font-medium text-zinc-500 dark:text-zinc-400">Cronos Testnet</span>
+                  <span className="text-[10px] uppercase tracking-wider font-medium text-zinc-500 dark:text-zinc-400">Base</span>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -592,13 +592,13 @@ export function X402PaymentModal({
                               Wrong Network
                             </p>
                             <p className="text-xs text-amber-700 dark:text-amber-300">
-                              Please switch to Cronos Testnet.
+                              Please switch to Base.
                             </p>
                           </div>
                           <ButtonAny
                             size="sm"
                             variant="outline"
-                            onClick={() => switchChain({ chainId: cronosTestnet.id })}
+                            onClick={() => switchChain({ chainId: base.id })}
                           >
                             Switch
                           </ButtonAny>
@@ -607,73 +607,68 @@ export function X402PaymentModal({
                     )}
 
                     {/* Wallet Info with USDC Balance */}
-                    <div className={`p-3 rounded-lg border transition-colors ${hasInsufficientBalance
-                      ? "bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
-                      : "bg-zinc-50/50 border-zinc-200 dark:bg-zinc-800/30 dark:border-zinc-500/50"
-                      }`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-full ${hasInsufficientBalance
-                            ? "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400"
-                            : "bg-zinc-100 text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-300"
-                            }`}>
-                            <Wallet className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex flex-col items-start">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium">
-                                {address?.slice(0, 6)}...{address?.slice(-4)}
-                              </span>
-                            </div>
-                            <ConnectButton.Custom>
-                              {({ openAccountModal }) => (
-                                <button
-                                  onClick={openAccountModal}
-                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
-                                >
-                                  <LogOut className="h-3 w-3" />
-                                  Disconnect
-                                </button>
-                              )}
-                            </ConnectButton.Custom>
-                          </div>
+                    <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
+                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-200 dark:border-zinc-700/50">
+                        <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
+                          <Wallet className="h-4 w-4" />
+                          <span className="font-medium text-sm">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs text-muted-foreground">USDC.e Balance</div>
-                          <div className={`font-mono font-medium ${hasInsufficientBalance
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-zinc-700 dark:text-zinc-200"
-                            }`}>
-                            {parseFloat(userUsdcBalance).toFixed(2)} USDC.e
-                          </div>
-                        </div>
+                        <ConnectButton.Custom>
+                          {({ openAccountModal }) => (
+                            <button
+                              onClick={openAccountModal}
+                              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                            >
+                              <LogOut className="h-3 w-3" />
+                              Disconnect
+                            </button>
+                          )}
+                        </ConnectButton.Custom>
                       </div>
-
-                      {hasInsufficientBalance && (
-                        <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400 mt-2 pt-2 border-t border-red-200 dark:border-red-900/50">
-                          <AlertCircle className="h-3 w-3" />
-                          <span>Insufficient balance. You need {requiredAmount} USDC.e.</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-zinc-500 dark:text-zinc-400">Amount:</span>
+                        <span className="font-mono font-medium text-zinc-900 dark:text-white">{requiredAmount} USDC</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                        <span>Your Balance:</span>
+                        <span className={hasInsufficientBalance ? "text-red-600 dark:text-red-500" : ""}>
+                          {parseFloat(userUsdcBalance).toFixed(2)} USDC
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400 mt-2">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Gasless transaction — minimal fees on Base!</span>
+                      </div>
                     </div>
 
-                    <ButtonAny
-                      onClick={handlePayment}
-                      disabled={isSigningTypedData || hasInsufficientBalance || !isOnCorrectChain}
-                      className="w-full bg-gradient-to-r from-zinc-500 to-zinc-600 hover:from-zinc-600 hover:to-zinc-700 dark:from-zinc-300 dark:to-zinc-400 dark:hover:from-zinc-200 dark:hover:to-zinc-300 text-white dark:text-zinc-900 font-semibold shadow-lg"
-                      size="lg"
-                    >
-                      {isSigningTypedData ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sign in Wallet...
-                        </>
-                      ) : (
-                        <>
-                          Sign & Pay {requiredAmount} USDC.e (Gasless)
-                        </>
-                      )}
-                    </ButtonAny>
+                    {hasInsufficientBalance ? (
+                      <ButtonAny
+                        disabled
+                        className="w-full h-11 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-500/20 disabled:opacity-100 font-semibold rounded-md"
+                        size="lg"
+                      >
+                        <AlertCircle className="mr-2 h-4 w-4" />
+                        Insufficient USDC Balance
+                      </ButtonAny>
+                    ) : (
+                      <ButtonAny
+                        onClick={handlePayment}
+                        disabled={isSigningTypedData || !isOnCorrectChain}
+                        className="w-full font-semibold shadow-lg bg-gradient-to-r from-zinc-500 to-zinc-600 hover:from-zinc-600 hover:to-zinc-700 dark:from-zinc-300 dark:to-zinc-400 dark:hover:from-zinc-200 dark:hover:to-zinc-300 text-white dark:text-zinc-900"
+                        size="lg"
+                      >
+                        {isSigningTypedData ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sign in Wallet...
+                          </>
+                        ) : (
+                          <>
+                            Sign & Pay {requiredAmount} USDC (Gasless)
+                          </>
+                        )}
+                      </ButtonAny>
+                    )}
                   </div>
                 )}
               </div>
@@ -681,12 +676,12 @@ export function X402PaymentModal({
               {/* Token info */}
               <div className="pt-2 border-t">
                 <a
-                  href={`https://explorer.cronos.org/testnet/token/${USDC_TESTNET_ADDRESS}`}
+                  href={`https://basescan.org/token/${USDC_MAINNET_ADDRESS}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
-                  <span>View devUSDC.e on Explorer</span>
+                  <span>View USDC on Explorer</span>
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>

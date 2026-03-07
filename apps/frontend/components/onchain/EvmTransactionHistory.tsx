@@ -27,20 +27,10 @@ const CHAIN_CONFIG: Record<string, { explorer: string; symbol: string; name: str
         symbol: "MNT",
         name: "Mantle",
     },
-    "mantle-testnet": {
-        explorer: "https://sepolia.mantlescan.xyz",
-        symbol: "MNT",
-        name: "Mantle Sepolia",
-    },
     cronos: {
         explorer: "https://explorer.cronos.org",
         symbol: "CRO",
         name: "Cronos",
-    },
-    "cronos-testnet": {
-        explorer: "https://explorer.cronos.org/testnet",
-        symbol: "CRO",
-        name: "Cronos Testnet",
     },
     "cronos-zkevm": {
         explorer: "https://explorer.zkevm.cronos.org",
@@ -391,17 +381,9 @@ const getTransactionStyle = (direction: string, txType: string) => {
 // Detect chain from network string
 const detectChain = (network: string): { explorer: string; symbol: string; name: string } => {
     const networkLower = network.toLowerCase();
-
-    if (networkLower.includes("mantle") && networkLower.includes("sepolia")) {
-        return CHAIN_CONFIG["mantle-testnet"];
-    }
     if (networkLower.includes("mantle")) {
         return CHAIN_CONFIG.mantle;
-    }
-    if (networkLower.includes("cronos") && networkLower.includes("test")) {
-        return CHAIN_CONFIG["cronos-testnet"];
-    }
-    if (networkLower.includes("cronos") && networkLower.includes("zkevm")) {
+    } if (networkLower.includes("cronos") && networkLower.includes("zkevm")) {
         return CHAIN_CONFIG["cronos-zkevm"];
     }
     if (networkLower.includes("zkevm") && networkLower.includes("cronos")) {

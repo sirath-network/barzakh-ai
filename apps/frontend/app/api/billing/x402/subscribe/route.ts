@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
 import {
   createPaymentRequirements,
-  CRONOS_NETWORKS,
+  BASE_NETWORKS,
   usdToUsdcUnits,
 } from "@barzakh/shared/lib/payments/x402-facilitator";
 
@@ -41,9 +41,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid plan or billing cycle" }, { status: 400 });
   }
 
-  // Use mainnet or testnet based on request (default: testnet for hackathon)
-  const network = useMainnet ? "mainnet" : "testnet";
-  const config = CRONOS_NETWORKS[network];
+  // Use mainnet
+  const network = "mainnet";
+  const config = BASE_NETWORKS[network];
 
   // Get receiver address from env or use default test address
   const receiverAddress =
@@ -57,29 +57,27 @@ export async function POST(request: Request) {
     usdPrice,
     network,
     300, // 5 minutes timeout
-    description,
-    "application/json"
   );
 
   // Return 402 Payment Required with x402 format
   return NextResponse.json(
     {
       error: "Payment Required",
-      x402Version: 1,
+      x402Version: 2,
       paymentRequirements,
       // Additional display info for the UI
       displayInfo: {
         usdPrice,
         usdcAmount: (usdPrice).toFixed(2),
         usdcSymbol: config.usdcSymbol,
-        chainName: network === "mainnet" ? "Cronos Mainnet" : "Cronos Testnet",
+        chainName: "Base",
         chainId: config.chainId,
         receiver: receiverAddress,
         tokenAddress: config.usdcAddress,
         decimals: config.usdcDecimals,
         // Gasless info
         isGasless: true,
-        note: "This payment is gasless - you don't need CRO for gas fees!",
+        note: "This payment uses USDC on Base — fast and low-cost!",
       },
     },
     { status: 402 }
