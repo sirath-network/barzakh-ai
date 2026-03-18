@@ -588,7 +588,7 @@ const groupTools = {
 
 ### Overview
 
-The **x402 Protocol** implements cryptocurrency payments using EIP-3009 (TransferWithAuthorization), enabling users to subscribe with USDC on Base with minimal gas fees.
+The **x402 Protocol** implements cryptocurrency payments using EIP-3009 (TransferWithAuthorization), enabling users to subscribe with USDC on Base.
 
 > **Important**: x402 is the industry's first AI-native crypto subscription system, allowing the AI agent to programmatically suggest subscription upgrades with user approval via wallet signature.
 
@@ -951,7 +951,7 @@ erDiagram
 | Method | Technology | Features |
 |--------|------------|----------|
 | **Stripe** | Credit/Debit Cards | Recurring billing, invoices |
-| **x402 Protocol** | USDC on Cronos | Gasless EIP-3009, crypto-native |
+| **x402 Protocol** | USDC on Base | Gasless EIP-3009, crypto-native |
 
 ### Value Proposition by Stakeholder
 

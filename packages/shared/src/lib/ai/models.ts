@@ -93,9 +93,9 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "google/gemini-2.5-flash-image",
-    name: "Gemini 2.5 Flash Image",
+    id: "google/gemini-3.1-flash-image-preview",
+    name: "Gemini 3.1 Flash Image Preview",
     description:
-      "Gemini 2.5 Flash Image via OpenRouter for fast, high-fidelity generations.",
+      "Gemini 3.1 Flash Image Preview via OpenRouter for fast, high-fidelity generations.",
   },
 ];

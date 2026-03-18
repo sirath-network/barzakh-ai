@@ -289,7 +289,7 @@ sequenceDiagram
 
 | Model ID | Display Name | Provider | Description |
 |----------|--------------|----------|-------------|
-| `google/gemini-2.5-flash-image` | **Gemini 2.5 Flash Image** | OpenRouter | Fast, high-fidelity image generation |
+| `google/gemini-3.1-flash-image-preview` | **Gemini 3.1 Flash Image Preview** | OpenRouter | Fast, high-fidelity image generation |
 
 
 ### Intent Classification & Routing

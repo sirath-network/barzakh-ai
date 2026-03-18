@@ -4,7 +4,7 @@ import { imagineModels } from "../models";
 import { fetchImageAsBase64 } from "../utils/fetch-image-as-base64";
 
 // Default image model from the imagineModels registry
-const DEFAULT_IMAGE_MODEL = imagineModels[0]?.id ?? "google/gemini-2.5-flash-image";
+const DEFAULT_IMAGE_MODEL = imagineModels[0]?.id ?? "google/gemini-3.1-flash-image-preview";
 
 function getFrontendUrl(): string {
   if (process.env.FRONTEND_URL) {

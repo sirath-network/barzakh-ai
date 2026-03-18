@@ -637,7 +637,7 @@ export function X402PaymentModal({
                       </div>
                       <div className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400 mt-2">
                         <Sparkles className="h-3 w-3" />
-                        <span>Gasless transaction — minimal fees on Base!</span>
+                        <span>Gasless transaction on Base!</span>
                       </div>
                     </div>
 

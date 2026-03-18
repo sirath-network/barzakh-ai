@@ -602,7 +602,7 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                             {payment.isGasless && (
                                 <div className="flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400 mt-2">
                                     <Sparkles className="size-3" />
-                                    <span>Gasless transaction — minimal fees on Base!</span>
+                                    <span>Gasless transaction on Base!</span>
                                 </div>
                             )}
                         </div>
