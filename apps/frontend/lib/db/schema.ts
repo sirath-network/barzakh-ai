@@ -17,7 +17,7 @@ import {
 export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   email: varchar("email", { length: 64 }).unique(),
-  walletAddress: varchar("walletAddress", { length: 64 }),
+  walletAddress: varchar("walletAddress", { length: 128 }),
   password: varchar("password", { length: 255 }), // Increased from 64 to 255 for bcrypt hash safety
   // ✅ Tambahkan field yang hilang
   name: text("name"),

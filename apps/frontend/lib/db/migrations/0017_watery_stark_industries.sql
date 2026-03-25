@@ -1,0 +1,1 @@
+ALTER TABLE "User" ALTER COLUMN "walletAddress" SET DATA TYPE varchar(128);

@@ -14,6 +14,7 @@ import { AuthForm } from "@/components/auth-form";
 import { SubmitButton } from "@/components/submit-button";
 import { LogoGoogle } from "@/components/icons";
 import { WalletLoginButton } from "@/components/wallet-login-button";
+import { WalletSelectorModal } from "@/components/wallet-selector-modal";
 import { ActionResultOverlay } from "@/components/action-result-overlay";
 import { Button } from "@/components/ui/button";
 import { login, type LoginActionState } from "../actions";
@@ -54,6 +55,7 @@ export default function Page() {
   // Track login method in progress to disable other buttons
   const [walletLoginInProgress, setWalletLoginInProgress] = useState(false);
   const [googleLoginInProgress, setGoogleLoginInProgress] = useState(false);
+  const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
 
 
 
@@ -277,14 +279,13 @@ export default function Page() {
                 >
                   <LogoGoogle className="h-5 w-5" />
                 </button>
-                <WalletLoginButton
-                  turnstileToken={turnstileToken}
-                  disabled={googleLoginInProgress}
-                  onLoadingChange={setWalletLoginInProgress}
+                <button
+                  onClick={() => setIsWalletSelectorOpen(true)}
+                  disabled={!turnstileToken || walletLoginInProgress || googleLoginInProgress}
                   className="w-full inline-flex h-10 items-center justify-center border border-zinc-800 bg-zinc-900/50 text-white transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
                 >
                   <Wallet className="h-5 w-5 text-white" />
-                </WalletLoginButton>
+                </button>
               </div>
 
               {/* Footer links */}
@@ -365,6 +366,15 @@ export default function Page() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Wallet Selector Modal */}
+      <WalletSelectorModal
+        isOpen={isWalletSelectorOpen}
+        onClose={() => setIsWalletSelectorOpen(false)}
+        turnstileToken={turnstileToken}
+        disabled={googleLoginInProgress}
+        onLoadingChange={setWalletLoginInProgress}
+      />
     </>
   );
 }
