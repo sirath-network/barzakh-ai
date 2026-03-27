@@ -34,11 +34,11 @@ export const connectors = typeof window !== 'undefined' ? connectorsForWallets(
         {
             groupName: 'Popular',
             wallets: [
-                installedWallet,
                 rabbyWallet,
                 phantomWallet,
                 rainbowWallet,
                 baseAccount,
+                installedWallet
             ]
         },
         {

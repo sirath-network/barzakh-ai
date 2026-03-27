@@ -375,6 +375,14 @@ export default function Page() {
         disabled={googleLoginInProgress}
         onLoadingChange={setWalletLoginInProgress}
       />
+
+      {/* Hidden persistent listener for wallet login flow */}
+      <div className="hidden">
+        <WalletLoginButton
+          turnstileToken={turnstileToken}
+          onLoadingChange={setWalletLoginInProgress}
+        />
+      </div>
     </>
   );
 }
