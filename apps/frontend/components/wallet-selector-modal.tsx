@@ -63,6 +63,7 @@ export function WalletSelectorModal({
               turnstileToken={turnstileToken}
               disabled={disabled || activeWalletLoading}
               onLoadingChange={handleWalletLoadingChange}
+              onInitiate={onClose}
               className="w-full inline-flex h-10 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/50 text-white text-sm font-medium transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Wallet className="mr-2 h-4 w-4" />
@@ -82,9 +83,9 @@ export function WalletSelectorModal({
             </div>
           </div>
 
-          {/* Sui Network Option */}
+          {/* Others Option */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-zinc-400 px-1">Sui Network</p>
+            <p className="text-xs font-semibold text-zinc-400 px-1">Others</p>
             {mounted ? (
               <OneChainWalletLogin
                 turnstileToken={turnstileToken}
@@ -93,7 +94,7 @@ export function WalletSelectorModal({
                 className="w-full inline-flex h-10 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/50 text-white text-sm font-medium transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Wallet className="mr-2 h-4 w-4" />
-                Continue with Sui Wallet
+                Continue with Onechain Wallet
               </OneChainWalletLogin>
             ) : (
               <div className="w-full h-10 bg-zinc-900/50 rounded-md border border-zinc-800 flex items-center justify-center text-sm text-zinc-500">
