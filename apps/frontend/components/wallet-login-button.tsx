@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useSignMessage, useDisconnect } from "wagmi";
+import { useAccount, useSignMessage, useDisconnect, useAccountEffect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { signIn } from "next-auth/react";
 import { Wallet } from "lucide-react";
@@ -102,11 +102,13 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
     }
   }, [connectModalOpen]);
 
-  useEffect(() => {
-    if (isInitiatingLogin && isConnected && address) {
-      performLogin(address);
-    }
-  }, [isInitiatingLogin, isConnected, address]);
+  useAccountEffect({
+    onConnect({ address: newAddress, isReconnected }) {
+      if (isInitiatingLogin && newAddress) {
+        performLogin(newAddress);
+      }
+    },
+  });
 
   // Reset isInitiatingLogin when modal is closed without connecting
   useEffect(() => {
