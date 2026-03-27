@@ -22,6 +22,7 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
   const { disconnect } = useDisconnect();
   const [isLoading, setIsLoading] = useState(false);
   const [isInitiatingLogin, setIsInitiatingLogin] = useState(false);
+  const [hasModalOpened, setHasModalOpened] = useState(false);
 
   const performLogin = async (walletAddress: string) => {
     if (!turnstileToken) {
@@ -89,9 +90,17 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
       performLogin(address);
     } else {
       setIsInitiatingLogin(true);
+      setHasModalOpened(false);
       openConnectModal?.();
     }
   };
+
+  // Track if the connect modal has actually opened
+  useEffect(() => {
+    if (connectModalOpen) {
+      setHasModalOpened(true);
+    }
+  }, [connectModalOpen]);
 
   useEffect(() => {
     if (isInitiatingLogin && isConnected && address) {
@@ -101,11 +110,12 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
 
   // Reset isInitiatingLogin when modal is closed without connecting
   useEffect(() => {
-    if (isInitiatingLogin && !connectModalOpen && !isConnected) {
+    if (isInitiatingLogin && !connectModalOpen && !isConnected && hasModalOpened) {
       // User closed the modal without connecting
       setIsInitiatingLogin(false);
+      setHasModalOpened(false);
     }
-  }, [connectModalOpen, isInitiatingLogin, isConnected]);
+  }, [connectModalOpen, isInitiatingLogin, isConnected, hasModalOpened]);
 
   // Notify parent of loading state changes (includes when wallet modal is open)
   useEffect(() => {
