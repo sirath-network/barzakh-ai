@@ -251,7 +251,7 @@ sequenceDiagram
 
 | Category | Technologies |
 |----------|-------------|
-| **Wallet** | Wagmi 2.19, RainbowKit 2.2.9 |
+| **Wallet** | Wagmi 2.19, RainbowKit 2.2.9, OneChain (@onelabs/dapp-kit) |
 | **Ethereum** | Viem 2.41, ethers.js v6 |
 | **Chains** | Monad, Cronos, Ethereum, Polygon, Aptos, Solana, Flow, SEI + 50 via Relay |
 | **Protocols** | EIP-3009 (TransferWithAuthorization), EIP-712, EIP-191 |
