@@ -111,9 +111,13 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, c
   // Reset isInitiatingLogin when modal is closed without connecting
   useEffect(() => {
     if (isInitiatingLogin && !connectModalOpen && !isConnected && hasModalOpened) {
-      // User closed the modal without connecting
-      setIsInitiatingLogin(false);
-      setHasModalOpened(false);
+      // Add a small delay to allow wallet connection state to update after modal closes
+      const timeout = setTimeout(() => {
+        setIsInitiatingLogin(false);
+        setHasModalOpened(false);
+      }, 1500);
+
+      return () => clearTimeout(timeout);
     }
   }, [connectModalOpen, isInitiatingLogin, isConnected, hasModalOpened]);
 
