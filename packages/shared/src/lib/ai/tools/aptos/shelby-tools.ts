@@ -10,6 +10,8 @@ import {
 } from "@aptos-labs/ts-sdk";
 import { ShelbyNodeClient } from "@shelby-protocol/sdk/node";
 
+import { fetchImageAsBase64 } from "../../utils/fetch-image-as-base64";
+
 // Constants for Shelby Testnet/Shelbynet
 const APTOS_NODE = "https://api.shelbynet.shelby.xyz/v1";
 const SHELBY_ENDPOINT = "https://api.shelbynet.shelby.xyz/shelby";
@@ -42,12 +44,14 @@ function getShelbyAccount(): Account {
  * uploadToShelby: Upload data to Shelby Protocol
  */
 export const uploadToShelby = tool({
-  description: "Upload text or data to Shelby Protocol decentralized storage on Aptos.",
+  description: "Upload text, structured data, or a multimedia file URL to Shelby Protocol decentralized storage on Aptos. Optionally mint the result as an NFT that users can see.",
   parameters: z.object({
-    content: z.string().describe("The content to upload to Shelby storage."),
+    content: z.string().optional().describe("The raw text content to upload (use this OR fileUrl)."),
+    fileUrl: z.string().optional().describe("The URL of an image, video, document or file to download and upload to Shelby. ALWAYS use this if the user provides an image or file URL."),
     fileName: z.string().optional().describe("Optional name for the blob. If not provided, a random name will be used."),
+    mintAsNFT: z.boolean().optional().describe("Set to true if you are asked to mint this upload as an Aptos NFT in the 'Barzakh AI Storage' collection."),
   }),
-  execute: async ({ content, fileName }) => {
+  execute: async ({ content, fileUrl, fileName, mintAsNFT }) => {
     try {
       const account = getShelbyAccount();
       const client = new ShelbyNodeClient({
@@ -71,7 +75,21 @@ export const uploadToShelby = tool({
       });
 
       const name = fileName || `barzakh-blob-${Date.now()}`;
-      const data = Buffer.from(content);
+      
+      let data: Buffer;
+      if (fileUrl) {
+        console.log(`Downloading file from ${fileUrl}...`);
+        const result = await fetchImageAsBase64(fileUrl);
+        if (!result) {
+          throw new Error(`Failed to fetch fileUrl: ${fileUrl}`);
+        }
+        data = Buffer.from(result.base64, "base64");
+      } else if (content) {
+        data = Buffer.from(content);
+      } else {
+        throw new Error("Must provide either 'content' or 'fileUrl' to upload to Shelby.");
+      }
+
       const expirationMicros = (1000 * 60 * 60 * 24 * 30 + Date.now()) * 1000; // 30 days from now in microseconds
 
       console.log(`Uploading ${data.length} bytes to Shelby as ${name}...`);
@@ -89,13 +107,72 @@ export const uploadToShelby = tool({
         name: name,
       });
 
+      const publicUrl = `${SHELBY_ENDPOINT}/v1/blobs/${account.accountAddress.toString()}/${encodeURIComponent(name)}`;
+      const explorerUrl = `https://explorer.shelby.xyz/shelbynet/account/${account.accountAddress.toString()}/blobs?name=${encodeURIComponent(name)}`;
+      
+      let nftMintResponse = null;
+
+      if (mintAsNFT) {
+        console.log(`Minting NFT for blob ${name}...`);
+        try {
+          const collectionName = "Barzakh AI Storage";
+
+          // Step 1: Ensure collection exists.
+          // We always attempt creation and gracefully handle "already exists".
+          // This avoids relying on the indexer (token_v2_processor) which shelbynet doesn't support.
+          try {
+            console.log(`Ensuring collection "${collectionName}" exists...`);
+            const createCollectionTxn = await aptos.digitalAsset.createCollectionTransaction({
+              creator: account,
+              description: "Automated Decentralized Storage Uploads from Barzakh AI using Shelby Protocol.",
+              name: collectionName,
+              uri: "https://barzakh.tech/logo.png",
+            });
+            const commitedTx = await aptos.signAndSubmitTransaction({ signer: account, transaction: createCollectionTxn });
+            await aptos.waitForTransaction({ transactionHash: commitedTx.hash, options: { checkSuccess: true } });
+            console.log("Collection created successfully.");
+          } catch (collectionError: any) {
+            const errMsg = collectionError?.message || String(collectionError);
+            // If collection already exists, that's fine — proceed to mint
+            if (errMsg.includes("ECOLLECTION_ALREADY_EXISTS") || errMsg.includes("already_exists") || errMsg.includes("0x80001")) {
+              console.log("Collection already exists, proceeding to mint.");
+            } else {
+              throw new Error(`Failed to create NFT collection: ${errMsg}`);
+            }
+          }
+
+          // Step 2: Mint the Digital Asset into the collection
+          const mintTxn = await aptos.digitalAsset.mintDigitalAssetTransaction({
+            creator: account,
+            collection: collectionName,
+            description: `Decentralized AI Upload via Barzakh. size: ${data.length} bytes.`,
+            name: name,
+            uri: publicUrl,
+          });
+          
+          const commitedMintTx = await aptos.signAndSubmitTransaction({ signer: account, transaction: mintTxn });
+          const executedTx = await aptos.waitForTransaction({ transactionHash: commitedMintTx.hash, options: { checkSuccess: true } });
+          
+          nftMintResponse = {
+            message: `Successfully minted as NFT (txn: ${executedTx.hash}). View blob on Shelby Explorer.`,
+          };
+          console.log(`NFT minted successfully! Txn: ${executedTx.hash}`);
+        } catch (nftError: any) {
+          console.error("Failed to mint NFT:", nftError);
+          nftMintResponse = {
+            error: "Uploaded to Shelby, but failed to mint NFT: " + (nftError.message || String(nftError))
+          };
+        }
+      }
+
       return {
         success: true,
         message: "File successfully uploaded to Shelby Protocol.",
         blobAddress: metadata?.owner?.toString(), // Or object address if available in metadata
         name: name,
-        explorerUrl: `https://explorer.shelby.xyz/shelbynet/account/${account.accountAddress.toString()}/blobs?name=${name}`,
-        publicUrl: `${SHELBY_ENDPOINT}/v1/blobs/${account.accountAddress.toString()}/${name}`,
+        explorerUrl,
+        publicUrl,
+        nft: nftMintResponse
       };
     } catch (error: any) {
       console.error("Error uploading to Shelby:", error);

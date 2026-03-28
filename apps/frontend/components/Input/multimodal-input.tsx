@@ -658,32 +658,34 @@ function PureMultimodalInput({
     }
 
     if (otherAttachments.length > 0) {
-      // For non-image attachments, we'll read the file content and include it in the text
-      // instead of using experimental_attachments which only supports PDFs
+      // For non-image attachments (PDFs, docs, etc), include the R2 URL
+      // so the AI tools can download them server-side via the proxy pipeline.
       const fileContentPromises = otherAttachments.map(async (attachment) => {
         const attachmentName = attachment.name || 'file';
         try {
-          // Try direct fetch first
-          let response = await fetch(attachment.url);
-
-          // If direct fetch fails (CORS), try via proxy
-          if (!response.ok) {
-            response = await fetch('/api/proxy-file', {
+          // For text-based files, try to read the content
+          const isTextFile = /\.(txt|csv|json|md|html|xml|yaml|yml|toml|ini|cfg|log|sql|sh|bat|ps1|py|js|ts|jsx|tsx|css|scss|less|go|rs|rb|java|c|cpp|h|hpp)$/i.test(attachmentName);
+          
+          if (isTextFile) {
+            // Try proxy-file for text files
+            const response = await fetch('/api/proxy-file', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ fileUrl: attachment.url }),
             });
+            
+            if (response.ok) {
+              const content = await response.text();
+              return `\n\n${attachmentName}\n\`\`\`${attachmentName.split('.').pop() || 'text'}\n${content}\n\`\`\``;
+            }
           }
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          const content = await response.text();
-          return `\n\n${attachmentName}\n\`\`\`${attachmentName.split('.').pop() || 'text'}\n${content}\n\`\`\``;
+          
+          // For binary files (PDF, images, videos, etc.) or if text fetch failed,
+          // include the URL so the AI can pass it to tools like uploadToShelby
+          return `\n\n${attachmentName} (URL: ${attachment.url})`;
         } catch (error) {
           console.error(`Failed to read file ${attachmentName}:`, error);
-          return `\n\n${attachmentName} - Unable to read content (URL: ${attachment.url})`;
+          return `\n\n${attachmentName} (URL: ${attachment.url})`;
         }
       });
 

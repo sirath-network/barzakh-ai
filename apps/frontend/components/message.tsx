@@ -339,6 +339,8 @@ const PurePreviewMessage = ({
     }
     // Strip internal image URL metadata from copied text
     textToCopy = textToCopy.replace(/\n*\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[^\]]+\]/g, '').trim();
+    // Strip file attachment metadata (e.g. "filename.pdf (URL: https://...)")
+    textToCopy = textToCopy.replace(/\n*.+?\.\w+\s*\(URL:\s*https?:\/\/[^\s)]+\)/g, '').trim();
 
     if (textToCopy) {
       navigator.clipboard
@@ -763,24 +765,63 @@ const PurePreviewMessage = ({
                             // Strip internal image URL metadata
                             textContent = textContent.replace(/\n*\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[^\]]+\]/g, '').trim();
 
-                            if (textContent.trim()) {
-                              return (
-                                <div
-                                  className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 py-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
-                                  style={{
-                                    borderRadius: '15px 15px 0px 15px'
-                                  }}
-                                  onClick={() => {
-                                    if (!isReadonly) {
-                                      setActionsVisible(!actionsVisible);
-                                    }
-                                  }}
-                                >
-                                  <MarkdownAny allMessages={allMessages}>{textContent}</MarkdownAny>
-                                </div>
-                              );
+                            // Extract file attachment references like "filename.pdf (URL: https://...)"
+                            const fileAttachmentRegex = /\n*(.+?\.\w+)\s*\(URL:\s*(https?:\/\/[^\s)]+)\)/g;
+                            const fileAttachments: Array<{ name: string; url: string }> = [];
+                            let match;
+                            while ((match = fileAttachmentRegex.exec(textContent)) !== null) {
+                              fileAttachments.push({ name: match[1].trim(), url: match[2].trim() });
                             }
-                            return null;
+
+                            // Strip file attachment metadata from visible text
+                            const cleanedText = textContent.replace(/\n*.+?\.\w+\s*\(URL:\s*https?:\/\/[^\s)]+\)/g, '').trim();
+
+                            return (
+                              <>
+                                {/* Render file attachments as visual cards */}
+                                {fileAttachments.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 justify-end w-full">
+                                    {fileAttachments.map((file, idx) => {
+                                      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                                      const contentType = ext === 'pdf' ? 'application/pdf'
+                                        : ext === 'doc' || ext === 'docx' ? 'application/msword'
+                                        : ext === 'xls' || ext === 'xlsx' ? 'application/vnd.ms-excel'
+                                        : ext === 'mp4' || ext === 'mov' || ext === 'webm' ? `video/${ext}`
+                                        : ext === 'mp3' || ext === 'wav' || ext === 'ogg' ? `audio/${ext}`
+                                        : 'application/octet-stream';
+                                      return (
+                                        <PreviewAttachmentAny
+                                          key={`file-att-${idx}`}
+                                          attachment={{
+                                            name: file.name,
+                                            url: file.url,
+                                            contentType,
+                                          }}
+                                          size="custom100"
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* Text bubble */}
+                                {cleanedText && (
+                                  <div
+                                    className="dark:bg-muted dark:text-foreground bg-muted text-foreground px-3 py-3 cursor-pointer max-w-full md:max-w-max relative shadow-sm"
+                                    style={{
+                                      borderRadius: '15px 15px 0px 15px'
+                                    }}
+                                    onClick={() => {
+                                      if (!isReadonly) {
+                                        setActionsVisible(!actionsVisible);
+                                      }
+                                    }}
+                                  >
+                                    <MarkdownAny allMessages={allMessages}>{cleanedText}</MarkdownAny>
+                                  </div>
+                                )}
+                              </>
+                            );
                           })()}
                         </div>
                       ) : (
