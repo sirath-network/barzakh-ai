@@ -54,6 +54,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
+| **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos `shelbynet`) with optional NFT minting |
 | **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.6, Grok 4.1, GLM 4.7 with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
 | **65+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI |
@@ -342,7 +343,7 @@ flowchart LR
 | **Cronos EVM** | 12 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info, internal tx, logs |
 | **Cronos zkEVM** | 11 | zkCRO balance, tx history, token transfers, internal tx, contract ABI/source, token supply, block info |
 | **EVM (Generic)** | 6 | Etherscan, Zerion portfolio, ENS resolution, multi-chain wallet |
-| **Aptos** | 10 | Coin balance, resources, modules, ANS names, transactions |
+| **Aptos + Shelby** | 13 | Coin balance, resources, modules, ANS names, transactions, **Shelby blob upload, retrieval, pricing, NFT minting** |
 | **Solana** | 4 | Token balances, portfolio, market data |
 | **Flow** | 3 | Cadence scripts, NFT collections |
 | **SEI** | 4 | Cosmos queries, IBC transfers |
@@ -384,6 +385,7 @@ const zkevmTools = {
 | **Ethereum** | `viem` + `ethers.js v6` | Mainnet | Infura/Alchemy | ENS, ERC-20/721/1155 |
 | **Polygon** | `viem` | PoS Mainnet | QuickNode | Low-cost tx, NFTs |
 | **Aptos** | `@aptos-labs/ts-sdk` | Mainnet | Aptos Fullnode | Move, ANS names |
+| **Shelby (Aptos)** | `@shelby-protocol/sdk` | Shelbynet | Shelby RPC | Blob storage, NFT minting, pricing |
 | **Flow** | `@onflow/fcl` | Mainnet | Flow Access Node | Cadence, NFTs |
 | **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
 | **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
@@ -562,6 +564,76 @@ What is the current gas price on Monad?
 ```
 ```
 Tell me about the Monad ecosystem and upcoming events
+```
+
+---
+
+### 📦 Shelby Protocol — Decentralized Storage & NFT Minting
+
+Barzakh AI integrates **[Shelby Protocol](https://shelby.xyz)** for decentralized blob storage on the Aptos-based `shelbynet` blockchain. The AI autonomously uploads, retrieves, and anchors files as **Aptos Token V2 Digital Asset NFTs**.
+
+#### How It Works
+
+```mermaid
+flowchart LR
+    A["User: 'Store this on Shelby'"] --> B["AI Agent"]
+    B --> C{"Text or File?"}
+    C -->|Text| D["Buffer.from(text)"]
+    C -->|Image/PDF/Video| E["fetchImageAsBase64\n(proxy pipeline)"]
+    D --> F["ShelbyNodeClient.upload()"]
+    E --> F
+    F --> G["Blob on shelbynet"]
+    G --> H{"mintAsNFT?"}
+    H -->|Yes| I["Ensure Collection\n'Barzakh AI Storage'"]
+    I --> J["mintDigitalAsset"]
+    J --> K["NFT anchored on-chain"]
+    H -->|No| L["Return Explorer URL"]
+    K --> L
+```
+
+#### Available Shelby Tools
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `uploadToShelby` | `content`, `fileUrl`, `fileName`, `mintAsNFT` | Upload text/files to Shelby; optionally mint as NFT |
+| `getShelbyBlob` | `address`, `name` | Retrieve blob content by owner address + blob name |
+| `getShelbyStoragePrice` | `sizeInBytes` | Estimate storage cost for a given data size |
+
+#### Supported File Types
+
+| Type | Extensions | Max Size | Notes |
+|------|-----------|----------|-------|
+| **Text** | `.txt`, `.json`, `.md`, `.csv` | 25 MB | Stored as raw bytes |
+| **Images** | `.jpg`, `.png`, `.webp`, `.gif` | 25 MB | Fetched via R2 proxy pipeline |
+| **Documents** | `.pdf`, `.doc`, `.docx` | 25 MB | Binary-safe upload |
+| **Video** | `.mp4`, `.mov`, `.webm` | 25 MB | Binary-safe upload |
+| **Audio** | `.mp3`, `.wav`, `.ogg` | 25 MB | Binary-safe upload |
+
+#### NFT Minting Architecture
+
+- **Collection**: All uploads mint into a unified **"Barzakh AI Storage"** collection
+- **Auto-Provisioning**: Collection is created automatically on first mint; subsequent mints detect `ECOLLECTION_ALREADY_EXISTS` and proceed
+- **Asset URI**: Each NFT's `uri` points to the Shelby `publicUrl`, making content directly accessible
+- **Network**: `shelbynet` (experimental Aptos environment)
+- **Signer**: Ed25519 key from `SHELBY_APTOS_PRIVATE_KEY` (server-side only)
+
+#### 🎯 Try It — Shelby Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+```
+Store "Hello World" on Shelby Protocol
+```
+```
+Store this image on Shelby and mint it as an NFT
+```
+_(attach any image to the chat)_
+```
+Store this PDF on Shelby Protocol
+```
+_(attach any PDF to the chat)_
+```
+How much does it cost to store 1MB on Shelby?
 ```
 
 ---
@@ -831,7 +903,8 @@ barzakh-ai/
 │           │       │   ├── cronos-zkevm-tools.ts  # Cronos zkEVM (11 tools)
 │           │       │   ├── vvs-swap.ts            # VVS Finance DEX
 │           │       │   └── ai-agent-sdk.ts        # AI Agent SDK wrapper
-│           │       ├── aptos/        # Aptos-specific
+│           │       ├── aptos/        # Aptos + Shelby Protocol
+│           │       │   └── shelby-tools.ts  # Blob upload, retrieval, pricing, NFT minting
 │           │       ├── solana/       # Solana-specific
 │           │       ├── evm/          # EVM chains
 │           │       ├── flow/         # Flow blockchain
