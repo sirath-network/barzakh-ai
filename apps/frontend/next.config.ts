@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@barzakh/shared"],
+  transpilePackages: ["@barzakh/shared", "@shelby-protocol/sdk"],
   images: {
     remotePatterns: [
       {

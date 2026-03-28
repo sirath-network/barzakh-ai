@@ -57,6 +57,7 @@
     "@relayprotocol/relay-sdk": "^4.0.1",
     "@relayprotocol/relay-svm-wallet-adapter": "^16.0.2",
     "@sentry/nextjs": "^9.11.0",
+    "@shelby-protocol/sdk": "^0.1.0",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",

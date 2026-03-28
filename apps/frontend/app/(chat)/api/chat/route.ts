@@ -489,7 +489,7 @@ export async function POST(request: Request) {
     const chainPatterns: Record<string, RegExp[]> = {
       // Chain-specific keywords
       cronos: [/\bcronos\b/i, /\bcro\s+(token|coin|balance|wallet)/i, /\bvvs\s+(finance|swap)/i, /\bcrypto\.com\s+(chain|defi)/i],
-      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i, /\b0x[a-fA-F0-9]{64}\b/], // 64-char hex = Aptos
+      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i, /\bshelby\b/i, /\b0x[a-fA-F0-9]{64}\b/], // 64-char hex = Aptos, or Shelby keyword
       sei: [/\bsei\b(?!\s*$)/i, /\bseitrace\b/i, /\bsei1[a-z0-9]{38,}\b/], // sei1... = Sei native
       solana: [/\bsolana\b/i, /\bsol\s+(token|coin|balance)/i, /\bphantom\b/i, /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/], // Base58 = Solana
       zeta: [/\bzetachain\b/i, /\bzeta\s+(network|chain)/i],

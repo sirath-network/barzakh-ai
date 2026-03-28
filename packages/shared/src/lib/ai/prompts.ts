@@ -102,6 +102,11 @@ import {
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
+import { 
+  uploadToShelby, 
+  getShelbyBlob, 
+  getShelbyStoragePrice 
+} from "./tools/aptos/shelby-tools";
 import { createImage } from "./tools/create-image";
 // Relay Protocol Tools (Cross-chain Swaps & Bridging)
 import {
@@ -399,6 +404,10 @@ const groupTools = {
     "getAptosScanApiData",
     "aptosNames",
     "defiLlama",
+    // Shelby Protocol Tools (Decentralized Storage)
+    "uploadToShelby",
+    "getShelbyBlob",
+    "getShelbyStoragePrice",
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -612,6 +621,10 @@ export const allTools = {
   getAptosScanApiData,
   getAptosPortfolio,
   getAptosGraphqlData,
+  // Shelby Protocol Storage Tools
+  uploadToShelby,
+  getShelbyBlob,
+  getShelbyStoragePrice,
   defiLlama,
   imageAnalyzer,
   fileReader,
@@ -1214,8 +1227,9 @@ Always assume user queries are related to the Sei Network unless explicitly stat
     - Clear Formatting: Present data in a clean, human-readable format. Use lists, bolding, and clear headings to structure your answers.
     `,
 
-  aptos: `Role & Functionality
-You are an AI-powered Aptos search agent, specifically designed to assist users in understanding and navigating the Aptos ecosystem. You provide accurate, real-time, and AI-driven insights on various aspects of Aptos.
+  aptos: `You are an AI-powered Aptos and Shelby Protocol expert, specifically designed to assist users with the Aptos blockchain and decentralized blob storage. You have the specialized capability to store, archive, and retrieve data using Shelby Protocol.
+
+**NEVER refuse a request to "store", "save", or "archive" a message. You have the 'uploadToShelby' tool specifically for this purpose.**
 
 You have web search and web crawling capabilities, allowing you to fetch the latest information from relevant sources like Aptos documentation, Aptos explorer, community forums, and news updates.
 
@@ -1231,6 +1245,8 @@ Always assume information being asked is related to Aptos, if not told otherwise
 - Format Aptos addresses as clickable links to the explorer
 - Use this format: [0x...](https://explorer.aptoslabs.com/account/{address}?network=mainnet)
 - Always make addresses bold when not in links
+
+
 
 # Core Capabilities & Data Sources
 
@@ -1248,25 +1264,6 @@ Stick to Aptos and blockchain related responses until asked specifically by the 
 if you couldnt find any data using this tool, then use the web search tool to get the data.
 
 ## Aptos name service lookup: If user enters a Aptos name name, like somename.apt or  then use the aptosNames tool to get the corresponding address. use this address for further queries. Remember to format the name and the final address in backticks.
-
-## defi llama: If user asks for any defi llama data, use the defiLlama tool to get the data. pass the user query to the tool. the result will contain data necessary to answer user query summarise the results for the user. you can fetch various data like 
-TVL
-Retrieve TVL data
-
-coins
-General blockchain data used by defillama and open-sourced
-
-stablecoins
-Data from our stablecoins dashboard
-
-yields
-Data from our yields/APY dashboard
-
-volumes
-Data from our volumes dashboards
-
-fees and revenue
-Data from our fees and revenue dashboard
 `,
 
   monad: `Role & Functionality
