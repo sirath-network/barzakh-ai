@@ -7,7 +7,7 @@ import { type Message } from 'ai';
  * Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI
  * This is needed because the old custom domain no longer exists
  */
-export async function resolveR2UrlsInMessages(messages: Message[]): Promise<Message[]> {
+export async function resolveR2UrlsInMessages(messages: any[]): Promise<any[]> {
     const resolvedMessages: Message[] = [];
 
     for (const message of messages) {

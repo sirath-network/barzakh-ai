@@ -1,5 +1,6 @@
 import {
   type Message,
+  type CoreMessage,
   createDataStreamResponse,
   streamText,
 } from "ai";
@@ -59,6 +60,111 @@ function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
 
     return message;
   });
+}
+
+// Convert raw client messages to valid CoreMessage[] for streamText.
+//
+// The AI SDK client sends messages where:
+// - content may be an array of parts (multipart user messages with images)
+// - image parts may use full data URIs ("data:image/png;base64,...") instead of raw base64
+// - text parts may have text as an array (UI message format) instead of a string
+//
+// streamText requires CoreMessage format where:
+// - user content is string | Array<TextPart | ImagePart | FilePart>
+// - image.image is raw base64 string, Uint8Array, ArrayBuffer, Buffer, or URL object
+// - text parts have text as a plain string
+function toCoreSafeMessages(messages: Array<Message>): Array<CoreMessage> {
+  const result: CoreMessage[] = [];
+
+  for (const message of messages) {
+    const { role, content } = message as any;
+
+    if (role === 'system') {
+      result.push({ role: 'system', content: typeof content === 'string' ? content : String(content) });
+      continue;
+    }
+
+    if (role === 'user') {
+      if (!Array.isArray(content)) {
+        // Plain string content
+        result.push({ role: 'user', content: typeof content === 'string' ? content : String(content) });
+        continue;
+      }
+
+      // Array content — normalize each part
+      const parts: any[] = [];
+      for (const part of content) {
+        if (!part || typeof part !== 'object') continue;
+
+        if (part.type === 'text') {
+          // text field may itself be an array in UI message format — flatten to string
+          const text = Array.isArray(part.text)
+            ? part.text.map((p: any) => (typeof p === 'string' ? p : p?.text ?? '')).join('')
+            : typeof part.text === 'string'
+              ? part.text
+              : String(part.text ?? '');
+          parts.push({ type: 'text', text });
+        } else if (part.type === 'image') {
+          const img = part.image;
+          if (typeof img === 'string') {
+            // Strip data URI prefix — SDK needs raw base64 or a URL object
+            const dataUriMatch = img.match(/^data:([^;]+);base64,(.+)$/s);
+            if (dataUriMatch) {
+              parts.push({ type: 'image', image: dataUriMatch[2], mimeType: part.mimeType ?? dataUriMatch[1] });
+            } else if (img.startsWith('http://') || img.startsWith('https://')) {
+              parts.push({ type: 'image', image: new URL(img) });
+            } else {
+              // Assume already raw base64
+              parts.push({ type: 'image', image: img, mimeType: part.mimeType });
+            }
+          } else {
+            parts.push(part);
+          }
+        } else {
+          parts.push(part);
+        }
+      }
+
+      result.push({ role: 'user', content: parts });
+      continue;
+    }
+
+    if (role === 'assistant') {
+      if (typeof content === 'string') {
+        result.push({ role: 'assistant', content });
+      } else if (Array.isArray(content)) {
+        // Filter to only valid assistant content parts
+        const parts: any[] = [];
+        for (const part of content) {
+          if (!part || typeof part !== 'object') continue;
+          if (part.type === 'text') {
+            const text = Array.isArray(part.text)
+              ? part.text.map((p: any) => (typeof p === 'string' ? p : p?.text ?? '')).join('')
+              : typeof part.text === 'string' ? part.text : String(part.text ?? '');
+            parts.push({ type: 'text', text });
+          } else if (part.type === 'tool-call' && part.toolCallId && part.toolName) {
+            parts.push(part);
+          } else if (part.type === 'reasoning' && typeof part.text === 'string') {
+            parts.push(part);
+          }
+          // Skip unknown/invalid parts
+        }
+        result.push({ role: 'assistant', content: parts.length > 0 ? parts : '' });
+      } else {
+        result.push({ role: 'assistant', content: String(content ?? '') });
+      }
+      continue;
+    }
+
+    if (role === 'tool') {
+      if (Array.isArray(content)) {
+        result.push({ role: 'tool', content });
+      }
+      continue;
+    }
+  }
+
+  return result;
 }
 
 // Alternative approach: Filter out incomplete tool calls
@@ -571,9 +677,12 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
   // SOLUTION 1: Clean messages before passing to streamText
   const cleanedMessages = validateAndCleanMessages(messages);
 
+  // Convert to valid CoreMessage[] — normalizes multipart content, data URIs,
+  // and any UI-format fields that streamText's Zod schema rejects.
+  const coreMessages = toCoreSafeMessages(cleanedMessages);
+
   // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI
-  // This is needed because the old custom domain no longer exists
-  const resolvedMessages = await resolveR2UrlsInMessages(cleanedMessages);
+  const resolvedMessages = await resolveR2UrlsInMessages(coreMessages);
 
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
