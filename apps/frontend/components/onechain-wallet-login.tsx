@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useCurrentAccount, useConnectWallet, useWallets } from '@onelabs/dapp-kit';
+import { useState, useEffect, useRef } from 'react';
+import { useCurrentAccount, useConnectWallet, useDisconnectWallet, useWallets } from '@onelabs/dapp-kit';
 import { signIn } from 'next-auth/react';
 import { Wallet } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,74 +10,103 @@ interface OneChainWalletLoginProps {
   turnstileToken?: string;
   disabled?: boolean;
   onLoadingChange?: (isLoading: boolean) => void;
+  onTurnstileReset?: () => void;
   className?: string;
   children?: React.ReactNode;
 }
 
 /**
  * OneChainWalletLogin
- * 
- * Component for Sui wallet authentication via OneChain dApp kit.
- * Manages wallet connection state and handles auth flow with the backend.
+ *
+ * Handles Sui wallet authentication via OneChain dApp kit.
+ *
+ * OneWallet quirk: the connectWallet mutation resolves as 'success' even when
+ * the user rejects — it just returns no account. We treat success+no-address
+ * as a cancellation and reset accordingly.
+ *
+ * On success: disconnects the wallet before redirecting to keep the session clean.
  */
 export function OneChainWalletLogin({
   turnstileToken,
   disabled,
   onLoadingChange,
+  onTurnstileReset,
   className,
   children,
 }: OneChainWalletLoginProps) {
   const currentAccount = useCurrentAccount();
-  const { mutate: connectWallet } = useConnectWallet();
+  const { mutate: connectWallet, status: connectStatus, reset: resetConnect } = useConnectWallet();
+  const { mutateAsync: disconnectWalletAsync } = useDisconnectWallet();
   const wallets = useWallets();
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const didInitiateRef = useRef(false);
+
+  const handleCancel = () => {
+    setIsConnecting(false);
+    didInitiateRef.current = false;
+    onTurnstileReset?.();
+    resetConnect();
+  };
 
   const performLogin = async (walletAddress: string) => {
     if (!turnstileToken) {
       toast.error('Please complete the captcha verification');
+      handleCancel();
       return;
     }
 
     setIsLoading(true);
     try {
-      // 1. Get Nonce from backend
       const nonceRes = await fetch(`/api/auth/nonce?address=${walletAddress}`);
       if (!nonceRes.ok) throw new Error('Failed to fetch nonce');
       const { nonce, timestamp } = await nonceRes.json();
-
-      // 2. Create message for authentication
       const message = `Barzakh AI — Login\n\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 
-      // 3. For Sui, authenticate using the wallet address
-      // Backend will verify this address is valid for a Sui wallet
       const result = await signIn('credentials-wallet', {
         address: walletAddress,
-        signature: message, // For Sui, using the message itself as proof
+        signature: message,
         message,
         redirect: false,
       });
 
-      if (result?.error) {
-        throw new Error(result.error);
-      }
+      if (result?.error) throw new Error(result.error);
 
-      // Success - redirect to home
+      // Success — disconnect wallet before redirecting to keep the session clean
+      try { await disconnectWalletAsync(); } catch (_) { }
       window.location.href = '/';
     } catch (error: any) {
       console.error('OneChain login failed:', error);
       toast.error('Login failed. Please try again.');
+      onTurnstileReset?.();
+      try { await disconnectWalletAsync(); } catch (_) { }
     } finally {
       setIsLoading(false);
+      setIsConnecting(false);
+      didInitiateRef.current = false;
     }
   };
 
-  // Trigger login when wallet connects
+  // React to mutation settling.
+  // OneWallet resolves as 'success' with no account on rejection — handle both cases.
   useEffect(() => {
-    if (isConnecting && currentAccount?.address && !isLoading) {
-      performLogin(currentAccount.address);
+    if (!isConnecting) return;
+
+    if (connectStatus === 'error') {
+      // Standard rejection path
+      handleCancel();
+    } else if (connectStatus === 'success') {
+      if (currentAccount?.address) {
+        // Genuine connection — proceed to login
+        setIsConnecting(false);
+        performLogin(currentAccount.address);
+      } else {
+        // OneWallet resolves success with no account when user rejects
+        handleCancel();
+      }
     }
-  }, [isConnecting, currentAccount?.address, isLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectStatus, isConnecting]);
 
   const handleClick = () => {
     if (!turnstileToken) {
@@ -86,31 +115,23 @@ export function OneChainWalletLogin({
     }
 
     if (currentAccount?.address) {
-      // Already connected
       performLogin(currentAccount.address);
     } else {
-      // Trigger wallet connection - connect to the first available wallet
       const wallet = wallets[0];
       if (!wallet) {
         toast.error('No wallet detected. Please install a Sui wallet.');
         return;
       }
+      didInitiateRef.current = true;
+      resetConnect();
       setIsConnecting(true);
       connectWallet({ wallet });
     }
   };
 
-  // Notify parent of loading state
   useEffect(() => {
     onLoadingChange?.(isLoading || isConnecting);
   }, [isLoading, isConnecting, onLoadingChange]);
-
-  // Reset connecting state if wallet connection didn't complete
-  useEffect(() => {
-    if (isConnecting && currentAccount?.address) {
-      setIsConnecting(false);
-    }
-  }, [isConnecting, currentAccount?.address]);
 
   return (
     <>

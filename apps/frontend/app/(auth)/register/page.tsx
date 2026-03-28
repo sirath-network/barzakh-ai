@@ -332,6 +332,10 @@ export default function Page() {
         turnstileToken={turnstileToken}
         disabled={googleLoginInProgress}
         onLoadingChange={setWalletLoginInProgress}
+        onTurnstileReset={() => {
+          turnstileRef.current?.reset();
+          setTurnstileToken("");
+        }}
       />
 
       {/* Hidden persistent listener for wallet login flow */}

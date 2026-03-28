@@ -1,17 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { useState, useEffect } from 'react';
 import { Wallet } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WalletLoginButton } from '@/components/wallet-login-button';
 import { OneChainWalletLogin } from '@/components/onechain-wallet-login';
-
-// Dynamically import the OneChain ConnectButton with SSR disabled
-const OneChainConnectButton = dynamic(
-  () => import('@onelabs/dapp-kit').then((mod) => mod.ConnectButton),
-  { ssr: false }
-);
 
 interface WalletSelectorModalProps {
   isOpen: boolean;
@@ -19,6 +12,7 @@ interface WalletSelectorModalProps {
   turnstileToken?: string;
   disabled?: boolean;
   onLoadingChange?: (isLoading: boolean) => void;
+  onTurnstileReset?: () => void;
   className?: string;
 }
 
@@ -28,6 +22,7 @@ export function WalletSelectorModal({
   turnstileToken,
   disabled,
   onLoadingChange,
+  onTurnstileReset,
   className,
 }: WalletSelectorModalProps) {
   const [activeWalletLoading, setActiveWalletLoading] = useState(false);
@@ -58,7 +53,7 @@ export function WalletSelectorModal({
         <div className="space-y-3">
           {/* EVM Wallet Option (RainbowKit) */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-zinc-400 px-1">Ethereum & EVM Networks</p>
+            <p className="text-xs font-semibold text-zinc-400 px-1">Ethereum &amp; EVM Networks</p>
             <WalletLoginButton
               turnstileToken={turnstileToken}
               disabled={disabled || activeWalletLoading}
@@ -83,18 +78,19 @@ export function WalletSelectorModal({
             </div>
           </div>
 
-          {/* Others Option */}
+          {/* Sui Network Option */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-zinc-400 px-1">Others</p>
+            <p className="text-xs font-semibold text-zinc-400 px-1">Sui Network</p>
             {mounted ? (
               <OneChainWalletLogin
                 turnstileToken={turnstileToken}
                 disabled={disabled || activeWalletLoading}
                 onLoadingChange={handleWalletLoadingChange}
+                onTurnstileReset={onTurnstileReset}
                 className="w-full inline-flex h-10 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/50 text-white text-sm font-medium transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Wallet className="mr-2 h-4 w-4" />
-                Continue with Onechain Wallet
+                Continue with Sui Wallet
               </OneChainWalletLogin>
             ) : (
               <div className="w-full h-10 bg-zinc-900/50 rounded-md border border-zinc-800 flex items-center justify-center text-sm text-zinc-500">
