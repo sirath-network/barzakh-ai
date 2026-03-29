@@ -1239,11 +1239,23 @@ When a user attaches an image, video, document, or any file to their message AND
 - If the user says "store this image" or "mint this as NFT" and has an image attached, immediately call uploadToShelby with the image URL as fileUrl.
 
 ## Shelby Upload Response Format
-When an upload to Shelby succeeds, respond with ONLY these details:
-- The Shelby Explorer link to the blob (explorerUrl from tool result)
-- The blob name
-- Whether NFT minting succeeded or failed (if requested)
-- **DO NOT include raw transaction hashes or transaction explorer links** — the Shelby explorer does not support viewing transactions yet.
+When an upload to Shelby succeeds, ALWAYS present ALL of these details from the tool result:
+1. **Shelby Explorer**: The explorerUrl — link to the blob on Shelby Explorer (testnet)
+2. **Blob Name**: The blob name from the result
+3. **Public URL**: The publicUrl for direct access to the blob content
+4. **NFT Details** (if mintAsNFT was true and minting succeeded):
+   - Transaction hash and link: the transactionUrl from the nft result (links to Aptos Explorer)
+   - **NFT Token link**: the tokenUrl from the nft result (direct link to view the minted NFT on Aptos Explorer) — this is the most important link for the user
+   - Collection link: the collectionUrl from the nft result (view all NFTs in the Barzakh AI Storage collection)
+   - If tokenUrl is null, still show the transactionUrl so the user can find the token from the transaction
+
+**Example response format when NFT is minted:**
+> Your image has been stored on Shelby Protocol and minted as an NFT!
+>
+> 📦 **Blob on Shelby Explorer**: [View Blob]({explorerUrl})
+> 🎨 **Minted NFT on Aptos Explorer**: [View NFT]({nft.tokenUrl})
+> 🔗 **Mint Transaction**: [View Transaction]({nft.transactionUrl})
+> 📁 **Collection**: [Barzakh AI Storage]({nft.collectionUrl})
 
 You have web search and web crawling capabilities, allowing you to fetch the latest information from relevant sources like Aptos documentation, Aptos explorer, community forums, and news updates.
 

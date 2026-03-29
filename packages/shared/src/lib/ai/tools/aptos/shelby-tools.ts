@@ -12,18 +12,17 @@ import { ShelbyNodeClient } from "@shelby-protocol/sdk/node";
 
 import { fetchImageAsBase64 } from "../../utils/fetch-image-as-base64";
 
-// Constants for Shelby Testnet/Shelbynet
-const APTOS_NODE = "https://api.shelbynet.shelby.xyz/v1";
-const SHELBY_ENDPOINT = "https://api.shelbynet.shelby.xyz/shelby";
-const SHELBY_INDEXER = "https://api.shelbynet.aptoslabs.com/nocode/v1/public/cmforrguw0042s601fn71f9l2/v1/graphql";
+// Shelby Testnet configuration
+// NOTE: SDK v0.1.x only supports "shelbynet" as ShelbyNetwork type,
+// so we use it but override all URLs to point at testnet infrastructure.
+const APTOS_NODE = "https://api.testnet.aptoslabs.com/v1";
+const SHELBY_ENDPOINT = "https://api.testnet.shelby.xyz/shelby";
+const SHELBY_INDEXER = "https://api.testnet.aptoslabs.com/v1/graphql";
 const SHELBY_API_KEY = process.env.SHELBY_API_KEY;
-const NETWORK = "shelbynet" as any;
+const SHELBY_DEPLOYER = AccountAddress.from("0x85fdb9a176ab8ef1d9d9c1b60d60b3924f0800ac1de1cc2085fb0b8bb4988e6a");
 
 const config = new AptosConfig({
-  network: NETWORK,
-  fullnode: APTOS_NODE,
-  indexer: "https://api.shelbynet.shelby.xyz/v1/graphql",
-  clientConfig: { API_KEY: SHELBY_API_KEY }
+  network: Network.TESTNET,
 });
 const aptos = new Aptos(config);
 
@@ -57,12 +56,11 @@ export const uploadToShelby = tool({
       const client = new ShelbyNodeClient({
         network: "shelbynet" as any,
         apiKey: SHELBY_API_KEY,
-        deployer: AccountAddress.from("0x85fdb9a176ab8ef1d9d9c1b60d60b3924f0800ac1de1cc2085fb0b8bb4988e6a"),
+        deployer: SHELBY_DEPLOYER,
         aptos: {
-          network: Network.CUSTOM,
+          network: Network.TESTNET,
           fullnode: APTOS_NODE,
           indexer: SHELBY_INDEXER,
-          clientConfig: { API_KEY: SHELBY_API_KEY }
         },
         rpc: {
           baseUrl: SHELBY_ENDPOINT,
@@ -108,7 +106,7 @@ export const uploadToShelby = tool({
       });
 
       const publicUrl = `${SHELBY_ENDPOINT}/v1/blobs/${account.accountAddress.toString()}/${encodeURIComponent(name)}`;
-      const explorerUrl = `https://explorer.shelby.xyz/shelbynet/account/${account.accountAddress.toString()}/blobs?name=${encodeURIComponent(name)}`;
+      const explorerUrl = `https://explorer.shelby.xyz/testnet/account/${account.accountAddress.toString()}/blobs?name=${encodeURIComponent(name)}`;
       
       let nftMintResponse = null;
 
@@ -119,7 +117,6 @@ export const uploadToShelby = tool({
 
           // Step 1: Ensure collection exists.
           // We always attempt creation and gracefully handle "already exists".
-          // This avoids relying on the indexer (token_v2_processor) which shelbynet doesn't support.
           try {
             console.log(`Ensuring collection "${collectionName}" exists...`);
             const createCollectionTxn = await aptos.digitalAsset.createCollectionTransaction({
@@ -153,10 +150,39 @@ export const uploadToShelby = tool({
           const commitedMintTx = await aptos.signAndSubmitTransaction({ signer: account, transaction: mintTxn });
           const executedTx = await aptos.waitForTransaction({ transactionHash: commitedMintTx.hash, options: { checkSuccess: true } });
           
+          // Extract minted token address from transaction events
+          let tokenAddress: string | null = null;
+          try {
+            const events = (executedTx as any).events || [];
+            // Look for the object creation event which contains the minted token address
+            const createEvent = events.find((e: any) =>
+              e.type?.includes("0x1::object::CreateEvent")
+            );
+            if (createEvent?.data?.object) {
+              tokenAddress = createEvent.data.object;
+            }
+            // Fallback: look for MintEvent from token module
+            if (!tokenAddress) {
+              const mintEvent = events.find((e: any) =>
+                e.type?.includes("0x4::collection::MintEvent") || e.type?.includes("::collection::Mint")
+              );
+              if (mintEvent?.data?.token) {
+                tokenAddress = mintEvent.data.token;
+              }
+            }
+          } catch (e) {
+            console.warn("Could not extract token address from events:", e);
+          }
+
           nftMintResponse = {
-            message: `Successfully minted as NFT (txn: ${executedTx.hash}). View blob on Shelby Explorer.`,
+            message: `Successfully minted as NFT! View it on Aptos Explorer and Shelby Explorer.`,
+            transactionHash: executedTx.hash,
+            transactionUrl: `https://explorer.aptoslabs.com/txn/${executedTx.hash}?network=testnet`,
+            tokenAddress: tokenAddress,
+            tokenUrl: tokenAddress ? `https://explorer.aptoslabs.com/token/${tokenAddress}/overview?network=testnet` : null,
+            collectionUrl: `https://explorer.aptoslabs.com/account/${account.accountAddress.toString()}/tokens?network=testnet`,
           };
-          console.log(`NFT minted successfully! Txn: ${executedTx.hash}`);
+          console.log(`NFT minted successfully! Txn: ${executedTx.hash}, Token: ${tokenAddress}`);
         } catch (nftError: any) {
           console.error("Failed to mint NFT:", nftError);
           nftMintResponse = {
@@ -239,12 +265,11 @@ export const getShelbyStoragePrice = tool({
       const client = new ShelbyNodeClient({
         network: "shelbynet" as any,
         apiKey: SHELBY_API_KEY,
-        deployer: AccountAddress.from("0x85fdb9a176ab8ef1d9d9c1b60d60b3924f0800ac1de1cc2085fb0b8bb4988e6a"),
+        deployer: SHELBY_DEPLOYER,
         aptos: {
-          network: Network.CUSTOM,
+          network: Network.TESTNET,
           fullnode: APTOS_NODE,
           indexer: SHELBY_INDEXER,
-          clientConfig: { API_KEY: SHELBY_API_KEY }
         },
         rpc: {
           baseUrl: SHELBY_ENDPOINT,
