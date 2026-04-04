@@ -785,10 +785,10 @@ const PurePreviewMessage = ({
                                       const ext = file.name.split('.').pop()?.toLowerCase() || '';
                                       const contentType = ext === 'pdf' ? 'application/pdf'
                                         : ext === 'doc' || ext === 'docx' ? 'application/msword'
-                                        : ext === 'xls' || ext === 'xlsx' ? 'application/vnd.ms-excel'
-                                        : ext === 'mp4' || ext === 'mov' || ext === 'webm' ? `video/${ext}`
-                                        : ext === 'mp3' || ext === 'wav' || ext === 'ogg' ? `audio/${ext}`
-                                        : 'application/octet-stream';
+                                          : ext === 'xls' || ext === 'xlsx' ? 'application/vnd.ms-excel'
+                                            : ext === 'mp4' || ext === 'mov' || ext === 'webm' ? `video/${ext}`
+                                              : ext === 'mp3' || ext === 'wav' || ext === 'ogg' ? `audio/${ext}`
+                                                : 'application/octet-stream';
                                       return (
                                         <PreviewAttachmentAny
                                           key={`file-att-${idx}`}

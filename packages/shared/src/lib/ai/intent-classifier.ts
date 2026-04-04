@@ -193,11 +193,67 @@ interface ChainInfo {
     patterns: RegExp[];
     keywords: string[];
     tokens: string[]; // Native or major tokens
-    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos';
+    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos' | 'bitcoin' | 'tron' | 'ton' | 'dogecoin';
     isEvm: boolean;
 }
 
 const CHAIN_REGISTRY: ChainInfo[] = [
+    // Bitcoin (Arkham support)
+    {
+        id: 'bitcoin',
+        intent: 'on_chain',
+        patterns: [
+            /\bbitcoin\b/i,
+            /\bbtc\b/i,
+            /\b(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{25,65})\b/, // BTC address
+        ],
+        keywords: ['bitcoin', 'btc', 'satoshi', 'segwit'],
+        tokens: ['BTC', 'WBTC'],
+        addressFormat: 'bitcoin',
+        isEvm: false,
+    },
+    // Tron (Arkham support)
+    {
+        id: 'tron',
+        intent: 'on_chain',
+        patterns: [
+            /\btron\b/i,
+            /\btrx\b/i,
+            /\bT[a-zA-Z0-9]{33}\b/, // Tron address
+        ],
+        keywords: ['tron', 'trx', 'sun'],
+        tokens: ['TRX', 'USDT'],
+        addressFormat: 'tron',
+        isEvm: false,
+    },
+    // TON (Arkham support)
+    {
+        id: 'ton',
+        intent: 'on_chain',
+        patterns: [
+            /\bton\b/i,
+            /\bthe\s*open\s*network\b/i,
+            /\bEQ[a-zA-Z0-9_-]{46}\b/, // TON address
+        ],
+        keywords: ['ton', 'the open network', 'toncoin'],
+        tokens: ['TON'],
+        addressFormat: 'ton',
+        isEvm: false,
+    },
+    // Dogecoin (Arkham support)
+    {
+        id: 'dogecoin',
+        intent: 'on_chain',
+        patterns: [
+            /\bdogecoin\b/i,
+            /\bdoge\b/i,
+            /\bD[a-km-zA-HJ-NP-Z1-9]{33}\b/, // Doge address
+        ],
+        keywords: ['dogecoin', 'doge'],
+        tokens: ['DOGE'],
+        addressFormat: 'dogecoin',
+        isEvm: false,
+    },
     // Monad (newly supported)
     {
         id: 'monad',
@@ -261,7 +317,7 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         patterns: [
             /\bsolana\b/i,
             /\bsol\s+(token|coin|balance|wallet|portfolio|price)\b/i,
-            /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/, // Base58 address
+            /\b(?![13]|bc1)[1-9A-HJ-NP-Za-km-z]{32,44}\b/, // Base58 address (excluding common BTC prefixes)
             /\b(raydium|orca|jupiter|magic\s*eden|tensor|pump\.fun)\b/i,
         ],
         keywords: ['solana', 'sol', 'solana wallet', 'phantom', 'solflare',
@@ -791,7 +847,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             // Chain references (Generic List)
             /\b(ethereum|eth|evm|mainnet)\b/i,
             /\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb|fantom|gnosis|celo|aurora|metis)\b/i,
-            /\b(berachain|sonic|abstract|hyperevm|unichain|megeth)\b/i, // Newer chains
+            /\b(bitcoin|btc|tron|trx|solana|sol|ton|dogecoin|doge|zcash|flare|sonic|blast|linea|manta|mantle|abstract|berachain|unichain)\b/i,
         ],
         keywords: [
             "portfolio", "wallet balance", "token balance", "check wallet",
@@ -799,8 +855,45 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "transaction history", "etherscan", "metamask", "rabby",
             "uniswap", "sushiswap", "curve", "aave", "compound", "lido",
             "pepe", "shib", "link", "uni", "usdc", "usdt", "dai",
+            "bitcoin", "btc", "tron", "trx", "ton", "doge", "dogecoin", "zcash", "flare",
+            "sonic", "blast", "linea", "manta", "mantle", "fantom",
+            // Arkham Intelligence keywords (whale tracking, entity investigation)
+            "whale", "whale tracking", "whale alert", "whale move", "whale watching",
+            "entity", "entity intelligence", "who owns", "who is this address",
+            "arkham", "arkham intelligence", "fund flow", "fund tracing",
+            "counterparty", "counterparties", "hacked", "exploit", "stolen funds",
+            "trace funds", "track funds", "money flow", "fund movement",
+            "accumulation", "distribution", "accumulating", "distributing",
+            "token holders", "top holders", "trending tokens",
+            "exchange flow", "exchange inflow", "exchange outflow", "netflow",
+            "smart money", "institutional flow",
         ],
         priority: 90,
+    },
+
+    // Arkham Intelligence — Whale & Entity Tracking (Priority 92 — routes to on_chain)
+    {
+        intent: "on_chain",
+        patterns: [
+            /\b(whale|whales)\s*(tracking|alert|move|watch|monitor|activity)\b/i,
+            /\b(track|trace|follow|monitor|investigate)\s*(whale|whales|funds?|flow|money|stolen)\b/i,
+            /\b(who|identify)\s*(owns?|is|controls?)\s*(this|that|the)?\s*(address|wallet|account)\b/i,
+            /\b(entity|entities)\s*(intelligence|info|search|lookup|balance|changes?)\b/i,
+            /\b(hacked?|exploit|stolen|compromised|drained)\s*(funds?|wallet|address|contract|protocol)?\b/i,
+            /\b(counterpart|counterparties|top\s*counterpart)\b/i,
+            /\b(fund|funds)\s*(flow|trace|track|movement|tracing)\b/i,
+            /\b(accumulating|distributing|accumulation|distribution)\s*(token|asset|fund|position)?\b/i,
+            /\b(smart\s*money|institutional)\s*(flow|move|activity|tracking)\b/i,
+            /\b(exchange)\s*(inflow|outflow|flow|netflow|withdrawal)\b/i,
+            /\barkham\b/i,
+        ],
+        keywords: [
+            "whale tracking", "whale alert", "whale move", "who owns this wallet",
+            "entity intelligence", "trace stolen funds", "hacked defi",
+            "fund flow analysis", "counterparty analysis", "smart money moves",
+            "exchange inflow", "exchange outflow", "token holders", "arkham",
+        ],
+        priority: 92,
     },
 
     // =========================================================================

@@ -1,14 +1,22 @@
+/* markdown.css */
+
 .markdown-body {
   max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
   overflow: visible;
+  /* Better typography & contrast for dark mode */
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.9);
 }
 
 .markdown-body img {
   max-width: 100%;
   height: auto;
   display: block;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .markdown-body pre {
@@ -34,7 +42,6 @@
 }
 
 @media (min-width: 640px) {
-  /* Tailwind's sm breakpoint is 640px */
   .markdown-body img {
     max-width: 50%;
   }
@@ -45,15 +52,32 @@
   border-spacing: 0;
   width: 100%;
   font-variant-numeric: tabular-nums;
+  margin: 1.5rem 0;
+  border-collapse: separate;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
 }
 
 .markdown-body th {
   font-weight: 600;
   white-space: nowrap;
+  background: rgba(255,255,255,0.05);
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: hsl(var(--foreground) / 0.7);
 }
 
 .markdown-body td {
   vertical-align: top;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.markdown-body tr:hover td {
+  background: rgba(255,255,255,0.02);
 }
 
 /* Improve number alignment in tables */
@@ -66,11 +90,17 @@
 .markdown-body ul,
 .markdown-body ol {
   margin: 1rem 0;
-  padding-left: 1.5rem;
+  padding-left: 1.75rem;
 }
 
 .markdown-body li {
   margin: 0.5rem 0;
+  padding-left: 0.25rem;
+}
+
+/* Custom bullet for ul */
+.markdown-body ul > li::marker {
+  color: hsl(var(--primary));
 }
 
 /* Improve emoji rendering */
@@ -81,13 +111,58 @@
   margin-right: 0.5rem;
 }
 
+/* Typography margins */
+.markdown-body p {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Fix massive 100px gaps in loose lists where p/div tags are nested in li */
+.markdown-body li p,
+.markdown-body li div {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.markdown-body li > p:first-child,
+.markdown-body li > div:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body li > p:last-child,
+.markdown-body li > div:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+  margin-top: 1.75rem;
+  margin-bottom: 1rem;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
 /* Better code inline styling */
 .markdown-body p code,
 .markdown-body li code,
 .markdown-body td code {
-  background: rgba(var(--muted-rgb, 150 150 150) / 0.2);
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-size: 0.9em;
+  background: rgba(100, 150, 255, 0.1);
+  color: hsl(var(--foreground));
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.85em;
   font-weight: 500;
+  border: 1px solid rgba(100, 150, 255, 0.15);
+  font-family: var(--font-mono), monospace;
+}
+
+/* Better blockquote */
+.markdown-body blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding: 0.5rem 1rem;
+  margin: 1.5rem 0;
+  background: linear-gradient(to right, rgba(var(--primary-rgb), 0.1), transparent);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+  color: hsl(var(--foreground) / 0.8);
 }

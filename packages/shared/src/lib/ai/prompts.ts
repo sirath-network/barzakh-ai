@@ -102,10 +102,10 @@ import {
 import { getAptosScanApiData } from "./tools/aptos/get-aptoscan-api-data";
 import { getAptosPortfolio } from "./tools/aptos/aptos-graphql-portfolio";
 import { getAptosGraphqlData } from "@barzakh/shared/lib/ai/tools/aptos/get-aptos-graphql-data";
-import { 
-  uploadToShelby, 
-  getShelbyBlob, 
-  getShelbyStoragePrice 
+import {
+  uploadToShelby,
+  getShelbyBlob,
+  getShelbyStoragePrice
 } from "./tools/aptos/shelby-tools";
 import { createImage } from "./tools/create-image";
 // Relay Protocol Tools (Cross-chain Swaps & Bridging)
@@ -130,6 +130,52 @@ import {
   getMantleContractSource,
   getMantleRollupInfo,
 } from "./tools/mantle/mantle-tools";
+// Arkham Intelligence Tools (Cross-chain blockchain intelligence)
+import {
+  arkhamSearch,
+  arkhamAddressIntelligence,
+  arkhamBatchAddressIntelligence,
+  arkhamEntityIntelligence,
+  arkhamEntityPredictions,
+  arkhamEntityTypes,
+  arkhamEntityBalanceChanges,
+  arkhamContractIntelligence,
+  arkhamTokenIntelligence,
+  arkhamIntelUpdates,
+  arkhamGetTransfers,
+  arkhamTransferHistogram,
+  arkhamTransactionLookup,
+  arkhamGetBalances,
+  arkhamSolanaSubaccounts,
+  arkhamGetPortfolio,
+  arkhamPortfolioTimeSeries,
+  arkhamGetFlow,
+  arkhamGetCounterparties,
+  arkhamGetVolume,
+  arkhamGetHistory,
+  arkhamGetLoans,
+  arkhamTopTokens,
+  arkhamTrendingTokens,
+  arkhamTokenMarket,
+  arkhamTokenHolders,
+  arkhamTokenBalance,
+  arkhamTokenAddresses,
+  arkhamTokenPriceHistory,
+  arkhamTokenPriceChange,
+  arkhamTokenTopFlow,
+  arkhamTokenVolume,
+  arkhamExchangeTokens,
+  arkhamSwaps,
+  arkhamChains,
+  arkhamNetworkStatus,
+  arkhamNetworkHistory,
+  arkhamClusterSummary,
+  arkhamAltcoinIndex,
+  arkhamCirculatingSupply,
+  arkhamTagInfo,
+  arkhamUserEntities,
+  arkhamUserLabels,
+} from "./tools/onchain/arkham-tools";
 
 import { tool } from "ai";
 import { z } from "zod";
@@ -301,6 +347,58 @@ Never just describe what you would do - actually call the tool.
 
 If a specific model is not supported, you can pick the best one from the existing models.`;
 
+// Arkham core tools included in EVERY chain group for cross-chain intelligence
+const ARKHAM_CORE_TOOLS = [
+  "arkhamSearch",
+  "arkhamAddressIntelligence",
+  "arkhamEntityIntelligence",
+  "arkhamGetTransfers",
+  "arkhamTransactionLookup",
+  "arkhamGetBalances",
+  "arkhamGetFlow",
+  "arkhamGetCounterparties",
+  "arkhamGetPortfolio",
+  "arkhamTopTokens",
+  "arkhamTrendingTokens",
+  "arkhamTokenMarket",
+  "arkhamTokenHolders",
+  "arkhamGetLoans",
+  "arkhamSwaps",
+  "arkhamEntityBalanceChanges",
+] as const;
+
+// Extended Arkham tools only in on_chain (full toolkit)
+const ARKHAM_EXTENDED_TOOLS = [
+  ...ARKHAM_CORE_TOOLS,
+  "arkhamBatchAddressIntelligence",
+  "arkhamEntityPredictions",
+  "arkhamEntityTypes",
+  "arkhamContractIntelligence",
+  "arkhamTokenIntelligence",
+  "arkhamIntelUpdates",
+  "arkhamTransferHistogram",
+  "arkhamSolanaSubaccounts",
+  "arkhamPortfolioTimeSeries",
+  "arkhamGetVolume",
+  "arkhamGetHistory",
+  "arkhamTokenBalance",
+  "arkhamTokenAddresses",
+  "arkhamTokenPriceHistory",
+  "arkhamTokenPriceChange",
+  "arkhamTokenTopFlow",
+  "arkhamTokenVolume",
+  "arkhamExchangeTokens",
+  "arkhamChains",
+  "arkhamNetworkStatus",
+  "arkhamNetworkHistory",
+  "arkhamClusterSummary",
+  "arkhamAltcoinIndex",
+  "arkhamCirculatingSupply",
+  "arkhamTagInfo",
+  "arkhamUserEntities",
+  "arkhamUserLabels",
+] as const;
+
 const groupTools = {
   imagine: ["createImage"] as const,
   multimodal: ["webSearch", "imageAnalyzer", "fileReader"] as const,
@@ -312,6 +410,8 @@ const groupTools = {
     "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
     "ensToAddress",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // x402 Payment Tools (available in all contexts)
     "initiateX402Payment",
     "getSubscriptionInfo",
@@ -329,6 +429,8 @@ const groupTools = {
     "ensToAddress",
     "translateTransactions",
     "defiLlama",
+    // Arkham Intelligence (ALL tools — full coverage)
+    ...ARKHAM_EXTENDED_TOOLS,
     // Relay Protocol (Cross-chain Swaps & Bridging)
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -342,6 +444,8 @@ const groupTools = {
   wormhole: [
     "webSearch",
     "getWormholeApiData",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -357,6 +461,8 @@ const groupTools = {
     "getSiteContent",
     "getCreditcoinStats",
     "getCreditcoinApiData",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -372,6 +478,8 @@ const groupTools = {
     "getSiteContent",
     "getVanaStats",
     "getVanaApiData",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -387,6 +495,8 @@ const groupTools = {
     "getSiteContent",
     "getFlowStats",
     "getFlowApiData",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -408,6 +518,8 @@ const groupTools = {
     "uploadToShelby",
     "getShelbyBlob",
     "getShelbyStoragePrice",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -423,6 +535,8 @@ const groupTools = {
     "getSiteContent",
     "getZetaApiData",
     "getZetaStats",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -438,6 +552,8 @@ const groupTools = {
     "getSiteContent",
     "getSeiApiData",
     "getSeiStats",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -466,6 +582,8 @@ const groupTools = {
     "getNadFunHoldings",
     "translateTransactions",
     "defiLlama",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -481,6 +599,8 @@ const groupTools = {
     "getSolanaChainWalletPortfolio",
     "getSolanaWalletTransactions",
     "searchSolanaTokenMarketData",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -523,6 +643,8 @@ const groupTools = {
     "getCronosTokenHolders",
     "getCronosContractABI",
     "getCronosContractSource",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // x402 Payment Tools
     "initiateX402Payment",
     "getSubscriptionInfo",
@@ -566,6 +688,8 @@ const groupTools = {
     "getMantleContractABI",
     "getMantleContractSource",
     "getMantleRollupInfo",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
     "getRelaySupportedChains",
     "getRelayQuote",
@@ -697,7 +821,50 @@ export const allTools = {
   getMantleContractABI,
   getMantleContractSource,
   getMantleRollupInfo,
-
+  // Arkham Intelligence Tools (ALL 43 tools)
+  arkhamSearch,
+  arkhamAddressIntelligence,
+  arkhamBatchAddressIntelligence,
+  arkhamEntityIntelligence,
+  arkhamEntityPredictions,
+  arkhamEntityTypes,
+  arkhamEntityBalanceChanges,
+  arkhamContractIntelligence,
+  arkhamTokenIntelligence,
+  arkhamIntelUpdates,
+  arkhamGetTransfers,
+  arkhamTransferHistogram,
+  arkhamTransactionLookup,
+  arkhamGetBalances,
+  arkhamSolanaSubaccounts,
+  arkhamGetPortfolio,
+  arkhamPortfolioTimeSeries,
+  arkhamGetFlow,
+  arkhamGetCounterparties,
+  arkhamGetVolume,
+  arkhamGetHistory,
+  arkhamGetLoans,
+  arkhamTopTokens,
+  arkhamTrendingTokens,
+  arkhamTokenMarket,
+  arkhamTokenHolders,
+  arkhamTokenBalance,
+  arkhamTokenAddresses,
+  arkhamTokenPriceHistory,
+  arkhamTokenPriceChange,
+  arkhamTokenTopFlow,
+  arkhamTokenVolume,
+  arkhamExchangeTokens,
+  arkhamSwaps,
+  arkhamChains,
+  arkhamNetworkStatus,
+  arkhamNetworkHistory,
+  arkhamClusterSummary,
+  arkhamAltcoinIndex,
+  arkhamCirculatingSupply,
+  arkhamTagInfo,
+  arkhamUserEntities,
+  arkhamUserLabels,
 };
 
 const groupPrompts = {
@@ -937,6 +1104,59 @@ Distribution by Type:
   ## getEvmOnchainDataUsingEtherscan: Use ONLY as a fallback if Zerion fails, or for specific data Zerion cannot provide (Contract verification, ABIs, block/log data).
 
 ## translate transactions: Use the translateTransactions tool ONLY if the user explicitly asks to "translate", "explain", or "decode" a specific transaction or if the raw data is confusing. DO NOT call this for general "transaction history" requests if you have already used getEvmOnchainDataUsingZerion, as Zerion provides sufficient data for the UI. Redundant calls slow down the response. Supported chains are ${novesSupportedChains}.
+
+## 🔍 ARKHAM INTELLIGENCE (Cross-chain Blockchain Intelligence)
+Arkham Intelligence provides entity attribution, wallet labeling, transfer tracking, and analytics across 20+ blockchains (Ethereum, Bitcoin, Solana, BSC, Arbitrum, Polygon, Tron, and more).
+
+### When to Use Arkham vs Other Tools:
+- **Arkham** → Entity identification ("who owns this wallet?"), whale tracking, fund flow tracing, counterparty analysis, labeled address lookups, cross-chain intelligence
+- **Zerion** → Wallet portfolio, token balances, DeFi positions, NFTs (for the user's own holdings view)
+- **Etherscan** → Contract ABIs, verified source code, block/log data
+
+### 🐋 WHALE TRACKING WORKFLOW:
+1. **Track large transfers**: Use \`arkhamGetTransfers\` with \`usdGte\` set high (e.g., "1000000" for $1M+ moves)
+   - Combine with \`timeLast: "24h"\` for recent whale activity
+   - Use \`flow: "out"\` from an exchange entity like "binance" to spot withdrawals
+2. **Identify the whale**: Use \`arkhamAddressIntelligence\` on any address to see labels, entity attribution
+3. **Track counterparties**: Use \`arkhamGetCounterparties\` to see who the whale transacts with most
+4. **Monitor accumulation**: Use \`arkhamEntityBalanceChanges\` with \`interval: "24h"\` to see who's accumulating/distributing
+5. **Check entity overview**: Use \`arkhamEntityIntelligence\` with \`includeSummary: true\` for entity-level stats
+
+### 🚨 HACK / EXPLOIT INVESTIGATION:
+1. **Identify exploiter**: \`arkhamAddressIntelligence\` — check entity labels and tags
+2. **Trace funds**: \`arkhamGetTransfers\` with the hacker address as \`base\`, use \`flow: "out"\` to follow stolen funds
+3. **Find counterparties**: \`arkhamGetCounterparties\` — identify where stolen funds went (exchanges, mixers)
+4. **Contract intel**: \`arkhamContractIntelligence\` — investigate the exploited contract
+5. **Check swaps**: \`arkhamSwaps\` — see if the attacker swapped tokens on DEXes
+
+### 📊 TOKEN & MARKET INTELLIGENCE:
+- \`arkhamTopTokens\` → Tokens by exchange activity (netflow, volume, inflow/outflow)
+- \`arkhamTrendingTokens\` → Currently trending tokens across chains
+- \`arkhamTokenMarket\` → Current price, market cap, volume for a token
+- \`arkhamTokenHolders\` → Top holders of any token (whale concentration)
+- \`arkhamTokenTopFlow\` → Which entities are moving the most of a specific token
+
+### 📋 KEY TOOL QUICK REFERENCE:
+| Query Type | Tool |
+|-----------|------|
+| "Who is this address?" | arkhamAddressIntelligence |
+| "Track whale moves" | arkhamGetTransfers (with usdGte) |
+| "Search for entity/address" | arkhamSearch |
+| "Show entity info" | arkhamEntityIntelligence |
+| "Who is accumulating X?" | arkhamEntityBalanceChanges |
+| "Where did funds go?" | arkhamGetCounterparties |
+| "Show top token holders" | arkhamTokenHolders |
+| "Trending tokens" | arkhamTrendingTokens |
+| "Token exchange flows" | arkhamTopTokens |
+| "DEX swaps for address" | arkhamSwaps |
+| "DeFi loan positions" | arkhamGetLoans |
+| "Transaction details" | arkhamTransactionLookup |
+
+### Arkham Explorer Links:
+When presenting Arkham results, include relevant links:
+- Address: \`https://intel.arkm.com/explorer/address/{address}\`
+- Entity: \`https://intel.arkm.com/explorer/entity/{entityId}\`
+- Transaction: \`https://intel.arkm.com/explorer/tx/{hash}\`
 
 ## defi llama: For any defi llama data, use the defiLlama tool. Pass the user query to the tool.
 
