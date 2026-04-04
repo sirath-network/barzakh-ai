@@ -117,53 +117,23 @@ function normalizeChain(chain: string): string {
   return c;
 }
 
-// ─── Zod helpers ──────────────────────────────────────────────────────────────
-// LLMs frequently send numbers for params like limit, offset, usdGte etc.
-// even though the Arkham API expects query-string values (strings).
-// This helper accepts both and coerces to string so Zod validation never fails.
-
-/**
- * Zod schema that accepts both string and number, coercing to string.
- * Use for all Arkham tool params that represent numeric query-string values
- * (limit, offset, usdGte, usdLte, balanceMin, balanceMax, time, etc.).
- */
+// Zod helper: accepts both string and number from LLM, coerces to string
 const numericStringParam = () =>
   z.union([z.string(), z.number()]).transform(String);
 
-// ─── Response Truncation ──────────────────────────────────────────────────────
-// Prevents large Arkham API responses from exhausting the LLM context window.
-// Follows the same pattern as the Zerion tool (get_evm_onchain_data_using_zerion.ts).
-
-/** Max items to return for array-type Arkham responses */
 const ARKHAM_RESPONSE_LIMITS: Record<string, number> = {
-  transfers: 10,
-  swaps: 10,
-  balances: 30,
-  default: 20,
+  transfers: 10, swaps: 10, balances: 30, default: 20,
 };
 
-/**
- * Truncate large Arkham API responses to prevent context window exhaustion.
- * Handles both direct arrays and objects with nested array fields.
- */
 function truncateArkhamResponse(data: any): any {
   if (!data || typeof data !== 'object') return data;
-
-  // Handle direct array responses
   if (Array.isArray(data)) {
     const limit = ARKHAM_RESPONSE_LIMITS.default;
     if (data.length > limit) {
-      return {
-        data: data.slice(0, limit),
-        _truncated: true,
-        _originalCount: data.length,
-        _summary: `Showing ${limit} of ${data.length} total results. Use 'limit' and 'offset' parameters for pagination.`,
-      };
+      return { data: data.slice(0, limit), _truncated: true, _originalCount: data.length, _summary: `Showing ${limit} of ${data.length} results.` };
     }
     return data;
   }
-
-  // Handle objects with nested arrays (e.g. { transfers: [...], swaps: [...] })
   const result = { ...data };
   for (const key of Object.keys(result)) {
     if (Array.isArray(result[key]) && result[key].length > 0) {
@@ -173,11 +143,9 @@ function truncateArkhamResponse(data: any): any {
         result[key] = result[key].slice(0, limit);
         result[`_${key}_truncated`] = true;
         result[`_${key}_originalCount`] = originalCount;
-        result[`_${key}_summary`] = `Showing ${limit} of ${originalCount} results.`;
       }
     }
   }
-
   return result;
 }
 

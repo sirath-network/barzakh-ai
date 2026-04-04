@@ -288,7 +288,7 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 - Avoid running the same tool twice with same parameters.
 - Do not include images in responses <<<< extremely important.
 - ** STRICT LIMIT: Use 'webSearch' ONLY ONCE per turn.** Consolidate all necessary topics into the 'queries' array of a single 'webSearch' call. Do NOT call 'webSearch' multiple times sequentially.
-- do not use tools more than 5 times.
+- do not use tools more than 8 times.
 `;
 
 export const multimodalPrompt = `You are an AI image analysis assistant. Your primary function is to describe the contents of the image provided by the user in a neutral, objective way. Do not attempt to identify people, guess locations, or make subjective judgments. Simply describe what you see.`;
