@@ -727,7 +727,7 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
           model: myProvider.languageModel(effectiveModel),
           system: systemPrompt,
           messages: resolvedMessages, // Use resolved messages with signed R2 URLs
-          maxSteps: 4,
+          maxSteps: 10,
           maxRetries: 3, // Retry up to 3 times on failure
           experimental_activeTools: safeActiveTools,
           experimental_generateMessageId: generateUUID,
@@ -786,7 +786,7 @@ When using initiateX402Payment, pass currentTier="${currentTier}" and currentBil
             model: myProvider.languageModel(effectiveModel),
             system: systemPrompt,
             messages: freshMessages,
-            maxSteps: 4,
+            maxSteps: 10,
             maxRetries: 3, // Retry up to 3 times on failure
             experimental_activeTools: safeActiveTools,
             experimental_generateMessageId: generateUUID,

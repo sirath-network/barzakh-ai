@@ -87,9 +87,9 @@ async function arkhamPut(
 }
 
 const VALID_CHAINS = new Set([
-  'ethereum', 'polygon', 'bsc', 'optimism', 'avalanche', 
-  'arbitrum_one', 'base', 'bitcoin', 'tron', 'flare', 
-  'solana', 'ton', 'dogecoin', 'zcash', 'blast', 'linea', 
+  'ethereum', 'polygon', 'bsc', 'optimism', 'avalanche',
+  'arbitrum_one', 'base', 'bitcoin', 'tron', 'flare',
+  'solana', 'ton', 'dogecoin', 'zcash', 'blast', 'linea',
   'manta', 'mantle', 'sonic', 'fantom'
 ]);
 
@@ -117,7 +117,71 @@ function normalizeChain(chain: string): string {
   return c;
 }
 
-/** Helper to wrap tool execution with consistent error handling */
+// ─── Zod helpers ──────────────────────────────────────────────────────────────
+// LLMs frequently send numbers for params like limit, offset, usdGte etc.
+// even though the Arkham API expects query-string values (strings).
+// This helper accepts both and coerces to string so Zod validation never fails.
+
+/**
+ * Zod schema that accepts both string and number, coercing to string.
+ * Use for all Arkham tool params that represent numeric query-string values
+ * (limit, offset, usdGte, usdLte, balanceMin, balanceMax, time, etc.).
+ */
+const numericStringParam = () =>
+  z.union([z.string(), z.number()]).transform(String);
+
+// ─── Response Truncation ──────────────────────────────────────────────────────
+// Prevents large Arkham API responses from exhausting the LLM context window.
+// Follows the same pattern as the Zerion tool (get_evm_onchain_data_using_zerion.ts).
+
+/** Max items to return for array-type Arkham responses */
+const ARKHAM_RESPONSE_LIMITS: Record<string, number> = {
+  transfers: 10,
+  swaps: 10,
+  balances: 30,
+  default: 20,
+};
+
+/**
+ * Truncate large Arkham API responses to prevent context window exhaustion.
+ * Handles both direct arrays and objects with nested array fields.
+ */
+function truncateArkhamResponse(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+
+  // Handle direct array responses
+  if (Array.isArray(data)) {
+    const limit = ARKHAM_RESPONSE_LIMITS.default;
+    if (data.length > limit) {
+      return {
+        data: data.slice(0, limit),
+        _truncated: true,
+        _originalCount: data.length,
+        _summary: `Showing ${limit} of ${data.length} total results. Use 'limit' and 'offset' parameters for pagination.`,
+      };
+    }
+    return data;
+  }
+
+  // Handle objects with nested arrays (e.g. { transfers: [...], swaps: [...] })
+  const result = { ...data };
+  for (const key of Object.keys(result)) {
+    if (Array.isArray(result[key]) && result[key].length > 0) {
+      const limit = ARKHAM_RESPONSE_LIMITS[key] ?? ARKHAM_RESPONSE_LIMITS.default;
+      if (result[key].length > limit) {
+        const originalCount = result[key].length;
+        result[key] = result[key].slice(0, limit);
+        result[`_${key}_truncated`] = true;
+        result[`_${key}_originalCount`] = originalCount;
+        result[`_${key}_summary`] = `Showing ${limit} of ${originalCount} results.`;
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Helper to wrap tool execution with consistent error handling and response truncation */
 function wrapExecute<T>(fn: (args: T) => Promise<any>) {
   return async (args: T) => {
     try {
@@ -130,7 +194,8 @@ function wrapExecute<T>(fn: (args: T) => Promise<any>) {
           anyArgs.chains = anyArgs.chains.split(',').map((c: string) => normalizeChain(c)).join(',');
         }
       }
-      return await fn(args);
+      const result = await fn(args);
+      return truncateArkhamResponse(result);
     } catch (error: any) {
       console.error("[Arkham]", error.message);
       return { success: false, error: error.message || "Unknown error" };
@@ -223,10 +288,10 @@ export const arkhamEntityTypes = tool({
   }),
 });
 
-/** 7. Entity balance changes — whale accumulation/distribution tracker */
+/** 7. Entity balance changes */
 export const arkhamEntityBalanceChanges = tool({
   description:
-    "Track which entities are accumulating or distributing assets. Returns a ranked list of entities with balance changes over a time interval. CRITICAL for whale tracking — shows who is buying/selling. Filter by chain, entity type, token, and balance thresholds.",
+    "Track how entity balances have changed over time — who's accumulating, who's distributing. Filter by chains, entity types, specific entities, tokens, and time interval. Use to discover which entities are buying/selling a token.",
   parameters: z.object({
     chains: z.string().optional().describe("Comma-separated chains (e.g., 'ethereum,bsc')."),
     entityTypes: z.string().optional().describe("Comma-separated entity types (e.g., 'exchange,fund')."),
@@ -234,11 +299,11 @@ export const arkhamEntityBalanceChanges = tool({
     pricingIds: z.string().optional().describe("Comma-separated CoinGecko pricing IDs (e.g., 'bitcoin,ethereum')."),
     orderBy: z.string().optional().describe("Sort by: 'balanceUsd', 'balanceUsdChange', 'balanceUsdPctChange', 'balanceUnit', 'balanceUnitChange', 'balanceUnitPctChange'."),
     orderDir: z.string().optional().describe("'asc' or 'desc'."),
-    balanceMin: z.string().optional().describe("Minimum balance threshold in USD."),
-    balanceMax: z.string().optional().describe("Maximum balance threshold in USD."),
+    balanceMin: numericStringParam().optional().describe("Minimum balance threshold in USD."),
+    balanceMax: numericStringParam().optional().describe("Maximum balance threshold in USD."),
     interval: z.string().optional().describe("Time interval: '24h', '7d', '30d'."),
-    limit: z.string().optional().describe("Results per page."),
-    offset: z.string().optional().describe("Pagination offset."),
+    limit: numericStringParam().optional().describe("Results per page."),
+    offset: numericStringParam().optional().describe("Pagination offset."),
   }),
   execute: wrapExecute(async (args) => {
     return arkhamGet("/intelligence/entity_balance_changes", args as any);
@@ -280,8 +345,8 @@ export const arkhamIntelUpdates = tool({
     "Get recent intelligence updates from Arkham — new address labels, entity updates, tag changes. Choose the update type. Useful for monitoring new attributions and label changes.",
   parameters: z.object({
     type: z.enum(["addresses", "entities", "tags", "address_tags"]).describe("Type of updates: 'addresses' (new address intel), 'entities' (entity changes), 'tags' (tag definition changes), 'address_tags' (address-tag association changes)."),
-    limit: z.string().optional().describe("Number of results."),
-    offset: z.string().optional().describe("Pagination offset."),
+    limit: numericStringParam().optional().describe("Number of results."),
+    offset: numericStringParam().optional().describe("Pagination offset."),
   }),
   execute: wrapExecute(async ({ type, limit, offset }) => {
     const pathMap: Record<string, string> = {
@@ -295,7 +360,7 @@ export const arkhamIntelUpdates = tool({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SECTION 2: TRANSFERS & TRANSACTIONS — Whale tracking core
+// SECTION 2: TRANSFERS & TRANSACTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** 11. Get transfers — THE whale tracking tool */
@@ -313,12 +378,12 @@ export const arkhamGetTransfers = tool({
     timeLast: z.string().optional().describe("Recent duration filter: '1h', '24h', '7d', '30d'."),
     timeGte: z.string().optional().describe("Filter after timestamp (e.g., '2024-01-01T00:00:00Z')."),
     timeLte: z.string().optional().describe("Filter before timestamp."),
-    usdGte: z.string().optional().describe("Minimum USD value — set high (e.g., '1000000') for whale tracking."),
-    usdLte: z.string().optional().describe("Maximum USD value."),
+    usdGte: numericStringParam().optional().describe("Minimum USD value — set high (e.g., '1000000') for whale tracking."),
+    usdLte: numericStringParam().optional().describe("Maximum USD value."),
     sortKey: z.string().optional().describe("Sort by: 'time', 'value', 'usd'."),
     sortDir: z.string().optional().describe("'asc' or 'desc'."),
-    limit: z.string().optional().describe("Max results (default 50)."),
-    offset: z.string().optional().describe("Pagination offset."),
+    limit: numericStringParam().optional().describe("Max results (default 50)."),
+    offset: numericStringParam().optional().describe("Pagination offset."),
   }),
   execute: wrapExecute(async (args) => {
     // Coerce flow to 'all' if no base is provided to prevent Arkham API 400 Bad Filter errors
@@ -344,8 +409,8 @@ export const arkhamTransferHistogram = tool({
     timeLast: z.string().optional().describe("Duration: '24h', '7d', '30d'."),
     timeGte: z.string().optional().describe("Start time."),
     timeLte: z.string().optional().describe("End time."),
-    usdGte: z.string().optional().describe("Min USD value."),
-    usdLte: z.string().optional().describe("Max USD value."),
+    usdGte: numericStringParam().optional().describe("Min USD value."),
+    usdLte: numericStringParam().optional().describe("Max USD value."),
   }),
   execute: wrapExecute(async ({ mode = "detailed", ...args }) => {
     const path = mode === "simple" ? "/transfers/histogram/simple" : "/transfers/histogram";
@@ -413,7 +478,7 @@ export const arkhamGetPortfolio = tool({
   parameters: z.object({
     address: z.string().optional().describe("Blockchain address. Use this OR entity."),
     entity: z.string().optional().describe("Entity ID. Use this OR address."),
-    time: z.string().optional().describe("Unix timestamp in ms for historical snapshot. Truncated to UTC day start."),
+    time: numericStringParam().optional().describe("Unix timestamp in ms for historical snapshot. Truncated to UTC day start."),
     chains: z.string().optional().describe("Comma-separated chains."),
   }),
   execute: wrapExecute(async ({ address, entity, time, chains }) => {
@@ -460,22 +525,20 @@ export const arkhamGetFlow = tool({
   }),
 });
 
-/** 19. Counterparties — who is this address transacting with? */
+/** 19. Top counterparties */
 export const arkhamGetCounterparties = tool({
   description:
-    "Get the top counterparties for an address or entity — shows WHO this wallet transacts with most frequently and by volume. Critical for tracing fund flows, identifying connections, and investigating hacked funds. Rate limited to 1 req/sec.",
+    "Get the top counterparties for an address or entity — who they interact with most. Shows transfer count, volume, and direction for each counterparty. Essential for mapping relationships and fund flow networks.",
   parameters: z.object({
     address: z.string().optional().describe("Blockchain address. Use this OR entity."),
     entity: z.string().optional().describe("Entity ID. Use this OR address."),
     chains: z.string().optional().describe("Comma-separated chains."),
-    flow: z.string().optional().describe("Direction: 'in', 'out', 'all'."),
-    tokens: z.string().optional().describe("Token filter."),
     timeLast: z.string().optional().describe("Duration: '24h', '7d', '30d'."),
     timeGte: z.string().optional().describe("Start time."),
     timeLte: z.string().optional().describe("End time."),
-    usdGte: z.string().optional().describe("Min USD volume for counterparty."),
-    tags: z.string().optional().describe("Filter counterparties by tags (e.g., 'whale,kol')."),
-    limit: z.string().optional().describe("Max results."),
+    usdGte: numericStringParam().optional().describe("Min USD volume for counterparty."),
+    flow: z.string().optional().describe("Direction: 'in', 'out', 'all'."),
+    limit: numericStringParam().optional().describe("Max results."),
   }),
   execute: wrapExecute(async ({ address, entity, ...params }) => {
     if (address) return arkhamGet(`/counterparties/address/${encodeURIComponent(address)}`, params as any);
@@ -484,10 +547,10 @@ export const arkhamGetCounterparties = tool({
   }),
 });
 
-/** 20. Transfer volume */
+/** 20. Volume */
 export const arkhamGetVolume = tool({
   description:
-    "Get aggregated transfer volume (in USD) for an address or entity over time. Shows how much value has moved through a wallet.",
+    "Get transfer volume for an address or entity over time. Shows how active a wallet/entity is in terms of total value transferred.",
   parameters: z.object({
     address: z.string().optional().describe("Blockchain address. Use this OR entity."),
     entity: z.string().optional().describe("Entity ID. Use this OR address."),
@@ -500,10 +563,10 @@ export const arkhamGetVolume = tool({
   }),
 });
 
-/** 21. Historical data */
+/** 21. History */
 export const arkhamGetHistory = tool({
   description:
-    "Get historical USD value snapshots for an address or entity. Shows how the total value of holdings has changed over time.",
+    "Get activity history for an address or entity — shows timeline of first/last activity, active days, and transaction patterns.",
   parameters: z.object({
     address: z.string().optional().describe("Blockchain address. Use this OR entity."),
     entity: z.string().optional().describe("Entity ID. Use this OR address."),
@@ -516,10 +579,10 @@ export const arkhamGetHistory = tool({
   }),
 });
 
-/** 22. Loan/borrow positions */
+/** 22. DeFi loans */
 export const arkhamGetLoans = tool({
   description:
-    "Get DeFi loan/borrow positions for an address or entity — shows supplied/borrowed assets across lending protocols (Aave, Compound, etc.). Critical for DeFi risk analysis.",
+    "Get active DeFi lending/borrowing positions for an address or entity from Arkham. Shows protocol, collateral, debt, health factor, and liquidation risk. Supports Aave, Compound, Maker, etc.",
   parameters: z.object({
     address: z.string().optional().describe("Blockchain address. Use this OR entity."),
     entity: z.string().optional().describe("Entity ID. Use this OR address."),
@@ -533,26 +596,18 @@ export const arkhamGetLoans = tool({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SECTION 5: TOKEN ANALYTICS
+// SECTION 5: TOKEN DATA — Market, Holders, Balances, Pricing, Flow
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** 23. Top tokens by exchange activity */
+/** 23. Top tokens */
 export const arkhamTopTokens = tool({
   description:
-    "Get top tokens ranked by exchange activity — volume, inflows, outflows, netflows across CEX and DEX. Supports timeframes from 1h to 7d. Essential for identifying smart money moves and exchange trends.",
+    "Get the top tokens by market cap, volume, or other metrics from Arkham Intelligence. Useful for market overview.",
   parameters: z.object({
-    timeframe: z.string().optional().describe("Aggregation period: '1h', '6h', '12h', '24h', '7d'."),
-    orderByAgg: z.string().optional().describe("Sort metric: 'volume', 'inflow', 'outflow', 'netflow', 'volumeDex', 'volumeCex', 'inflowDex', 'inflowCex', 'outflowDex', 'outflowCex', 'netflowDex', 'netflowCex', 'netflowVolumeRatio', 'price'."),
-    orderByDesc: z.string().optional().describe("'true' for descending, 'false' for ascending."),
-    orderByPercent: z.string().optional().describe("'true' to sort by percentage change rather than absolute."),
-    from: z.string().optional().describe("Pagination offset."),
-    size: z.string().optional().describe("Results per page."),
-    minVolume: z.string().optional().describe("Min volume USD filter."),
-    maxVolume: z.string().optional().describe("Max volume USD filter."),
-    minMarketCap: z.string().optional().describe("Min market cap USD."),
-    maxMarketCap: z.string().optional().describe("Max market cap USD."),
-    tokenIds: z.string().optional().describe("Comma-separated CoinGecko token IDs."),
-    chains: z.string().optional().describe("Comma-separated chains."),
+    sortBy: z.string().optional().describe("Sort by: 'marketCap', 'volume', 'price', 'priceChange'."),
+    sortDir: z.string().optional().describe("'asc' or 'desc'."),
+    limit: numericStringParam().optional().describe("Number of tokens to return."),
+    offset: numericStringParam().optional().describe("Pagination offset."),
   }),
   execute: wrapExecute(async (args) => {
     return arkhamGet("/token/top", args as any);
@@ -562,9 +617,9 @@ export const arkhamTopTokens = tool({
 /** 24. Trending tokens */
 export const arkhamTrendingTokens = tool({
   description:
-    "Get currently trending tokens across multiple chains from Arkham Intelligence. Optionally get details for a specific trending token by ID.",
+    "Get currently trending tokens on Arkham Intelligence — tokens with the most search interest or activity.",
   parameters: z.object({
-    id: z.string().optional().describe("Optional: specific trending token ID for detailed info."),
+    id: z.string().optional().describe("CoinGecko pricing ID for a specific token. If omitted, returns all trending tokens."),
   }),
   execute: wrapExecute(async ({ id }) => {
     if (id) return arkhamGet(`/token/trending/${encodeURIComponent(id)}`);
@@ -575,9 +630,9 @@ export const arkhamTrendingTokens = tool({
 /** 25. Token market data */
 export const arkhamTokenMarket = tool({
   description:
-    "Get current market data for a token — price, market cap, volume, supply. Uses CoinGecko pricing ID.",
+    "Get market data for a specific token from Arkham — price, market cap, volume, supply, and price changes.",
   parameters: z.object({
-    id: z.string().describe("CoinGecko pricing ID (e.g., 'bitcoin', 'ethereum', 'usd-coin', 'solana')."),
+    id: z.string().describe("CoinGecko pricing ID (e.g., 'bitcoin', 'ethereum')."),
   }),
   execute: wrapExecute(async ({ id }) => {
     return arkhamGet(`/token/market/${encodeURIComponent(id)}`);
@@ -587,92 +642,92 @@ export const arkhamTokenMarket = tool({
 /** 26. Token holders */
 export const arkhamTokenHolders = tool({
   description:
-    "Get top token holders — shows which entities/addresses hold the most of a given token. Use by CoinGecko ID or by chain/address. Essential for understanding token concentration and whale positions.",
+    "Get top holders of a token from Arkham Intelligence. Shows entity names, addresses, balance, and percentage of supply. Use to see who holds the most of a given token.",
   parameters: z.object({
     id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
-    chain: z.string().optional().describe("Chain (e.g., 'ethereum'). Use with address."),
-    address: z.string().optional().describe("Token contract address. Use with chain."),
-  }),
-  execute: wrapExecute(async ({ id, chain, address }) => {
-    if (id) return arkhamGet(`/token/holders/${encodeURIComponent(id)}`);
-    if (chain && address) return arkhamGet(`/token/holders/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`);
-    throw new Error("Provide 'id' (CoinGecko) or 'chain'+'address'.");
-  }),
-});
-
-/** 27. Token balance (for a specific token held by an entity or address) */
-export const arkhamTokenBalance = tool({
-  description:
-    "Get the balance of a specific token held by entities or addresses. Use by CoinGecko pricing ID (all chains) or by chain/address. Different from arkhamGetBalances — this returns the total held across all known wallets for a specific token.",
-  parameters: z.object({
-    id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
-    chain: z.string().optional().describe("Chain. Use with address."),
-    address: z.string().optional().describe("Token contract address. Use with chain."),
-    entity: z.string().optional().describe("Filter by entity ID."),
-    addressFilter: z.string().optional().describe("Filter by specific holder address."),
+    chain: z.string().optional().describe("Chain of the token."),
+    address: z.string().optional().describe("Token contract address."),
+    entity: z.string().optional().describe("Filter holders by entity ID."),
+    addressFilter: z.string().optional().describe("Filter holders by address."),
   }),
   execute: wrapExecute(async ({ id, chain, address, entity, addressFilter }) => {
-    const params: Record<string, string | undefined> = {};
+    const params: any = {};
     if (entity) params.entity = entity;
     if (addressFilter) params.address = addressFilter;
-    if (id) return arkhamGet(`/token/balance/${encodeURIComponent(id)}`, params);
-    if (chain && address) return arkhamGet(`/token/balance/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`, params);
+    if (id) return arkhamGet(`/token/holders/${encodeURIComponent(id)}`, params);
+    if (chain && address) return arkhamGet(`/token/holders/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`, params);
     throw new Error("Provide 'id' or 'chain'+'address'.");
   }),
 });
 
-/** 28. Token chain addresses */
-export const arkhamTokenAddresses = tool({
+/** 27. Token balance for address */
+export const arkhamTokenBalance = tool({
   description:
-    "Get all chain-specific contract addresses for a token (e.g., USDC addresses on Ethereum, Polygon, BSC, etc.).",
+    "Get the balance of a specific token held by an address from Arkham Intelligence.",
   parameters: z.object({
-    id: z.string().describe("CoinGecko pricing ID (e.g., 'usd-coin')."),
+    id: z.string().describe("CoinGecko pricing ID of the token."),
   }),
   execute: wrapExecute(async ({ id }) => {
-    return arkhamGet(`/token/addresses/${encodeURIComponent(id)}`);
+    return arkhamGet(`/token/balance/${encodeURIComponent(id)}`);
+  }),
+});
+
+/** 28. Token addresses */
+export const arkhamTokenAddresses = tool({
+  description:
+    "Get all contract addresses for a token across different chains — useful for finding the correct address for a token on a specific network.",
+  parameters: z.object({
+    id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
+    chain: z.string().optional().describe("Chain."),
+    address: z.string().optional().describe("Token address."),
+  }),
+  execute: wrapExecute(async ({ id, chain, address }) => {
+    if (id) return arkhamGet(`/token/addresses/${encodeURIComponent(id)}`);
+    if (chain && address) return arkhamGet(`/token/addresses/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`);
+    throw new Error("Provide 'id' or 'chain'+'address'.");
   }),
 });
 
 /** 29. Token price history */
 export const arkhamTokenPriceHistory = tool({
   description:
-    "Get token price history over time. Use CoinGecko pricing ID or chain/address.",
-  parameters: z.object({
-    id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
-    chain: z.string().optional().describe("Chain. Use with address."),
-    address: z.string().optional().describe("Token contract address. Use with chain."),
-  }),
-  execute: wrapExecute(async ({ id, chain, address }) => {
-    if (id) return arkhamGet(`/token/price/history/${encodeURIComponent(id)}`);
-    if (chain && address) return arkhamGet(`/token/price/history/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`);
-    throw new Error("Provide 'id' or 'chain'+'address'.");
-  }),
-});
-
-/** 30. Token price change since timestamp */
-export const arkhamTokenPriceChange = tool({
-  description:
-    "Get the price change for a token since a specific timestamp.",
+    "Get historical price data for a token from Arkham Intelligence. Returns time-series price data.",
   parameters: z.object({
     id: z.string().describe("CoinGecko pricing ID."),
   }),
   execute: wrapExecute(async ({ id }) => {
-    return arkhamGet(`/token/price_change/${encodeURIComponent(id)}`);
+    return arkhamGet(`/token/price/history/${encodeURIComponent(id)}`);
   }),
 });
 
-/** 31. Token top flow (entity-level movements) */
-export const arkhamTokenTopFlow = tool({
+/** 30. Token price change */
+export const arkhamTokenPriceChange = tool({
   description:
-    "Get top flow data for a specific token — shows which entities are moving the most of this token. Identifies whale activity for a specific asset.",
+    "Get price change statistics for a token — percentage changes over various time periods (1h, 24h, 7d, 30d).",
   parameters: z.object({
     id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
-    chain: z.string().optional().describe("Chain. Use with address."),
-    address: z.string().optional().describe("Token contract address. Use with chain."),
+    chain: z.string().optional().describe("Chain."),
+    address: z.string().optional().describe("Token address."),
   }),
   execute: wrapExecute(async ({ id, chain, address }) => {
-    if (id) return arkhamGet(`/token/top_flow/${encodeURIComponent(id)}`);
-    if (chain && address) return arkhamGet(`/token/top_flow/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`);
+    if (id) return arkhamGet(`/token/price/change/${encodeURIComponent(id)}`);
+    if (chain && address) return arkhamGet(`/token/price/change/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`);
+    throw new Error("Provide 'id' or 'chain'+'address'.");
+  }),
+});
+
+/** 31. Token top flow */
+export const arkhamTokenTopFlow = tool({
+  description:
+    "Get top inflows and outflows for a token — shows which entities/addresses are moving the most of a given token. Essential for tracking large token movements.",
+  parameters: z.object({
+    id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
+    chain: z.string().optional().describe("Chain."),
+    address: z.string().optional().describe("Token contract address."),
+  }),
+  execute: wrapExecute(async ({ id, chain, address }) => {
+    if (id) return arkhamGet(`/token/topflow/${encodeURIComponent(id)}`);
+    if (chain && address) return arkhamGet(`/token/topflow/${encodeURIComponent(chain)}/${encodeURIComponent(address)}`);
     throw new Error("Provide 'id' or 'chain'+'address'.");
   }),
 });
@@ -680,10 +735,10 @@ export const arkhamTokenTopFlow = tool({
 /** 32. Token volume */
 export const arkhamTokenVolume = tool({
   description:
-    "Get trading/transfer volume for a specific token.",
+    "Get trading volume data for a token from Arkham Intelligence.",
   parameters: z.object({
     id: z.string().optional().describe("CoinGecko pricing ID. Use this OR chain+address."),
-    chain: z.string().optional().describe("Chain. Use with address."),
+    chain: z.string().optional().describe("Chain."),
     address: z.string().optional().describe("Token contract address. Use with chain."),
   }),
   execute: wrapExecute(async ({ id, chain, address }) => {
@@ -723,12 +778,12 @@ export const arkhamSwaps = tool({
     timeLast: z.string().optional().describe("Duration: '24h', '7d'."),
     timeGte: z.string().optional().describe("Start time."),
     timeLte: z.string().optional().describe("End time."),
-    usdGte: z.string().optional().describe("Min USD value."),
-    usdLte: z.string().optional().describe("Max USD value."),
+    usdGte: numericStringParam().optional().describe("Min USD value."),
+    usdLte: numericStringParam().optional().describe("Max USD value."),
     sortKey: z.string().optional().describe("Sort by: 'time', 'usd'."),
     sortDir: z.string().optional().describe("'asc' or 'desc'."),
-    limit: z.string().optional().describe("Max results (default 20)."),
-    offset: z.string().optional().describe("Pagination offset."),
+    limit: numericStringParam().optional().describe("Max results (default 20)."),
+    offset: numericStringParam().optional().describe("Pagination offset."),
   }),
   execute: wrapExecute(async (args) => {
     return arkhamGet("/swaps", args as any);

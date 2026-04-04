@@ -274,7 +274,7 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 - ✅ **DO**: Be consistent - if tokens show $0 USD, explain "no liquidity data" instead of contradicting
 
 # Tool-Specific Guidelines:
-- you can run tools maximum of 5 times per message.
+- you can run tools maximum of 8 times per message.
 - Follow the tool guidelines below for each tool as per the user's request.
 - Calling the same tool multiple times with different parameters is allowed.
 - Always mandatory to run the tool first before writing the response to ensure accuracy and relevance <<< extermely important.
