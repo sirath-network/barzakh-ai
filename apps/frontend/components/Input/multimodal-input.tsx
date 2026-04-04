@@ -547,10 +547,6 @@ function PureMultimodalInput({
   };
 
   const submitForm = useCallback(async () => {
-    if (!user?.id) {
-      toast.error("Please login to continue");
-      return;
-    }
     if (isLoading) {
       toast.error("Please wait for the previous response to complete.");
       return;
@@ -560,7 +556,9 @@ function PureMultimodalInput({
       return;
     }
 
-    window.history.replaceState({}, "", `/c/${chatId}`);
+    if (user?.id) {
+      window.history.replaceState({}, "", `/c/${chatId}`);
+    }
 
     const imageAttachments = attachments.filter((att) =>
       att.contentType?.startsWith("image/")
