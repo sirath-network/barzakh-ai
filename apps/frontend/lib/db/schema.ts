@@ -10,7 +10,6 @@ import {
   foreignKey,
   boolean,
   integer,
-  serial,
   index,
 } from "drizzle-orm/pg-core";
 
@@ -222,3 +221,14 @@ export const relay_swap_tracking = pgTable("RelaySwapTracking", {
 });
 
 export type RelaySwapTracking = InferSelectModel<typeof relay_swap_tracking>;
+
+export const guest_session = pgTable("GuestSession", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  fingerprint: varchar("fingerprint", { length: 128 }).notNull().unique(),
+  userId: uuid("userId").notNull().references(() => user.id),
+  dailyMessageRemaining: integer("dailyMessageRemaining").notNull().default(5),
+  lastResetAt: timestamp("lastResetAt").notNull().defaultNow(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+export type GuestSession = InferSelectModel<typeof guest_session>;
