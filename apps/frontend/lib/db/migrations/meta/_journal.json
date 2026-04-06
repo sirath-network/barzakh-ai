@@ -127,6 +127,13 @@
       "when": 1774402176605,
       "tag": "0017_watery_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775000000000,
+      "tag": "0018_guest_session",
+      "breakpoints": true
     }
   ]
 }

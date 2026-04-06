@@ -70,17 +70,17 @@ const CRITICAL_PATTERNS: Array<{ pattern: RegExp; type: ThreatType; description:
     description: 'Attempt to reset AI memory/instructions'
   },
   {
-    pattern: /you\s+are\s+now\s+(a|an|the|my)\s+(?!assistant|helpful)/gi,
+    pattern: /you\s+are\s+now\s+(a|an|the|my)\s+(?!assistant|helpful|investigator|analyst|researcher|expert|developer|coder|auditor|tracker|searcher|monitor|specialist|forensic|blockchain|on-chain|security|professional|bitcoin|ethereum|solana|crypto)/gi,
     type: 'role_manipulation',
     description: 'Attempt to change AI role'
   },
   {
-    pattern: /pretend\s+(to\s+be|you\s+are|you're)/gi,
+    pattern: /pretend\s+(to\s+be|you\s+are|you're)\s+(?!an?\s+(investigator|analyst|researcher|expert|developer|coder|auditor|tracker|searcher|monitor|specialist|forensic|blockchain|on-chain|security|professional|bitcoin|ethereum|solana|crypto))/gi,
     type: 'role_manipulation',
     description: 'Attempt to manipulate AI identity'
   },
   {
-    pattern: /act\s+as\s+(if\s+you\s+were|a|an)\s+(?!assistant)/gi,
+    pattern: /act\s+as\s+(if\s+you\s+were|a|an)\s+(?!assistant|investigator|analyst|researcher|expert|developer|coder|auditor|forensic|tracker|searcher|monitor|specialist|blockchain|on-chain|security|professional)/gi,
     type: 'role_manipulation',
     description: 'Attempt to change AI behavior'
   },

@@ -1,10 +1,9 @@
 "use client";
 
-import { ChatRequestOptions, CreateMessage, Message } from "ai";
+import type { ChatRequestOptions, CreateMessage, Message } from "ai";
 import { useState, useEffect, useMemo } from "react";
-import { toast } from "sonner";
 import { useWindowSize } from "usehooks-ts";
-import { User } from "next-auth";
+import type { User } from "next-auth";
 import { cn } from "@barzakh/shared/lib/utils/utils";
 import { MessageCircleMore, Sparkles } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
@@ -132,14 +131,6 @@ export const QuestionSuggestions = ({
   }, [history, aiSuggestions, totalSuggestions]);
 
   const handleSuggestionClick = (suggestion: { key: string; title: string; isHistory: boolean; }) => {
-    if (!user) {
-      toast.error("Please log in to start a conversation.", {
-        position: "top-center",
-        duration: 3000,
-      });
-      return;
-    }
-
     const chatRequestOptions: ChatRequestOptions = {};
 
     if (suggestion.isHistory) {
