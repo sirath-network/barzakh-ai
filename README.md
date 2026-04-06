@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>🧠 AI-Powered Onchain Agent — Execute Trades, Bridges & DeFi via Natural Language</strong>
+  <strong>🧠 AI-Powered Onchain Agent — Execute Trades, Bridges, Intelligence & DeFi via Natural Language</strong>
 </p>
 
 <p align="center">
@@ -29,15 +29,20 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [BNB Chain Integration](-#bnb-chain-integration)
-- [Development](#development)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [AI Models & Orchestration](#ai-models--orchestration)
 - [Blockchain Tools](#blockchain-tools)
+  - [Arkham Intelligence](#%EF%B8%8F-arkham-intelligence--blockchain-investigation--whale-tracking)
+  - [Mantle Network](#%EF%B8%8F-mantle-network--l2-blockchain-tools)
+  - [Creditcoin](#-creditcoin--blockchain-data-tools)
+  - [BNB Chain](#-bnb-chain-integration)
+  - [Monad Ecosystem](#monad-ecosystem-deep-integration)
+  - [Shelby Protocol](#-shelby-protocol--decentralized-storage--nft-minting)
 - [x402 Crypto Payment Protocol](#x402-crypto-payment-protocol)
 - [Security](#security)
 - [Project Structure](#project-structure)
+- [Development](#development)
 - [API Documentation](#api-documentation)
 - [Deployment](#deployment)
 - [License](#license)
@@ -54,12 +59,14 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
-| **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos `shelbynet`) with optional NFT minting |
+| **Arkham Intelligence** | 43 tools for whale tracking, entity investigation, fund flow analysis across 20+ chains |
+| **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos Testnet) with optional NFT minting |
 | **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.6, Grok 4.1, GLM 4.7 with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
-| **65+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI |
+| **100+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, Mantle, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI, Creditcoin |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
+| **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
 
 ---
 
@@ -97,8 +104,8 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 │                                   CORE SERVICES                                     │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
 │  │  Chat Engine    │  │ AI Orchestrator │  │  Tool Executor  │  │ Stream Processor│ │
-│  │  Vercel AI SDK  │  │  Multi-Model    │  │   85+ Tools     │  │   SSE/Chunks    │ │
-│  │    v4.1.17      │  │  Intent Router  │  │   10+ Chains    │  │  Transfer-Enc   │ │
+│  │  Vercel AI SDK  │  │  Multi-Model    │  │  100+ Tools     │  │   SSE/Chunks    │ │
+│  │    v4.1.17      │  │  Intent Router  │  │   12+ Chains    │  │  Transfer-Enc   │ │
 │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘ │
 └───────────┼────────────────────┼────────────────────┼────────────────────┼──────────┘
             │                    │                    │                    │
@@ -132,18 +139,23 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 │  │  │ Explorer │  │ Polygon  │  │  Names   │  │  NFTs    │  │  IBC Protocol    │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
-│  │  │  Solana  │  │   Zeta   │  │  Monad   │  │ Wormhole │  │    Vana/CC       │   │  │
-│  │  │   RPC    │  │  ZetaVM  │  │ Mainnet  │  │  Bridge  │  │  Data Networks   │   │  │
-│  │  │  DeFi    │  │  Testnet │  │ nad.fun  │  │  X-Chain │  │    Protocol      │   │  │
+│  │  │  Solana  │  │   Zeta   │  │  Monad   │  │ Wormhole │  │   Mantle L2      │   │  │
+│  │  │   RPC    │  │  ZetaVM  │  │ Mainnet  │  │  Bridge  │  │  MNT Balance     │   │  │
+│  │  │  DeFi    │  │  Testnet │  │ nad.fun  │  │  X-Chain │  │  Portfolio       │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                            Utility Tool Modules                                 │  │
+│  │                       Intelligence & Utility Tool Modules                       │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
-│  │  │DeFi Llama│  │Web Search│  │  News    │  │ X/Twitter│  │  Image Gen       │   │  │
-│  │  │   TVL    │  │  Tavily  │  │  Search  │  │  Search  │  │  Gemini 2.5      │   │  │
-│  │  │   API    │  │  Search  │  │   API    │  │   API    │  │   Imagen 3       │   │  │
+│  │  │ Arkham   │  │DeFi Llama│  │Web Search│  │  News    │  │  X/Twitter       │   │  │
+│  │  │ Intel    │  │   TVL    │  │  Tavily  │  │  Search  │  │  Search          │   │  │
+│  │  │ 43 Tools │  │   API    │  │  Search  │  │   API    │  │   API            │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
+│  │  ┌──────────┐  ┌──────────┐                                                     │  │
+│  │  │Creditcoin│  │ Image Gen│                                                     │  │
+│  │  │Blockscout│  │Gemini 3.1│                                                     │  │
+│  │  │   API    │  │Flash Img │                                                     │  │
+│  │  └──────────┘  └──────────┘                                                     │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────────────────────────────────────────────────────────────┘
                                           │
@@ -254,7 +266,7 @@ sequenceDiagram
 |----------|-------------|
 | **Wallet** | Wagmi 2.19, RainbowKit 2.2.9, OneChain (@onelabs/dapp-kit) |
 | **Ethereum** | Viem 2.41, ethers.js v6 |
-| **Chains** | Monad, Cronos, Ethereum, Polygon, Aptos, Solana, Flow, SEI + 50 via Relay |
+| **Chains** | Monad, Cronos, Mantle, Ethereum, Polygon, Aptos, Solana, Flow, SEI, Creditcoin + 50 via Relay |
 | **Protocols** | EIP-3009 (TransferWithAuthorization), EIP-712, EIP-191 |
 
 ### Infrastructure
@@ -340,8 +352,10 @@ flowchart LR
 
 | Chain | Tools | Key Capabilities |
 |-------|-------|------------------|
+| **Arkham Intelligence** | 43 | Whale tracking, entity investigation, fund flow analysis, portfolio, transfers, DEX swaps, token data, market metrics, address labels — across 20+ chains (Ethereum, Bitcoin, Solana, BSC, Tron, TON, Dogecoin, etc.) |
 | **Cronos EVM** | 12 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info, internal tx, logs |
 | **Cronos zkEVM** | 11 | zkCRO balance, tx history, token transfers, internal tx, contract ABI/source, token supply, block info |
+| **Mantle Network** | 12 | MNT balance, blocks, transactions, tokens, gas, tx history, token transfers, token list, portfolio, contract ABI/source, L2 rollup info |
 | **EVM (Generic)** | 6 | Etherscan, Zerion portfolio, ENS resolution, multi-chain wallet |
 | **Aptos + Shelby** | 13 | Coin balance, resources, modules, ANS names, transactions, **Shelby blob upload, retrieval, pricing, NFT minting** |
 | **Solana** | 4 | Token balances, portfolio, market data |
@@ -349,6 +363,7 @@ flowchart LR
 | **SEI** | 4 | Cosmos queries, IBC transfers |
 | **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
 | **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
+| **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
 | **Wormhole** | 2 | Cross-chain bridge, guardian verification |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
 
@@ -380,16 +395,19 @@ const zkevmTools = {
 
 | Chain | SDK | Network | RPC Provider | Capabilities |
 |-------|-----|---------|--------------|--------------|
+| **Arkham Intelligence** | REST API | All chains | `api.arkm.com` | Entity intel, whale tracking, fund flows, 20+ chains |
 | **Cronos EVM** | `viem` + `ethers.js v6` | Mainnet + Testnet | Cronos RPC | EVM tx, CRC-20, Relay Swaps |
 | **Cronos zkEVM** | Native fetch | Mainnet (388) | zkEVM Explorer API | zkCRO, ERC-20, internal tx |
+| **Mantle** | `viem` + Etherscan V2 | Mainnet (5000) | Mantle RPC | MNT, portfolio, L2 rollup, contracts |
 | **Ethereum** | `viem` + `ethers.js v6` | Mainnet | Infura/Alchemy | ENS, ERC-20/721/1155 |
 | **Polygon** | `viem` | PoS Mainnet | QuickNode | Low-cost tx, NFTs |
 | **Aptos** | `@aptos-labs/ts-sdk` | Mainnet | Aptos Fullnode | Move, ANS names |
-| **Shelby (Aptos)** | `@shelby-protocol/sdk` | Shelbynet | Shelby RPC | Blob storage, NFT minting, pricing |
+| **Shelby (Aptos)** | `@shelby-protocol/sdk` | Testnet | Shelby RPC | Blob storage, NFT minting, pricing |
 | **Flow** | `@onflow/fcl` | Mainnet | Flow Access Node | Cadence, NFTs |
 | **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
 | **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
 | **Monad** | `viem` + Zerion API | Mainnet (143) | Monad RPC | MON, portfolio, DeFi, NFTs, nad.fun |
+| **Creditcoin** | Blockscout API | Mainnet | Blockscout RPC | CTC balance, tx, stats |
 
 ### Relay Protocol Cross-Chain Swaps
 
@@ -568,9 +586,136 @@ Tell me about the Monad ecosystem and upcoming events
 
 ---
 
+### 🕵️ Arkham Intelligence — Blockchain Investigation & Whale Tracking
+
+Barzakh AI integrates **[Arkham Intelligence](https://arkm.com)** with **43 dedicated tools** for deep blockchain investigation, whale tracking, and entity intelligence across **20+ chains** (Ethereum, Bitcoin, Solana, BSC, Tron, TON, Dogecoin, Polygon, Arbitrum, Base, and more).
+
+#### Arkham Tool Categories
+
+| Category | Tools | Key Functions |
+|----------|-------|---------------|
+| **Intelligence** | 10 | Search entities, address enrichment, batch lookup, entity info, predictions, entity types, balance changes, contract intel, token intel, intel updates |
+| **Transfers & Transactions** | 3 | Whale transfer tracking (filter by USD, entity, chain, time), transfer histograms, transaction lookup |
+| **Balances & Portfolio** | 4 | Multi-chain balances, Solana subaccounts, portfolio snapshots, portfolio time series |
+| **Flow & Analytics** | 5 | USD flow history, top counterparties, volume analysis, activity history, DeFi loan positions |
+| **Token Data** | 12 | Top/trending tokens, market data, holders, balances, addresses, price history, price changes, top flows, volume, exchange tokens |
+| **DEX Swaps** | 1 | DEX trade history across Uniswap, Sushiswap, and more |
+| **Networks & Infra** | 4 | Supported chains, network status, network history, cluster analysis |
+| **Market Data** | 2 | Altcoin index, ARKM circulating supply |
+| **Tags & Labels** | 2 | Tag info/summary, user custom labels |
+
+#### Supported Arkham Chains
+
+```
+ethereum · bitcoin · solana · bsc · polygon · arbitrum · optimism · base
+tron · ton · dogecoin · avalanche · fantom · blast · linea · manta
+mantle · sonic · flare · zcash
+```
+
+#### 🎯 Try It — Arkham Intelligence Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+##### 🐳 Whale Tracking
+```
+Show me the largest transfers on Ethereum in the last 24 hours over $1M
+```
+```
+Track fund flows for Binance in the last 7 days
+```
+```
+Who are the top counterparties of Jump Trading?
+```
+
+##### 🔍 Entity Investigation
+```
+Search Arkham for Wintermute
+```
+```
+Get intelligence on address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+```
+```
+What entities are accumulating Bitcoin?
+```
+
+##### 📊 Token Analysis
+```
+Show me trending tokens on Arkham
+```
+```
+Who are the top holders of Ethereum?
+```
+```
+Get price history for Bitcoin from Arkham
+```
+
+##### 📈 Market & Portfolio
+```
+Show Binance's portfolio on Ethereum
+```
+```
+Get the Arkham Altcoin Index
+```
+```
+What are the DeFi loans for this address?
+```
+
+---
+
+### 🏔️ Mantle Network — L2 Blockchain Tools
+
+Barzakh AI provides **12 dedicated Mantle tools** for comprehensive interaction with Mantle Network (Chain ID 5000), a high-performance L2 on Ethereum with ultra-low gas fees.
+
+#### Mantle On-Chain Tools
+
+| Tool | Function |
+|------|----------|
+| `getMantleBalance` | Native MNT balance for any wallet |
+| `getMantleBlockInfo` | Block details (number, hash, timestamp, gas) |
+| `getMantleTransaction` | Transaction details by hash (with receipt) |
+| `getMantleTokenBalance` | ERC-20 token balance on Mantle |
+| `getMantleGasPrice` | Current gas price with fee estimates |
+| `getMantleTransactionHistory` | Full tx history via Zerion API |
+| `getMantleTokenTransfers` | ERC-20 transfer events |
+| `getMantleTokenList` | All token holdings for a wallet |
+| `getMantlePortfolio` | Complete portfolio: MNT + tokens + DeFi |
+| `getMantleContractABI` | Verified contract ABI |
+| `getMantleContractSource` | Contract source code |
+| `getMantleRollupInfo` | L2 rollup & batch data |
+
+#### 🎯 Try It — Mantle Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+```
+What is the MNT balance of 0x1234...?
+```
+```
+Show my portfolio on Mantle
+```
+```
+What is the current gas price on Mantle?
+```
+```
+Get transaction history for 0x1234... on Mantle
+```
+
+---
+
+### 💳 Creditcoin — Blockchain Data Tools
+
+Barzakh AI integrates **Creditcoin** via the Blockscout API for real-time blockchain data and network statistics.
+
+| Tool | Function |
+|------|----------|
+| `getCreditcoinApiData` | AI-driven query routing to Blockscout API endpoints |
+| `getCreditcoinStats` | Network statistics screenshot from Blockscout |
+
+---
+
 ### 📦 Shelby Protocol — Decentralized Storage & NFT Minting
 
-Barzakh AI integrates **[Shelby Protocol](https://shelby.xyz)** for decentralized blob storage on the Aptos-based `shelbynet` blockchain. The AI autonomously uploads, retrieves, and anchors files as **Aptos Token V2 Digital Asset NFTs**.
+Barzakh AI integrates **[Shelby Protocol](https://shelby.xyz)** for decentralized blob storage on the Aptos Testnet blockchain. The AI autonomously uploads, retrieves, and anchors files as **Aptos Token V2 Digital Asset NFTs**.
 
 #### How It Works
 
@@ -614,7 +759,7 @@ flowchart LR
 - **Collection**: All uploads mint into a unified **"Barzakh AI Storage"** collection
 - **Auto-Provisioning**: Collection is created automatically on first mint; subsequent mints detect `ECOLLECTION_ALREADY_EXISTS` and proceed
 - **Asset URI**: Each NFT's `uri` points to the Shelby `publicUrl`, making content directly accessible
-- **Network**: `shelbynet` (experimental Aptos environment)
+- **Network**: Aptos Testnet
 - **Signer**: Ed25519 key from `SHELBY_APTOS_PRIVATE_KEY` (server-side only)
 
 #### 🎯 Try It — Shelby Use Cases
@@ -897,7 +1042,8 @@ barzakh-ai/
 │           │   ├── models.ts         # Model configurations
 │           │   ├── prompts.ts        # System prompts (58KB+)
 │           │   ├── intent-classifier.ts  # Chain-aware routing
-│           │   └── tools/            # 65+ blockchain tools
+│           │   └── tools/            # 100+ blockchain tools
+│           │       ├── onchain/      # Arkham Intelligence (43 tools)
 │           │       ├── cronos/       # Cronos EVM + zkEVM + VVS DEX
 │           │       │   ├── cronos-tools.ts        # Cronos EVM (12 tools)
 │           │       │   ├── cronos-zkevm-tools.ts  # Cronos zkEVM (11 tools)
@@ -910,9 +1056,11 @@ barzakh-ai/
 │           │       ├── flow/         # Flow blockchain
 │           │       ├── sei/          # SEI chain
 │           │       ├── zeta/         # Zeta chain
-│           │       ├── monad/        # Monad (testnet)
+│           │       ├── monad/        # Monad mainnet
+│           │       ├── mantle/       # Mantle L2 (12 tools)
+│           │       ├── creditcoin/   # Creditcoin (Blockscout)
 │           │       ├── wormhole/     # Cross-chain bridge
-│           │       └── onchain/      # Cross-chain utilities
+│           │       └── relay/        # Relay Protocol cross-chain swaps
 │           ├── payments/
 │           │   └── x402-facilitator.ts  # x402 protocol implementation
 │           ├── security/             # Input sanitization
@@ -981,6 +1129,8 @@ GOOGLE_GENERATIVE_AI_API_KEY=...         # Gemini image generation
 # ── External APIs (Optional) ─────────────────────────────────────────────
 ZERION_API_KEY=...                       # Wallet portfolio analysis
 TAVILY_API_KEY=...                       # Web search tool
+ARKHAM_API_KEY=...                       # Arkham Intelligence (whale tracking, entity intel)
+ETHERSCAN_API_KEY=...                    # Etherscan V2 (Mantle, multi-chain)
 
 # ── Payments (Optional) ──────────────────────────────────────────────────
 STRIPE_SECRET_KEY=sk_...
@@ -1113,5 +1263,5 @@ MIT License - see [LICENSE](LICENSE)
 </p>
 
 <p align="center">
-  <sub>🚀 AI Agent that executes onchain | ⛓️ 85+ chains via Relay | 🔒 Security First</sub>
+  <sub>🚀 AI Agent that executes onchain | ⛓️ 85+ chains via Relay | 🕵️ 43 Arkham Intel tools | 🔒 Security First</sub>
 </p>
