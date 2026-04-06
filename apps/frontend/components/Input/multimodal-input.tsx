@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import type { Attachment, ChatRequestOptions, CreateMessage, Message } from "ai";
 import type React from "react";
 import {
@@ -17,12 +16,11 @@ import {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { sanitizeUIMessages } from "@barzakh/shared/lib/utils/utils";
-import { StopIcon } from "../icons";
 import { PreviewAttachment } from "../preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { User } from "next-auth";
-import { cn, SearchGroup, SearchGroupId } from "@barzakh/shared/lib/utils/utils";
+import type { User } from "next-auth";
+import { cn, type SearchGroup, type SearchGroupId } from "@barzakh/shared/lib/utils/utils";
 import { motion, AnimatePresence } from "@/lib/framer-motion";
 import { ModelSelector } from "./model-selector";
 import { GroupSelector } from "./GroupSelector";
@@ -549,10 +547,6 @@ function PureMultimodalInput({
   };
 
   const submitForm = useCallback(async () => {
-    if (!user?.id) {
-      toast.error("Please login to continue");
-      return;
-    }
     if (isLoading) {
       toast.error("Please wait for the previous response to complete.");
       return;
@@ -562,7 +556,9 @@ function PureMultimodalInput({
       return;
     }
 
-    window.history.replaceState({}, "", `/c/${chatId}`);
+    if (user?.id) {
+      window.history.replaceState({}, "", `/c/${chatId}`);
+    }
 
     const imageAttachments = attachments.filter((att) =>
       att.contentType?.startsWith("image/")
@@ -665,7 +661,7 @@ function PureMultimodalInput({
         try {
           // For text-based files, try to read the content
           const isTextFile = /\.(txt|csv|json|md|html|xml|yaml|yml|toml|ini|cfg|log|sql|sh|bat|ps1|py|js|ts|jsx|tsx|css|scss|less|go|rs|rb|java|c|cpp|h|hpp)$/i.test(attachmentName);
-          
+
           if (isTextFile) {
             // Try proxy-file for text files
             const response = await fetch('/api/proxy-file', {
@@ -673,13 +669,13 @@ function PureMultimodalInput({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ fileUrl: attachment.url }),
             });
-            
+
             if (response.ok) {
               const content = await response.text();
               return `\n\n${attachmentName}\n\`\`\`${attachmentName.split('.').pop() || 'text'}\n${content}\n\`\`\``;
             }
           }
-          
+
           // For binary files (PDF, images, videos, etc.) or if text fetch failed,
           // include the URL so the AI can pass it to tools like uploadToShelby
           return `\n\n${attachmentName} (URL: ${attachment.url})`;
@@ -972,6 +968,7 @@ function PureMultimodalInput({
             className="hidden md:block absolute inset-x-0 mx-auto w-fit -top-14 z-50"
           >
             <button
+              type="button"
               onClick={scrollMessagesToBottom}
               className={cn(
                 "group relative flex items-center justify-center", // Added flex centering
@@ -995,6 +992,8 @@ function PureMultimodalInput({
       </AnimatePresence>
 
       <div
+        role="group"
+        aria-label="Message composer"
         className={cn(
           "relative w-full flex flex-col rounded-3xl transition-all duration-300",
           "bg-zinc-100 dark:bg-zinc-800",
@@ -1032,9 +1031,9 @@ function PureMultimodalInput({
                   </motion.div>
                 ))}
 
-                {uploadQueue.map((filename, index) => (
+                {uploadQueue.map((filename) => (
                   <motion.div
-                    key={`up-${filename}-${index}`}
+                    key={`up-${filename}`}
                     layout
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -1065,7 +1064,7 @@ function PureMultimodalInput({
             className="invisible absolute top-0 left-0 -z-50 w-full overflow-hidden break-words whitespace-pre-wrap pl-4 pr-4 py-2.5 md:py-3.5 text-base leading-relaxed"
             aria-hidden="true"
           >
-            {input + ' '}
+            {`${input} `}
           </div>
           <Textarea
             ref={textareaRef}
@@ -1135,7 +1134,7 @@ function PureMultimodalInput({
                     <ModelSelector
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}
-                      disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup)}
+                      disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup) || !user}
                       allowedModels={undefined}
                     />
                   )}

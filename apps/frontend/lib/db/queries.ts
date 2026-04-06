@@ -3,8 +3,6 @@ import { cache } from 'react';
 
 import { genSaltSync, hashSync } from "bcrypt-ts";
 import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
 import { isReservedUsername } from "@/lib/reserved-usernames";
 
 import {
@@ -24,6 +22,8 @@ import {
   subscription,
   billingAddress,
   x402_transactions,
+  guest_session,
+  type GuestSession,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -55,7 +55,7 @@ if (process.env.NODE_ENV === 'development' && !isInitialized) {
 
 export function generateOTP(): string {
   // SECURITY: Use cryptographically secure random number generation
-  const randomBytes = require('crypto').randomBytes(4);
+  const randomBytes = require('node:crypto').randomBytes(4);
   const randomNumber = randomBytes.readUInt32BE(0);
   return (100000 + (randomNumber % 900000)).toString();
 }
@@ -230,7 +230,7 @@ async function generateUsernameFromName(name?: string | null, email?: string | n
   let baseUsername = "";
 
   // Try to use name first, skip reserved words
-  if (name && name.trim()) {
+  if (name?.trim()) {
     // Split name into parts and filter out reserved words
     const nameParts = name.toLowerCase().split(/\s+/);
     const validParts: string[] = [];
@@ -262,12 +262,12 @@ async function generateUsernameFromName(name?: string | null, email?: string | n
   // Ensure it starts with a letter
   if (!baseUsername || !/^[a-z]/.test(baseUsername)) {
     // Use 'user' prefix if empty or doesn't start with a letter
-    baseUsername = 'user' + baseUsername;
+    baseUsername = `user${baseUsername}`;
   }
 
   // Ensure minimum length of 3
   if (baseUsername.length < 3) {
-    baseUsername = baseUsername + 'user';
+    baseUsername = `${baseUsername}user`;
   }
 
   // Truncate to max 16 chars to leave room for random suffix
@@ -278,7 +278,7 @@ async function generateUsernameFromName(name?: string | null, email?: string | n
   // Final check - if base username is still reserved (edge case), use random fallback
   if (isReservedUsername(baseUsername, email)) {
     const fallbackSuffix = Math.floor(10000000 + Math.random() * 90000000).toString();
-    baseUsername = 'user' + fallbackSuffix;
+    baseUsername = `user${fallbackSuffix}`;
   }
 
   // Try the base username first, then add random suffix if taken
@@ -307,7 +307,7 @@ async function generateUsernameFromName(name?: string | null, email?: string | n
 
   // Fallback: use 'user' + random UUID portion (this is always safe)
   const fallbackSuffix = Math.floor(10000000 + Math.random() * 90000000).toString();
-  return 'user' + fallbackSuffix;
+  return `user${fallbackSuffix}`;
 }
 
 export async function saveChat({
@@ -601,16 +601,17 @@ export async function getMessagesByChatId({ id }: { id: string }) {
 
     while (currentId && depth < maxDepth && !seenIds.has(currentId)) {
       seenIds.add(currentId);
+      const chatId = currentId;
 
       const chatRows = await db
         .select({ forkedFromChatId: chat.forkedFromChatId })
         .from(chat)
-        .where(eq(chat.id, currentId!));
+        .where(eq(chat.id, chatId));
 
       const messages = await db
         .select()
         .from(message)
-        .where(eq(message.chatId, currentId!))
+        .where(eq(message.chatId, chatId))
         .orderBy(asc(message.createdAt));
 
       const chatInfo = chatRows[0];
@@ -623,7 +624,7 @@ export async function getMessagesByChatId({ id }: { id: string }) {
       // Iteration 3 (Grandparent): allMessages = [GrandparentMsgs, ...ParentMsgs, ...LeafMsgs]
       allMessages = [...messages, ...allMessages];
 
-      if (chatInfo && chatInfo.forkedFromChatId) {
+      if (chatInfo?.forkedFromChatId) {
         currentId = chatInfo.forkedFromChatId;
       } else {
         currentId = null;
@@ -1051,6 +1052,98 @@ export async function updateUserProfile({
     return result[0];
   } catch (error) {
     console.error("Failed to update user profile:", error);
+    throw error;
+  }
+}
+
+const GUEST_MESSAGE_LIMIT = 5;
+const GUEST_RESET_HOURS = 24;
+
+export async function getOrCreateGuestSession(fingerprint: string): Promise<{
+  guestSession: GuestSession;
+  guestUserId: string;
+}> {
+  try {
+    const existing = await db
+      .select()
+      .from(guest_session)
+      .where(eq(guest_session.fingerprint, fingerprint))
+      .limit(1);
+
+    if (existing.length > 0) {
+      let session = existing[0];
+      const now = new Date();
+      const resetTime = new Date(session.lastResetAt);
+      const hoursSinceReset = (now.getTime() - resetTime.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceReset >= GUEST_RESET_HOURS) {
+        const [updated] = await db
+          .update(guest_session)
+          .set({
+            dailyMessageRemaining: GUEST_MESSAGE_LIMIT,
+            lastResetAt: now,
+          })
+          .where(eq(guest_session.id, session.id))
+          .returning();
+        session = updated;
+      }
+
+      return { guestSession: session, guestUserId: session.userId };
+    }
+
+    const guestUserId = crypto.randomUUID();
+    const randomSuffix = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const guestUsername = `guest${randomSuffix}`;
+
+    await db.insert(user).values({
+      id: guestUserId,
+      name: "Guest",
+      username: guestUsername,
+      tier: "guest",
+    });
+
+    const [newSession] = await db
+      .insert(guest_session)
+      .values({
+        fingerprint,
+        userId: guestUserId,
+        dailyMessageRemaining: GUEST_MESSAGE_LIMIT,
+      })
+      .returning();
+
+    return { guestSession: newSession, guestUserId };
+  } catch (error) {
+    console.error("Failed to get or create guest session:", error);
+    throw error;
+  }
+}
+
+export async function decrementGuestMessageCount(sessionId: string) {
+  try {
+    await db
+      .update(guest_session)
+      .set({
+        dailyMessageRemaining: sql`${guest_session.dailyMessageRemaining} - 1`,
+      })
+      .where(eq(guest_session.id, sessionId));
+  } catch (error) {
+    console.error("Failed to decrement guest message count:", error);
+    throw error;
+  }
+}
+
+export async function resetGuestSessionLimits() {
+  try {
+    const cutoff = new Date(Date.now() - GUEST_RESET_HOURS * 60 * 60 * 1000);
+    await db
+      .update(guest_session)
+      .set({
+        dailyMessageRemaining: GUEST_MESSAGE_LIMIT,
+        lastResetAt: new Date(),
+      })
+      .where(sql`${guest_session.lastResetAt} <= ${cutoff}`);
+  } catch (error) {
+    console.error("Failed to reset guest session limits:", error);
     throw error;
   }
 }

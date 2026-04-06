@@ -10,16 +10,17 @@ import type { Vote, Chat as ChatHistory } from "@/lib/db/schema";
 import {
   fetcher,
   generateUUID,
-  SearchGroupId,
+  type SearchGroupId,
 } from "@barzakh/shared/lib/utils/utils";
 import { MultimodalInput } from "./Input/multimodal-input";
 import { Messages } from "./messages";
-import { VisibilityType } from "./visibility-selector";
+import type { VisibilityType } from "./visibility-selector";
 import { toast } from "sonner";
-import { User } from "next-auth";
+import type { User } from "next-auth";
 import { InstallPrompt } from "./install-prompt";
 import { ArchiveRestore, Loader2 } from "lucide-react";
 import { restoreChat } from "@/app/(chat)/actions";
+import { useFingerprint } from "@/hooks/use-fingerprint";
 
 import { useView } from "@/context/view-context";
 import { ArtifactProvider } from "@/context/artifact-context";
@@ -27,6 +28,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { ArtifactViewer } from "./artifact-viewer";
 import { Overview } from "./overview";
 import { QuestionSuggestions } from "./Input/question-suggestions";
+import { GuestLimitBanner } from "@/components/guest-limit-banner";
 import dynamic from "next/dynamic";
 
 const LoadingSettings = () => (
@@ -92,6 +94,8 @@ export function Chat({
 
   // Manage model state locally for dynamic updates without page reload
   const [currentModelId, setCurrentModelId] = useState(selectedChatModel);
+  const fingerprint = useFingerprint();
+  const [guestLimitReached, setGuestLimitReached] = useState(false);
 
   const { data: history } = useSWR<Array<ChatHistory>>(
     user ? "/api/history" : null,
@@ -122,8 +126,9 @@ export function Chat({
     body: {
       id: activeChatId,
       selectedChatModel: currentModelId,
-      // Pass original chat ID for context when forking a shared chat  
+      // Pass original chat ID for context when forking a shared chat
       ...(originalChatId && { history_for_context_id: originalChatId }),
+      ...(!user && fingerprint && { fingerprint }),
     },
     initialMessages,
     experimental_throttle: 250,
@@ -137,6 +142,18 @@ export function Chat({
       }
     },
     onError: (error: any) => {
+      try {
+        const parsed = JSON.parse(error.message);
+        if (parsed?.error === "guest_limit_reached") {
+          setGuestLimitReached(true);
+          return;
+        }
+      } catch {
+        if (error.message?.includes("guest_limit_reached") || error.message?.includes("Create an account")) {
+          setGuestLimitReached(true);
+          return;
+        }
+      }
       toast.error(error.message);
     },
   });
@@ -334,9 +351,9 @@ export function Chat({
             // Show settings list in the sidebar and ensure it's visible across devices
             if (setSidebarView) setSidebarView('settings');
             if (isMobile) {
-              setOpenMobile && setOpenMobile(true);
+              setOpenMobile?.(true);
             } else {
-              setOpen && setOpen(true);
+              setOpen?.(true);
             }
             setView("chat");
           }) : undefined}
@@ -370,29 +387,33 @@ export function Chat({
                     <QuestionSuggestions append={append} history={history} user={user} />
                   </div>
                   <div className="w-full">
-                    <MultimodalInputAny
-                      chatId={activeChatId}
-                      input={input}
-                      setInput={setInput}
-                      handleSubmit={handleSubmit}
-                      isLoading={isLoading}
-                      isReadonly={effectiveIsReadonly}
-                      selectedModelId={currentModelId}
-                      onModelChange={setCurrentModelId}
-                      stop={stop}
-                      attachments={attachments}
-                      setAttachments={setAttachments}
-                      messages={messages}
-                      setMessages={setMessages}
-                      append={append}
-                      user={user}
-                      selectedGroup={selectedGroup}
-                      setSelectedGroup={setSelectedGroup}
-                      isAtBottom={isAtBottom}
-                      history={history}
-                      onSubmitMessage={scrollToBottom}
-                      disableSuggestions={true}
-                    />
+                    {guestLimitReached && !user ? (
+                      <GuestLimitBanner />
+                    ) : (
+                      <MultimodalInputAny
+                        chatId={activeChatId}
+                        input={input}
+                        setInput={setInput}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
+                        isReadonly={effectiveIsReadonly}
+                        selectedModelId={currentModelId}
+                        onModelChange={setCurrentModelId}
+                        stop={stop}
+                        attachments={attachments}
+                        setAttachments={setAttachments}
+                        messages={messages}
+                        setMessages={setMessages}
+                        append={append}
+                        user={user}
+                        selectedGroup={selectedGroup}
+                        setSelectedGroup={setSelectedGroup}
+                        isAtBottom={isAtBottom}
+                        history={history}
+                        onSubmitMessage={scrollToBottom}
+                        disableSuggestions={true}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -428,28 +449,32 @@ export function Chat({
                         </button>
                       </div>
                     ) : (
-                      <MultimodalInputAny
-                        chatId={activeChatId}
-                        input={input}
-                        setInput={setInput}
-                        handleSubmit={handleSubmit}
-                        isLoading={isLoading}
-                        isReadonly={effectiveIsReadonly}
-                        selectedModelId={currentModelId}
-                        onModelChange={setCurrentModelId}
-                        stop={stop}
-                        attachments={attachments}
-                        setAttachments={setAttachments}
-                        messages={messages}
-                        setMessages={setMessages}
-                        append={append}
-                        user={user}
-                        selectedGroup={selectedGroup}
-                        setSelectedGroup={setSelectedGroup}
-                        isAtBottom={isAtBottom}
-                        history={history}
-                        onSubmitMessage={scrollToBottom}
-                      />
+                      guestLimitReached && !user ? (
+                        <GuestLimitBanner />
+                      ) : (
+                        <MultimodalInputAny
+                          chatId={activeChatId}
+                          input={input}
+                          setInput={setInput}
+                          handleSubmit={handleSubmit}
+                          isLoading={isLoading}
+                          isReadonly={effectiveIsReadonly}
+                          selectedModelId={currentModelId}
+                          onModelChange={setCurrentModelId}
+                          stop={stop}
+                          attachments={attachments}
+                          setAttachments={setAttachments}
+                          messages={messages}
+                          setMessages={setMessages}
+                          append={append}
+                          user={user}
+                          selectedGroup={selectedGroup}
+                          setSelectedGroup={setSelectedGroup}
+                          isAtBottom={isAtBottom}
+                          history={history}
+                          onSubmitMessage={scrollToBottom}
+                        />
+                      )
                     )}
                   </form>
                 </div>
