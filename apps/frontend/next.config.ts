@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -15,7 +16,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   // Turbopack configuration for Next.js 16
-  turbopack: {},
+  turbopack: {
+    root: path.resolve(__dirname, "../../"),
+  },
   webpack: (config, { isServer }) => {
     // Handle WalletConnect / RainbowKit / wagmi dependencies
     // These packages have optional dependencies that aren't needed for web

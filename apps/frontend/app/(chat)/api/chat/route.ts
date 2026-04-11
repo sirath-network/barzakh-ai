@@ -73,6 +73,15 @@ function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
 // - user content is string | Array<TextPart | ImagePart | FilePart>
 // - image.image is raw base64 string, Uint8Array, ArrayBuffer, Buffer, or URL object
 // - text parts have text as a plain string
+// Security Allowlists for Multimodal Content
+const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_IMAGE_DOMAINS = [
+  'r2.barzakh.tech',
+  'pub-fba11d080c984950a31623838ae058f9.r2.dev', // R2 Public bucket
+  'imagedelivery.net', // Cloudflare Images
+  'lh3.googleusercontent.com', // Google User Content
+];
+
 function toCoreSafeMessages(messages: Array<Message>): Array<CoreMessage> {
   const result: CoreMessage[] = [];
 
@@ -106,16 +115,45 @@ function toCoreSafeMessages(messages: Array<Message>): Array<CoreMessage> {
           parts.push({ type: 'text', text });
         } else if (part.type === 'image') {
           const img = part.image;
+          const mimeType = part.mimeType?.toLowerCase();
+
+          // Securtiy Fix (CVE-2025-48985): Validate MIME types
+          if (mimeType && !ALLOWED_IMAGE_MIME_TYPES.includes(mimeType)) {
+            console.warn(`[SECURITY] Blocked unsupported image MIME type: ${mimeType}`);
+            continue;
+          }
+
           if (typeof img === 'string') {
             // Strip data URI prefix — SDK needs raw base64 or a URL object
             const dataUriMatch = img.match(/^data:([^;]+);base64,(.+)$/s);
             if (dataUriMatch) {
-              parts.push({ type: 'image', image: dataUriMatch[2], mimeType: part.mimeType ?? dataUriMatch[1] });
+              const uriMimeType = dataUriMatch[1].toLowerCase();
+              if (!ALLOWED_IMAGE_MIME_TYPES.includes(uriMimeType)) {
+                console.warn(`[SECURITY] Blocked unsupported data URI MIME type: ${uriMimeType}`);
+                continue;
+              }
+              parts.push({ type: 'image', image: dataUriMatch[2], mimeType: uriMimeType });
             } else if (img.startsWith('http://') || img.startsWith('https://')) {
-              parts.push({ type: 'image', image: new URL(img) });
+              try {
+                const url = new URL(img);
+                // Security Fix (CVE-2025-48985): Domain validation for external images
+                // Note: We allow signed R2 URLs which might be dynamic, but we can check the host
+                const isAllowedDomain = ALLOWED_IMAGE_DOMAINS.some((domain: string) => url.hostname.endsWith(domain));
+                if (!isAllowedDomain && process.env.NODE_ENV === 'production') {
+                   // In production, we are stricter with external image domains
+                   console.warn(`[SECURITY] Blocked external image from untrusted domain: ${url.hostname}`);
+                   continue;
+                }
+                parts.push({ type: 'image', image: url });
+              } catch (e) {
+                console.warn(`[SECURITY] Invalid image URL: ${img}`);
+                continue;
+              }
             } else {
-              // Assume already raw base64
-              parts.push({ type: 'image', image: img, mimeType: part.mimeType });
+              // Assume already raw base64 — ensure we have a valid mimeType
+              if (mimeType) {
+                parts.push({ type: 'image', image: img, mimeType: mimeType });
+              }
             }
           } else {
             parts.push(part);
@@ -291,7 +329,7 @@ export async function POST(request: Request) {
         const freeLimit = Number(process.env.FREE_USER_MESSAGE_LIMIT) || 10;
         const { db } = await import("@/lib/db/db");
         const { user } = await import("@/lib/db/schema");
-        const { eq } = await import("drizzle-orm");
+        const { eq } = (await import("drizzle-orm")) as any;
         await db.update(user).set({
           tier: "free",
           billingCycle: "monthly",
