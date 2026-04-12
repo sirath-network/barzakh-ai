@@ -882,6 +882,7 @@ const groupPrompts = {
 
   ## Web Search:
   Use webSearch tool for searching the web for any information the user asks.
+  Tool results include \`web\` (Tavily pages) and often \`news\` (NewsAPI articles when the news topic is used). If \`web\` is empty but \`news\` contains articles, you still have retrieved sources: summarize those articles (titles, outlets, dates) and answer normally. Do not tell the user the search completely failed or that you lack recent data unless both are empty.
   Pass 2-3 queries in one call.
   Specify the year or "latest" in queries to fetch recent information when needed.
   For crypto/tech topics, ALWAYS include one query targeting x.com (e.g. "bitcoin price site:x.com") to get social sentiment.
