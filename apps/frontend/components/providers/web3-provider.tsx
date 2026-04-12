@@ -9,7 +9,6 @@ import { useTheme } from 'next-themes';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import '@rainbow-me/rainbowkit/styles.css';
 import { DynamicWalletProvider } from './dynamic-wallet-provider';
-import { OneChainWalletProvider } from './onechain-wallet-provider';
 import { cookieStorage, createStorage } from 'wagmi';
 
 interface Web3ProviderProps {
@@ -100,15 +99,9 @@ export function Web3Provider({ children, initialState }: Web3ProviderProps) {
       <WagmiProvider config={activeConfig} initialState={initialState}>
         <QueryClientProvider client={queryClient}>
           {mounted ? (
-            <RainbowKitProviderWrapper>
-              <OneChainWalletProvider>
-                {children}
-              </OneChainWalletProvider>
-            </RainbowKitProviderWrapper>
+            <RainbowKitProviderWrapper>{children}</RainbowKitProviderWrapper>
           ) : (
-            <OneChainWalletProvider>
-              {children}
-            </OneChainWalletProvider>
+            children
           )}
         </QueryClientProvider>
       </WagmiProvider>

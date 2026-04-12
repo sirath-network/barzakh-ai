@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata } from "next/types";
+import { headers } from "next/headers";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Web3Provider } from "@/components/providers/web3-provider";
 import { SessionProvider } from "next-auth/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import Script from "next/script";
 import "./globals.css";
 
 const baseUrl = "https://chat.barzakh.tech";
@@ -100,12 +101,8 @@ const THEME_COLOR_SCRIPT = `\
   updateThemeAssets();
 })();`;
 
-import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
 import { config } from "@/lib/wagmi";
-
-
-
 import { ChunkErrorHandler } from "@/components/chunk-error-handler";
 
 export default async function RootLayout({
