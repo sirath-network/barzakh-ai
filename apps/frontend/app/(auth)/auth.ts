@@ -120,30 +120,17 @@ export const authOptions: NextAuthConfig = {
             return null;
           }
 
-          // 2. Verify the signature
-          // Detect Sui addresses (0x prefix + 64 hex chars = 32 bytes)
-          const isSuiAddress = /^0x[0-9a-fA-F]{64}$/.test(address);
+          // 2. Verify the signature (EVM)
+          const { verifyMessage } = await import("viem");
+          const isValid = await verifyMessage({
+            address,
+            message,
+            signature,
+          });
 
-          if (isSuiAddress) {
-            // Sui wallet auth: nonce verification above is the proof of wallet ownership
-            // The dApp kit ensures only the connected wallet can trigger this flow
-            if (signature !== message) {
-              console.error("Invalid Sui auth: signature/message mismatch");
-              return null;
-            }
-          } else {
-            // EVM wallet auth: cryptographically verify the signature
-            const { verifyMessage } = await import("viem");
-            const isValid = await verifyMessage({
-              address,
-              message,
-              signature,
-            });
-
-            if (!isValid) {
-              console.error("Invalid signature");
-              return null;
-            }
+          if (!isValid) {
+            console.error("Invalid signature");
+            return null;
           }
 
           // 3. Find or create user

@@ -135,11 +135,12 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, o
     prevModalOpen.current = connectModalOpen ?? false;
   }, [connectModalOpen]);
 
-  // Reset isInitiatingLogin ONLY when the modal closed AND the wallet did NOT connect.
-  // We defer via setTimeout(0) to let wagmi flush isConnected=true in the same tick
-  // before we make the decision — this closes the race window in the original code.
+  // Reset isInitiatingLogin when RainbowKit closed without a connection.
+  // Also handle the case where the picker dialog unmounted our instance while STORAGE_KEY
+  // is still set (hidden instance must observe connectModalOpen with isInitiatingLogin false).
   useEffect(() => {
-    if (!isInitiatingLogin || !modalJustClosed.current) return;
+    const wasInitiatingFromStorage = localStorage.getItem(STORAGE_KEY) === "true";
+    if ((!isInitiatingLogin && !wasInitiatingFromStorage) || !modalJustClosed.current) return;
     modalJustClosed.current = false;
 
     const timer = setTimeout(() => {
@@ -155,12 +156,17 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, o
     }, 100); // 100 ms is enough for wagmi's state to settle after modal close
 
     return () => clearTimeout(timer);
-  }, [connectModalOpen, isInitiatingLogin]);
+  }, [connectModalOpen, isInitiatingLogin, address]);
 
-  // Notify parent of loading state changes (includes when wallet modal is open)
+  // Notify parent of loading state changes (includes when wallet modal is open).
+  // When this instance unmounts (e.g. wallet picker dialog closes before RainbowKit finishes),
+  // always clear the parent flag — otherwise Google / wallet entry stay disabled forever.
   useEffect(() => {
     const walletInProgress = isLoading || isInitiatingLogin;
     onLoadingChange?.(walletInProgress);
+    return () => {
+      onLoadingChange?.(false);
+    };
   }, [isLoading, isInitiatingLogin, onLoadingChange]);
 
   return (

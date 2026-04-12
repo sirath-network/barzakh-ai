@@ -57,7 +57,16 @@ export default function Page() {
   const [googleLoginInProgress, setGoogleLoginInProgress] = useState(false);
   const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
 
+  const handleWalletSelectorDismiss = () => {
+    setIsWalletSelectorOpen(false);
+    setWalletLoginInProgress(false);
+    setTurnstileToken("");
+    queueMicrotask(() => turnstileRef.current?.reset());
+  };
 
+  const hideWalletSelectorForConnect = () => {
+    setIsWalletSelectorOpen(false);
+  };
 
   // Handle Google OAuth with Turnstile verification
   const handleGoogleSignIn = () => {
@@ -370,14 +379,11 @@ export default function Page() {
       {/* Wallet Selector Modal */}
       <WalletSelectorModal
         isOpen={isWalletSelectorOpen}
-        onClose={() => setIsWalletSelectorOpen(false)}
+        onClose={handleWalletSelectorDismiss}
+        onWalletConnectInitiated={hideWalletSelectorForConnect}
         turnstileToken={turnstileToken}
         disabled={googleLoginInProgress}
         onLoadingChange={setWalletLoginInProgress}
-        onTurnstileReset={() => {
-          turnstileRef.current?.reset();
-          setTurnstileToken("");
-        }}
       />
 
       {/* Hidden persistent listener for wallet login flow */}
