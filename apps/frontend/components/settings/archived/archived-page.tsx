@@ -207,24 +207,46 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
-      method: "DELETE",
-    });
-
-    toast.promise(deletePromise, {
-      loading: "Deleting chat...",
-      success: () => {
-        mutate((history) => {
-          if (history) {
-            return history.filter((h) => h.id !== deleteId);
-          }
-        });
-        return "Chat deleted permanently";
-      },
-      error: "Failed to delete chat",
-    });
-
     setShowDeleteDialog(false);
+
+    // 1. Give immediate feedback and navigation
+    const currentPath = window.location.pathname;
+    const shouldRedirect = currentPath === `/c/${deleteId}`;
+
+    if (shouldRedirect) {
+      window.dispatchEvent(new CustomEvent("chat:reset"));
+      router.push("/");
+      router.refresh();
+    }
+
+    // 2. Optimistic update (remove from local history list immediately)
+    mutate(
+      (history) => {
+        if (history) {
+          return history.filter((h) => h.id !== deleteId);
+        }
+        return [];
+      },
+      { revalidate: false }
+    );
+
+    // 3. Perform server action in background
+    try {
+      const response = await fetch(`/api/chat?id=${deleteId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete chat");
+      }
+
+      // Revalidate truly after success to ensure consistency
+      mutate();
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+      // Revalidate to restore consistency on failure
+      mutate();
+    }
   };
 
   // Sort and paginate items

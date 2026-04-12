@@ -458,6 +458,25 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     const currentPath = window.location.pathname;
     const shouldRedirect = currentPath === `/c/${deleteId}`;
 
+    // 1. Give immediate feedback and navigation
+    if (shouldRedirect) {
+      window.dispatchEvent(new CustomEvent("chat:reset"));
+      router.push("/");
+      router.refresh();
+    }
+
+    // 2. Optimistic update (remove from local history list immediately)
+    mutate(
+      (history) => {
+        if (history) {
+          return history.filter((h) => h.id !== deleteId);
+        }
+        return [];
+      },
+      { revalidate: false }
+    );
+
+    // 3. Perform server action in background
     try {
       const response = await fetch(`/api/chat?id=${deleteId}`, {
         method: "DELETE",
@@ -467,21 +486,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
         throw new Error("Failed to delete chat");
       }
 
-      mutate((history) => {
-        if (history) {
-          return history.filter((h) => h.id !== deleteId);
-        }
-      });
-
-      // Dispatch event to clear chat state, then navigate smoothly
-      if (shouldRedirect) {
-        window.dispatchEvent(new CustomEvent("chat:reset"));
-        router.push("/");
-        router.refresh();
-      }
+      // Revalidate truly after success to ensure consistency
+      mutate();
     } catch (error) {
       console.error("Failed to delete chat:", error);
-      toast.error("Failed to delete chat");
+      // Revalidate to restore consistency on failure
+      mutate();
     }
   };
 

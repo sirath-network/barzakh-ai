@@ -159,16 +159,34 @@ export function ChatHeaderMenu({
     };
 
     const handleDelete = async () => {
+        setIsDeleteOpen(false);
+
+        // 1. Give immediate feedback and navigation
+        // Dispatch event to clear chat state before navigation
+        window.dispatchEvent(new CustomEvent("chat:reset"));
+        router.push("/");
+        router.refresh();
+
+        // 2. Optimistic update (remove from local history list immediately)
+        mutate(
+            "/api/history",
+            (currentData: any[] | undefined) => {
+                if (!currentData) return [];
+                return currentData.filter((chat: any) => chat.id !== chatId);
+            },
+            { revalidate: false }
+        );
+
+        // 3. Perform server action in background
         try {
             await fetch(`/api/chat?id=${chatId}`, { method: "DELETE" });
+            // Revalidate truly after success to ensure consistency
             mutate("/api/history");
-            // Dispatch event to clear chat state before navigation
-            window.dispatchEvent(new CustomEvent("chat:reset"));
-            router.push("/");
-            router.refresh();
+            mutate("/api/history/archived");
         } catch (error) {
             console.error("Failed to delete chat:", error);
-            toast.error("Failed to delete chat");
+            // Revalidate to restore consistency on failure
+            mutate("/api/history");
         }
     };
 
