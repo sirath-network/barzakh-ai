@@ -29,6 +29,7 @@ import {
   Plus,
   SendHorizontal,
   Square,
+  Ghost,
 } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
 import { QuestionSuggestions } from "./question-suggestions";
@@ -188,6 +189,7 @@ function PureMultimodalInput({
   history,
   onSubmitMessage,
   disableSuggestions,
+  isIncognito,
 }: {
   chatId: string;
   input: string;
@@ -219,6 +221,7 @@ function PureMultimodalInput({
   history: ChatHistory[] | undefined;
   onSubmitMessage?: () => void;
   disableSuggestions?: boolean;
+  isIncognito?: boolean;
 }) {
   // Early return for read-only mode - ONLY for guests (not logged in)
   // Logged-in users viewing shared chats should still be able to interact (fork the chat)
@@ -556,7 +559,8 @@ function PureMultimodalInput({
       return;
     }
 
-    if (user?.id) {
+    // Don't update URL for incognito chats - they should vanish on refresh
+    if (user?.id && !isIncognito) {
       window.history.replaceState({}, "", `/c/${chatId}`);
     }
 
@@ -997,8 +1001,12 @@ function PureMultimodalInput({
         className={cn(
           "relative w-full flex flex-col rounded-3xl transition-all duration-300",
           "bg-zinc-100 dark:bg-zinc-800",
-          "overflow-hidden"
+          "overflow-hidden",
+          isIncognito && "ring-2 ring-violet-500/60 shadow-[0_0_15px_rgba(139,92,246,0.3),0_0_30px_rgba(139,92,246,0.1)]"
         )}
+        style={isIncognito ? {
+          animation: 'incognito-glow 3s ease-in-out infinite',
+        } : undefined}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       >
@@ -1052,6 +1060,8 @@ function PureMultimodalInput({
         </AnimatePresence>
 
         <div className="relative flex items-end w-full px-2 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
+
+
           {/* Custom animated placeholder - only when not focused */}
           {!input && messages.length === 0 && !isFocused && (
             <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center text-neutral-500 dark:text-neutral-500 text-base">
@@ -1163,6 +1173,15 @@ function PureMultimodalInput({
 
 
       </div>
+
+      {isIncognito && (
+        <div className="flex items-start justify-center gap-1.5 py-1.5 px-4">
+          <Ghost size={12} className="text-violet-400/80 flex-shrink-0 mt-[3px]" />
+          <p className="text-center text-[10px] md:text-xs text-violet-400/80 leading-tight">
+            This chat won&apos;t appear in your history and will not be used to train models.
+          </p>
+        </div>
+      )}
 
       <p className="hidden md:block text-center text-xs text-neutral-500 dark:text-neutral-500 py-2">
         Barzakh can make mistakes, so double-check it

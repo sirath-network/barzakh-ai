@@ -217,6 +217,31 @@
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
+/* Incognito mode animations */
+@keyframes incognito-glow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.25), 0 0 24px rgba(139, 92, 246, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.15);
+  }
+}
+
+@keyframes ghost-eye-blink {
+  0%, 42%, 58%, 100% {
+    opacity: 0.7;
+    transform: scaleY(1);
+  }
+  45%, 55% {
+    opacity: 0.4;
+    transform: scaleY(0.1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scaleY(0.05);
+  }
+}
+
 /* Improved focus states for accessibility */
 .code-block-button:focus-visible {
   outline: 2px solid rgb(59 130 246);

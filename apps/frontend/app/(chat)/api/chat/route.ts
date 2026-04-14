@@ -243,6 +243,7 @@ export async function POST(request: Request) {
     autoRoute = false, // Enable intelligent intent-based routing
     history_for_context_id,
     fingerprint,
+    isTemporary = false,
   }: {
     id: string;
     messages: Array<Message>;
@@ -251,6 +252,7 @@ export async function POST(request: Request) {
     autoRoute?: boolean;
     history_for_context_id?: string;
     fingerprint?: string;
+    isTemporary?: boolean;
   } = await request.json();
 
   // Authenticate first - BEFORE accessing any user data
@@ -663,30 +665,36 @@ export async function POST(request: Request) {
   const effectiveModel = groupForcedModel || selectedChatModel;
   const finalModel = isGuest ? "google-gemini-2.5-flash-preview" : effectiveModel;
 
-  const chat = await getChatById({ id });
+  // For incognito/temporary chats, skip all DB persistence
+  if (!isTemporary) {
+    const chat = await getChatById({ id });
 
-  if (!chat) {
-    const title = await generateTitleFromUserMessage({ message: userMessage });
-    // Pass forkedFromChatId if this is a forked chat from a shared conversation
-    await saveChat({
-      id,
-      userId: activeUserId,
-      title,
-      forkedFromChatId: history_for_context_id,
-    });
+    if (!chat) {
+      const title = await generateTitleFromUserMessage({ message: userMessage });
+      // Pass forkedFromChatId if this is a forked chat from a shared conversation
+      await saveChat({
+        id,
+        userId: activeUserId,
+        title,
+        forkedFromChatId: history_for_context_id,
+      });
+    }
   }
 
-  // Clean user message content to restore original storage URLs before saving
-  const cleanedUserContent = cleanMessageContentForStorage(userMessage.content);
+  // Skip saving user messages for incognito/temporary chats
+  if (!isTemporary) {
+    // Clean user message content to restore original storage URLs before saving
+    const cleanedUserContent = cleanMessageContentForStorage(userMessage.content);
 
-  await saveMessages({
-    messages: [{
-      ...userMessage,
-      content: cleanedUserContent, // Use cleaned content with restored URLs
-      createdAt: new Date(),
-      chatId: id
-    }],
-  });
+    await saveMessages({
+      messages: [{
+        ...userMessage,
+        content: cleanedUserContent, // Use cleaned content with restored URLs
+        createdAt: new Date(),
+        chatId: id
+      }],
+    });
+  }
 
   // SOLUTION 1: Clean messages before passing to streamText
   const cleanedMessages = validateAndCleanMessages(messages);
@@ -749,31 +757,35 @@ export async function POST(request: Request) {
           onFinish: async ({ response, reasoning }) => {
             after(async () => {
               try {
-                const sanitizedResponseMessages = sanitizeResponseMessages({
-                  messages: response.messages,
-                  reasoning,
-                });
-
-                if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                  const messagesToSave = sanitizedResponseMessages.map((message) => {
-                    const cleanedContent = cleanMessageContentForStorage(message.content);
-                    return {
-                      id: message.id,
-                      chatId: id,
-                      role: message.role,
-                      content: cleanedContent,
-                      createdAt: new Date(),
-                    };
+                // Skip saving messages for incognito/temporary chats
+                if (!isTemporary) {
+                  const sanitizedResponseMessages = sanitizeResponseMessages({
+                    messages: response.messages,
+                    reasoning,
                   });
 
-                  await saveMessages({ messages: messagesToSave });
-                  await updateChatUpdatedAt({ id });
+                  if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
+                    const messagesToSave = sanitizedResponseMessages.map((message) => {
+                      const cleanedContent = cleanMessageContentForStorage(message.content);
+                      return {
+                        id: message.id,
+                        chatId: id,
+                        role: message.role,
+                        content: cleanedContent,
+                        createdAt: new Date(),
+                      };
+                    });
 
-                  if (isGuest && guestSessionId) {
-                    await decrementGuestMessageCount(guestSessionId);
-                  } else if (activeUserId) {
-                    await decrementRemainingMessageCount(activeUserId);
+                    await saveMessages({ messages: messagesToSave });
+                    await updateChatUpdatedAt({ id });
                   }
+                }
+
+                // Always decrement message count (rate limiting applies even in incognito)
+                if (isGuest && guestSessionId) {
+                  await decrementGuestMessageCount(guestSessionId);
+                } else if (activeUserId) {
+                  await decrementRemainingMessageCount(activeUserId);
                 }
               } catch (error) {
                 console.error("Failed to save chat", error);
@@ -808,31 +820,35 @@ export async function POST(request: Request) {
             onFinish: async ({ response, reasoning }) => {
               after(async () => {
                 try {
-                  const sanitizedResponseMessages = sanitizeResponseMessages({
-                    messages: response.messages,
-                    reasoning,
-                  });
-
-                  if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                    const messagesToSave = sanitizedResponseMessages.map((message) => {
-                      const cleanedContent = cleanMessageContentForStorage(message.content);
-                      return {
-                        id: message.id,
-                        chatId: id,
-                        role: message.role,
-                        content: cleanedContent,
-                        createdAt: new Date(),
-                      };
+                  // Skip saving messages for incognito/temporary chats
+                  if (!isTemporary) {
+                    const sanitizedResponseMessages = sanitizeResponseMessages({
+                      messages: response.messages,
+                      reasoning,
                     });
 
-                    await saveMessages({ messages: messagesToSave });
-                    await updateChatUpdatedAt({ id });
+                    if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
+                      const messagesToSave = sanitizedResponseMessages.map((message) => {
+                        const cleanedContent = cleanMessageContentForStorage(message.content);
+                        return {
+                          id: message.id,
+                          chatId: id,
+                          role: message.role,
+                          content: cleanedContent,
+                          createdAt: new Date(),
+                        };
+                      });
 
-                    if (isGuest && guestSessionId) {
-                      await decrementGuestMessageCount(guestSessionId);
-                    } else if (activeUserId) {
-                      await decrementRemainingMessageCount(activeUserId);
+                      await saveMessages({ messages: messagesToSave });
+                      await updateChatUpdatedAt({ id });
                     }
+                  }
+
+                  // Always decrement message count (rate limiting applies even in incognito)
+                  if (isGuest && guestSessionId) {
+                    await decrementGuestMessageCount(guestSessionId);
+                  } else if (activeUserId) {
+                    await decrementRemainingMessageCount(activeUserId);
                   }
                 } catch (error) {
                   console.error("Failed to save chat", error);

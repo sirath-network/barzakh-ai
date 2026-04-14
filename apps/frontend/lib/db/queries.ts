@@ -1147,3 +1147,21 @@ export async function resetGuestSessionLimits() {
     throw error;
   }
 }
+
+export async function deleteExpiredChats() {
+  try {
+    const now = new Date();
+    const result = await db
+      .delete(chat)
+      .where(
+        and(
+          eq(chat.isTemporary, true),
+          sql`${chat.expiresAt} < ${now}`
+        )
+      );
+    return result;
+  } catch (error) {
+    console.error("Failed to delete expired chats:", error);
+    throw error;
+  }
+}

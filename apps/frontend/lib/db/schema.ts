@@ -102,6 +102,8 @@ export const chat = pgTable("Chat", {
     .default("private"),
   isArchived: boolean("isArchived").notNull().default(false),
   forkedFromChatId: uuid("forkedFromChatId"),
+  isTemporary: boolean("isTemporary").notNull().default(false),
+  expiresAt: timestamp("expiresAt"),
 });
 
 export type Chat = InferSelectModel<typeof chat>;

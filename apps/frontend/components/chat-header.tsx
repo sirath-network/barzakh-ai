@@ -14,7 +14,7 @@ import { SidebarUserNav } from "./sidebar-user-nav";
 import type { Message } from "ai";
 import TextStrip from "./text-strip";
 // Import required icons
-import { ArrowLeft, ChevronLeft, PenSquare } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, PenSquare, Ghost } from 'lucide-react';
 import { ArtifactToggle } from "./artifact-toggle";
 
 import { ChatHeaderMenu } from "./chat-header-menu";
@@ -34,6 +34,8 @@ function PureChatHeader({
   chatVisibility,
   isArchived,
   onUnarchive,
+  isIncognito,
+  setIsIncognito,
 }: {
   chatId: string;
   isReadonly: boolean;
@@ -50,6 +52,8 @@ function PureChatHeader({
   chatVisibility?: VisibilityType;
   isArchived?: boolean;
   onUnarchive?: () => void;
+  isIncognito?: boolean;
+  setIsIncognito?: (val: boolean) => void;
 }) {
   const router = useRouter();
   const { open: isSidebarOpen, openMobile: isSidebarOpenMobile, isMobile } = useSidebar();
@@ -119,6 +123,7 @@ function PureChatHeader({
         {/* === Center Section (Dynamic Title or Logo) === */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 flex items-center justify-center pointer-events-none md:static md:translate-x-0 md:pointer-events-auto min-w-0 max-w-[50%] md:max-w-none">
           <div className="pointer-events-auto flex justify-center max-w-full md:max-w-none">
+
             {/* 3. Show title if exists, otherwise show ChatHeaderMenu or logo */}
             {title ? (
               <h1 className="text-lg font-semibold truncate px-2">{title}</h1>
@@ -140,6 +145,36 @@ function PureChatHeader({
 
         {/* === Right Section === */}
         <div className="flex items-center justify-end gap-2 z-20">
+          {/* Incognito Mode Toggle - only show on new chats (before first message) */}
+          {!title && messages.length === 0 && (
+            <TooltipAny>
+              <TooltipTriggerAny asChild>
+                <ButtonAny
+                  variant="ghost"
+                  className={`h-10 px-3 rounded-full hover:bg-transparent transition-all duration-300 ${isIncognito
+                      ? "relative"
+                      : ""
+                    }`}
+                  onClick={() => setIsIncognito?.(!isIncognito)}
+                  aria-label="Incognito Mode"
+                >
+                  <span className={`flex items-center gap-2 transition-all duration-300 ${isIncognito
+                      ? "text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.6)]"
+                      : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
+                    }`}>
+                    <Ghost className={`flex-shrink-0 w-5 h-5 md:w-5 md:h-5 ${isIncognito ? "animate-pulse" : ""}`} />
+                    {isClient && isSidebarOpen && isDesktop && (
+                      <span className="text-sm font-medium">Private</span>
+                    )}
+                  </span>
+
+                </ButtonAny>
+              </TooltipTriggerAny>
+              <TooltipContentAny side="bottom" className="font-medium">
+                {isIncognito ? "Disable Incognito" : "Incognito Mode"}
+              </TooltipContentAny>
+            </TooltipAny>
+          )}
           {/* Show artifact toggle if not in settings mode */}
           {!title && <ArtifactToggle />}
 
@@ -185,6 +220,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
     prevProps.messages.length === nextProps.messages.length &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
     prevProps.chatTitle === nextProps.chatTitle &&
-    prevProps.chatVisibility === nextProps.chatVisibility
+    prevProps.chatVisibility === nextProps.chatVisibility &&
+    prevProps.isIncognito === nextProps.isIncognito
   );
 });

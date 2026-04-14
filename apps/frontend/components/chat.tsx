@@ -111,6 +111,8 @@ export function Chat({
   // Combine both histories for finding chat info
   const allHistory = [...(history || []), ...(archivedHistory || [])];
 
+  const [isIncognito, setIsIncognito] = useState(false);
+
   const {
     messages,
     setMessages,
@@ -126,6 +128,7 @@ export function Chat({
     body: {
       id: activeChatId,
       selectedChatModel: currentModelId,
+      isTemporary: isIncognito,
       // Pass original chat ID for context when forking a shared chat
       ...(originalChatId && { history_for_context_id: originalChatId }),
       ...(!user && fingerprint && { fingerprint }),
@@ -135,9 +138,12 @@ export function Chat({
     sendExtraMessageFields: true,
     generateId: generateUUID,
     onFinish: () => {
-      mutate("/api/history");
+      // Don't refresh history for incognito chats (they're not persisted)
+      if (!isIncognito) {
+        mutate("/api/history");
+      }
       // Update URL to forked chat ID when user sends first message on shared chat
-      if (isSharedChat && typeof window !== 'undefined') {
+      if (isSharedChat && !isIncognito && typeof window !== 'undefined') {
         window.history.replaceState({}, "", `/c/${activeChatId}`);
       }
     },
@@ -347,6 +353,8 @@ export function Chat({
           // Pass chat specific props - look in both regular and archived history
           chatTitle={chatTitle}
           chatVisibility={view === "chat" ? allHistory?.find((c: ChatHistory) => c.id === id)?.visibility : undefined}
+          isIncognito={isIncognito}
+          setIsIncognito={setIsIncognito}
           onBackClick={view !== "chat" ? (() => {
             // Show settings list in the sidebar and ensure it's visible across devices
             if (setSidebarView) setSidebarView('settings');
@@ -412,6 +420,7 @@ export function Chat({
                         history={history}
                         onSubmitMessage={scrollToBottom}
                         disableSuggestions={true}
+                        isIncognito={isIncognito}
                       />
                     )}
                   </div>
@@ -473,6 +482,7 @@ export function Chat({
                           isAtBottom={isAtBottom}
                           history={history}
                           onSubmitMessage={scrollToBottom}
+                          isIncognito={isIncognito}
                         />
                       )
                     )}
