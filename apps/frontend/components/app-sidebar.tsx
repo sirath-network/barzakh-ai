@@ -64,10 +64,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     }
     setView('chat');
 
-    // Use client-side navigation with refresh to ensure proper re-render
-    // This fixes the issue where old chat content persists after first click
-    router.push('/');
-    router.refresh();
+    // Use client-side navigation with replace to ensure clean transition
+    router.replace('/');
   };
 
   // 2. Define animation variants

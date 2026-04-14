@@ -215,8 +215,7 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
     if (shouldRedirect) {
       window.dispatchEvent(new CustomEvent("chat:reset"));
-      router.push("/");
-      router.refresh();
+      router.replace("/");
     }
 
     // 2. Optimistic update (remove from local history list immediately)

@@ -164,8 +164,7 @@ export function ChatHeaderMenu({
         // 1. Give immediate feedback and navigation
         // Dispatch event to clear chat state before navigation
         window.dispatchEvent(new CustomEvent("chat:reset"));
-        router.push("/");
-        router.refresh();
+        router.replace("/");
 
         // 2. Optimistic update (remove from local history list immediately)
         mutate(

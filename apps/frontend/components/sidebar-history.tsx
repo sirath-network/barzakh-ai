@@ -461,8 +461,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     // 1. Give immediate feedback and navigation
     if (shouldRedirect) {
       window.dispatchEvent(new CustomEvent("chat:reset"));
-      router.push("/");
-      router.refresh();
+      router.replace("/");
     }
 
     // 2. Optimistic update (remove from local history list immediately)

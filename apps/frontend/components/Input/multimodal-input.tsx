@@ -560,7 +560,7 @@ function PureMultimodalInput({
     }
 
     // Don't update URL for incognito chats - they should vanish on refresh
-    if (user?.id && !isIncognito) {
+    if (user?.id && !isIncognito && chatId) {
       window.history.replaceState({}, "", `/c/${chatId}`);
     }
 

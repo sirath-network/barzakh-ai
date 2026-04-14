@@ -112,6 +112,7 @@ export function Chat({
   const allHistory = [...(history || []), ...(archivedHistory || [])];
 
   const [isIncognito, setIsIncognito] = useState(false);
+  const isResettingRef = useRef(false);
 
   const {
     messages,
@@ -138,6 +139,9 @@ export function Chat({
     sendExtraMessageFields: true,
     generateId: generateUUID,
     onFinish: () => {
+      // Guard against updating URL if we're in the middle of a reset/navigation
+      if (isResettingRef.current) return;
+
       // Don't refresh history for incognito chats (they're not persisted)
       if (!isIncognito) {
         mutate("/api/history");
@@ -193,16 +197,23 @@ export function Chat({
   // Listen for chat reset event (triggered when deleting the current chat)
   useEffect(() => {
     const handleChatReset = () => {
+      isResettingRef.current = true;
+      stop(); // Stop any active stream immediately
       setMessages([]);
       setInput("");
       setAttachments([]);
+
+      // Reset the flag after a short delay to allow navigation to complete
+      setTimeout(() => {
+        isResettingRef.current = false;
+      }, 1000);
     };
 
     window.addEventListener("chat:reset", handleChatReset);
     return () => {
       window.removeEventListener("chat:reset", handleChatReset);
     };
-  }, [setMessages, setInput]);
+  }, [setMessages, setInput, stop]);
 
   // NEW: All scroll logic is now here
   const chatContainerRef = useRef<HTMLDivElement>(null);
