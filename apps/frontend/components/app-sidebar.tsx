@@ -64,8 +64,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     }
     setView('chat');
 
-    // Use client-side navigation with replace to ensure clean transition
-    router.replace('/');
+    // Navigate to home and refresh to get a fresh server-rendered page with new UUID
+    // Note: Do NOT dispatch chat:reset here — it corrupts useChat's internal cache
+    // for the current chat ID, making messages disappear when revisiting that chat.
+    router.push('/');
+    router.refresh();
   };
 
   // 2. Define animation variants
