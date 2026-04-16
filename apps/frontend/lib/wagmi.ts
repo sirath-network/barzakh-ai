@@ -105,6 +105,7 @@ export const supportedChains = [
   hyperEvm,
 ] as const;
 
+// WalletConnect projectId - Dynamic SDK uses this internally via dashboard config
 export const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '';
 
 // Build transports dynamically

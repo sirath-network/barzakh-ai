@@ -36,13 +36,14 @@ export function useChainWallet(chainId?: number) {
     return useMemo(() => {
         if (!chainId || !primaryWallet) return null;
 
-        // If it's an EVM chain, we ignore Dynamic wallet (RainbowKit handles it)
-        if (!isNonEvmChain(chainId)) return null;
-
-        // Check if the connected primary wallet matches the requested chain
+        // Dynamic now handles ALL chains including EVM
+        // For non-EVM chains, check if the connected primary wallet matches the requested chain
         if (chainId === SOLANA_CHAIN_ID && primaryWallet.chain === 'SOL') return primaryWallet;
         if (chainId === BITCOIN_CHAIN_ID && primaryWallet.chain === 'BTC') return primaryWallet;
         if (chainId === TRON_CHAIN_ID && primaryWallet.chain === 'TRON') return primaryWallet;
+
+        // For EVM chains, Dynamic also manages them now (previously RainbowKit handled these)
+        if (!isNonEvmChain(chainId) && primaryWallet.chain === 'EVM') return primaryWallet;
 
         return null;
     }, [primaryWallet, chainId]);

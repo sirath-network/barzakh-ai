@@ -580,6 +580,7 @@ const PurePreviewMessage = ({
                       'getRelayQuote',
                       'getRelayBridgeQuote',
                       'prepareRelayTransaction',
+                      'executeAgenticRelaySwap',
                       // nad.fun Tools
                       'searchNadFunTokens',
                     ];
@@ -667,6 +668,7 @@ const PurePreviewMessage = ({
                             getRelayQuote: <RelaySwapApprovalAny result={result} />,
                             getRelayBridgeQuote: <RelaySwapApprovalAny result={result} />,
                             prepareRelayTransaction: <RelaySwapApprovalAny result={result} />,
+                            executeAgenticRelaySwap: <RelaySwapApprovalAny result={result} />,
                             // nad.fun Tools
                             searchNadFunTokens: <NadFunTokenSearchAny result={result} />,
                           };

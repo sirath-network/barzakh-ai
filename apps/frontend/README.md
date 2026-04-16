@@ -130,7 +130,7 @@ apps/frontend/
 | **Styling** | TailwindCSS 3.4.1, Radix UI, Framer Motion 11.3.19 |
 | **Database** | PostgreSQL, Drizzle ORM 0.34.1 |
 | **Auth** | NextAuth.js 5.0.0-beta.30 |
-| **Web3** | Wagmi 2.19.5, Viem 2.41.2, RainbowKit 2.2.9 |
+| **Web3** | Wagmi 2.19.5, Viem 2.41.2, Dynamic SDK 4.x |
 | **AI** | Vercel AI SDK 4.1.17 |
 | **Payments** | Stripe 18.5.0, x402 Protocol |
 

@@ -3,8 +3,10 @@ import {
   type CoreMessage,
   createDataStreamResponse,
   streamText,
+  tool
 } from "ai";
 import { after } from "next/server";
+import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
@@ -140,9 +142,9 @@ function toCoreSafeMessages(messages: Array<Message>): Array<CoreMessage> {
                 // Note: We allow signed R2 URLs which might be dynamic, but we can check the host
                 const isAllowedDomain = ALLOWED_IMAGE_DOMAINS.some((domain: string) => url.hostname.endsWith(domain));
                 if (!isAllowedDomain && process.env.NODE_ENV === 'production') {
-                   // In production, we are stricter with external image domains
-                   console.warn(`[SECURITY] Blocked external image from untrusted domain: ${url.hostname}`);
-                   continue;
+                  // In production, we are stricter with external image domains
+                  console.warn(`[SECURITY] Blocked external image from untrusted domain: ${url.hostname}`);
+                  continue;
                 }
                 parts.push({ type: 'image', image: url });
               } catch (e) {
@@ -641,6 +643,7 @@ export async function POST(request: Request) {
     let currentTier = session.user.tier || 'free';
     let currentBillingCycle = session.user.billingCycle || 'monthly';
     let username = session.user.username || session.user.email;
+    let agentWalletText = "\n- **Agent Automation**: Disabled (User MUST authorize transactions manually)";
 
     try {
       const freshUserData = await getUserById(session.user.id);
@@ -650,11 +653,26 @@ export async function POST(request: Request) {
         currentBillingCycle = userData.billingCycle || 'monthly';
         username = userData.username || userData.email || username;
       }
+
+      // Fetch Agent Wallet and Automation Status
+      const { hasDelegation, getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
+      const isAgentEnabled = await hasDelegation(session.user.id);
+      const agentWalletAddress = await getUserAgentWalletAddress(session.user.id);
+
+      if (agentWalletAddress) {
+        if (isAgentEnabled) {
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n- **Embedded Agent Wallet**: ${agentWalletAddress}\n  *(CRITICAL DIRECTIVE: You have full delegated access. When the user says "my wallet", "my funds", "swap my USDC", or wants to check "my balance", they are ALWAYS referring to THIS Embedded Agent Wallet. You MUST implicitly use the address ${agentWalletAddress} for ALL tool parameters unconditionally! NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?". If a chain is omitted, simply use \`getEvmOnchainDataUsingZerion\` to instantly scan all chains and discover where their tokens are located. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform a swap or bridge, use \`executeAgenticRelaySwap\`).*`;
+        } else {
+          agentWalletText = `\n- **Agent Automation**: Disabled (Wallet exists: ${agentWalletAddress}, but user has not delegated access. Instruct them to enable Automation in settings first.)`;
+        }
+      } else {
+        agentWalletText = "\n- **Agent Automation**: Not configured (No embedded wallet created yet.)";
+      }
     } catch (error) {
-      console.warn("Failed to fetch fresh user data, using session:", error);
+      console.warn("Failed to fetch fresh user data or agent config, using session:", error);
     }
 
-    const userSubscriptionContext = `\n\n## Current User Subscription Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}\n\nWhen using initiateX402Payment, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
+    const userSubscriptionContext = `\n\n## Current User Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}${agentWalletText}\n\nWhen using initiateX402Payment, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
     systemPrompt = systemPrompt + userSubscriptionContext;
   }
 
@@ -710,12 +728,127 @@ export async function POST(request: Request) {
   // const cleanedMessages = filterIncompleteToolCalls(messages);
 
   // Get safe active tools
-  const safeActiveTools = getSafeActiveTools(tools, selectedChatModel);
+  let safeActiveTools = getSafeActiveTools(tools, selectedChatModel);
+
+  // Inject autonomous execution tools contextually if authenticated
+  let isAgentEnabledLocally = false;
+  if (session?.user?.id) {
+    const { hasDelegation } = await import("@/lib/agent/agent-wallet-store");
+    isAgentEnabledLocally = await hasDelegation(session.user.id);
+
+    if (isAgentEnabledLocally) {
+      safeActiveTools.push("executeAgenticRelaySwap");
+      // Remove all manual quoting and execution tools using explicit filtering to ensure
+      // the Agent Router operates seamlessly without hallucinating legacy prompts
+      safeActiveTools = safeActiveTools.filter(toolName => ![
+        "prepareRelayTransaction",
+        "getRelayBridgeQuote",
+        "getRelayQuote"
+      ].includes(toolName));
+    }
+  }
 
   // Wrap webSearch to enforce single execution per request
   let hasWebSearchExecuted = false;
   const wrappedTools = {
     ...allTools,
+    ...(session?.user?.id && isAgentEnabledLocally ? {
+      executeAgenticRelaySwap: tool({
+        description: "Execute a Relay cross-chain swap autonomously using the user's embedded agent wallet. Accepts exact same parameters as prepareRelayTransaction.",
+        parameters: z.object({
+          fromChainId: z.number().optional().describe("Source chain ID where funds are coming from (optional, inferred if omitted)"),
+          from1ChainId: z.number().optional().describe("Fallback alias for fromChainId (do not use but allowed)"),
+          toChainId: z.number().optional().describe("Destination chain ID to bridge funds to (optional, inferred if omitted)"),
+          fromToken: z.string().optional().describe("Source token symbol or address (e.g. 'ETH', 'USDC')"),
+          from1Token: z.string().optional().describe("Fallback alias for fromToken (do not use but allowed)"),
+          toToken: z.string().optional().describe("Destination token symbol or address"),
+          amount: z.string().describe("Amount to swap. If the user requests USD ($5, $0.15), you MUST preserve the '$' symbol (e.g. '$0.15') so the system parses it as fiat! If token amount, provide strictly numbers (e.g. '0.1'). If 'all'/'max', pass 'all' unconditionally!"),
+          userAddress: z.string().optional().describe("Optional explicit user wallet address"),
+          recipientAddress: z.string().optional().describe("Optional explicit destination recipient address")
+        }),
+        execute: async (args: any, config: any) => {
+          // Hard-pin the sender and recipient to the user's authenticated agent wallet
+          // to prevent Relay from defaulting to the 0x...1 placeholder address
+          const { getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
+          const embeddedWallet = await getUserAgentWalletAddress(session.user.id);
+          if (embeddedWallet) {
+            args.userAddress = args.userAddress || embeddedWallet;
+            args.recipientAddress = args.recipientAddress || embeddedWallet;
+          }
+
+          // REUSE robust inference logic from prepareRelayTransaction
+          let prepareResult;
+          try {
+            prepareResult = await allTools.prepareRelayTransaction.execute(args, config);
+          } catch (error: any) {
+            return { status: "error", message: error.message || "Failed to prepare transaction" };
+          }
+          const rawResult = prepareResult as any;
+
+          if (typeof prepareResult === "string" || rawResult.status === "error") {
+            return prepareResult;
+          }
+
+          if (!rawResult.transactions || rawResult.transactions.length === 0) {
+            return { status: "error", message: "Failed to generate executable transaction payload." };
+          }
+
+          const { executeRelaySwap } = await import("@/lib/agent/agent-payment-executor");
+
+          console.log(`[AgentExecutor] Routing exact tx payload autonomously...`);
+          const txList = rawResult.transactions as any[];
+
+          let finalHash = "";
+          for (let tx of txList) {
+            const isApproval = tx.data?.startsWith("0x095ea7b3");
+            const isTransfer = !isApproval && (args.fromToken === args.toToken) && (args.fromChainId === args.toChainId);
+            const parsedAmount = (args.amount.toLowerCase() === 'all' || args.amount.toLowerCase() === 'max') && rawResult.quoteDetails?.amountIn ? rawResult.quoteDetails.amountIn : args.amount;
+            
+            const autoResult = await executeRelaySwap({
+              userId: session.user.id,
+              operationType: isApproval ? "erc20_approve" : (isTransfer ? "transfer" : "relay_swap"),
+              inputAmount: isApproval ? "Approval" : parsedAmount,
+              inputToken: args.fromToken,
+              outputToken: args.toToken,
+              chainId: tx.chainId || args.fromChainId || 8453,
+              transaction: {
+                to: tx.to,
+                value: tx.value ? BigInt(tx.value) : 0n,
+                data: tx.data || "0x",
+                chainId: tx.chainId || args.fromChainId,
+              }
+            });
+            if (!autoResult.success) {
+              return { status: "error", message: autoResult.error || "Autonomous execution failed during broadcast." };
+            }
+            finalHash = autoResult.transactionHash || finalHash;
+          }
+          let explorerUrl = finalHash ? `https://relay.link/transaction/${finalHash}` : undefined;
+          if (finalHash) {
+            const executionChainId = txList[0]?.chainId || args.fromChainId || 8453;
+            const allChains = await import("viem/chains");
+            const targetChain: any = Object.values(allChains).find((c: any) => c?.id === executionChainId);
+
+            // If it's a same-chain transfer, use the native block explorer
+            const isSameChain = args.fromChainId === args.toChainId;
+            if (isSameChain && targetChain?.blockExplorers?.default?.url) {
+              explorerUrl = `${targetChain.blockExplorers.default.url}/tx/${finalHash}`;
+            }
+          }
+
+          return {
+            status: "success",
+            message: "Autonomous execution completed successfully WITHOUT manual UI!",
+            transactionHash: finalHash,
+            explorerUrl,
+            quoteDetails: rawResult.quoteDetails,
+            sourceChain: rawResult.sourceChain,
+            destinationChain: rawResult.destinationChain,
+            _instructionToAI: "CRITICAL: A rich UI card is ALREADY safely rendering to the user! DO NOT PRINT ANY transaction hashes, block explorer URLs, gas fees, or data tables! Keep your text output to an absolute maximum of 1 short sentence, e.g. 'Your cross-chain execution has completed anonymously via Relay.'"
+          };
+        }
+      })
+    } : {}),
     webSearch: {
       ...allTools.webSearch,
       execute: async (args: any, context: any) => {

@@ -80,7 +80,7 @@ import {
     unichain,
     zeroNetwork,
 } from "viem/chains";
-
+import { createPublicClient, http, erc20Abi } from "viem";
 // Initialize Relay client with supported chains
 const SUPPORTED_CHAINS = [
     mainnet,
@@ -984,14 +984,18 @@ async function getTokenPriceUSD(tokenSymbol: string): Promise<number | null> {
  * Returns { isUSD: boolean, value: number }
  */
 function parseAmount(amountStr: string): { isUSD: boolean; value: number } {
-    const cleaned = amountStr.trim();
+    const cleaned = amountStr.trim().toLowerCase();
+
+    if (cleaned === "all" || cleaned === "max") {
+        return { isUSD: false, value: -1 }; // Special flag for exact exact balance extraction
+    }
 
     // Check for USD patterns: $0.5, 0.5$, 0.5 USD, 0.5USD, USD 0.5
     const usdPatterns = [
         /^\$([\d.]+)$/,           // $0.5
         /^([\d.]+)\$$/,           // 0.5$
-        /^([\d.]+)\s*USD$/i,      // 0.5 USD or 0.5USD
-        /^USD\s*([\d.]+)$/i,      // USD 0.5 or USD0.5
+        /^([\d.]+)\s*usd$/i,      // 0.5 USD or 0.5USD
+        /^usd\s*([\d.]+)$/i,      // USD 0.5 or USD0.5
     ];
 
     for (const pattern of usdPatterns) {
@@ -1001,8 +1005,13 @@ function parseAmount(amountStr: string): { isUSD: boolean; value: number } {
         }
     }
 
+    const value = parseFloat(cleaned);
+    if (isNaN(value)) {
+        throw new Error(`Invalid numerical amount provided: "${amountStr}". Provide a strict number or USD value.`);
+    }
+
     // Not USD, parse as regular number
-    return { isUSD: false, value: parseFloat(cleaned) };
+    return { isUSD: false, value };
 }
 
 /**
@@ -1114,32 +1123,43 @@ Many tokens are unique to specific chains. If user doesn't specify a chain, INFE
 
 **NEVER ASK FOR RECIPIENT ADDRESS** - the UI handles that.
 
-Examples:
-- "Swap 10k MON to SOL" → Call directly, chains auto-detected
+Examples of correct parameter usage:
+- "Swap 10k MON to SOL" → { amount: "10000", fromToken: "MON", toToken: "SOL" }
 - "Swap 1 ETH to USDC" → ASK: "Which chain is your ETH on?"
-- "Swap SOL to ETH on Base" → fromChainId auto (Solana), toChainId=8453 (explicit)`,
+- "Swap $0.2 ETH to USDC on Base" → { amount: "$0.2", fromToken: "ETH", toToken: "USDC", toChainId: 8453 }
+- "Swap SOL to ETH on Base" → { amount: "...", fromToken: "SOL", toToken: "ETH", toChainId: 8453 }`,
     parameters: z.object({
         fromChainId: z
             .number()
             .optional()  // NOW OPTIONAL - can be inferred from token
             .describe(
-                "Source chain ID. OPTIONAL if token is chain-specific (MON=143, SOL=792703809, CRO=25, etc.). Common chains: 1=Ethereum, 10=Optimism, 25=Cronos, 143=Monad, 8453=Base, 42161=Arbitrum, 792703809=Solana"
+                "Source chain ID. OPTIONAL if token is chain-specific (MON=143, SOL=792703809, CRO=25, etc.). Common chains: 1=Ethereum, 10=Optimism, 25=Cronos, 143=Monad, 8453=Base, 42161=Arbitrum, 792703809=Solana. EXACT KEY TO USE: `fromChainId`"
             ),
         toChainId: z
             .number()
             .optional()  // NOW OPTIONAL - can be inferred from token
             .describe(
-                "Destination chain ID. OPTIONAL if token is chain-specific. Same mapping as fromChainId."
+                "Destination chain ID. OPTIONAL if token is chain-specific. Same mapping as fromChainId. EXACT KEY TO USE: `toChainId`"
             ),
         fromToken: z
             .string()
+            .optional()
             .describe(
-                "Source token - use 'native' for native token (ETH/MATIC/etc) or token symbol (USDC/USDT) or contract address"
+                "Source token (use 'native' for native token, e.g. ETH/MATIC/etc, or token symbol like USDC or contract address)."
             ),
+        from1Token: z
+            .string()
+            .optional()
+            .describe("Fallback alias for fromToken (do not use but allowed)"),
+        from1ChainId: z
+            .number()
+            .optional()
+            .describe("Fallback alias for fromChainId (do not use but allowed)"),
         toToken: z
             .string()
+            .optional()
             .describe(
-                "Destination token - use 'native' for native token or token symbol or contract address"
+                "Destination token (use 'native' for native token, or token symbol or contract address)."
             ),
         amount: z
             .string()
@@ -1156,22 +1176,48 @@ Examples:
             .describe("Recipient address (defaults to user address if not provided)"),
     }),
     execute: async ({
-        fromChainId: providedFromChainId,
+        fromChainId: rawFromChainId,
+        from1ChainId,
         toChainId: providedToChainId,
-        fromToken,
-        toToken,
+        fromToken: rawFromToken,
+        from1Token,
+        toToken: rawToToken,
         amount,
         userAddress,
         recipientAddress,
     }) => {
+        // Handle AI hallucinatory aliases
+        const fromToken = rawFromToken || from1Token;
+        const providedFromChainId = rawFromChainId || from1ChainId;
+        const toToken = rawToToken;
+
+        if (!fromToken) {
+            return "Error: fromToken is missing. The user must provide the source token.";
+        }
+        if (!toToken) {
+            return "Error: toToken is missing. The user must provide the destination token.";
+        }
+
         // Smart chain inference - resolve chains from tokens if not explicitly provided
         const fromInference = resolveChainWithInference(providedFromChainId, fromToken);
         const toInference = resolveChainWithInference(providedToChainId, toToken);
 
-        // SMART SAME-CHAIN FALLBACK: If one side resolved but the other didn't,
-        // try to find the unknown token on the resolved chain via Relay API.
-        // Only if the token is actually found do we proceed — this never breaks cross-chain
-        // because we verify the token exists before committing to the chain.
+        // SMART SAME-CHAIN FALLBACK (Primary Phase):
+        // If the user specifies only ONE chain (e.g., "Swap ETH to USDC on Base"), the AI
+        // often only passes `toChainId` or `fromChainId`. Instead of nagging the user with
+        // "Which chain is your ETH on?", we should boldly assume they want a same-chain swap!
+        if (fromInference.chainId && !toInference.chainId) {
+            toInference.chainId = fromInference.chainId;
+            toInference.wasInferred = true;
+            toInference.message = `Assumed same-chain swap on chain ${fromInference.chainId} for destination token`;
+        } else if (!fromInference.chainId && toInference.chainId) {
+            fromInference.chainId = toInference.chainId;
+            fromInference.wasInferred = true;
+            fromInference.message = `Assumed same-chain swap on chain ${toInference.chainId} for source token`;
+        }
+
+        // SMART SAME-CHAIN FALLBACK (Secondary Phase):
+        // If Relay requires explicit API verification for exotic tokens on the resolved chain.
         if (fromInference.chainId && !toInference.chainId && !MULTI_CHAIN_TOKENS.includes(toToken.toUpperCase())) {
             const found = await searchTokenByTerm(toToken, fromInference.chainId);
             if (found) {
@@ -1453,7 +1499,8 @@ Examples of COMPLETE requests:
 - "Bridge 0.5 ETH from Ethereum to Optimism"
 - "Bridge $10 of native token from Arbitrum to Base"`,
     parameters: z.object({
-        fromChainId: z.number().describe("Source chain ID. Common chains: 1=Ethereum, 10=Optimism, 25=Cronos, 137=Polygon, 143=Monad, 5000=Mantle, 8453=Base, 42161=Arbitrum, 792703809=Solana"),
+        fromChainId: z.number().optional().describe("Source chain ID. Common chains: 1=Ethereum, 10=Optimism, 25=Cronos, 137=Polygon, 143=Monad, 5000=Mantle, 8453=Base, 42161=Arbitrum, 792703809=Solana"),
+        from1ChainId: z.number().optional().describe("Fallback alias for fromChainId (do not use but allowed)"),
         toChainId: z.number().describe("Destination chain ID. Same mapping as fromChainId."),
         amount: z
             .string()
@@ -1462,9 +1509,13 @@ Examples of COMPLETE requests:
             ),
         userAddress: z.string().optional().describe("User wallet address"), // Made optional
     }),
-    execute: async ({ fromChainId: rawFromChainId, toChainId: rawToChainId, amount, userAddress }) => {
+    execute: async ({ fromChainId: rawFromChainId, from1ChainId, toChainId: rawToChainId, amount, userAddress }) => {
+        const providedFromChainId = rawFromChainId || from1ChainId;
+        if (!providedFromChainId) {
+             return { status: "error", error: "Missing source chain ID" };
+        }
         // Normalize Chain IDs (e.g. 101 -> 792703809 for Solana)
-        const fromChainId = normalizeChainId(rawFromChainId);
+        const fromChainId = normalizeChainId(providedFromChainId);
         const toChainId = normalizeChainId(rawToChainId);
 
         try {
@@ -1616,9 +1667,11 @@ Examples:
 - Bridge $10 worth of native token from Base to Polygon`,
     parameters: z.object({
         fromChainId: z.number().optional().describe("Source chain ID. OPTIONAL if token is chain-specific."),
+        from1ChainId: z.number().optional().describe("Fallback alias for fromChainId (do not use but allowed)"),
         toChainId: z.number().optional().describe("Destination chain ID. OPTIONAL if token is chain-specific."),
-        fromToken: z.string().describe("Source token (native/symbol/address)"),
-        toToken: z.string().describe("Destination token"),
+        fromToken: z.string().optional().describe("Source token (native/symbol/address)"),
+        from1Token: z.string().optional().describe("Fallback alias for fromToken (do not use but allowed)"),
+        toToken: z.string().optional().describe("Destination token"),
         amount: z
             .string()
             .describe(
@@ -1628,22 +1681,44 @@ Examples:
         recipientAddress: z.string().optional().describe("Recipient address"),
     }),
     execute: async ({
-        fromChainId: providedFromChainId,
+        fromChainId: rawFromChainId,
+        from1ChainId,
         toChainId: providedToChainId,
-        fromToken,
-        toToken,
+        fromToken: rawFromToken,
+        from1Token,
+        toToken: rawToToken,
         amount,
         userAddress,
         recipientAddress,
     }) => {
+        // Handle AI hallucinatory aliases
+        const fromToken = rawFromToken || from1Token;
+        const providedFromChainId = rawFromChainId || from1ChainId;
+        const toToken = rawToToken;
+
+        if (!fromToken) {
+            return "Error: fromToken is missing. The user must provide the source token.";
+        }
+        if (!toToken) {
+            return "Error: toToken is missing. The user must provide the destination token.";
+        }
+
         // Smart chain inference - resolve chains from tokens if not explicitly provided
         const fromInference = resolveChainWithInference(providedFromChainId, fromToken);
         const toInference = resolveChainWithInference(providedToChainId, toToken);
 
-        // SMART SAME-CHAIN FALLBACK: If one side resolved but the other didn't,
-        // try to find the unknown token on the resolved chain via Relay API.
-        // Only if the token is actually found do we proceed — this never breaks cross-chain
-        // because we verify the token exists before committing to the chain.
+        // SMART SAME-CHAIN FALLBACK (Primary Phase):
+        if (fromInference.chainId && !toInference.chainId) {
+            toInference.chainId = fromInference.chainId;
+            toInference.wasInferred = true;
+            toInference.message = `Assumed same-chain swap on chain ${fromInference.chainId} for destination token`;
+        } else if (!fromInference.chainId && toInference.chainId) {
+            fromInference.chainId = toInference.chainId;
+            fromInference.wasInferred = true;
+            fromInference.message = `Assumed same-chain swap on chain ${toInference.chainId} for source token`;
+        }
+
+        // SMART SAME-CHAIN FALLBACK (Secondary Phase):
         if (fromInference.chainId && !toInference.chainId && !MULTI_CHAIN_TOKENS.includes(toToken.toUpperCase())) {
             const found = await searchTokenByTerm(toToken, fromInference.chainId);
             if (found) {
@@ -1754,10 +1829,37 @@ Examples:
 
             // Get token decimals from Currencies API (cached)
             const decimals = await getTokenDecimals(fromToken, fromChainId);
-            // Use BigInt to ensure integer output (API requires pattern "^[0-9]+$")
-            const amountInSmallestUnit = BigInt(
-                Math.floor(parseFloat(actualAmount) * Math.pow(10, decimals))
-            ).toString();
+            
+            let amountInSmallestUnit: string;
+            
+            if (parsedAmount.value === -1) {
+                const chainObj = SUPPORTED_CHAINS.find(c => c.id === fromChainId) || mainnet;
+                const publicClient = createPublicClient({ chain: chainObj, transport: http() });
+                
+                if (fromTokenAddress.toLowerCase() === "0x0000000000000000000000000000000000000000" || fromTokenAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
+                    const exactWeiBal = await publicClient.getBalance({ address: effectiveUserAddress as `0x${string}` });
+                    // Leave a tiny buffer for gas if it's native asset, but this is a complex heuristic. Relay uses native gas.
+                    // A 5% buffer deduction for the native token.
+                    amountInSmallestUnit = (exactWeiBal - (exactWeiBal / 20n)).toString();
+                } else {
+                    const exactBal = await publicClient.readContract({
+                        address: fromTokenAddress as `0x${string}`,
+                        abi: erc20Abi,
+                        functionName: 'balanceOf',
+                        args: [effectiveUserAddress as `0x${string}`]
+                    });
+                    amountInSmallestUnit = exactBal.toString();
+                }
+                
+                if (amountInSmallestUnit === "0" || amountInSmallestUnit.startsWith("-")) {
+                     return { status: "error", error: "Insufficient Balance", message: `The exact wallet balance of ${fromToken} is zero.` };
+                }
+            } else {
+                // Use BigInt to ensure integer output (API requires pattern "^[0-9]+$")
+                amountInSmallestUnit = BigInt(
+                    Math.floor(parseFloat(actualAmount) * Math.pow(10, decimals))
+                ).toString();
+            }
 
             const quote = await client.actions.getQuote({
                 chainId: fromChainId,

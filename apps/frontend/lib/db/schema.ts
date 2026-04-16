@@ -11,6 +11,7 @@ import {
   boolean,
   integer,
   index,
+  numeric,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("User", {
@@ -234,3 +235,44 @@ export const guest_session = pgTable("GuestSession", {
 });
 
 export type GuestSession = InferSelectModel<typeof guest_session>;
+
+// --- Agent Wallet & Automation ---
+
+export const agent_wallet = pgTable("AgentWallet", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").notNull().references(() => user.id),
+  walletAddress: varchar("walletAddress", { length: 128 }).notNull(),
+  privateKeyEncrypted: text("privateKeyEncrypted"), // Encrypted with AES-256-GCM
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+export type AgentWallet = InferSelectModel<typeof agent_wallet>;
+
+export const agent_delegation = pgTable("AgentDelegation", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").notNull().references(() => user.id),
+  walletId: varchar("walletId", { length: 255 }).notNull(),
+  walletApiKey: text("walletApiKey").notNull(),
+  keyShare: text("keyShare"),
+  walletAddress: varchar("walletAddress", { length: 128 }).notNull(),
+  chain: varchar("chain", { length: 64 }).notNull(),
+  delegatedAt: timestamp("delegatedAt").notNull().defaultNow(),
+  revokedAt: timestamp("revokedAt"),
+});
+
+export type AgentDelegation = InferSelectModel<typeof agent_delegation>;
+
+
+
+export const agent_transaction = pgTable("AgentTransaction", {
+  id: varchar("id", { length: 128 }).primaryKey().notNull(), // Uses standard generated string ID
+  userId: uuid("userId").notNull().references(() => user.id),
+  walletAddress: varchar("walletAddress", { length: 128 }).notNull(),
+  operationType: varchar("operationType", { length: 128 }).notNull(),
+  amount: varchar("amount", { length: 64 }).notNull(),
+  signature: text("signature").notNull(),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+export type AgentTransaction = InferSelectModel<typeof agent_transaction>;
