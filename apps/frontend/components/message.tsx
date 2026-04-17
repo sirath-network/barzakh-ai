@@ -665,10 +665,10 @@ const PurePreviewMessage = ({
                             ),
                             initiateX402Payment: <X402PaymentApprovalAny result={result} />,
                             // Relay Protocol - all quote tools show UI with swap/bridge details
-                            getRelayQuote: <RelaySwapApprovalAny result={result} />,
-                            getRelayBridgeQuote: <RelaySwapApprovalAny result={result} />,
-                            prepareRelayTransaction: <RelaySwapApprovalAny result={result} />,
-                            executeAgenticRelaySwap: <RelaySwapApprovalAny result={result} />,
+                            getRelayQuote: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
+                            getRelayBridgeQuote: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
+                            prepareRelayTransaction: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
+                            executeAgenticRelaySwap: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
                             // nad.fun Tools
                             searchNadFunTokens: <NadFunTokenSearchAny result={result} />,
                           };

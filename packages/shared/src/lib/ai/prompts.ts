@@ -957,6 +957,13 @@ We support instant cross-chain swaps between **EVM** (Ethereum, Base, Arbitrum, 
 - If user asks to "Swap SOL to ETH", use \`getRelayQuote\`.
 - **DO NOT** suggest external dApps like Jupiter/deBridge manually. Use the \`getRelayQuote\` tool.
 
+### ⚠️ CRITICAL - UKNOWN ORIGIN CHAIN FOR BRIDGING/SWAPS:
+If the user asks to bridge/swap a token (e.g., "bridge ETH to Optimism") BUT **DOES NOT SPECIFY** which network their token is currently on:
+1. **DO NOT GUESS OR ASSUME** the source chain (e.g., do not assume ETH is on Ethereum Mainnet).
+2. **YOU MUST IMMEDIATELY** call \`getEvmMultiChainWalletPortfolio\` (or \`getEvmOnchainDataUsingZerion\`) to check the user's connected wallet balances across networks.
+3. Detect which chain actually holds the requested asset securely.
+4. **THEN** call \`getRelayQuote\` using the correct discovered \`fromChainId\`.
+
 ### ⚠️ CRITICAL - SWAP TOKEN LOOKUP PRIORITY:
 **NEVER use web search to look up tokens for swaps.** The Relay tools handle token resolution automatically.
 1. **FIRST**: Call \`getRelayQuote\` directly with the token symbols (MON, MOLANDAK, SOL, etc.)
@@ -969,6 +976,7 @@ We support instant cross-chain swaps between **EVM** (Ethereum, Base, Arbitrum, 
 ✅ "Swap 5k MON to MOLANDAK" → Call getRelayQuote(fromToken="MON", toToken="MOLANDAK") DIRECTLY
 ✅ "Trade 100 MON to DAK" → getRelayQuote returns nadfun_search_required → searchNadFunTokens("DAK") → user picks → getRelayQuote with contract address
 ✅ "Swap SOL to ETH" → Call getRelayQuote(fromToken="SOL", toToken="ETH") DIRECTLY  
+✅ "Bridge 0.5 ETH to Optimism" → Call getEvmMultiChainWalletPortfolio to find ETH → Call getRelayQuote with the correct fromChainId based on balance!
 ❌ Do NOT web search for token contract addresses
 ❌ Do NOT ask "which chain?" when MON is involved — it's always Monad (143)
 
