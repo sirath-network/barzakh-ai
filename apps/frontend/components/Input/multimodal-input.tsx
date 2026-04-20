@@ -953,7 +953,7 @@ function PureMultimodalInput({
     >
       <AnimatePresence>
         {showSuggestions && (
-          <QuestionSuggestions append={append} history={history} user={user} />
+          <QuestionSuggestions appendAction={append} history={history} user={user} />
         )}
       </AnimatePresence>
 

@@ -59,11 +59,11 @@ const BLOCKCHAIN_SUGGESTIONS: EnhancedSuggestion[] = [
 ];
 
 export const QuestionSuggestions = ({
-  append,
+  appendAction,
   history,
   user,
 }: {
-  append: (
+  appendAction: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
@@ -139,7 +139,7 @@ export const QuestionSuggestions = ({
       };
     }
 
-    append(
+    appendAction(
       {
         content: suggestion.title,
         role: "user",

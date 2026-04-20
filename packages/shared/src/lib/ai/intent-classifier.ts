@@ -449,6 +449,27 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
+    // BNB Chain / BSC (routes to on_chain — Four.meme tools + generic EVM)
+    {
+        id: 'bnb',
+        intent: 'on_chain',
+        patterns: [
+            /\bbnb\s*(chain|smart\s*chain|network|wallet|portfolio)?\b/i,
+            /\bbsc\b/i,
+            /\bbinance\s*smart\s*chain\b/i,
+            /\bfour\.?meme\b/i,
+            /\b4\.?meme\b/i,
+            /\bpancake\s*swap\b/i,
+            /\bmeme\s*(token|coin|launchpad)\b.*\b(bnb|bsc)\b/i,
+            /\b(bnb|bsc)\b.*\bmeme\s*(token|coin|launchpad)\b/i,
+        ],
+        keywords: ['bnb chain', 'bsc', 'binance smart chain', 'bnb network',
+            'four.meme', 'four meme', '4meme', 'fourmeme', 'pancakeswap',
+            'bnb meme', 'bsc meme', 'meme launchpad bnb', 'bonding curve bnb'],
+        tokens: ['BNB', 'WBNB'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
 ];
 
 /**
@@ -773,6 +794,29 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "mantle", "mnt token", "mantle network", "mantle chain",
             "mantle l2", "mantle wallet", "mantle portfolio", "on mantle",
             "mantlescan", "merchant moe", "butter exchange", "meth", "cmeth",
+        ],
+        priority: 95,
+    },
+
+    // BNB Chain / Four.meme specific (routes to on_chain)
+    {
+        intent: "on_chain",
+        patterns: [
+            /\bfour\.?meme\b/i,
+            /\b4\.?meme\b/i,
+            /\bfour\.?meme\s*(token|launchpad|rankings?|hot|trending|new|graduated)\b/i,
+            /\bmeme\s*(token|coin|launchpad)\b.*\b(bnb|bsc|binance)\b/i,
+            /\b(bnb|bsc|binance)\b.*\bmeme\s*(token|coin|launchpad)\b/i,
+            /\b(hottest|trending|top|best|new|newest)\b.*\b(meme|token)\b.*\b(bnb|bsc|four\.?meme)\b/i,
+            /\bbonding\s*curve\b.*\b(bnb|bsc|four\.?meme)\b/i,
+            /\bpancake\s*swap\s*(graduate|graduated|listing|launch)\b/i,
+        ],
+        keywords: [
+            "four.meme", "four meme", "4meme", "fourmeme",
+            "bnb meme token", "bsc meme token", "meme launchpad bnb",
+            "meme coin bnb", "bonding curve bnb", "bonding curve bsc",
+            "pancakeswap graduated", "four.meme rankings", "four.meme hot",
+            "four.meme trending", "four.meme new tokens",
         ],
         priority: 95,
     },

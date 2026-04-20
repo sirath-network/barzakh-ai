@@ -91,6 +91,15 @@ const toolIcons: Record<string, React.ElementType> = {
   prepareRelayTransaction: ArrowRightLeftAny,
   // nad.fun Tools
   searchNadFunTokens: BarChart3Any,
+  // Four.meme Tools (BNB Chain)
+  searchFourMemeTokens: BarChart3Any,
+  getFourMemeRankings: BarChart3Any,
+  getFourMemeTokenDetail: BarChart3Any,
+  getFourMemeMarketData: BarChart3Any,
+  quoteFourMemeBuy: BarChart3Any,
+  quoteFourMemeSell: BarChart3Any,
+  executeFourMemeBuy: ArrowRightLeftAny,
+  executeFourMemeSell: ArrowRightLeftAny,
 };
 
 // HELPER: Small component to render each tool icon
@@ -117,10 +126,12 @@ import { generateStatusFromMessage } from "@/lib/status-generator";
 import { X402PaymentApproval } from "./x402-payment-approval";
 import { RelaySwapApproval } from "./relay-swap-approval";
 import NadFunTokenSearch from "./nadfun-token-search";
+import FourMemeTokenSearch from "./fourmeme-token-search";
 
 const X402PaymentApprovalAny = X402PaymentApproval as any;
 const RelaySwapApprovalAny = RelaySwapApproval as any;
 const NadFunTokenSearchAny = NadFunTokenSearch as any;
+const FourMemeTokenSearchAny = FourMemeTokenSearch as any;
 
 // Helper to remove AI preamble narration when tools are used
 // This filters out phrases like "I'll search for..." that create bad UX
@@ -583,6 +594,9 @@ const PurePreviewMessage = ({
                       'executeAgenticRelaySwap',
                       // nad.fun Tools
                       'searchNadFunTokens',
+                      // Four.meme Tools (BNB Chain)
+                      'searchFourMemeTokens',
+                      'getFourMemeRankings',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -671,6 +685,9 @@ const PurePreviewMessage = ({
                             executeAgenticRelaySwap: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
                             // nad.fun Tools
                             searchNadFunTokens: <NadFunTokenSearchAny result={result} />,
+                            // Four.meme Tools (BNB Chain)
+                            searchFourMemeTokens: <FourMemeTokenSearchAny result={result} />,
+                            getFourMemeRankings: <FourMemeTokenSearchAny result={result} />,
                           };
 
                           return (

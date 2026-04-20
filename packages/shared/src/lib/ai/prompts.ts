@@ -22,6 +22,8 @@ import {
 } from "./tools/monad/monad-tools";
 import { getMonadStats } from "./tools/monad/get-stats";
 import { searchNadFunTokens, getNadFunTokenInfo, getNadFunMarketData, getNadFunHoldings } from "./tools/monad/nadfun-tools";
+// Four.meme (BNB Chain meme launchpad)
+import { searchFourMemeTokens, getFourMemeTokenDetail, getFourMemeRankings, getFourMemeMarketData, quoteFourMemeBuy, quoteFourMemeSell } from "./tools/bnb/fourmeme-tools";
 import { getEvmOnchainDataUsingEtherscan } from "./tools/onchain/get_evm_onchain_data_using_etherscan";
 import { getEvmOnchainDataUsingZerion } from "./tools/onchain/get_evm_onchain_data_using_zerion";
 import { getSiteContent } from "./tools/scrap-site";
@@ -440,6 +442,13 @@ const groupTools = {
     "searchNadFunTokens",
     "getNadFunTokenInfo",
     "getNadFunMarketData",
+    // Four.meme (BNB Chain meme launchpad)
+    "searchFourMemeTokens",
+    "getFourMemeTokenDetail",
+    "getFourMemeRankings",
+    "getFourMemeMarketData",
+    "quoteFourMemeBuy",
+    "quoteFourMemeSell",
   ] as const,
   wormhole: [
     "webSearch",
@@ -739,6 +748,13 @@ export const allTools = {
   getNadFunTokenInfo,
   getNadFunMarketData,
   getNadFunHoldings,
+  // Four.meme (BNB Chain meme launchpad)
+  searchFourMemeTokens,
+  getFourMemeTokenDetail,
+  getFourMemeRankings,
+  getFourMemeMarketData,
+  quoteFourMemeBuy,
+  quoteFourMemeSell,
   getAptosStats,
   getAptosApiData,
   aptosNames,
