@@ -12,7 +12,7 @@ import {
   Settings2,
   Power,
   PowerOff,
-  DollarSign,
+  HandCoins,
   Copy,
   CheckCircle,
   Zap,
@@ -297,7 +297,7 @@ export function AgentAutomationSection() {
                 </p>
               </div>
               <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
-                <DollarSign className="w-4 h-4 text-primary/80" />
+                <HandCoins className="w-4 h-4 text-primary/80" />
               </div>
             </div>
 
@@ -365,7 +365,7 @@ export function AgentAutomationSection() {
                 <div>
                   <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Safety first</p>
                   <p className="text-xs text-amber-700 dark:text-amber-400/80">
-                    The AI operates autonomously. All transactions are logged and visible here. You can revoke access instantly if needed.
+                    The AI operates autonomously. Total spent are visible here. You can revoke access instantly if needed.
                   </p>
                 </div>
               </div>
@@ -435,11 +435,11 @@ export function AgentAutomationSection() {
               Export Private Key
             </DialogTitle>
             <DialogDescription>
-              This is the private key for your embedded agent wallet. 
+              This is the private key for your embedded agent wallet.
               Anyone with this key has full control over the funds in this wallet.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl mb-2">
             <div className="flex gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />

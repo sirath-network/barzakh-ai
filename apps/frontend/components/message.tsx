@@ -129,11 +129,13 @@ import { X402PaymentApproval } from "./x402-payment-approval";
 import { RelaySwapApproval } from "./relay-swap-approval";
 import NadFunTokenSearch from "./nadfun-token-search";
 import FourMemeTokenSearch from "./fourmeme-token-search";
+import { FourMemeApproval } from "./fourmeme-approval";
 
 const X402PaymentApprovalAny = X402PaymentApproval as any;
 const RelaySwapApprovalAny = RelaySwapApproval as any;
 const NadFunTokenSearchAny = NadFunTokenSearch as any;
 const FourMemeTokenSearchAny = FourMemeTokenSearch as any;
+const FourMemeApprovalAny = FourMemeApproval as any;
 
 // Helper to remove AI preamble narration when tools are used
 // This filters out phrases like "I'll search for..." that create bad UX
@@ -599,6 +601,9 @@ const PurePreviewMessage = ({
                       // Four.meme Tools (BNB Chain)
                       'searchFourMemeTokens',
                       'getFourMemeRankings',
+                      'executeFourMemeBuy',
+                      'executeFourMemeSell',
+                      'executeFourMemeLaunch',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -690,6 +695,9 @@ const PurePreviewMessage = ({
                             // Four.meme Tools (BNB Chain)
                             searchFourMemeTokens: <FourMemeTokenSearchAny result={result} />,
                             getFourMemeRankings: <FourMemeTokenSearchAny result={result} />,
+                            executeFourMemeBuy: <FourMemeApprovalAny result={result} />,
+                            executeFourMemeSell: <FourMemeApprovalAny result={result} />,
+                            executeFourMemeLaunch: <FourMemeApprovalAny result={result} />,
                           };
 
                           return (

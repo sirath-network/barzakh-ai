@@ -171,7 +171,21 @@ const TOKEN_MANAGER2_ABI = [
   },
 ] as const;
 
-const ERC20_APPROVE_ABI = [
+const ERC20_ABI = [
+  {
+    name: "balanceOf",
+    type: "function" as const,
+    stateMutability: "view" as const,
+    inputs: [{ name: "account", type: "address" as const }],
+    outputs: [{ name: "", type: "uint256" as const }],
+  },
+  {
+    name: "decimals",
+    type: "function" as const,
+    stateMutability: "view" as const,
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" as const }],
+  },
   {
     name: "approve",
     type: "function" as const,
@@ -180,7 +194,7 @@ const ERC20_APPROVE_ABI = [
       { name: "spender", type: "address" as const },
       { name: "amount", type: "uint256" as const },
     ],
-    outputs: [{ type: "bool" as const }],
+    outputs: [{ name: "", type: "bool" as const }],
   },
 ] as const;
 
@@ -466,13 +480,6 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
 
         // 1. Auth check
         const isAgentEnabled = await hasDelegation(userId);
-        if (!isAgentEnabled) {
-          return {
-            status: "error",
-            message:
-              "Agent Automation is not enabled. The user must enable it in Settings → Wallet first.",
-          };
-        }
         const walletAddress = await getUserAgentWalletAddress(userId);
         if (!walletAddress) {
           return { status: "error", message: "No embedded agent wallet found." };
@@ -538,7 +545,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           );
 
           const approveData = encodeFunctionData({
-            abi: ERC20_APPROVE_ABI,
+            abi: ERC20_ABI,
             functionName: "approve",
             args: [tokenManager, amountApproval],
           });
@@ -573,6 +580,26 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           functionName: "buyTokenAMAP",
           args: [tokenAddress as `0x${string}`, fundsWei, minAmount],
         });
+
+        // If automation is disabled, return transaction data for manual approval
+        if (!isAgentEnabled) {
+          return {
+            status: "requires_manual_approval",
+            type: "buy",
+            tokenAddress,
+            amount: parsed.bnbAmount,
+            isUsd: parsed.isUsd,
+            usdAmount: parsed.usdAmount,
+            estimatedTokens: formatTokens(estimatedAmount),
+            preparedAt: Date.now(),
+            transaction: {
+              to: tokenManager,
+              value: amountMsgValue.toString(),
+              data: buyAmapData,
+              chainId: 56,
+            }
+          };
+        }
 
         buyResult = await executeOnChainTransaction({
           userId,
@@ -684,7 +711,7 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
       tokenAmount: z
         .string()
         .describe(
-          "Amount of tokens to sell (in whole tokens, e.g. '1000000')"
+          "Amount of tokens to sell (e.g. '1000000') or 'all' to sell the entire balance of the agent wallet."
         ),
       slippagePercent: z
         .number()
@@ -695,28 +722,42 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
       try {
         // 1. Auth check
         const isAgentEnabled = await hasDelegation(userId);
-        if (!isAgentEnabled) {
-          return {
-            status: "error",
-            message:
-              "Agent Automation is not enabled. Enable it in Settings → Wallet.",
-          };
-        }
         const walletAddress = await getUserAgentWalletAddress(userId);
         if (!walletAddress) {
           return { status: "error", message: "No embedded agent wallet found." };
         }
 
-        const tokens = parseFloat(tokenAmount);
-        if (tokens <= 0 || isNaN(tokens)) {
-          return { status: "error", message: "Token amount must be > 0." };
-        }
+        const isAll = tokenAmount.toLowerCase().trim() === "all";
+        let tokensToSellWei: bigint;
+        let displayAmount = tokenAmount;
 
-        const amountWei = alignToGwei(BigInt(Math.floor(tokens * 1e18)));
         const publicClient = getPublicClient();
 
+        if (isAll) {
+          console.log(`[FourMeme] Fetching balance of ${tokenAddress} for ${walletAddress}...`);
+          const balance = await publicClient.readContract({
+            address: tokenAddress as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [walletAddress as `0x${string}`],
+          });
+          
+          if (balance === 0n) {
+            return { status: "error", message: "You do not have any of these tokens in your agent wallet." };
+          }
+          
+          tokensToSellWei = balance;
+          displayAmount = (Number(balance) / 1e18).toString();
+        } else {
+          const tokens = parseFloat(tokenAmount);
+          if (tokens <= 0 || isNaN(tokens)) {
+            return { status: "error", message: "Token amount must be > 0." };
+          }
+          tokensToSellWei = alignToGwei(BigInt(Math.floor(tokens * 1e18)));
+        }
+
         console.log(
-          `[FourMeme] Sell: ${tokenAmount} tokens of ${tokenAddress} for user ${userId}`
+          `[FourMeme] Sell: ${displayAmount} tokens of ${tokenAddress} for user ${userId}`
         );
 
         // 2. Get token info
@@ -739,13 +780,13 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
 
         // 3. Approve token to tokenManager
         console.log(
-          `[FourMeme] Approving ${amountWei} tokens to ${tokenManager}`
+          `[FourMeme] Approving ${tokensToSellWei} tokens to ${tokenManager}`
         );
 
         const approveData = encodeFunctionData({
-          abi: ERC20_APPROVE_ABI,
+          abi: ERC20_ABI,
           functionName: "approve",
-          args: [tokenManager, amountWei],
+          args: [tokenManager, tokensToSellWei],
         });
 
         const approveResult = await executeOnChainTransaction({
@@ -772,12 +813,30 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
         const sellData = encodeFunctionData({
           abi: SELLTOKEN_SIMPLE_ABI,
           functionName: "sellToken",
-          args: [tokenAddress as `0x${string}`, amountWei],
+          args: [tokenAddress as `0x${string}`, tokensToSellWei],
         });
+
+        // If automation is disabled, return transaction data for manual approval
+        if (!isAgentEnabled) {
+          return {
+            status: "requires_manual_approval",
+            type: "sell",
+            tokenAddress,
+            tokenAmount: displayAmount,
+            preparedAt: Date.now(),
+            estimatedBnb: formatBnb(tokensToSellWei), // Rough estimate before quote logic but fine for UI
+            transaction: {
+              to: tokenManager,
+              value: "0",
+              data: sellData,
+              chainId: 56,
+            }
+          };
+        }
 
         const sellResult = await executeOnChainTransaction({
           userId,
-          description: `Four.meme: Sell ${tokenAmount} tokens (${tokenAddress})`,
+          description: `Four.meme: Sell ${displayAmount} tokens (${tokenAddress})`,
           estimatedValueUsd: "0",
           chainId: 56,
           transaction: {
@@ -797,12 +856,12 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
 
         return {
           status: "success",
-          message: `Successfully sold ${tokenAmount} tokens on Four.meme!`,
+          message: `Successfully sold ${displayAmount} tokens on Four.meme!`,
           transactionHash: sellResult.transactionHash,
           explorerUrl: sellResult.transactionHash
             ? `https://bscscan.com/tx/${sellResult.transactionHash}`
             : undefined,
-          details: { tokenAddress, tokensSold: tokenAmount, slippage: `${slippagePercent}%` },
+          details: { tokenAddress, tokensSold: displayAmount, slippage: `${slippagePercent}%` },
         };
       } catch (error: any) {
         console.error("[FourMeme] Sell error:", error);
@@ -844,13 +903,6 @@ export function createFourMemeLaunchTool(userId: string) {
       try {
         // 1. Auth check
         const isAgentEnabled = await hasDelegation(userId);
-        if (!isAgentEnabled) {
-          return {
-            status: "error",
-            message: "Agent automation is not enabled. Please enable it in Settings.",
-          };
-        }
-
         const agentAddress = await getUserAgentWalletAddress(userId);
         if (!agentAddress) {
           return { status: "error", message: "Agent wallet not found." };
@@ -1075,6 +1127,25 @@ export function createFourMemeLaunchTool(userId: string) {
            functionName: 'createToken',
            args: [createArg as `0x${string}`, signature as `0x${string}`],
         });
+
+        // If automation is disabled, return transaction data for manual approval
+        if (!isAgentEnabled) {
+          return {
+            status: "requires_manual_approval",
+            type: "launch",
+            name,
+            symbol,
+            presaleBnb,
+            imgUrl,
+            preparedAt: Date.now(),
+            transaction: {
+              to: TOKEN_MANAGER2_ADDRESS,
+              value: totalValue.toString(),
+              data: launchData,
+              chainId: 56,
+            }
+          };
+        }
 
         const launchResult = await executeOnChainTransaction({
           userId,

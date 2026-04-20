@@ -48,7 +48,7 @@ const CHAIN_NAMES: Record<number, string> = {
     1: "Ethereum",
     10: "Optimism",
     25: "Cronos",
-    56: "BNB Chain",
+    56: "BNB",
     100: "Gnosis",
     130: "Unichain",
     137: "Polygon",
@@ -197,6 +197,7 @@ interface RelaySwapApprovalProps {
         message?: string;
         instructions?: string[];
         timestamp?: string;
+        swapIntentId?: string;
         note?: string;
         transactionHash?: string;
         explorerUrl?: string;
@@ -219,8 +220,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const { signMessageAsync } = useSignMessage();
     const { disconnect } = useDisconnect();
 
+    // Determine initial state based on tool result status and data
+    // status: "success" + transactionHash = Completed
+    // status: "success" + no transactionHash + no prepared transactions = Autonomous in progress
+    // status: "requires_manual_approval" OR status: "success" + prepared transactions = Ready for manual
+    const isInitiallyCompleted = result.status === "success" && !!result.transactionHash;
+    const isWaitingForAutonomousResult = result.status === "success" && !isInitiallyCompleted && !result.transactions && (result as any).isAgentExecution === true;
+
     const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error">(
-        result.status === "success" ? "success" : "ready"
+        isInitiallyCompleted ? "success" : 
+        isWaitingForAutonomousResult ? "sending" : 
+        "ready"
     );
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [txHash, setTxHash] = useState<string | null>(result.transactionHash || null);
@@ -239,10 +249,22 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     };
 
 
+    // Generate deterministic ID for this specific swap intent
+    // We use the timestamp from the tool result to ensure it's unique to this specific AI response
+    // but persistent across page reloads (since chat history saves the tool result)
+    // We ALSO check for a 'swapIntentId' which is parameter-based for cross-message persistence
+    const swapRequestId = result.swapIntentId || (result.toolParams
+        ? `swap-v1-${result.toolParams.fromChainId}-${result.toolParams.toChainId}-${result.toolParams.amount}-${result.timestamp || 'no-time'}`
+        : null);
+
     // Swap tracking state
-    const [swapAlreadyCompleted, setSwapAlreadyCompleted] = useState<boolean>(result.status === "success");
-    const [isCheckingSwapStatus, setIsCheckingSwapStatus] = useState<boolean>(result.status !== "success");
-    const [completedTxHash, setCompletedTxHash] = useState<string | null>(result.transactionHash || null);
+    const [swapAlreadyCompleted, setSwapAlreadyCompleted] = useState<boolean>(isInitiallyCompleted);
+    // On mount, if it's not initially completed AND we have a request ID, 
+    // we should check the status tracker once to see if it was completed in a previous session
+    const [isCheckingSwapStatus, setIsCheckingSwapStatus] = useState<boolean>(!isInitiallyCompleted && !!swapRequestId);
+    const [completedTxHash, setCompletedTxHash] = useState<string | null>(
+        isInitiallyCompleted ? (result.transactionHash || null) : null
+    );
 
     // Get initial quote details
     const quote = result.quote || result.quoteDetails;
@@ -260,7 +282,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
     const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
     const destinationChainIdNum = result.toolParams?.toChainId || getChainIdFromName(destChain || "");
-    const isWrongChain = chain?.id !== requiredChainIdNum;
+    const isWrongChain = !!requiredChainIdNum && chain?.id !== requiredChainIdNum;
 
     // Check if source chain is non-EVM (e.g., swapping FROM Solana)
     const isSourceNonEvm = requiredChainIdNum ? isNonEvmChain(requiredChainIdNum) : false;
@@ -487,9 +509,19 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     {result.message || "Initializing swap details..."}
                 </p>
-                    {!isConnected && (
+                {!isConnected && !swapAlreadyCompleted && !isCheckingSwapStatus && (
                     <div className="mt-4 flex justify-center w-full">
                         <DynamicConnectButton />
+                    </div>
+                )}
+                {(swapAlreadyCompleted || step === "success") && (
+                    <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-400 text-sm">
+                        <ShieldCheck className="size-4" /> Swap Completed!
+                    </div>
+                )}
+                {isCheckingSwapStatus && !isInitiallyCompleted && (
+                    <div className="mt-4 flex items-center gap-2 text-zinc-500 text-sm animate-pulse">
+                        <Loader2 className="size-4 animate-spin" /> Verifying status...
                     </div>
                 )}
             </motion.div>
@@ -572,15 +604,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     };
 
-    // Generate deterministic ID for this specific swap intent
-    // We use the timestamp from the tool result to ensure it's unique to this specific AI response
-    // but persistent across page reloads (since chat history saves the tool result)
-    const swapRequestId = result.toolParams
-        ? `swap-v1-${result.toolParams.fromChainId}-${result.toolParams.toChainId}-${result.toolParams.amount}-${result.timestamp || 'no-time'}`
-        : null;
-
     // Check status on mount
     useEffect(() => {
+        if (!isCheckingSwapStatus || swapAlreadyCompleted) {
+            return;
+        }
+
+        // Safety check: if no ID but somehow tracking is enabled, turn it off
         if (!swapRequestId) {
             setIsCheckingSwapStatus(false);
             return;
@@ -588,7 +618,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
         const checkStatus = async () => {
             // Avoid double check if already success
-            if (step === "success") return;
+            if (step === "success" || swapAlreadyCompleted) {
+                setIsCheckingSwapStatus(false);
+                return;
+            }
 
             try {
                 const res = await fetch(`/api/relay/swap-tracking?swapRequestId=${encodeURIComponent(swapRequestId)}`);
@@ -599,15 +632,26 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         setStep("success");
                         if (data.transactionHash) {
                             setCompletedTxHash(data.transactionHash);
-                            // Also set the hash for display
                             setTxHash(data.transactionHash);
                         }
+                        setIsCheckingSwapStatus(false);
+                        return;
                     }
                 }
             } catch (error) {
                 console.error("Failed to check swap status:", error);
-            } finally {
-                setIsCheckingSwapStatus(false);
+            }
+
+            // Polling logic
+            if (isCheckingSwapStatus && !swapAlreadyCompleted) {
+                // If it's an autonomous background execution OR the user just sent it manually,
+                // keep polling every 5 seconds.
+                if (isWaitingForAutonomousResult || step === "sending") {
+                    setTimeout(checkStatus, 5000);
+                } else {
+                    // For static quotes/reloads, just check once on mount
+                    setIsCheckingSwapStatus(false);
+                }
             }
         };
 
@@ -615,7 +659,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     }, [swapRequestId]);
 
     const handleExecuteSwap = async () => {
-        if (processedTransactions.length === 0) return;
+        if (processedTransactions.length === 0 || swapAlreadyCompleted) return;
 
         // If we need a destination address but it's invalid, show error
         if (needsDestinationAddress && !validateRecipient(recipientAddress)) {
@@ -1028,12 +1072,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 </p>
                             </div>
                         </div>
-                        {step === "sending" && (
+                        {isCheckingSwapStatus && !isInitiallyCompleted && step === "ready" && (
+                            <div className="px-2 py-1 rounded-full bg-zinc-500/20 border border-zinc-500/20 text-zinc-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
+                                <Loader2 className="size-3 animate-spin" /> Checking Status
+                            </div>
+                        )}
+                        {(step === "sending" || step === "confirming") && (
                             <div className="px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
                                 <Loader2 className="size-3 animate-spin" /> Processing
                             </div>
                         )}
-                        {isVerified && step !== "sending" && step !== "success" && (
+                        {isVerified && step !== "sending" && step !== "success" && !isCheckingSwapStatus && (
                             <div className="px-2 py-1 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm shadow-sm">
                                 <ShieldCheck className="size-3" /> Verified
                             </div>
@@ -1237,7 +1286,6 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         )}
                     </AnimatePresence>
 
-                    {/* SUCCESS STATE - CONSTANT & UNIFIED */}
                     <AnimatePresence>
                         {(step === "success" || swapAlreadyCompleted) && (
                             <motion.div
@@ -1268,8 +1316,8 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         )}
                     </AnimatePresence>
 
-                    {/* ACTIONS - Hide when swap completed */}
-                    {step !== "success" && !swapAlreadyCompleted && (
+                    {/* ACTIONS - Hide when swap completed or checking status on mount */}
+                    {step !== "success" && !swapAlreadyCompleted && !isCheckingSwapStatus && (
                         <div className="pt-2">
                             {/* Non-EVM Source Chain - Show action buttons when wallet is connected */}
                             {isSourceNonEvm && sourceWallet?.address ? (
@@ -1341,7 +1389,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                         </ButtonAny>
                                     </div>
                                 ) : null
-                            ) : isWrongChain ? (
+                            ) : isWrongChain && requiredChainIdNum ? (
                                 <ButtonAny
                                     onClick={handleSwitchChain}
                                     className="w-full h-11 bg-red-600 hover:bg-red-700 text-white"

@@ -12,6 +12,7 @@ import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig, systemPrompt as baseSystemPrompt } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
+import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
 import {
   decrementRemainingMessageCount,
   decrementGuestMessageCount,
@@ -119,10 +120,19 @@ function toCoreSafeMessages(messages: Array<Message>): Array<CoreMessage> {
         } else if (part.type === 'image') {
           const img = part.image;
           const mimeType = part.mimeType?.toLowerCase();
+          const isGif = mimeType === 'image/gif' || (typeof img === 'string' && (img.toLowerCase().includes('.gif') || img.startsWith('data:image/gif')));
 
           // Securtiy Fix (CVE-2025-48985): Validate MIME types
           if (mimeType && !ALLOWED_IMAGE_MIME_TYPES.includes(mimeType)) {
             console.warn(`[SECURITY] Blocked unsupported image MIME type: ${mimeType}`);
+            continue;
+          }
+
+          // VISION COMPATIBILITY FIX: Most AI providers (xAI, OpenAI, Anthropic) 
+          // do NOT support standard animated GIFs and will return a 400 error.
+          // We convert GIFs to a text placeholder for the LLM while keeping them in history for tools.
+          if (isGif) {
+            parts.push({ type: 'text', text: '[Attached GIF image]' });
             continue;
           }
 
@@ -737,12 +747,14 @@ export async function POST(request: Request) {
     const { hasDelegation } = await import("@/lib/agent/agent-wallet-store");
     isAgentEnabledLocally = await hasDelegation(session.user.id);
 
+    // Always inject autonomous execution tools if authenticated to allow for manual approval flow
+    safeActiveTools.push("executeFourMemeBuy");
+    safeActiveTools.push("executeFourMemeSell");
+    safeActiveTools.push("executeFourMemeLaunch");
+    safeActiveTools.push("executeAgenticRelaySwap");
+
     if (isAgentEnabledLocally) {
-      safeActiveTools.push("executeFourMemeBuy");
-      safeActiveTools.push("executeFourMemeSell");
-      safeActiveTools.push("executeFourMemeLaunch");
-      // Remove all manual quoting and execution tools using explicit filtering to ensure
-      // the Agent Router operates seamlessly without hallucinating legacy prompts
+      // Remove all manual quoting and execution tools when automation is enabled to simplify AI routing
       safeActiveTools = safeActiveTools.filter(toolName => ![
         "prepareRelayTransaction",
         "getRelayBridgeQuote",
@@ -751,11 +763,12 @@ export async function POST(request: Request) {
     }
   }
 
-// Wrap webSearch to enforce single execution per request
+  // Wrap webSearch to enforce single execution per request
   let hasWebSearchExecuted = false;
   const wrappedTools = {
     ...allTools,
-    ...(session?.user?.id && isAgentEnabledLocally ? {
+    // Autonomous execution tools (Agentic) - Always available if authenticated
+    ...(session?.user?.id ? {
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain swap autonomously using the user's embedded agent wallet. Accepts exact same parameters as prepareRelayTransaction.",
         parameters: z.object({
@@ -796,8 +809,61 @@ export async function POST(request: Request) {
             return { status: "error", message: "Failed to generate executable transaction payload." };
           }
 
-          const { executeRelaySwap } = await import("@/lib/agent/agent-payment-executor");
+          // IDEMPOTENCY CHECK
+          // Check if this specific swap intent (same chains, tokens, and amount) was already completed recently
+          try {
+            const { db } = await import("@/lib/db/db");
+            const { relay_swap_tracking } = await import("@/lib/db/schema");
+            const { eq, and, gt } = await import("drizzle-orm");
+            
+            // Generate a 'parameter-based' ID for broad idempotency (ignores timestamp)
+            const paramBasedId = `swap-intent-${args.fromChainId}-${args.toChainId}-${args.fromToken}-${args.toToken}-${args.amount}`;
+            
+            const recentlyCompleted = await db
+              .select()
+              .from(relay_swap_tracking)
+              .where(
+                and(
+                  eq(relay_swap_tracking.userId, session.user.id),
+                  eq(relay_swap_tracking.swapRequestId, paramBasedId)
+                )
+              )
+              .limit(1);
 
+            if (recentlyCompleted.length > 0) {
+              console.log(`[RelayIdempotency] Found existing completion for parameters: ${paramBasedId}`);
+              return {
+                status: "success",
+                message: "This swap was already completed successfully.",
+                transactionHash: recentlyCompleted[0].transactionHash,
+                explorerUrl: recentlyCompleted[0].transactionHash ? `https://relay.link/transaction/${recentlyCompleted[0].transactionHash}` : undefined,
+                note: "Automatically detected previous successful execution."
+              };
+            }
+          } catch (dbErr) {
+            console.error("[RelayIdempotency] Persistence check failed:", dbErr);
+          }
+
+          // IF automation is disabled, return the prepared transaction for manual approval
+          if (!isAgentEnabledLocally) {
+            // Include both IDs for robust tracking: 
+            // 1. The timestamped ID (for specific message tracking)
+            // 2. The param-based ID (for cross-message idempotency)
+            const paramBasedId = `swap-intent-${args.fromChainId}-${args.toChainId}-${args.fromToken}-${args.toToken}-${args.amount}`;
+            
+            return {
+              ...rawResult,
+              status: "requires_manual_approval",
+              message: "Agent automation is not enabled. Please confirm this transaction manually.",
+              timestamp: Date.now().toString(),
+              swapIntentId: paramBasedId, // Added for backend idempotency
+              preparedAt: Date.now(),
+              isAgentExecution: false,
+              _instructionToAI: "Inform the user that automation is off and they need to confirm the swap manually using the card above."
+            };
+          }
+
+          const { executeRelaySwap } = await import("@/lib/agent/agent-payment-executor");
           console.log(`[AgentExecutor] Routing exact tx payload autonomously...`);
           const txList = rawResult.transactions as any[];
 
@@ -806,7 +872,7 @@ export async function POST(request: Request) {
             const isApproval = tx.data?.startsWith("0x095ea7b3");
             const isTransfer = !isApproval && (args.fromToken === args.toToken) && (args.fromChainId === args.toChainId);
             const parsedAmount = (args.amount.toLowerCase() === 'all' || args.amount.toLowerCase() === 'max') && rawResult.quoteDetails?.amountIn ? rawResult.quoteDetails.amountIn : args.amount;
-            
+
             const autoResult = await executeRelaySwap({
               userId: session.user.id,
               operationType: isApproval ? "erc20_approve" : (isTransfer ? "transfer" : "relay_swap"),
@@ -824,6 +890,22 @@ export async function POST(request: Request) {
             if (!autoResult.success) {
               return { status: "error", message: autoResult.error || "Autonomous execution failed during broadcast." };
             }
+            
+            // Record successful autonomous completion for idempotency
+            try {
+              const { db } = await import("@/lib/db/db");
+              const { relay_swap_tracking } = await import("@/lib/db/schema");
+              const paramBasedId = `swap-intent-${args.fromChainId}-${args.toChainId}-${args.fromToken}-${args.toToken}-${args.amount}`;
+              
+              await db.insert(relay_swap_tracking).values({
+                userId: session.user.id,
+                swapRequestId: paramBasedId,
+                transactionHash: autoResult.transactionHash || null
+              }).onConflictDoNothing(); // Basic idempotency
+            } catch (dbErr) {
+              console.error("[RelayIdempotency] Failed to record autonomous completion:", dbErr);
+            }
+
             finalHash = autoResult.transactionHash || finalHash;
           }
           let explorerUrl = finalHash ? `https://relay.link/transaction/${finalHash}` : undefined;
@@ -843,6 +925,7 @@ export async function POST(request: Request) {
             status: "success",
             message: "Autonomous execution completed successfully WITHOUT manual UI!",
             transactionHash: finalHash,
+            isAgentExecution: true,
             explorerUrl,
             quoteDetails: rawResult.quoteDetails,
             sourceChain: rawResult.sourceChain,
@@ -850,10 +933,8 @@ export async function POST(request: Request) {
             _instructionToAI: "CRITICAL: A rich UI card is ALREADY safely rendering to the user! DO NOT PRINT ANY transaction hashes, block explorer URLs, gas fees, or data tables! Keep your text output to an absolute maximum of 1 short sentence, e.g. 'Your cross-chain execution has completed anonymously via Relay.'"
           };
         }
-      })
-    } : {}),
-    // Four.meme Agentic Tools (BNB Chain buy/sell)
-    ...(session?.user?.id && isAgentEnabledLocally ? {
+      }),
+      // Four.meme Agentic Tools (BNB Chain buy/sell)
       executeFourMemeBuy: createFourMemeBuyTool(session.user.id),
       executeFourMemeSell: createFourMemeSellTool(session.user.id),
       executeFourMemeLaunch: {
@@ -861,11 +942,14 @@ export async function POST(request: Request) {
         execute: async (args: any) => {
           // Flatten messages to pass to tool for image retrieval
           return await createFourMemeLaunchTool(session!.user!.id!).execute({
-             ...args,
-             _messages: resolvedMessages
+            ...args,
+            _messages: resolvedMessages
           }, {} as any);
         }
-      }
+      },
+      // Agent Wallet & Identity Tools
+      getAgentWalletInfo: createGetAgentWalletInfoTool(session.user.id),
+      getAgentTokenBalance: createGetAgentTokenBalanceTool(session.user.id),
     } : {}),
     // Override shared package quote tools with viem-based versions (always available)
     quoteFourMemeBuy: quoteFourMemeBuyTool,
@@ -905,7 +989,10 @@ export async function POST(request: Request) {
 - When a user asks to buy/sell a token from a list (e.g. "no. 2", "the first one"), ALWAYS use the \`address\` field from the tool's SEARCH or RANKING results.
 - NEVER use your own knowledge for addresses. Use the exact 0x... address provided by the tool.
 - If you see address '0x823fc8ef7295188d95708516d7458d6154179083', it is a documentation EXAMPLE and likely WRONG. Do not use it unless explicitly provided by the user.
-- **IMAGE HANDLING**: You CAN launch tokens using images users upload directly to the chat! Do not ask for external URLs if you see an image in the recent message history. The 'executeFourMemeLaunch' tool automatically handles the upload.`,
+- **IMAGE HANDLING**: You CAN launch tokens using images users upload directly to the chat! Do not ask for external URLs if you see an image in the recent message history. The 'executeFourMemeLaunch' tool automatically handles the upload.
+- **TRANSACTION LINKS**: After a successful buy, sell, or launch, ALWAYS provide a clickable markdown link to the transaction on BscScan using the \`explorerUrl\` from the tool result. Format: \`[View on BscScan](url)\`.
+- **AGENT IDENTITY**: You have an embedded agent wallet on BNB Chain. If you are unsure about your address or BNB balance, use \`getAgentWalletInfo\`. To check a specific token balance, use \`getAgentTokenBalance\`.
+- **SELL ALL**: The \`executeFourMemeSell\` tool now supports the string "all" for \`tokenAmount\`. Use this when the user wants to liquidate their entire position.`,
           messages: resolvedMessages, // Use resolved messages with signed R2 URLs
           maxSteps: 10,
           maxRetries: 3, // Retry up to 3 times on failure
