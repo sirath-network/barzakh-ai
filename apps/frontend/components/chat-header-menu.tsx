@@ -343,10 +343,10 @@ export function ChatHeaderMenu({
                         </AlertDialogDescriptionAny>
                     </AlertDialogHeaderAny>
                     <AlertDialogFooterAny>
-                        <AlertDialogCancelAny>Cancel</AlertDialogCancelAny>
+                        <AlertDialogCancelAny className="focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0">Cancel</AlertDialogCancelAny>
                         <AlertDialogActionAny
                             onClick={handleDelete}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                         >
                             Delete
                         </AlertDialogActionAny>

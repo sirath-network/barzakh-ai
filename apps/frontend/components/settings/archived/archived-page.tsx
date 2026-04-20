@@ -594,7 +594,9 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
 
         {/* Delete Dialog */}
         <AlertDialogAny open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
+          <AlertDialogContentAny 
+            className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm"
+          >
             <AlertDialogHeaderAny className="space-y-3">
               <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center mx-auto">
                 <Trash2Any className="w-5 h-5 text-muted-foreground" />
@@ -607,12 +609,12 @@ export function ArchivedPage({ user }: { user: User | undefined }) {
               </AlertDialogDescriptionAny>
             </AlertDialogHeaderAny>
             <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
-              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200">
+              <AlertDialogCancelAny className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                 Cancel
               </AlertDialogCancelAny>
               <AlertDialogActionAny
                 onClick={handleDelete}
-                className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
+                className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 Delete Forever
               </AlertDialogActionAny>

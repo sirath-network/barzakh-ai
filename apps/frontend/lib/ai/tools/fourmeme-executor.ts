@@ -14,8 +14,9 @@ import {
   hasDelegation,
   getUserAgentWalletAddress,
 } from "@/lib/agent/agent-wallet-store";
-import { createPublicClient, http, encodeFunctionData, encodeAbiParameters, fallback } from "viem";
+import { createPublicClient, http, encodeFunctionData, encodeAbiParameters, fallback, parseEther } from "viem";
 import { bsc } from "viem/chains";
+import { getAgentPrivateKey } from "@/lib/agent/agent-wallet-store";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ const BSC_RPC_URL =
   process.env.BSC_RPC_URL ||
   "https://bnb-mainnet.g.alchemy.com/v2/QmCrH0w-wPKCJ7hBHKn1t";
 
+const API_BASE = "https://four.meme/meme-api/v1";
+const TOKEN_MANAGER2_ADDRESS = "0x5c952063c7fc8610FFDB798152D69F0B9550762b" as const;
 const HELPER_ADDRESS = "0xF251F83e40a78868FcfA3FA4599Dad6494E46034" as const;
 const ZERO_ADDRESS =
   "0x0000000000000000000000000000000000000000" as const;
@@ -138,6 +141,33 @@ const SELLTOKEN_SIMPLE_ABI = [
       { name: "amount", type: "uint256" as const },
     ],
     outputs: [],
+  },
+] as const;
+
+const TOKEN_MANAGER2_ABI = [
+  {
+    name: "createToken",
+    type: "function" as const,
+    stateMutability: "payable" as const,
+    inputs: [
+      { name: "args", type: "bytes" as const },
+      { name: "signature", type: "bytes" as const },
+    ],
+    outputs: [],
+  },
+  {
+    name: "_launchFee",
+    type: "function" as const,
+    stateMutability: "view" as const,
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" as const }],
+  },
+  {
+    name: "_tradingFeeRate",
+    type: "function" as const,
+    stateMutability: "view" as const,
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" as const }],
   },
 ] as const;
 
@@ -783,3 +813,368 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
       }
     },
   });
+
+// ─── Launch Tool Implementation ─────────────────────────────────────────────
+
+export function createFourMemeLaunchTool(userId: string) {
+  return tool({
+    description:
+      "Launch a new meme token on Four.meme (BNB Chain). Requires an image to be uploaded to the chat first. Supports optional Tax Tokens (trading fees) and Presale (developer buy-in).",
+    parameters: z.object({
+      name: z.string().describe("Token name (e.g. 'Barzakh AI')"),
+      symbol: z.string().describe("Token symbol (e.g. 'BARZAKH')"),
+      description: z.string().describe("Detailed description of the token project"),
+      label: z.enum(['Meme', 'AI', 'Defi', 'Games', 'Infra', 'De-Sci', 'Social', 'Depin', 'Charity', 'Others']).describe("Category label"),
+      presaleBnb: z.number().optional().default(0).describe("Amount of BNB to buy your own supply at launch (presale)"),
+      taxInfo: z.object({
+        feeRate: z.number().describe("Total fee rate (1, 3, 5, or 10 %)"),
+        burnRate: z.number().describe("Percentage of fee to burn"),
+        divideRate: z.number().describe("Percentage of fee for dividends"),
+        liquidityRate: z.number().describe("Percentage of fee for liquidity"),
+        recipientRate: z.number().describe("Percentage of fee for recipient"),
+        recipientAddress: z.string().optional().describe("Address for recipient fee"),
+        minSharing: z.number().optional().default(100000).describe("Min balance for sharing"),
+      }).optional().describe("Optional tax token configuration (revenue sharing)"),
+      twitter: z.string().optional().describe("Twitter/X profile URL"),
+      telegram: z.string().optional().describe("Telegram group/channel URL"),
+      website: z.string().optional().describe("Project website URL"),
+      _messages: z.any().optional().describe("Internal: message history for image retrieval"),
+    }),
+    execute: async ({ name, symbol, description, label, presaleBnb, taxInfo, twitter, telegram, website, _messages }) => {
+      try {
+        // 1. Auth check
+        const isAgentEnabled = await hasDelegation(userId);
+        if (!isAgentEnabled) {
+          return {
+            status: "error",
+            message: "Agent automation is not enabled. Please enable it in Settings.",
+          };
+        }
+
+        const agentAddress = await getUserAgentWalletAddress(userId);
+        if (!agentAddress) {
+          return { status: "error", message: "Agent wallet not found." };
+        }
+
+        // 2. Resolve Image from messages (look for type: 'image' in CoreMessage content)
+        const messages = _messages || [];
+        let foundImageUrl: string | null = null;
+        let foundImageData: string | null = null;
+        let foundMimeType: string | null = null;
+
+        // Search backwards through messages for the most recent image
+        for (let i = messages.length - 1; i >= 0; i--) {
+           const m = messages[i];
+           if (m.role !== 'user' || !Array.isArray(m.content)) continue;
+           
+           const imagePart = m.content.find((part: any) => part.type === 'image');
+           if (imagePart) {
+              if (typeof imagePart.image === 'string') {
+                 // Check if it's a URL or base64
+                 if (imagePart.image.startsWith('http')) {
+                    foundImageUrl = imagePart.image;
+                 } else {
+                    foundImageData = imagePart.image;
+                    foundMimeType = imagePart.mimeType || 'image/png';
+                 }
+                 break;
+              } else if (imagePart.image instanceof URL) {
+                 foundImageUrl = imagePart.image.toString();
+                 break;
+              }
+           }
+        }
+
+        if (!foundImageUrl && !foundImageData) {
+          return {
+            status: "error",
+            message: "I couldn't find the image in the chat history. Please upload the image again, and I'll proceed with the launch.",
+          };
+        }
+
+        // 3. Fetch/Prepare Image Data
+        let imageBuffer: Buffer;
+        if (foundImageUrl) {
+           const imageResponse = await fetch(foundImageUrl);
+           if (!imageResponse.ok) {
+              return { status: "error", message: "Failed to download the token image from the provided URL." };
+           }
+           const imageBlob = await imageResponse.blob();
+           imageBuffer = Buffer.from(await imageBlob.arrayBuffer());
+        } else {
+           // Base64 data
+           imageBuffer = Buffer.from(foundImageData!, 'base64');
+        }
+
+        // 4. Four.meme API Auth (Nonce -> Login)
+        const privateKey = await getAgentPrivateKey(userId);
+
+        if (!privateKey) {
+             return { status: "error", message: "Failed to retrieve agent signing key for authentication. Please make sure agent automation is enabled." };
+        }
+
+        const publicClient = getPublicClient();
+        const { privateKeyToAccount } = await import("viem/accounts");
+        const account = privateKeyToAccount(privateKey as `0x${string}`);
+
+        // Get Nonce
+        const nonceRes = await fetch(`${API_BASE}/private/user/nonce/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountAddress: agentAddress,
+            verifyType: 'LOGIN',
+            networkCode: 'BSC',
+          }),
+        });
+        const nonceData = await nonceRes.json();
+        if (nonceData.code !== '0' && nonceData.code !== 0) {
+          throw new Error('Four.meme Nonce failed');
+        }
+        const nonce = nonceData.data;
+
+        // Login
+        const loginMessage = `You are sign in Meme ${nonce}`;
+        const loginSig = await account.signMessage({ message: loginMessage });
+
+        const loginRes = await fetch(`${API_BASE}/private/user/login/dex`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            region: 'WEB',
+            langType: 'EN',
+            verifyInfo: {
+              address: agentAddress,
+              networkCode: 'BSC',
+              signature: loginSig,
+              verifyType: 'LOGIN',
+            },
+            walletName: 'MetaMask',
+          }),
+        });
+        const loginData = await loginRes.json();
+        const accessToken = loginData.data;
+        if (!accessToken) throw new Error("Four.meme login failed");
+
+        // 5. Upload Image
+        const formData = new FormData();
+        // Use correct extension based on MIME type
+        const extension = foundMimeType?.split('/')?.[1] || 'png';
+        const fileName = `token-logo.${extension}`;
+        
+        formData.append('file', new Blob([new Uint8Array(imageBuffer)]), fileName);
+
+        const uploadRes = await fetch(`${API_BASE}/private/token/upload`, {
+          method: 'POST',
+          headers: { 'meme-web-access': accessToken },
+          body: formData as any,
+        });
+
+        if (!uploadRes.ok) {
+           const errorText = await uploadRes.text();
+           console.error("[FourMeme] Image upload failed with status:", uploadRes.status, errorText);
+           if (uploadRes.status === 413) {
+              return { status: "error", message: "The image/GIF you provided is too large for the Four.meme API. Please try a smaller file (under 5MB)." };
+           }
+           return { status: "error", message: `Four.meme image upload failed (${uploadRes.status}). The service might be experiencing issues or the file type is unsupported.` };
+        }
+
+        const uploadData = await uploadRes.json();
+        const imgUrl = uploadData.data;
+        if (!imgUrl) throw new Error("Image upload to Four.meme failed: No URL returned");
+
+        // 6. Get Public Config (raisedToken)
+        const configRes = await fetch(`${API_BASE}/public/config`);
+        const configJson = await configRes.json();
+        const symbols = configJson.data;
+        const bnbConfig = symbols.find((s: any) => s.symbol === 'BNB' && s.status === 'PUBLISH') || symbols[0];
+
+        // 7. Prep Metadata Create
+        // Normalize label to canonical case-sensitive list
+        const validLabels = ['Meme', 'AI', 'Defi', 'Games', 'Infra', 'De-Sci', 'Social', 'Depin', 'Charity', 'Others'];
+        const normalizedLabel = validLabels.find(l => l.toLowerCase() === label.toLowerCase()) || label;
+
+        const body: any = {
+           name,
+           shortName: symbol,
+           desc: description,
+           totalSupply: Number(bnbConfig.totalAmount || 1000000000),
+           raisedAmount: Number(bnbConfig.totalBAmount || 24),
+           saleRate: Number(bnbConfig.saleRate || 0.8),
+           reserveRate: 0,
+           imgUrl,
+           raisedToken: bnbConfig,
+           launchTime: Date.now(),
+           funGroup: false,
+           label: normalizedLabel,
+           lpTradingFee: 0.0025,
+           preSale: String(presaleBnb || 0),
+           clickFun: false,
+           symbol: bnbConfig.symbol,
+           dexType: 'PANCAKE_SWAP',
+           rushMode: false,
+           onlyMPC: false,
+           feePlan: false,
+        };
+
+        if (website) body.webUrl = website;
+        if (twitter) body.twitterUrl = twitter;
+        if (telegram) body.telegramUrl = telegram;
+
+        if (taxInfo) {
+           body.tokenTaxInfo = {
+               feeRate: taxInfo.feeRate,
+               burnRate: taxInfo.burnRate || 0,
+               divideRate: taxInfo.divideRate || 0,
+               liquidityRate: taxInfo.liquidityRate || 0,
+               recipientRate: taxInfo.recipientRate || 0,
+               recipientAddress: taxInfo.recipientAddress || "",
+               minSharing: taxInfo.minSharing || 100000
+           };
+        }
+
+        const createRes = await fetch(`${API_BASE}/private/token/create`, {
+          method: 'POST',
+          headers: {
+            'meme-web-access': accessToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        });
+        const createData = await createRes.json();
+        if (createData.code !== '0' && createData.code !== 0) throw new Error(`Create API failed: ${createData.msg}`);
+        
+        const { createArg, signature, creationFeeWei } = createData.data;
+
+        // 8. Estimate Total Cost (On-chain)
+        const launchFee = await publicClient.readContract({
+          address: TOKEN_MANAGER2_ADDRESS,
+          abi: TOKEN_MANAGER2_ABI,
+          functionName: '_launchFee',
+        });
+
+        let totalValue = launchFee;
+        if (presaleBnb > 0) {
+           const presaleWei = parseEther(String(presaleBnb));
+           const tradingFeeRate = await publicClient.readContract({
+             address: TOKEN_MANAGER2_ADDRESS,
+             abi: TOKEN_MANAGER2_ABI,
+             functionName: '_tradingFeeRate',
+           });
+           const tradingFee = (presaleWei * tradingFeeRate) / 10000n;
+           totalValue = launchFee + presaleWei + tradingFee;
+        }
+
+        // Use the API provided fee if higher (safety)
+        const apiFee = BigInt(creationFeeWei || "0");
+        if (apiFee > totalValue) totalValue = apiFee;
+
+        // 9. Execute On-chain
+        const launchData = encodeFunctionData({
+           abi: TOKEN_MANAGER2_ABI,
+           functionName: 'createToken',
+           args: [createArg as `0x${string}`, signature as `0x${string}`],
+        });
+
+        const launchResult = await executeOnChainTransaction({
+          userId,
+          description: `Launch Four.meme Token: ${name} (${symbol})`,
+          estimatedValueUsd: "0",
+          chainId: 56,
+          transaction: {
+            to: TOKEN_MANAGER2_ADDRESS,
+            value: totalValue,
+            data: launchData,
+            chainId: 56,
+          },
+        });
+
+        if (!launchResult.success || !launchResult.transactionHash) {
+           return { status: "error", message: launchResult.error || "Token launch transaction failed." };
+        }
+
+        // 10. Extract Token Address from Receipt Logs
+        let tokenAddress = "";
+        try {
+           const receipt = await publicClient.waitForTransactionReceipt({ 
+              hash: launchResult.transactionHash as `0x${string}` 
+           });
+           
+           const { decodeEventLog, parseAbiItem } = await import("viem");
+           
+           // List of potential ABI signatures to try (bonding curve events vary slightly)
+           const potentialAbis = [
+              parseAbiItem('event TokenCreate(address indexed creator, address indexed token, uint256 requestId, string name, string symbol, uint256 totalSupply, uint256 launchTime, uint256 launchFee)'),
+              parseAbiItem('event TokenCreate(address indexed token, address indexed creator, string name, string symbol)'),
+              parseAbiItem('event TokenCreate(address creator, address token, uint256 requestId, string name, string symbol, uint256 totalSupply, uint256 launchTime, uint256 launchFee)'),
+           ];
+
+           for (const log of receipt.logs) {
+              if (log.address.toLowerCase() !== TOKEN_MANAGER2_ADDRESS.toLowerCase()) continue;
+              
+              for (const abi of potentialAbis) {
+                 try {
+                    const decoded = decodeEventLog({
+                       abi: [abi],
+                       data: log.data,
+                       topics: log.topics,
+                    });
+                    if (decoded.eventName === 'TokenCreate') {
+                       tokenAddress = (decoded.args as any).token;
+                       break;
+                    }
+                 } catch (e) {
+                    // Try next ABI
+                 }
+              }
+              if (tokenAddress) break;
+           }
+
+           // Last resort fallback: Check for a Log that looks like a Token creation (Address topic)
+           if (!tokenAddress) {
+              for (const log of receipt.logs) {
+                 // The TokenCreate signature hash: TokenCreate(address,address,uint256,string,string,uint256,uint256,uint256)
+                 const SIG = "0x396d5e902b675b032348d3d2e9517ee8f0c4a926603fbc075d3d282ff00cad20";
+                 if (log.topics[0] === SIG && log.topics.length >= 3) {
+                    // Usually second or third topic is the token address
+                    // In indexed: [sig, creator, token] or [sig, token, creator]
+                    // We check both and pick the one that ISN'T the user's address
+                    const topic1 = log.topics[1]?.replace("0x000000000000000000000000", "0x");
+                    const topic2 = log.topics[2]?.replace("0x000000000000000000000000", "0x");
+                    
+                    const userAddress = await getUserAgentWalletAddress(userId);
+                    if (topic1 && topic1.toLowerCase() !== userAddress?.toLowerCase()) tokenAddress = topic1;
+                    else if (topic2) tokenAddress = topic2;
+                    if (tokenAddress) break;
+                 }
+              }
+           }
+        } catch (e) {
+           console.error("[FourMeme] Failed to parse transaction receipt for token address:", e);
+        }
+
+        const successMessage = `Successfully launched ${name} (${symbol}) on Four.meme!\n\n` +
+           `Contract Address: ${tokenAddress || "Unknown (check explorer)"}\n` +
+           `[Four.meme Link](${tokenAddress ? `https://four.meme/en/token/${tokenAddress}` : "N/A"})\n` +
+           `[Explorer Link](https://bscscan.com/tx/${launchResult.transactionHash})`;
+
+        return {
+          status: "success",
+          message: successMessage,
+          transactionHash: launchResult.transactionHash,
+          explorerUrl: `https://bscscan.com/tx/${launchResult.transactionHash}`,
+          tokenAddress: tokenAddress || "Unknown (check explorer)",
+          fourMemeUrl: tokenAddress ? `https://four.meme/en/token/${tokenAddress}` : undefined,
+          details: { name, symbol, imgUrl, presale: presaleBnb },
+        };
+
+      } catch (error: any) {
+        console.error("[FourMeme] Launch error:", error);
+        return {
+          status: "error",
+          message: error.message || "Failed to launch token on Four.meme.",
+        };
+      }
+    },
+  });
+}

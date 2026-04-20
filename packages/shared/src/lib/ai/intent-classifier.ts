@@ -490,8 +490,8 @@ function detectChainFromRegistry(message: string): ChainInfo | null {
         if (chain.patterns.some(p => p.test(message))) {
             return chain;
         }
-        // Check keywords
-        if (chain.keywords.some(k => lowerMessage.includes(k.toLowerCase()))) {
+        // Check keywords (with word boundary protection)
+        if (chain.keywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(message))) {
             return chain;
         }
         // Check token mentions (e.g., "MON balance", "MNT price")

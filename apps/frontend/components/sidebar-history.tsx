@@ -606,7 +606,9 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       </SidebarGroupAny>
 
       <AlertDialogAny open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContentAny className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm">
+        <AlertDialogContentAny 
+          className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl border-border/50 bg-background/95 backdrop-blur-sm"
+        >
           <AlertDialogHeaderAny>
             <AlertDialogTitleAny className="text-lg font-semibold">
               Delete conversation?
@@ -617,13 +619,13 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           </AlertDialogHeaderAny>
           <AlertDialogFooterAny className="flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-4">
             <AlertDialogCancelAny
-              className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200"
+              className="w-full sm:w-auto rounded-lg border-border/50 hover:bg-muted/60 transition-colors duration-200 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               Cancel
             </AlertDialogCancelAny>
             <AlertDialogActionAny
               onClick={handleDelete}
-              className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200"
+              className="w-full sm:w-auto rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               Delete
             </AlertDialogActionAny>

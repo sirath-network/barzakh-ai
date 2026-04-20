@@ -438,6 +438,16 @@ const groupTools = {
     "getRelayQuote",
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
+    // Four.meme Agentic Tools (BNB Chain)
+    "executeFourMemeBuy",
+    "executeFourMemeSell",
+    "executeFourMemeLaunch",
+    "quoteFourMemeBuy",
+    "quoteFourMemeSell",
+    "searchFourMemeTokens",
+    "getFourMemeTokenDetail",
+    "getFourMemeRankings",
+    "getFourMemeMarketData",
     // Monad nad.fun token tools (fallback for unknown Monad tokens)
     "searchNadFunTokens",
     "getNadFunTokenInfo",

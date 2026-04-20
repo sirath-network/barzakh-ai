@@ -11,7 +11,7 @@ import { auth } from "@/app/(auth)/auth";
 import { myProvider } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig, systemPrompt as baseSystemPrompt } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
-import { createFourMemeBuyTool, createFourMemeSellTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
+import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
 import {
   decrementRemainingMessageCount,
   decrementGuestMessageCount,
@@ -662,7 +662,7 @@ export async function POST(request: Request) {
 
       if (agentWalletAddress) {
         if (isAgentEnabled) {
-          agentWalletText = `\n- **Agent Automation**: ENABLED\n- **Embedded Agent Wallet**: ${agentWalletAddress}\n  *(CRITICAL DIRECTIVE: You have full delegated access. When the user says "my wallet", "my funds", "swap my USDC", or wants to check "my balance", they are ALWAYS referring to THIS Embedded Agent Wallet. You MUST implicitly use the address ${agentWalletAddress} for ALL tool parameters unconditionally! NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?". If a chain is omitted, simply use \`getEvmOnchainDataUsingZerion\` to instantly scan all chains and discover where their tokens are located. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform a swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n- **Embedded Agent Wallet**: ${agentWalletAddress}\n  *(CRITICAL DIRECTIVE: You have full delegated access. When the user says "my wallet", "my funds", "swap my USDC", or wants to check "my balance", they are ALWAYS referring to THIS Embedded Agent Wallet. You MUST implicitly use the address ${agentWalletAddress} for ALL tool parameters unconditionally! NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?". If a chain is omitted, simply use \`getEvmOnchainDataUsingZerion\` to instantly scan all chains and discover where their tokens are located. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform a swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
         } else {
           agentWalletText = `\n- **Agent Automation**: Disabled (Wallet exists: ${agentWalletAddress}, but user has not delegated access. Instruct them to enable Automation in settings first.)`;
         }
@@ -738,9 +738,9 @@ export async function POST(request: Request) {
     isAgentEnabledLocally = await hasDelegation(session.user.id);
 
     if (isAgentEnabledLocally) {
-      safeActiveTools.push("executeAgenticRelaySwap");
       safeActiveTools.push("executeFourMemeBuy");
       safeActiveTools.push("executeFourMemeSell");
+      safeActiveTools.push("executeFourMemeLaunch");
       // Remove all manual quoting and execution tools using explicit filtering to ensure
       // the Agent Router operates seamlessly without hallucinating legacy prompts
       safeActiveTools = safeActiveTools.filter(toolName => ![
@@ -751,7 +751,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // Wrap webSearch to enforce single execution per request
+// Wrap webSearch to enforce single execution per request
   let hasWebSearchExecuted = false;
   const wrappedTools = {
     ...allTools,
@@ -856,6 +856,16 @@ export async function POST(request: Request) {
     ...(session?.user?.id && isAgentEnabledLocally ? {
       executeFourMemeBuy: createFourMemeBuyTool(session.user.id),
       executeFourMemeSell: createFourMemeSellTool(session.user.id),
+      executeFourMemeLaunch: {
+        ...createFourMemeLaunchTool(session.user.id),
+        execute: async (args: any) => {
+          // Flatten messages to pass to tool for image retrieval
+          return await createFourMemeLaunchTool(session!.user!.id!).execute({
+             ...args,
+             _messages: resolvedMessages
+          }, {} as any);
+        }
+      }
     } : {}),
     // Override shared package quote tools with viem-based versions (always available)
     quoteFourMemeBuy: quoteFourMemeBuyTool,
@@ -894,7 +904,8 @@ export async function POST(request: Request) {
           system: `${baseSystemPrompt}\n\n**FOUR.MEME PROTOCOL GUIDELINES:**
 - When a user asks to buy/sell a token from a list (e.g. "no. 2", "the first one"), ALWAYS use the \`address\` field from the tool's SEARCH or RANKING results.
 - NEVER use your own knowledge for addresses. Use the exact 0x... address provided by the tool.
-- If you see address '0x823fc8ef7295188d95708516d7458d6154179083', it is a documentation EXAMPLE and likely WRONG. Do not use it unless explicitly provided by the user.`,
+- If you see address '0x823fc8ef7295188d95708516d7458d6154179083', it is a documentation EXAMPLE and likely WRONG. Do not use it unless explicitly provided by the user.
+- **IMAGE HANDLING**: You CAN launch tokens using images users upload directly to the chat! Do not ask for external URLs if you see an image in the recent message history. The 'executeFourMemeLaunch' tool automatically handles the upload.`,
           messages: resolvedMessages, // Use resolved messages with signed R2 URLs
           maxSteps: 10,
           maxRetries: 3, // Retry up to 3 times on failure

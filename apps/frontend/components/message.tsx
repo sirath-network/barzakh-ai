@@ -21,7 +21,7 @@ import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
 import TransactionHistory from "./solana/TransactionHistory";
 import EvmTransactionHistory from "./onchain/EvmTransactionHistory";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History } from "lucide-react";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History, Rocket } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
@@ -51,6 +51,7 @@ const FileImageAny = FileImage as any;
 const CreditCardAny = CreditCard as any;
 const ArrowRightLeftAny = ArrowRightLeft as any;
 const HistoryAny = History as any;
+const RocketAny = Rocket as any;
 const TooltipAny = Tooltip as any;
 const TooltipTriggerAny = TooltipTrigger as any;
 const TooltipContentAny = TooltipContent as any;
@@ -100,6 +101,7 @@ const toolIcons: Record<string, React.ElementType> = {
   quoteFourMemeSell: BarChart3Any,
   executeFourMemeBuy: ArrowRightLeftAny,
   executeFourMemeSell: ArrowRightLeftAny,
+  executeFourMemeLaunch: RocketAny,
 };
 
 // HELPER: Small component to render each tool icon

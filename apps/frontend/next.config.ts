@@ -78,6 +78,10 @@ const nextConfig: NextConfig = {
     ];
     return config;
   },
+  experimental: {
+    // Increase the body size limit for large file uploads (GIFs, images)
+    proxyClientMaxBodySize: 25 * 1024 * 1024, // 25MB
+  },
 };
 
 export default nextConfig;
