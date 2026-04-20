@@ -9,16 +9,12 @@ import {
   Shield,
   Loader2,
   AlertTriangle,
-  History,
   Settings2,
   Power,
   PowerOff,
   DollarSign,
-  ArrowUpRight,
   Copy,
   CheckCircle,
-  ChevronDown,
-  ChevronUp,
   Zap,
   Info,
   Plus,
@@ -54,7 +50,6 @@ export function AgentAutomationSection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
   const [copiedAddress, setCopiedAddress] = useState(false);
 
@@ -183,16 +178,7 @@ export function AgentAutomationSection() {
     }
   };
 
-  const formatTxType = (type: string) => {
-    switch (type) {
-      case "x402_subscription": return "Subscription";
-      case "relay_swap": return "Swap";
-      case "on_chain_tx": return "Transaction";
-      case "transfer": return "Transfer";
-      case "erc20_approve": return "Approval";
-      default: return type;
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -205,23 +191,23 @@ export function AgentAutomationSection() {
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm">
+    <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm transition-all duration-300">
       {/* Header */}
-      <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-violet-500/20 to-purple-600/20 rounded-xl">
-              <Bot className="w-5 h-5 text-violet-500 dark:text-violet-400" />
+      <div className="p-5 sm:p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 bg-primary/10 rounded-xl border border-border shadow-sm shrink-0">
+              <Bot className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-foreground">Agent Automation</h2>
-              <p className="text-sm text-muted-foreground">
-                Let AI execute transactions from your embedded wallet
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-foreground leading-tight">Agent Automation</h2>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                AI-driven autonomous transactions
               </p>
             </div>
           </div>
           {status?.agentEnabled && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 shrink-0">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Active</span>
             </div>
@@ -229,21 +215,22 @@ export function AgentAutomationSection() {
         </div>
       </div>
 
-      <div className="p-6 md:p-8 space-y-6">
+      <div className="p-5 sm:p-6 md:p-8 space-y-6">
 
         {/* ── Step 1: Embedded Wallet ── */}
         {displayAddress ? (
           /* Show embedded wallet address */
           <div className="p-4 rounded-xl bg-muted/50 border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Wallet className="w-4 h-4 text-primary" />
-                Your Embedded Wallet
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 font-semibold">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground min-w-0">
+                <Wallet className="w-4 h-4 text-primary shrink-0" />
+                <span className="truncate hidden xs:inline">Your Embedded Wallet</span>
+                <span className="truncate xs:hidden">Wallet</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
                   MPC
                 </span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <button
                   onClick={() => {
                     setShowExportModal(true);
@@ -256,29 +243,25 @@ export function AgentAutomationSection() {
                 </button>
                 <button
                   onClick={copyAddress}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors group"
                 >
-                  {copiedAddress ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
+                  <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                   {copiedAddress ? "Copied" : "Copy"}
                 </button>
               </div>
             </div>
-            <p className="text-xs font-mono text-muted-foreground break-all">{displayAddress}</p>
-            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <Info className="w-3 h-3 flex-shrink-0" />
-              This is a separate wallet from your linked wallet. Fund it to enable autonomous AI operations.
-            </p>
+            <p className="text-[11px] font-mono text-muted-foreground/80 break-all bg-muted/30 p-2 rounded-lg border border-border/30">{displayAddress}</p>
+            <div className="flex items-start gap-2 mt-3 p-2.5 rounded-lg bg-primary/5 text-[11px] text-muted-foreground leading-relaxed">
+              <Info className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span>Dedicated MPC wallet for autonomous operations.</span>
+            </div>
           </div>
         ) : (
           /* No embedded wallet — show create button */
-          <div className="p-5 rounded-xl border-2 border-dashed border-violet-300 dark:border-violet-500/30 bg-violet-50/50 dark:bg-violet-500/5">
+          <div className="p-5 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5">
             <div className="text-center space-y-3">
-              <div className="mx-auto w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/10 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+              <div className="mx-auto w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-border">
+                <Wallet className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">Embedded Wallet Required</p>
@@ -289,7 +272,7 @@ export function AgentAutomationSection() {
               <button
                 onClick={handleCreateEmbeddedWallet}
                 disabled={isCreatingWallet}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-500/20 disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
               >
                 {isCreatingWallet ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -306,105 +289,31 @@ export function AgentAutomationSection() {
           /* ── Agent is ENABLED ── */
           <div className="space-y-4">
             {/* Spend Summary */}
-            <div className="p-3 rounded-lg bg-muted/30 border border-border">
-              <p className="text-xs text-muted-foreground mb-1">Total Spent by Agent (24h)</p>
-              <p className="text-lg font-bold text-foreground">
-                ${(status.spent24h || 0).toFixed(2)}
-              </p>
+            <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/40 transition-colors">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Spent (24h)</p>
+                <p className="text-2xl font-bold text-foreground tabular-nums">
+                  ${(status.spent24h || 0).toFixed(2)}
+                </p>
+              </div>
+              <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
+                <DollarSign className="w-4 h-4 text-primary/80" />
+              </div>
             </div>
 
-            {/* Transaction History */}
-            <div className="border border-border rounded-xl overflow-hidden">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <History className="w-4 h-4 text-muted-foreground" />
-                  Recent Agent Transactions
-                  {status.recentTransactions.length > 0 && (
-                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
-                      {status.recentTransactions.length}
-                    </span>
-                  )}
-                </div>
-                {showHistory ? (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-              {showHistory && (
-                <div className="border-t border-border">
-                  {status.recentTransactions.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No agent transactions yet. The AI will log all autonomous operations here.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {status.recentTransactions.map((tx) => (
-                        <div key={tx.id} className="px-4 py-3 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-1.5 rounded-lg bg-primary/10">
-                              <ArrowUpRight className="w-3.5 h-3.5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">
-                                {formatTxType(tx.type)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(tx.createdAt).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-semibold text-foreground">
-                              {tx.amount.startsWith('$') ? tx.amount : (tx.amount.toLowerCase() === 'all' || tx.amount.toLowerCase() === 'max' ? tx.amount : `$${tx.amount}`)}
-                            </p>
-                            <a
-                              href={(function(chainId, hash) {
-                                if (!hash) return '#';
-                                // Default to Basescan if no chainId is known
-                                const map: Record<number, string> = {
-                                  1: 'https://etherscan.io',
-                                  10: 'https://optimistic.etherscan.io',
-                                  56: 'https://bscscan.com',
-                                  137: 'https://polygonscan.com',
-                                  8453: 'https://basescan.org',
-                                  42161: 'https://arbiscan.io'
-                                };
-                                const base = (chainId && map[chainId as number]) ? map[chainId as number] : 'https://basescan.org';
-                                return `${base}/tx/${hash}`;
-                              })(tx.metadata?.chainId as number | undefined, tx.signature)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors flex items-center justify-end gap-1 mt-0.5"
-                              title="View on Explorer"
-                            >
-                              View on Explorer
-                              <ArrowUpRight className="w-3 h-3 flex-shrink-0" />
-                            </a>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
 
             {/* Disable Button */}
             <button
               onClick={handleRevoke}
               disabled={isUpdating}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 font-medium text-sm transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl border border-red-500/10 dark:border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/5 font-semibold text-sm transition-all disabled:opacity-50"
             >
               {isUpdating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <PowerOff className="w-4 h-4" />
               )}
-              Disable Agent Automation
+              Stop Agent Automation
             </button>
           </div>
         ) : (
@@ -437,7 +346,7 @@ export function AgentAutomationSection() {
                   },
                 ].map((step, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                    <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5">
+                    <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5 shrink-0">
                       <step.icon className="w-3.5 h-3.5 text-primary" />
                     </div>
                     <div>
@@ -493,7 +402,7 @@ export function AgentAutomationSection() {
                   }
                 }}
                 disabled={isUpdating}
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 disabled:opacity-50"
               >
                 {isUpdating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -567,7 +476,7 @@ export function AgentAutomationSection() {
             )}
           </div>
 
-          <DialogFooter className="sm:justify-between mt-4">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 mt-6">
             <Button
               type="button"
               variant="outline"
