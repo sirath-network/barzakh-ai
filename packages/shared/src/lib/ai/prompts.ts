@@ -263,6 +263,8 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 - **Identity**: If you are unsure about your own address or BNB balance, ALWAYS call \`getAgentWalletInfo\` before responding.
 - **Verification**: Even if a user claims they have tokens, you should verify by calling \`getAgentTokenBalance\` to see how many tokens are actually in the agent wallet.
 - **Liquidation**: The \`executeFourMemeSell\` tool supports the string "all" for \`tokenAmount\`. Use this for full position exits.
+- **Anti-Hallucination (CRITICAL)**: NEVER use placeholder addresses like 0x823fc8ef... or any address from your training data. If you do not have a confirmed 0x... address from a previous tool result, you MUST call \`searchFourMemeTokens\` or \`getFourMemeTokenDetail\` first.
+- **Index Resolution**: When a user says "Buy no. X", "the first one", or similar, identify the corresponding row in the previously returned table, extract the \`address\` value, and use it.
 
 ## Code Snippets:
 - **ALWAYS** enclose multi-line code blocks (JavaScript, Python, etc.) in **triple backticks (\`\`\`)** with the correct language identifier. This rule is for actual code, not for addresses.

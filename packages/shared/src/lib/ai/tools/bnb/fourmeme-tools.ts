@@ -18,6 +18,25 @@ function resolveImageUrl(img: string | null | undefined): string | null {
   return `${FOURMEME_STATIC_BASE}${img.startsWith("/") ? "" : "/"}${img}`;
 }
 
+/**
+ * Validate an Ethereum/BSC address (0x + 40 hex chars = 42 total).
+ * Returns a normalized lowercase address or null if invalid.
+ */
+function validateTokenAddress(addr: string): string | null {
+  const cleaned = addr.trim().toLowerCase();
+  if (!cleaned.startsWith("0x")) return null;
+  if (cleaned.length !== 42) return null;
+  if (!/^0x[0-9a-f]{40}$/.test(cleaned)) return null;
+  return cleaned;
+}
+
+function addressValidationError(raw: string) {
+  return {
+    status: "error" as const,
+    error: `Invalid token address: "${raw}". Expected 0x + 40 hex characters (got ${raw.length} chars). The address may have been truncated by the AI. Please call searchFourMemeTokens or getFourMemeRankings again to get the full correct address.`,
+  };
+}
+
 // ============================================================================
 // TokenManagerHelper3 ABI (for on-chain getTokenInfo)
 // ============================================================================
@@ -167,7 +186,11 @@ export const searchFourMemeTokens = tool({
         };
       });
 
-      const summary = results.map((r: any) => `[${r.index}] ${r.name} (${r.symbol}) - ${r.address}`).join("\n");
+      const tableHeader = "| Index | Name | Symbol | Address | Progress | Market Cap | Status |\n|-------|------|--------|---------|----------|------------|--------|";
+      const tableRows = results.map((r: any) => 
+        `| ${r.index} | ${r.name} | ${r.symbol} | ${r.address} | ${r.progress || "N/A"} | ${r.market_cap} | ${r.is_graduated ? "DEX" : "Bonding"} |`
+      ).join("\n");
+      const summaryTable = `${tableHeader}\n${tableRows}`;
 
       return {
         status: "success",
@@ -177,8 +200,8 @@ export const searchFourMemeTokens = tool({
         filter_type: type,
         filter_status: status,
         results,
-        summary,
-        note: `Found ${total} tokens on Four.meme (BNB Chain). Showing ${results.length} sorted by ${type}. Tokens marked as "graduated" have migrated to PancakeSwap DEX. When presenting/buying tokens, refer to them by their [index] and use the exact 0x... address provided in the results.`,
+        summary: summaryTable,
+        note: `Found ${total} tokens on Four.meme (BNB Chain). Showing ${results.length} sorted by ${type}. IMPORTANT: To buy or view details, ALWAYS use the "Address" provided in the table for the corresponding "Index".`,
       };
     } catch (error: any) {
       return {
@@ -206,7 +229,11 @@ export const getFourMemeTokenDetail = tool({
   }),
   execute: async ({ tokenAddress }) => {
     try {
-      const url = `${FOURMEME_API_BASE}/private/token/get/v2?address=${encodeURIComponent(tokenAddress)}`;
+      // Validate address before API call
+      const cleanAddr = validateTokenAddress(tokenAddress);
+      if (!cleanAddr) return addressValidationError(tokenAddress);
+
+      const url = `${FOURMEME_API_BASE}/private/token/get/v2?address=${encodeURIComponent(cleanAddr)}`;
       const response = await fetch(url, {
         headers: {
           Accept: "application/json",
@@ -413,15 +440,19 @@ export const getFourMemeRankings = tool({
         };
       });
 
-      const summary = results.map((r: any) => `[${r.index}] ${r.name} (${r.symbol}) - ${r.address}`).join("\n");
+      const tableHeader = "| Index | Rank | Name | Symbol | Address | Progress | Market Cap |\n|-------|------|------|--------|---------|----------|------------|";
+      const tableRows = results.map((r: any) => 
+        `| ${r.index} | ${r.rank} | ${r.name} | ${r.symbol} | ${r.address} | ${r.progress || "N/A"} | ${r.market_cap} |`
+      ).join("\n");
+      const summaryTable = `${tableHeader}\n${tableRows}`;
 
       return {
         status: "success",
         ranking_type: rankingType,
         count: results.length,
         results,
-        summary,
-        note: `Top ${results.length} tokens ranked by ${rankingType} on Four.meme (BNB Chain). Tokens marked as "graduated" have migrated to PancakeSwap DEX. When presenting/buying tokens, refer to them by their [index] and ALWAYS use the exact 0x... address provided in the results.`,
+        summary: summaryTable,
+        note: `Top ${results.length} tokens ranked by ${rankingType} on Four.meme (BNB Chain). IMPORTANT: To buy or view details, ALWAYS use the "Address" provided in the table for the corresponding "Index".`,
       };
     } catch (error: any) {
       return {
@@ -447,9 +478,12 @@ export const getFourMemeMarketData = tool({
   }),
   execute: async ({ tokenAddress }) => {
     try {
+      // Validate address before RPC call
+      const cleanAddr = validateTokenAddress(tokenAddress);
+      if (!cleanAddr) return addressValidationError(tokenAddress);
+
       // Pad the token address to 32 bytes for the ABI call
-      const paddedAddress = tokenAddress
-        .toLowerCase()
+      const paddedAddress = cleanAddr
         .replace("0x", "")
         .padStart(64, "0");
       const callData = `${GET_TOKEN_INFO_SELECTOR}${paddedAddress}`;
@@ -622,6 +656,10 @@ export const quoteFourMemeBuy = tool({
   }),
   execute: async ({ tokenAddress, tokenAmount, amountBnb }) => {
     try {
+      // Validate address before RPC call
+      const cleanAddr = validateTokenAddress(tokenAddress);
+      if (!cleanAddr) return addressValidationError(tokenAddress);
+
       // Convert to wei
       let amountWei = BigInt(0);
       let fundsWei = BigInt(0);
@@ -641,7 +679,7 @@ export const quoteFourMemeBuy = tool({
       }
 
       // Encode: tryBuy(address, uint256, uint256)
-      const callData = `${TRY_BUY_SELECTOR}${encodeAddress(tokenAddress)}${encodeUint256(amountWei)}${encodeUint256(fundsWei)}`;
+      const callData = `${TRY_BUY_SELECTOR}${encodeAddress(cleanAddr)}${encodeUint256(amountWei)}${encodeUint256(fundsWei)}`;
 
       const rpcResponse = await fetch(BSC_RPC_URL, {
         method: "POST",
@@ -716,12 +754,16 @@ export const quoteFourMemeSell = tool({
   }),
   execute: async ({ tokenAddress, tokenAmount }) => {
     try {
+      // Validate address before RPC call
+      const cleanAddr = validateTokenAddress(tokenAddress);
+      if (!cleanAddr) return addressValidationError(tokenAddress);
+
       const tokens = parseFloat(tokenAmount);
       if (tokens <= 0) return { status: "error", error: "Token amount must be greater than 0" };
       const amountWei = BigInt(Math.floor(tokens * 1e18));
 
       // Encode: trySell(address, uint256)
-      const callData = `${TRY_SELL_SELECTOR}${encodeAddress(tokenAddress)}${encodeUint256(amountWei)}`;
+      const callData = `${TRY_SELL_SELECTOR}${encodeAddress(cleanAddr)}${encodeUint256(amountWei)}`;
 
       const rpcResponse = await fetch(BSC_RPC_URL, {
         method: "POST",

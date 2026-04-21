@@ -196,18 +196,37 @@ const ERC20_ABI = [
     ],
     outputs: [{ name: "", type: "bool" as const }],
   },
+  {
+    name: "allowance",
+    type: "function" as const,
+    stateMutability: "view" as const,
+    inputs: [
+      { name: "owner", type: "address" as const },
+      { name: "spender", type: "address" as const },
+    ],
+    outputs: [{ name: "", type: "uint256" as const }],
+  },
 ] as const;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * Validate an Ethereum/BSC address (0x + 40 hex chars = 42 total).
+ * Returns a normalized lowercase address or null if invalid.
+ */
+function validateAddress(addr: string): string | null {
+  const cleaned = addr.trim().toLowerCase();
+  if (!cleaned.startsWith("0x")) return null;
+  if (cleaned.length !== 42) return null;
+  // Must be hex only after 0x
+  if (!/^0x[0-9a-f]{40}$/.test(cleaned)) return null;
+  return cleaned;
+}
+
 function getPublicClient() {
   return createPublicClient({
     chain: bsc,
-    transport: fallback([
-      http(BSC_RPC_URL, { timeout: 60000 }),
-      http("https://binance.llamarpc.com", { timeout: 60000 }),
-      http("https://bsc-dataseed.binance.org", { timeout: 60000 }),
-    ]),
+    transport: http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 }),
   });
 }
 
@@ -316,12 +335,21 @@ export const quoteFourMemeBuyTool = tool({
   }),
   execute: async ({ tokenAddress, amount }) => {
     try {
+      // Validate address before any on-chain call
+      const cleanAddress = validateAddress(tokenAddress);
+      if (!cleanAddress) {
+        return {
+          status: "error",
+          error: `Invalid token address: "${tokenAddress}". Expected 0x + 40 hex characters (got ${tokenAddress.length} chars). The address may have been truncated. Please search for the token again using searchFourMemeTokens or getFourMemeRankings to get the full correct address.`,
+        };
+      }
+
       const parsed = await parseAmountToBnb(amount);
       if (parsed.bnbAmount <= 0 || isNaN(parsed.bnbAmount)) {
         return { status: "error", error: "Invalid amount. Provide a BNB amount (e.g. '0.01') or USD amount (e.g. '$0.5')." };
       }
 
-      const fundsWei = BigInt(Math.floor(parsed.bnbAmount * 1e18));
+      const fundsWei = alignToGwei(BigInt(Math.floor(parsed.bnbAmount * 1e18)));
       const publicClient = getPublicClient();
 
       // Call tryBuy(token, 0, fundsWei) — funds-based buy
@@ -329,7 +357,7 @@ export const quoteFourMemeBuyTool = tool({
         address: HELPER_ADDRESS,
         abi: HELPER_ABI,
         functionName: "tryBuy",
-        args: [tokenAddress as `0x${string}`, 0n, fundsWei],
+        args: [cleanAddress as `0x${string}`, 0n, fundsWei],
       });
 
       const [tokenManager, quote, estimatedAmount, estimatedCost, estimatedFee, amountMsgValue] = result;
@@ -396,6 +424,15 @@ export const quoteFourMemeSellTool = tool({
   }),
   execute: async ({ tokenAddress, tokenAmount }) => {
     try {
+      // Validate address before any on-chain call
+      const cleanAddr = validateAddress(tokenAddress);
+      if (!cleanAddr) {
+        return {
+          status: "error",
+          error: `Invalid token address: "${tokenAddress}". Expected 0x + 40 hex characters (got ${tokenAddress.length} chars). The address may have been truncated. Please search for the token again using searchFourMemeTokens to get the full correct address.`,
+        };
+      }
+
       const tokens = parseFloat(tokenAmount);
       if (tokens <= 0 || isNaN(tokens)) {
         return { status: "error", error: "Token amount must be greater than 0." };
@@ -408,7 +445,7 @@ export const quoteFourMemeSellTool = tool({
         address: HELPER_ADDRESS,
         abi: HELPER_ABI,
         functionName: "trySell",
-        args: [tokenAddress as `0x${string}`, amountWei],
+        args: [cleanAddr as `0x${string}`, amountWei],
       });
 
       const [tokenManager, quote, fundsReceived, fee] = result;
@@ -470,28 +507,41 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
     }),
     execute: async ({ tokenAddress, amount, slippagePercent }) => {
       try {
+        // Clean and validate address
+        const cleanAddress = validateAddress(tokenAddress);
+        
         // Hallucination safeguard
-        if (tokenAddress.toLowerCase() === "0x823fc8ef7295188d95708516d7458d6154179083") {
+        if (cleanAddress === "0x823fc8ef7295188d95708516d7458d6154179083") {
            return {
              status: "error",
-             message: "Warning: You are using a documentation example address (0x823fc8ef...). Please search for the actual token first and use the address provided in the search results."
+             type: "buy",
+             message: "Warning: You used a placeholder address (0x823fc8ef...). If you do not have the real address in context, you MUST call searchFourMemeTokens with the token name first to get the correct address."
            };
+        }
+
+        // Length validation (0x + 40 chars = 42)
+        if (!cleanAddress) {
+          return {
+            status: "error",
+            type: "buy",
+            message: `Invalid address: "${tokenAddress}". Expected 0x + 40 hex characters (got ${tokenAddress.length} chars). The address is truncated or malformed. You MUST call searchFourMemeTokens or getFourMemeRankings again to get the full correct address, then retry the buy.`
+          };
         }
 
         // 1. Auth check
         const isAgentEnabled = await hasDelegation(userId);
         const walletAddress = await getUserAgentWalletAddress(userId);
         if (!walletAddress) {
-          return { status: "error", message: "No embedded agent wallet found." };
+          return { status: "error", type: "buy", message: "No embedded agent wallet found." };
         }
 
         // 2. Parse amount (supports USD conversion)
         const parsed = await parseAmountToBnb(amount);
         if (parsed.bnbAmount <= 0 || isNaN(parsed.bnbAmount)) {
-          return { status: "error", message: "Invalid amount." };
+          return { status: "error", type: "buy", message: "Invalid amount." };
         }
 
-        const fundsWei = BigInt(Math.floor(parsed.bnbAmount * 1e18));
+        const fundsWei = alignToGwei(BigInt(Math.floor(parsed.bnbAmount * 1e18)));
         const publicClient = getPublicClient();
 
         console.log(
@@ -503,7 +553,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           address: HELPER_ADDRESS,
           abi: HELPER_ABI,
           functionName: "getTokenInfo",
-          args: [tokenAddress as `0x${string}`],
+          args: [cleanAddress as `0x${string}`],
         });
 
         const [, tokenManager, quote, , , , , , , , , liquidityAdded] =
@@ -512,6 +562,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         if (liquidityAdded) {
           return {
             status: "error",
+            type: "buy",
             message:
               "This token has already graduated to PancakeSwap. Use a DEX swap tool instead.",
           };
@@ -522,10 +573,10 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           address: HELPER_ADDRESS,
           abi: HELPER_ABI,
           functionName: "tryBuy",
-          args: [tokenAddress as `0x${string}`, 0n, fundsWei],
+          args: [cleanAddress as `0x${string}`, 0n, fundsWei],
         });
 
-        const [, , estimatedAmount, , , amountMsgValue, amountApproval] =
+        const [, , estimatedAmount, , , amountMsgValue, amountApproval, amountFunds] =
           tryBuyResult;
 
         // Apply slippage
@@ -537,6 +588,32 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         console.log(
           `[FourMeme] Estimated: ${formatTokens(estimatedAmount)} tokens, minAmount: ${formatTokens(minAmount)}, msgValue: ${formatBnb(amountMsgValue)} BNB`
         );
+
+        // 4.5 Balance Check (Avoids "transfer amount exceeds balance" reverts)
+        if (quote === ZERO_ADDRESS) {
+          const balance = await publicClient.getBalance({ address: walletAddress as `0x${string}` });
+          if (balance < amountMsgValue) {
+            return {
+              status: "error",
+              type: "buy",
+              message: `Insufficient BNB balance in your agent wallet. You have ${formatBnb(balance)} BNB, but this transaction requires ${formatBnb(amountMsgValue)} BNB (including network fees and bonding curve costs). Please fund your wallet at: ${walletAddress}`
+            };
+          }
+        } else {
+          const balance = await publicClient.readContract({
+            address: quote as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [walletAddress as `0x${string}`],
+          });
+          if (balance < amountApproval) {
+            return {
+              status: "error",
+              type: "buy",
+              message: `Insufficient balance of the required quote token (${quote}) in your agent wallet. This specific Four.meme token requires paying with a non-native BEP-20 token. You need @ ${amountApproval.toString()} (unit wei) but only have ${balance.toString()}. Please fund your agent wallet or try a BNB-standard meme token.`
+            };
+          }
+        }
 
         // 5. Approve if BEP-20 quote
         if (quote !== ZERO_ADDRESS && amountApproval > 0n) {
@@ -566,9 +643,17 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           if (!approveResult.success) {
             return {
               status: "error",
+              type: "buy",
               message: `Approval failed: ${approveResult.error}`,
             };
           }
+
+          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
+          await publicClient.waitForTransactionReceipt({ 
+            hash: approveResult.transactionHash as `0x${string}`,
+            timeout: 30_000, // 30s max wait for approval confirmation
+          });
+          console.log(`[FourMeme] Approval confirmed! Proceeding with buy.`);
         }
 
         // 6. Execute buy — try buyTokenAMAP first, fallback to X Mode buyToken if error "A"
@@ -578,7 +663,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         const buyAmapData = encodeFunctionData({
           abi: BUYTOKEN_AMAP_ABI,
           functionName: "buyTokenAMAP",
-          args: [tokenAddress as `0x${string}`, fundsWei, minAmount],
+          args: [cleanAddress as `0x${string}`, amountFunds, minAmount],
         });
 
         // If automation is disabled, return transaction data for manual approval
@@ -625,11 +710,11 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
             BUY_TOKEN_PARAMS_TYPES,
             [
               0n,                                 // origin: 0
-              tokenAddress as `0x${string}`,      // token
+              cleanAddress as `0x${string}`,      // token
               walletAddress as `0x${string}`,      // to: buyer's wallet
               0n,                                 // amount: 0 (funds-based)
               0n,                                 // maxFunds: 0 (skip)
-              fundsWei,                           // funds: BNB to spend
+              amountFunds,                        // funds: BNB to spend (from quote)
               minAmount,                          // minAmount: slippage protection
             ]
           );
@@ -663,6 +748,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         if (!buyResult.success) {
           return {
             status: "error",
+            type: "buy",
             message: buyResult.error || "Buy transaction failed.",
           };
         }
@@ -688,6 +774,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         console.error("[FourMeme] Buy error:", error);
         return {
           status: "error",
+          type: "buy",
           message: error.message || "Failed to execute buy on Four.meme.",
         };
       }
@@ -703,7 +790,7 @@ export const createFourMemeSellTool = (userId: string) =>
     description: `Execute a sell on Four.meme (BNB Chain bonding curve) using the user's embedded agent wallet.
 Sells tokens back to the bonding curve for BNB.
 REQUIRES Agent Automation to be ENABLED. Only works for bonding curve tokens (not graduated DEX tokens).
-Always call quoteFourMemeSell first to show the estimate before executing.`,
+REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confirm where your funds are before executing. Also call quoteFourMemeSell to show the estimate.`,
     parameters: z.object({
       tokenAddress: z
         .string()
@@ -720,11 +807,22 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
     }),
     execute: async ({ tokenAddress, tokenAmount, slippagePercent }) => {
       try {
+        // Clean and validate address
+        const cleanAddress = validateAddress(tokenAddress);
+
+        // Length validation (0x + 40 chars = 42)
+        if (!cleanAddress) {
+          return {
+            status: "error",
+            type: "sell",
+            message: `Invalid address: "${tokenAddress}". Expected 0x + 40 hex characters (got ${tokenAddress.length} chars). The address is truncated or malformed. You MUST call searchFourMemeTokens again to get the full correct address.`
+          };
+        }
         // 1. Auth check
         const isAgentEnabled = await hasDelegation(userId);
         const walletAddress = await getUserAgentWalletAddress(userId);
         if (!walletAddress) {
-          return { status: "error", message: "No embedded agent wallet found." };
+          return { status: "error", type: "sell", message: "No embedded agent wallet found." };
         }
 
         const isAll = tokenAmount.toLowerCase().trim() === "all";
@@ -733,27 +831,33 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
 
         const publicClient = getPublicClient();
 
+        console.log(`[FourMeme] Fetching balance of ${tokenAddress} for ${walletAddress}...`);
+        const balance = await publicClient.readContract({
+          address: cleanAddress as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [walletAddress as `0x${string}`],
+        });
+
         if (isAll) {
-          console.log(`[FourMeme] Fetching balance of ${tokenAddress} for ${walletAddress}...`);
-          const balance = await publicClient.readContract({
-            address: tokenAddress as `0x${string}`,
-            abi: ERC20_ABI,
-            functionName: "balanceOf",
-            args: [walletAddress as `0x${string}`],
-          });
-          
           if (balance === 0n) {
-            return { status: "error", message: "You do not have any of these tokens in your agent wallet." };
+            return { status: "error", type: "sell", message: "You do not have any of these tokens in your agent wallet." };
           }
-          
-          tokensToSellWei = balance;
-          displayAmount = (Number(balance) / 1e18).toString();
+          tokensToSellWei = alignToGwei(balance);
+          displayAmount = (Number(tokensToSellWei) / 1e18).toString();
         } else {
           const tokens = parseFloat(tokenAmount);
           if (tokens <= 0 || isNaN(tokens)) {
-            return { status: "error", message: "Token amount must be > 0." };
+            return { status: "error", type: "sell", message: "Token amount must be > 0." };
           }
           tokensToSellWei = alignToGwei(BigInt(Math.floor(tokens * 1e18)));
+          if (balance < tokensToSellWei) {
+            return { 
+              status: "error", 
+              type: "sell", 
+              message: `Insufficient token balance. You have ${formatTokens(balance)} tokens in your agent wallet, but you tried to sell ${displayAmount}.` 
+            };
+          }
         }
 
         console.log(
@@ -773,40 +877,61 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
         if (liquidityAdded) {
           return {
             status: "error",
+            type: "sell",
             message:
               "This token has graduated to PancakeSwap. Use a DEX swap tool.",
           };
         }
 
-        // 3. Approve token to tokenManager
-        console.log(
-          `[FourMeme] Approving ${tokensToSellWei} tokens to ${tokenManager}`
-        );
-
-        const approveData = encodeFunctionData({
+        // 3. Approve token to tokenManager (only if needed)
+        console.log(`[FourMeme] Checking allowance for ${tokenAddress}...`);
+        const currentAllowance = await publicClient.readContract({
+          address: tokenAddress as `0x${string}`,
           abi: ERC20_ABI,
-          functionName: "approve",
-          args: [tokenManager, tokensToSellWei],
+          functionName: "allowance",
+          args: [walletAddress as `0x${string}`, tokenManager],
         });
 
-        const approveResult = await executeOnChainTransaction({
-          userId,
-          description: "Four.meme: Approve tokens for sell",
-          estimatedValueUsd: "0",
-          chainId: 56,
-          transaction: {
-            to: tokenAddress as `0x${string}`,
-            value: 0n,
-            data: approveData,
+        if (currentAllowance < tokensToSellWei) {
+          console.log(
+            `[FourMeme] Allowance insufficient (${currentAllowance} < ${tokensToSellWei}), approving...`
+          );
+
+          const approveData = encodeFunctionData({
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [tokenManager, tokensToSellWei],
+          });
+
+          const approveResult = await executeOnChainTransaction({
+            userId,
+            description: "Four.meme: Approve tokens for sell",
+            estimatedValueUsd: "0",
             chainId: 56,
-          },
-        });
+            transaction: {
+              to: tokenAddress as `0x${string}`,
+              value: 0n,
+              data: approveData,
+              chainId: 56,
+            },
+          });
 
-        if (!approveResult.success) {
-          return {
-            status: "error",
-            message: `Token approval failed: ${approveResult.error}`,
-          };
+          if (!approveResult.success) {
+            return {
+              status: "error",
+              type: "sell",
+              message: `Token approval failed: ${approveResult.error}`,
+            };
+          }
+
+          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
+          await publicClient.waitForTransactionReceipt({ 
+            hash: approveResult.transactionHash as `0x${string}`,
+            timeout: 30_000, // 30s max wait for approval confirmation
+          });
+          console.log(`[FourMeme] Approval confirmed! Proceeding with sell.`);
+        } else {
+          console.log(`[FourMeme] Allowance sufficient, skipping approval step.`);
         }
 
         // 4. Execute sellToken
@@ -834,6 +959,7 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
           };
         }
 
+        console.log(`[FourMeme] Executing sell transaction: ${displayAmount} tokens to ${tokenManager}...`);
         const sellResult = await executeOnChainTransaction({
           userId,
           description: `Four.meme: Sell ${displayAmount} tokens (${tokenAddress})`,
@@ -846,10 +972,12 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
             chainId: 56,
           },
         });
+        console.log(`[FourMeme] Sell tx result: success=${sellResult.success}, hash=${sellResult.transactionHash || 'N/A'}, error=${sellResult.error || 'none'}`);
 
         if (!sellResult.success) {
           return {
             status: "error",
+            type: "sell",
             message: sellResult.error || "Sell transaction failed.",
           };
         }
@@ -867,6 +995,7 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
         console.error("[FourMeme] Sell error:", error);
         return {
           status: "error",
+          type: "sell",
           message: error.message || "Failed to execute sell on Four.meme.",
         };
       }

@@ -223,14 +223,16 @@ export async function executeRelaySwap(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // 1. Prepare transaction locally via viem publicClient
-      const targetChain = Object.values(allChains).find(c => c.id === params.chainId);
+      const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
       if (!targetChain) {
           throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
       }
 
       const publicClient: any = createPublicClient({
           chain: targetChain as any,
-          transport: http() 
+          transport: targetChain.id === 56 
+            ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
+            : http(undefined, { timeout: 30000 })
       });
 
       // Fetch nonce - either fresh or incremented
@@ -246,6 +248,9 @@ export async function executeRelaySwap(
           chain: targetChain as any,
           nonce: currentNonce,
       });
+
+      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain
+      preparedReq.gas = (preparedReq.gas * 120n) / 100n;
 
       const baseTx = {
           to: preparedReq.to,
@@ -278,12 +283,28 @@ export async function executeRelaySwap(
         serializableTx
       );
 
-      // 3. Broadcast
       const txHash = await publicClient.sendRawTransaction({
           serializedTransaction: signedTx as `0x${string}`
       });
+      console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}. Waiting for confirmation...`);
+      const receipt = await publicClient.waitForTransactionReceipt({ 
+        hash: txHash,
+        timeout: 60_000, // 60s max wait
+      });
 
-      // 4. Record for audit
+      if (receipt.status !== "success") {
+        console.error(`[AgentPayment] Relay swap reverted on-chain: ${txHash}`);
+        return {
+          success: false,
+          transactionHash: txHash,
+          error: "Transaction reverted on-chain. This may be due to slippage or protocol conditions.",
+          operationType: "relay_swap",
+        };
+      }
+
+      console.log(`[AgentPayment] Relay swap confirmed!`);
+
+      // 5. Record for audit
       await recordAgentTransaction({
         userId: params.userId,
         walletAddress: credentials.walletAddress,
@@ -294,7 +315,8 @@ export async function executeRelaySwap(
           inputToken: params.inputToken,
           outputToken: params.outputToken,
           chainId: params.chainId,
-          attempt
+          attempt,
+          gasUsed: receipt.gasUsed.toString(),
         },
       });
 
@@ -350,21 +372,27 @@ export async function executeOnChainTransaction(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // 1. Prepare transaction locally via viem publicClient
-      const targetChain = Object.values(allChains).find(c => c.id === params.chainId);
+      const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
       if (!targetChain) {
           throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
       }
 
       const publicClient: any = createPublicClient({
           chain: targetChain as any,
-          transport: http()
+          transport: targetChain.id === 56 
+            ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
+            : http(undefined, { timeout: 30000 })
       });
+
+      console.log(`[AgentPayment] On-chain tx attempt ${attempt}: preparing tx for chain ${params.chainId}...`);
 
       // Fetch nonce
       if (currentNonce === null) {
           currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
+          console.log(`[AgentPayment] Nonce fetched: ${currentNonce}`);
       }
 
+      console.log(`[AgentPayment] Estimating gas...`);
       const preparedReq = await publicClient.prepareTransactionRequest({
           account: credentials.walletAddress as `0x${string}`,
           to: params.transaction.to as `0x${string}`,
@@ -373,6 +401,10 @@ export async function executeOnChainTransaction(
           chain: targetChain as any,
           nonce: currentNonce,
       });
+      
+      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain
+      preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+      console.log(`[AgentPayment] Gas estimated: ${preparedReq.gas}, type: ${preparedReq.type}`);
 
       const baseTx = {
           to: preparedReq.to,
@@ -400,15 +432,36 @@ export async function executeOnChainTransaction(
       }
 
       // 2. Sign transaction
+      console.log(`[AgentPayment] Signing transaction...`);
       const signedTx = await signTransactionForUser(
         credentials,
         serializableTx
       );
+      console.log(`[AgentPayment] Transaction signed. Broadcasting...`);
 
       // 3. Broadcast
       const txHash = await publicClient.sendRawTransaction({
           serializedTransaction: signedTx as `0x${string}`
       });
+      console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}, waiting for confirmation...`);
+
+      // 4. Wait for confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: 60_000, // 60s max wait
+      });
+
+      if (receipt.status !== "success") {
+        console.error(`[AgentPayment] On-chain transaction reverted: ${txHash}`);
+        return {
+          success: false,
+          transactionHash: txHash,
+          error: "Transaction reverted on-chain. Please check the explorer for details.",
+          operationType: "on_chain_tx",
+        };
+      }
+
+      console.log(`[AgentPayment] On-chain transaction confirmed!`);
 
       // Record for audit
       await recordAgentTransaction({
@@ -420,7 +473,8 @@ export async function executeOnChainTransaction(
         metadata: {
           description: params.description,
           chainId: params.chainId,
-          attempt
+          attempt,
+          gasUsed: receipt.gasUsed.toString(),
         },
       });
 
