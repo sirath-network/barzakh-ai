@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Wallet, Shield, CheckCircle, Loader2, AlertCircle, Unplug, RefreshCw, Key, Lock, Globe, Copy, Mail } from "lucide-react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AgentAutomationSection } from "./agent-automation-section";
 
 export default function WalletSettingsPage() {
   const { data: session, update } = useSession();
@@ -26,7 +27,7 @@ export default function WalletSettingsPage() {
   const [isUnbindModalOpen, setIsUnbindModalOpen] = useState(false);
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
-  const { openConnectModal } = useConnectModal();
+  const { setShowAuthFlow } = useDynamicContext();
   const { disconnect } = useDisconnect();
   const [errorAlert, setErrorAlert] = useState<{ title: string, description: ReactNode } | null>(null);
 
@@ -507,9 +508,7 @@ export default function WalletSettingsPage() {
                 <div className="space-y-6">
                   <div className="p-4 bg-card border border-border rounded-lg shadow-sm">
                     <div className="flex items-start gap-3 w-full min-w-0">
-                      <div className="p-2 bg-primary/10 rounded-full shrink-0 mt-1">
-                        <CheckCircle className="w-5 h-5 text-primary" />
-                      </div>
+
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground mb-1">Wallet Connected</p>
                         <div className="flex items-center gap-2 bg-muted/40 rounded-md px-3 py-1.5 w-full max-w-full border border-border overflow-hidden">
@@ -718,7 +717,7 @@ export default function WalletSettingsPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={openConnectModal}
+                            onClick={() => setShowAuthFlow(true)}
                             className="px-4 py-2 border border-border text-muted-foreground rounded-lg hover:bg-muted hover:text-foreground font-semibold transition-colors text-sm"
                           >
                             Connect Extension
@@ -774,7 +773,7 @@ export default function WalletSettingsPage() {
                     </div>
                   ) : (
                     <button
-                      onClick={openConnectModal}
+                      onClick={() => setShowAuthFlow(true)}
                       className="w-full py-4 px-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                     >
                       <Wallet className="w-5 h-5" />
@@ -853,6 +852,10 @@ export default function WalletSettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+        {/* Agent Automation Section */}
+        <div className="mt-4 md:mt-6">
+          <AgentAutomationSection />
         </div>
 
         <div className="mt-4 md:mt-6 bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 p-4 md:p-6 backdrop-blur-sm">

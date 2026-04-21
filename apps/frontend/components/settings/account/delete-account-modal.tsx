@@ -8,10 +8,10 @@ import { Trash2, X, Mail, Lock, Shield, Loader2, ArrowLeft } from "lucide-react"
 
 export default function DeleteAccountModal({
   isOpen,
-  onClose,
+  onCloseAction,
 }: {
   isOpen: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -56,7 +56,7 @@ export default function DeleteAccountModal({
   const handleClose = () => {
     if (!isDeleting) {
       resetState();
-      onClose();
+      onCloseAction();
     }
   };
 

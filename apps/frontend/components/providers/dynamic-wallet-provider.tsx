@@ -10,7 +10,8 @@ const DynamicContextProviderAsync = dynamic(
     { ssr: false }
 );
 
-// Import wallet connectors - these are safe to import statically
+// Import wallet connectors - all chains unified under Dynamic
+import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 import { BitcoinWalletConnectors } from "@dynamic-labs/bitcoin";
 import { TronWalletConnectors } from "@dynamic-labs/tron";
@@ -19,17 +20,28 @@ interface DynamicWalletProviderProps {
     children: ReactNode;
 }
 
+// Suppress noisy DynamicWagmiConnector warnings during module load
+if (typeof window !== 'undefined') {
+    const originalWarn = console.warn;
+    console.warn = (...args) => {
+        if (typeof args[0] === 'string' && args[0].includes('[DynamicWagmiConnector] [WARN]: Chain')) {
+            return;
+        }
+        originalWarn(...args);
+    };
+}
+
 /**
  * DynamicWalletProvider
  * 
- * This provider enables wallet connections for non-EVM chains:
+ * Unified wallet provider for ALL chains via Dynamic SDK:
+ * - EVM (MetaMask, Rabby, Phantom, WalletConnect, etc.)
  * - Solana (Phantom, Solflare, etc.)
  * - Bitcoin (Xverse, Unisat, etc.)
  * - Tron (TronLink, etc.)
  * 
- * Note: EVM chains continue to use RainbowKit/Wagmi.
- * This provider is specifically for cross-chain swaps where
- * the source or destination is a non-EVM chain.
+ * Also enables embedded wallets (MPC-based) for users without external wallets.
+ * This replaces the previous split between RainbowKit (EVM) and Dynamic (non-EVM).
  */
 export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) {
     const [mounted, setMounted] = useState(false);
@@ -59,12 +71,15 @@ export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) 
                 environmentId,
                 apiBaseUrl,
                 walletConnectors: [
+                    EthereumWalletConnectors,
                     SolanaWalletConnectors,
                     BitcoinWalletConnectors,
                     TronWalletConnectors,
                 ],
-                // Connect-only mode - we don't need full authentication
+                // Connect-only mode - we use next-auth for authentication
                 initialAuthenticationMode: "connect-only",
+                // Embedded wallet creation is configured in the Dynamic Dashboard
+                // (Settings → Embedded Wallets → Create on Login: Always)
             }}
         >
             {children}

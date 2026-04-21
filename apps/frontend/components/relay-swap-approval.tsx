@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useSwitchChain, useSendTransaction, useSignMessage, useDisconnect } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+// ConnectButton replaced by DynamicConnectButton defined below
 import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck, Copy } from "lucide-react";
 import { createClient } from "@relayprotocol/relay-sdk";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
@@ -48,7 +48,7 @@ const CHAIN_NAMES: Record<number, string> = {
     1: "Ethereum",
     10: "Optimism",
     25: "Cronos",
-    56: "BNB Chain",
+    56: "BNB",
     100: "Gnosis",
     130: "Unichain",
     137: "Polygon",
@@ -197,7 +197,10 @@ interface RelaySwapApprovalProps {
         message?: string;
         instructions?: string[];
         timestamp?: string;
+        swapIntentId?: string;
         note?: string;
+        transactionHash?: string;
+        explorerUrl?: string;
         toolParams?: {
             fromChainId: number;
             toChainId: number;
@@ -217,9 +220,20 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const { signMessageAsync } = useSignMessage();
     const { disconnect } = useDisconnect();
 
-    const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error">("ready");
+    // Determine initial state based on tool result status and data
+    // status: "success" + transactionHash = Completed
+    // status: "success" + no transactionHash + no prepared transactions = Autonomous in progress
+    // status: "requires_manual_approval" OR status: "success" + prepared transactions = Ready for manual
+    const isInitiallyCompleted = result.status === "success" && !!result.transactionHash;
+    const isWaitingForAutonomousResult = result.status === "success" && !isInitiallyCompleted && !result.transactions && (result as any).isAgentExecution === true;
+
+    const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error">(
+        isInitiallyCompleted ? "success" : 
+        isWaitingForAutonomousResult ? "sending" : 
+        "ready"
+    );
     const [errorMessage, setErrorMessage] = useState<string>("");
-    const [txHash, setTxHash] = useState<string | null>(null);
+    const [txHash, setTxHash] = useState<string | null>(result.transactionHash || null);
     const [currentTxIndex, setCurrentTxIndex] = useState(0);
     const [isVerified, setIsVerified] = useState(false);
     const [clientTransactions, setClientTransactions] = useState<RelayTransaction[]>([]);
@@ -235,10 +249,22 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     };
 
 
+    // Generate deterministic ID for this specific swap intent
+    // We use the timestamp from the tool result to ensure it's unique to this specific AI response
+    // but persistent across page reloads (since chat history saves the tool result)
+    // We ALSO check for a 'swapIntentId' which is parameter-based for cross-message persistence
+    const swapRequestId = result.swapIntentId || (result.toolParams
+        ? `swap-v1-${result.toolParams.fromChainId}-${result.toolParams.toChainId}-${result.toolParams.amount}-${result.timestamp || 'no-time'}`
+        : null);
+
     // Swap tracking state
-    const [swapAlreadyCompleted, setSwapAlreadyCompleted] = useState(false);
-    const [isCheckingSwapStatus, setIsCheckingSwapStatus] = useState(true);
-    const [completedTxHash, setCompletedTxHash] = useState<string | null>(null);
+    const [swapAlreadyCompleted, setSwapAlreadyCompleted] = useState<boolean>(isInitiallyCompleted);
+    // On mount, if it's not initially completed AND we have a request ID, 
+    // we should check the status tracker once to see if it was completed in a previous session
+    const [isCheckingSwapStatus, setIsCheckingSwapStatus] = useState<boolean>(!isInitiallyCompleted && !!swapRequestId);
+    const [completedTxHash, setCompletedTxHash] = useState<string | null>(
+        isInitiallyCompleted ? (result.transactionHash || null) : null
+    );
 
     // Get initial quote details
     const quote = result.quote || result.quoteDetails;
@@ -256,7 +282,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
     const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
     const destinationChainIdNum = result.toolParams?.toChainId || getChainIdFromName(destChain || "");
-    const isWrongChain = chain?.id !== requiredChainIdNum;
+    const isWrongChain = !!requiredChainIdNum && chain?.id !== requiredChainIdNum;
 
     // Check if source chain is non-EVM (e.g., swapping FROM Solana)
     const isSourceNonEvm = requiredChainIdNum ? isNonEvmChain(requiredChainIdNum) : false;
@@ -449,7 +475,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     }, [isConnected, isSourceNonEvm, sourceWallet?.address]);
 
-    const { handleLogOut } = useDynamicContext();
+    const { handleLogOut, setShowAuthFlow } = useDynamicContext();
 
     // Auto-disconnect on success
     useEffect(() => {
@@ -483,9 +509,19 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     {result.message || "Initializing swap details..."}
                 </p>
-                {!isConnected && (
-                    <div className="mt-4 flex justify-center">
-                        <ConnectButton />
+                {!isConnected && !swapAlreadyCompleted && !isCheckingSwapStatus && (
+                    <div className="mt-4 flex justify-center w-full">
+                        <DynamicConnectButton />
+                    </div>
+                )}
+                {(swapAlreadyCompleted || step === "success") && (
+                    <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-400 text-sm">
+                        <ShieldCheck className="size-4" /> Swap Completed!
+                    </div>
+                )}
+                {isCheckingSwapStatus && !isInitiallyCompleted && (
+                    <div className="mt-4 flex items-center gap-2 text-zinc-500 text-sm animate-pulse">
+                        <Loader2 className="size-4 animate-spin" /> Verifying status...
                     </div>
                 )}
             </motion.div>
@@ -568,15 +604,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     };
 
-    // Generate deterministic ID for this specific swap intent
-    // We use the timestamp from the tool result to ensure it's unique to this specific AI response
-    // but persistent across page reloads (since chat history saves the tool result)
-    const swapRequestId = result.toolParams
-        ? `swap-v1-${result.toolParams.fromChainId}-${result.toolParams.toChainId}-${result.toolParams.amount}-${result.timestamp || 'no-time'}`
-        : null;
-
     // Check status on mount
     useEffect(() => {
+        if (!isCheckingSwapStatus || swapAlreadyCompleted) {
+            return;
+        }
+
+        // Safety check: if no ID but somehow tracking is enabled, turn it off
         if (!swapRequestId) {
             setIsCheckingSwapStatus(false);
             return;
@@ -584,7 +618,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
         const checkStatus = async () => {
             // Avoid double check if already success
-            if (step === "success") return;
+            if (step === "success" || swapAlreadyCompleted) {
+                setIsCheckingSwapStatus(false);
+                return;
+            }
 
             try {
                 const res = await fetch(`/api/relay/swap-tracking?swapRequestId=${encodeURIComponent(swapRequestId)}`);
@@ -595,15 +632,26 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         setStep("success");
                         if (data.transactionHash) {
                             setCompletedTxHash(data.transactionHash);
-                            // Also set the hash for display
                             setTxHash(data.transactionHash);
                         }
+                        setIsCheckingSwapStatus(false);
+                        return;
                     }
                 }
             } catch (error) {
                 console.error("Failed to check swap status:", error);
-            } finally {
-                setIsCheckingSwapStatus(false);
+            }
+
+            // Polling logic
+            if (isCheckingSwapStatus && !swapAlreadyCompleted) {
+                // If it's an autonomous background execution OR the user just sent it manually,
+                // keep polling every 5 seconds.
+                if (isWaitingForAutonomousResult || step === "sending") {
+                    setTimeout(checkStatus, 5000);
+                } else {
+                    // For static quotes/reloads, just check once on mount
+                    setIsCheckingSwapStatus(false);
+                }
             }
         };
 
@@ -611,7 +659,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     }, [swapRequestId]);
 
     const handleExecuteSwap = async () => {
-        if (processedTransactions.length === 0) return;
+        if (processedTransactions.length === 0 || swapAlreadyCompleted) return;
 
         // If we need a destination address but it's invalid, show error
         if (needsDestinationAddress && !validateRecipient(recipientAddress)) {
@@ -899,18 +947,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     {isEvmDestination && isSourceNonEvm && (
                         <div className="mb-3">
                             <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                <ConnectButton.Custom>
-                                    {({ openConnectModal, mounted }) => (
-                                        <ButtonAny
-                                            onClick={openConnectModal}
-                                            disabled={!mounted}
-                                            className="w-full h-10 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
-                                        >
-                                            <Wallet className="size-4 mr-2" />
-                                            Connect EVM Wallet
-                                        </ButtonAny>
-                                    )}
-                                </ConnectButton.Custom>
+                                <DynamicConnectButton />
                             </div>
                             <div className="flex items-center gap-3 my-3">
                                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
@@ -1035,12 +1072,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 </p>
                             </div>
                         </div>
-                        {step === "sending" && (
+                        {isCheckingSwapStatus && !isInitiallyCompleted && step === "ready" && (
+                            <div className="px-2 py-1 rounded-full bg-zinc-500/20 border border-zinc-500/20 text-zinc-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
+                                <Loader2 className="size-3 animate-spin" /> Checking Status
+                            </div>
+                        )}
+                        {(step === "sending" || step === "confirming") && (
                             <div className="px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
                                 <Loader2 className="size-3 animate-spin" /> Processing
                             </div>
                         )}
-                        {isVerified && step !== "sending" && step !== "success" && (
+                        {isVerified && step !== "sending" && step !== "success" && !isCheckingSwapStatus && (
                             <div className="px-2 py-1 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm shadow-sm">
                                 <ShieldCheck className="size-3" /> Verified
                             </div>
@@ -1130,18 +1172,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                     To swap from {sourceChain}, please connect your EVM wallet.
                                 </p>
                                 <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                    <ConnectButton.Custom>
-                                        {({ openConnectModal, mounted }) => (
-                                            <ButtonAny
-                                                onClick={openConnectModal}
-                                                disabled={!mounted}
-                                                className="w-full h-10 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
-                                            >
-                                                <Wallet className="size-4 mr-2" />
-                                                Connect Wallet
-                                            </ButtonAny>
-                                        )}
-                                    </ConnectButton.Custom>
+                                    <DynamicConnectButton />
                                 </div>
                             </div>
                         )}
@@ -1255,7 +1286,6 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         )}
                     </AnimatePresence>
 
-                    {/* SUCCESS STATE - CONSTANT & UNIFIED */}
                     <AnimatePresence>
                         {(step === "success" || swapAlreadyCompleted) && (
                             <motion.div
@@ -1286,8 +1316,8 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         )}
                     </AnimatePresence>
 
-                    {/* ACTIONS - Hide when swap completed */}
-                    {step !== "success" && !swapAlreadyCompleted && (
+                    {/* ACTIONS - Hide when swap completed or checking status on mount */}
+                    {step !== "success" && !swapAlreadyCompleted && !isCheckingSwapStatus && (
                         <div className="pt-2">
                             {/* Non-EVM Source Chain - Show action buttons when wallet is connected */}
                             {isSourceNonEvm && sourceWallet?.address ? (
@@ -1350,21 +1380,16 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 /* Only show bottom connect button if NOT in the "EVM -> Non-EVM" flow (because that flow has the button at the top) */
                                 (!destinationChainIdNum || !isNonEvmChain(destinationChainIdNum)) ? (
                                     <div className="flex justify-center w-full [&_button]:w-full">
-                                        <ConnectButton.Custom>
-                                            {({ openConnectModal, mounted }) => (
-                                                <ButtonAny
-                                                    onClick={openConnectModal}
-                                                    disabled={!mounted}
-                                                    className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                                >
-                                                    <Wallet className="size-4" />
-                                                    Connect Wallet
-                                                </ButtonAny>
-                                            )}
-                                        </ConnectButton.Custom>
+                                        <ButtonAny
+                                            onClick={() => setShowAuthFlow(true)}
+                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                        >
+                                            <Wallet className="size-4" />
+                                            Connect Wallet
+                                        </ButtonAny>
                                     </div>
                                 ) : null
-                            ) : isWrongChain ? (
+                            ) : isWrongChain && requiredChainIdNum ? (
                                 <ButtonAny
                                     onClick={handleSwitchChain}
                                     className="w-full h-11 bg-red-600 hover:bg-red-700 text-white"

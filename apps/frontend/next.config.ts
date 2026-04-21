@@ -3,6 +3,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@barzakh/shared", "@shelby-protocol/sdk"],
+  allowedDevOrigins: ["dev.barzakh.tech"],
+  // Dynamic Node SDK has native CJS/WASM binaries that can't be bundled by Turbopack
+  serverExternalPackages: [
+    "@dynamic-labs-wallet/node",
+    "@dynamic-labs-wallet/node-evm",
+    "@dynamic-labs-wallet/node-svm",
+    "@evervault/wasm-attestation-bindings",
+  ],
   images: {
     remotePatterns: [
       {
@@ -20,7 +28,7 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname, "../../"),
   },
   webpack: (config, { isServer }) => {
-    // Handle WalletConnect / RainbowKit / wagmi dependencies
+    // Handle WalletConnect / Dynamic SDK / wagmi dependencies
     // These packages have optional dependencies that aren't needed for web
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -69,6 +77,10 @@ const nextConfig: NextConfig = {
       },
     ];
     return config;
+  },
+  experimental: {
+    // Increase the body size limit for large file uploads (GIFs, images)
+    proxyClientMaxBodySize: 25 * 1024 * 1024, // 25MB
   },
 };
 

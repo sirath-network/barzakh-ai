@@ -46,12 +46,12 @@ export function WalletSelectorModal({
             Connect Wallet
           </DialogTitle>
           <DialogDescription className="text-center">
-            Sign in with your Ethereum or EVM wallet
+            Sign in with your wallet
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* EVM Wallet Option (RainbowKit) */}
+          {/* Wallet Connection via Dynamic SDK */}
           <div className="space-y-2">
             <WalletLoginButton
               turnstileToken={turnstileToken}
@@ -61,13 +61,13 @@ export function WalletSelectorModal({
               className="w-full inline-flex h-10 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900/50 text-white text-sm font-medium transition-all hover:bg-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Wallet className="mr-2 h-4 w-4" />
-              Continue with EVM Wallet
+              Continue with Wallet
             </WalletLoginButton>
           </div>
 
           {/* Info text */}
           <p className="text-xs text-zinc-500 text-center pt-2">
-            Connect an Ethereum or EVM-compatible wallet to sign in.
+            Connect any supported wallet to sign in.
           </p>
         </div>
       </DialogContent>

@@ -63,6 +63,21 @@ export function decrypt2FASecret(encryptedData: string): string {
 }
 
 /**
+ * Generic encrypt secret wrapper for generic data
+ */
+export function encryptSecret(plaintext: string): string {
+  return encrypt2FASecret(plaintext);
+}
+
+/**
+ * Generic decrypt secret wrapper for generic data
+ */
+export function decryptSecret(encryptedData: string): string {
+  return decrypt2FASecret(encryptedData);
+}
+
+
+/**
  * Check if a string is encrypted (has our encryption format)
  */
 export function isEncrypted(data: string): boolean {

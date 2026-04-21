@@ -2,10 +2,27 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { signIn } from "next-auth/react";
 import { Wallet } from "lucide-react";
 import { toast } from "sonner";
+
+/**
+ * Safe wrapper around useDynamicContext that returns no-op defaults
+ * when the DynamicContextProvider is not yet mounted (SSR / pre-hydration).
+ */
+function useSafeDynamicContext() {
+  try {
+    return useDynamicContext();
+  } catch {
+    // Provider not mounted yet (SSR or before DynamicWalletProvider hydrates)
+    return {
+      setShowAuthFlow: (() => {}) as (show: boolean) => void,
+      sdkHasLoaded: false,
+      handleLogOut: async () => {},
+    };
+  }
+}
 
 interface WalletLoginButtonProps {
   turnstileToken?: string;
@@ -24,20 +41,13 @@ let globalLoginInProgress = false;
 export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, onInitiate, className, children }: WalletLoginButtonProps) {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
-  const { openConnectModal, connectModalOpen } = useConnectModal();
+  const { setShowAuthFlow, sdkHasLoaded, handleLogOut } = useSafeDynamicContext();
   const { disconnect } = useDisconnect();
   const [isLoading, setIsLoading] = useState(false);
   const [isInitiatingLogin, setIsInitiatingLogin] = useState(false);
 
   // Ref guards to prevent double-firing and race conditions.
-  // - loginInProgress: prevents performLogin from being called twice while async work is running.
-  // - modalJustClosed: tracks that connectModalOpen went false this render cycle so we can
-  //   wait one tick before deciding whether to reset isInitiatingLogin. This is the fix for
-  //   the core bug: RainbowKit sets connectModalOpen=false slightly *before* wagmi sets
-  //   isConnected=true, so the old "reset" effect fired prematurely and killed the flow.
   const loginInProgress = useRef(false);
-  const modalJustClosed = useRef(false);
-  const prevModalOpen = useRef(false);
 
   const performLogin = async (walletAddress: string) => {
     if (loginInProgress.current || globalLoginInProgress) return;
@@ -76,6 +86,7 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, o
 
       // Success - disconnect wallet before redirecting (keep session clean)
       disconnect();
+      await handleLogOut().catch(console.error);
       window.location.href = "/";
 
     } catch (error: any) {
@@ -93,6 +104,7 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, o
       }
 
       disconnect();
+      await handleLogOut().catch(console.error);
     } finally {
       setIsLoading(false);
       setIsInitiatingLogin(false);
@@ -114,7 +126,8 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, o
       setIsInitiatingLogin(true);
       localStorage.setItem(STORAGE_KEY, "true");
       onInitiate?.();
-      openConnectModal?.();
+      // Open Dynamic's unified wallet connect modal
+      setShowAuthFlow(true);
     }
   };
 
@@ -127,40 +140,24 @@ export function WalletLoginButton({ turnstileToken, disabled, onLoadingChange, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitiatingLogin, isConnected, address]);
 
-  // Detect the moment the RainbowKit modal closes so we can mark it.
+  // Reset isInitiatingLogin if wallet doesn't connect within a reasonable time
+  // or if the Dynamic modal was closed without connecting
   useEffect(() => {
-    if (prevModalOpen.current && !connectModalOpen) {
-      modalJustClosed.current = true;
-    }
-    prevModalOpen.current = connectModalOpen ?? false;
-  }, [connectModalOpen]);
-
-  // Reset isInitiatingLogin when RainbowKit closed without a connection.
-  // Also handle the case where the picker dialog unmounted our instance while STORAGE_KEY
-  // is still set (hidden instance must observe connectModalOpen with isInitiatingLogin false).
-  useEffect(() => {
-    const wasInitiatingFromStorage = localStorage.getItem(STORAGE_KEY) === "true";
-    if ((!isInitiatingLogin && !wasInitiatingFromStorage) || !modalJustClosed.current) return;
-    modalJustClosed.current = false;
-
+    if (!isInitiatingLogin) return;
+    
+    // If we've been waiting and still not connected, check after a short delay
     const timer = setTimeout(() => {
-      // By now wagmi has had a chance to update isConnected. If still not connected,
-      // the user dismissed the modal without choosing a wallet — reset the flag.
-      if (!loginInProgress.current) {
-        const currentlyConnected = !!address; // check again to be sure
-        if (!currentlyConnected) {
-          setIsInitiatingLogin(false);
-          localStorage.removeItem(STORAGE_KEY);
-        }
+      if (!isConnected && !loginInProgress.current) {
+        setIsInitiatingLogin(false);
+        localStorage.removeItem(STORAGE_KEY);
       }
-    }, 100); // 100 ms is enough for wagmi's state to settle after modal close
+    }, 500);
 
     return () => clearTimeout(timer);
-  }, [connectModalOpen, isInitiatingLogin, address]);
+  }, [isInitiatingLogin, isConnected]);
 
   // Notify parent of loading state changes (includes when wallet modal is open).
-  // When this instance unmounts (e.g. wallet picker dialog closes before RainbowKit finishes),
-  // always clear the parent flag — otherwise Google / wallet entry stay disabled forever.
+  // When this instance unmounts, always clear the parent flag.
   useEffect(() => {
     const walletInProgress = isLoading || isInitiatingLogin;
     onLoadingChange?.(walletInProgress);

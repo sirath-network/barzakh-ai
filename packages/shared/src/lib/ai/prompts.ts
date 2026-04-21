@@ -22,6 +22,8 @@ import {
 } from "./tools/monad/monad-tools";
 import { getMonadStats } from "./tools/monad/get-stats";
 import { searchNadFunTokens, getNadFunTokenInfo, getNadFunMarketData, getNadFunHoldings } from "./tools/monad/nadfun-tools";
+// Four.meme (BNB Chain meme launchpad)
+import { searchFourMemeTokens, getFourMemeTokenDetail, getFourMemeRankings, getFourMemeMarketData, quoteFourMemeBuy, quoteFourMemeSell } from "./tools/bnb/fourmeme-tools";
 import { getEvmOnchainDataUsingEtherscan } from "./tools/onchain/get_evm_onchain_data_using_etherscan";
 import { getEvmOnchainDataUsingZerion } from "./tools/onchain/get_evm_onchain_data_using_zerion";
 import { getSiteContent } from "./tools/scrap-site";
@@ -249,12 +251,18 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 ## Always summaries your answers at the end.
 ## For blockchain/crypto queries: always convert wei to ether for showing balances. 1 eth = 1000000000000000000 wei
 
-# Formatting Rules (Extremely Important!)
 ## Blockchain Addresses and Identifiers:
-- ALWAYS make blockchain addresses (e.g., 0x823fc8..., sei1f8w6...) and transaction hashes, unless it is part of a URL. Do NOT use backticks.
+- ALWAYS provide blockchain addresses (e.g., 0x823fc8..., sei1f8w6...) and transaction hashes as plain text without backticks.
+- **CRITICAL**: If a block explorer URL or explorerUrl is provided in a tool result, ALWAYS include it as a clickable markdown link (e.g., [View on BscScan](url) or [View on Explorer](url)).
 - Other blockchain-related terms (like "smart contract", "token", "gas fees") should remain as regular text.
-- Example: The transaction from wallet 0x823fc8ef7295188d95708516d7458d6154179083 is associated with the Sei address sei1f8w609ham7x28vlcdsaqsjnx0k4r9qvyfaulg4.
+- Example: Successfully bought tokens! [View on BscScan](https://bscscan.com/tx/0x...)
 - When presenting transaction history, use the 'version' as the main identifier. Always include the transaction version, sender, timestamp, status (if available), and a link to the block explorer.
+
+## Agent Identity & Autonomous Trading:
+- You have an embedded "Agent Wallet" for automated execution.
+- **Identity**: If you are unsure about your own address or BNB balance, ALWAYS call \`getAgentWalletInfo\` before responding.
+- **Verification**: Even if a user claims they have tokens, you should verify by calling \`getAgentTokenBalance\` to see how many tokens are actually in the agent wallet.
+- **Liquidation**: The \`executeFourMemeSell\` tool supports the string "all" for \`tokenAmount\`. Use this for full position exits.
 
 ## Code Snippets:
 - **ALWAYS** enclose multi-line code blocks (JavaScript, Python, etc.) in **triple backticks (\`\`\`)** with the correct language identifier. This rule is for actual code, not for addresses.
@@ -436,10 +444,27 @@ const groupTools = {
     "getRelayQuote",
     "getRelayBridgeQuote",
     "prepareRelayTransaction",
+    // Four.meme Agentic Tools (BNB Chain)
+    "executeFourMemeBuy",
+    "executeFourMemeSell",
+    "executeFourMemeLaunch",
+    "quoteFourMemeBuy",
+    "quoteFourMemeSell",
+    "searchFourMemeTokens",
+    "getFourMemeTokenDetail",
+    "getFourMemeRankings",
+    "getFourMemeMarketData",
     // Monad nad.fun token tools (fallback for unknown Monad tokens)
     "searchNadFunTokens",
     "getNadFunTokenInfo",
     "getNadFunMarketData",
+    // Four.meme (BNB Chain meme launchpad)
+    "searchFourMemeTokens",
+    "getFourMemeTokenDetail",
+    "getFourMemeRankings",
+    "getFourMemeMarketData",
+    "quoteFourMemeBuy",
+    "quoteFourMemeSell",
   ] as const,
   wormhole: [
     "webSearch",
@@ -739,6 +764,13 @@ export const allTools = {
   getNadFunTokenInfo,
   getNadFunMarketData,
   getNadFunHoldings,
+  // Four.meme (BNB Chain meme launchpad)
+  searchFourMemeTokens,
+  getFourMemeTokenDetail,
+  getFourMemeRankings,
+  getFourMemeMarketData,
+  quoteFourMemeBuy,
+  quoteFourMemeSell,
   getAptosStats,
   getAptosApiData,
   aptosNames,
@@ -957,6 +989,13 @@ We support instant cross-chain swaps between **EVM** (Ethereum, Base, Arbitrum, 
 - If user asks to "Swap SOL to ETH", use \`getRelayQuote\`.
 - **DO NOT** suggest external dApps like Jupiter/deBridge manually. Use the \`getRelayQuote\` tool.
 
+### ⚠️ CRITICAL - UKNOWN ORIGIN CHAIN FOR BRIDGING/SWAPS:
+If the user asks to bridge/swap a token (e.g., "bridge ETH to Optimism") BUT **DOES NOT SPECIFY** which network their token is currently on:
+1. **DO NOT GUESS OR ASSUME** the source chain (e.g., do not assume ETH is on Ethereum Mainnet).
+2. **YOU MUST IMMEDIATELY** call \`getEvmMultiChainWalletPortfolio\` (or \`getEvmOnchainDataUsingZerion\`) to check the user's connected wallet balances across networks.
+3. Detect which chain actually holds the requested asset securely.
+4. **THEN** call \`getRelayQuote\` using the correct discovered \`fromChainId\`.
+
 ### ⚠️ CRITICAL - SWAP TOKEN LOOKUP PRIORITY:
 **NEVER use web search to look up tokens for swaps.** The Relay tools handle token resolution automatically.
 1. **FIRST**: Call \`getRelayQuote\` directly with the token symbols (MON, MOLANDAK, SOL, etc.)
@@ -969,6 +1008,7 @@ We support instant cross-chain swaps between **EVM** (Ethereum, Base, Arbitrum, 
 ✅ "Swap 5k MON to MOLANDAK" → Call getRelayQuote(fromToken="MON", toToken="MOLANDAK") DIRECTLY
 ✅ "Trade 100 MON to DAK" → getRelayQuote returns nadfun_search_required → searchNadFunTokens("DAK") → user picks → getRelayQuote with contract address
 ✅ "Swap SOL to ETH" → Call getRelayQuote(fromToken="SOL", toToken="ETH") DIRECTLY  
+✅ "Bridge 0.5 ETH to Optimism" → Call getEvmMultiChainWalletPortfolio to find ETH → Call getRelayQuote with the correct fromChainId based on balance!
 ❌ Do NOT web search for token contract addresses
 ❌ Do NOT ask "which chain?" when MON is involved — it's always Monad (143)
 
@@ -2019,7 +2059,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "xai-grok-4.1-fast") {
+  if (selectedChatModel === "openai-gpt-4.1") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

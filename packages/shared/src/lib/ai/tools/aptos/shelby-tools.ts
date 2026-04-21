@@ -73,7 +73,7 @@ export const uploadToShelby = tool({
       });
 
       const name = fileName || `barzakh-blob-${Date.now()}`;
-      
+
       let data: Buffer;
       if (fileUrl) {
         console.log(`Downloading file from ${fileUrl}...`);
@@ -107,7 +107,7 @@ export const uploadToShelby = tool({
 
       const publicUrl = `${SHELBY_ENDPOINT}/v1/blobs/${account.accountAddress.toString()}/${encodeURIComponent(name)}`;
       const explorerUrl = `https://explorer.shelby.xyz/testnet/account/${account.accountAddress.toString()}/blobs?name=${encodeURIComponent(name)}`;
-      
+
       let nftMintResponse = null;
 
       if (mintAsNFT) {
@@ -146,10 +146,10 @@ export const uploadToShelby = tool({
             name: name,
             uri: publicUrl,
           });
-          
+
           const commitedMintTx = await aptos.signAndSubmitTransaction({ signer: account, transaction: mintTxn });
           const executedTx = await aptos.waitForTransaction({ transactionHash: commitedMintTx.hash, options: { checkSuccess: true } });
-          
+
           // Extract minted token address from transaction events
           let tokenAddress: string | null = null;
           try {

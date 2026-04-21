@@ -21,7 +21,7 @@ import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
 import TransactionHistory from "./solana/TransactionHistory";
 import EvmTransactionHistory from "./onchain/EvmTransactionHistory";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History } from "lucide-react";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History, Rocket } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
@@ -51,6 +51,7 @@ const FileImageAny = FileImage as any;
 const CreditCardAny = CreditCard as any;
 const ArrowRightLeftAny = ArrowRightLeft as any;
 const HistoryAny = History as any;
+const RocketAny = Rocket as any;
 const TooltipAny = Tooltip as any;
 const TooltipTriggerAny = TooltipTrigger as any;
 const TooltipContentAny = TooltipContent as any;
@@ -91,6 +92,16 @@ const toolIcons: Record<string, React.ElementType> = {
   prepareRelayTransaction: ArrowRightLeftAny,
   // nad.fun Tools
   searchNadFunTokens: BarChart3Any,
+  // Four.meme Tools (BNB Chain)
+  searchFourMemeTokens: BarChart3Any,
+  getFourMemeRankings: BarChart3Any,
+  getFourMemeTokenDetail: BarChart3Any,
+  getFourMemeMarketData: BarChart3Any,
+  quoteFourMemeBuy: BarChart3Any,
+  quoteFourMemeSell: BarChart3Any,
+  executeFourMemeBuy: ArrowRightLeftAny,
+  executeFourMemeSell: ArrowRightLeftAny,
+  executeFourMemeLaunch: RocketAny,
 };
 
 // HELPER: Small component to render each tool icon
@@ -117,10 +128,14 @@ import { generateStatusFromMessage } from "@/lib/status-generator";
 import { X402PaymentApproval } from "./x402-payment-approval";
 import { RelaySwapApproval } from "./relay-swap-approval";
 import NadFunTokenSearch from "./nadfun-token-search";
+import FourMemeTokenSearch from "./fourmeme-token-search";
+import { FourMemeApproval } from "./fourmeme-approval";
 
 const X402PaymentApprovalAny = X402PaymentApproval as any;
 const RelaySwapApprovalAny = RelaySwapApproval as any;
 const NadFunTokenSearchAny = NadFunTokenSearch as any;
+const FourMemeTokenSearchAny = FourMemeTokenSearch as any;
+const FourMemeApprovalAny = FourMemeApproval as any;
 
 // Helper to remove AI preamble narration when tools are used
 // This filters out phrases like "I'll search for..." that create bad UX
@@ -580,8 +595,15 @@ const PurePreviewMessage = ({
                       'getRelayQuote',
                       'getRelayBridgeQuote',
                       'prepareRelayTransaction',
+                      'executeAgenticRelaySwap',
                       // nad.fun Tools
                       'searchNadFunTokens',
+                      // Four.meme Tools (BNB Chain)
+                      'searchFourMemeTokens',
+                      'getFourMemeRankings',
+                      'executeFourMemeBuy',
+                      'executeFourMemeSell',
+                      'executeFourMemeLaunch',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -664,11 +686,18 @@ const PurePreviewMessage = ({
                             ),
                             initiateX402Payment: <X402PaymentApprovalAny result={result} />,
                             // Relay Protocol - all quote tools show UI with swap/bridge details
-                            getRelayQuote: <RelaySwapApprovalAny result={result} />,
-                            getRelayBridgeQuote: <RelaySwapApprovalAny result={result} />,
-                            prepareRelayTransaction: <RelaySwapApprovalAny result={result} />,
+                            getRelayQuote: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
+                            getRelayBridgeQuote: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
+                            prepareRelayTransaction: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
+                            executeAgenticRelaySwap: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
                             // nad.fun Tools
                             searchNadFunTokens: <NadFunTokenSearchAny result={result} />,
+                            // Four.meme Tools (BNB Chain)
+                            searchFourMemeTokens: <FourMemeTokenSearchAny result={result} />,
+                            getFourMemeRankings: <FourMemeTokenSearchAny result={result} />,
+                            executeFourMemeBuy: <FourMemeApprovalAny result={result} />,
+                            executeFourMemeSell: <FourMemeApprovalAny result={result} />,
+                            executeFourMemeLaunch: <FourMemeApprovalAny result={result} />,
                           };
 
                           return (

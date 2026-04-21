@@ -5,7 +5,6 @@ import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./code-block";
 import { CodeBlockCompact } from "./code-block-compact";
 import "./markdown.css";
-import { AddressBlock } from "./AddressBlock"; // Import new component
 import { extractWebFilesFromMarkdown, type WebFile } from "@/lib/combine-web-files";
 import type { Message } from "ai";
 
@@ -197,36 +196,11 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
       </ul>
     );
   },
-  strong: ({ node, children, ...props }: any) => {
-    // ---- MAIN CHANGES START HERE ----
-    let textContent = "";
-    if (typeof children === "string") {
-      textContent = children;
-    } else if (Array.isArray(children) && typeof children[0] === "string") {
-      textContent = children[0];
-    } else if (children && typeof children === "object" && 'props' in children) {
-      // Sometimes it's a React element 
-      textContent = children.props?.children || "";
-    }
-
-    // Regex to detect common blockchain address patterns
-    const isAddress =
-      /^(0x[a-fA-F0-9]{40}|[a-z]{2,10}1[a-z0-9]{38,59}|T[1-9A-HJ-NP-Za-km-z]{33}|[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(
-        String(textContent).trim()
-      );
-
-    if (isAddress) {
-      return <AddressBlock address={String(textContent).trim()} />;
-    }
-
-    // If not an address, render as regular bold text
-    return (
-      <span className="break-long-words font-semibold" {...props}>
-        {children}
-      </span>
-    );
-    // ---- MAIN CHANGES END HERE ----
-  },
+  strong: ({ node, children, ...props }: any) => (
+    <span className="break-long-words font-semibold" {...props}>
+      {children}
+    </span>
+  ),
   a: ({ node, children, ...props }: any) => {
     // Check if this is an image URL
     const href = props.href as string;
@@ -448,13 +422,6 @@ const NonMemoizedMarkdown = ({ children, allMessages = [] }: { children: string;
   }, [allMessages]);
 
   let filteredChildren = children;
-
-  // Auto-wrap bare crypto addresses in ** so our strong tag handler converts them to AddressBlocks
-  // Matches EVM, base58 (Solana/BTC), bech32 (BTC/Cosmos), and Tron
-  filteredChildren = filteredChildren.replace(
-    /(^|\s)(0x[a-fA-F0-9]{40}|[a-z]{2,10}1[a-z0-9]{38,59}|T[1-9A-HJ-NP-Za-km-z]{33}|[1-9A-HJ-NP-Za-km-z]{32,44})(?=\s|$|\.|,|\)|\])/g,
-    '$1**$2**'
-  );
 
   filteredChildren = filteredChildren.replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:.*?\]/g, "").trim();
 

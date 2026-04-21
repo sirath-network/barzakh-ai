@@ -18,9 +18,9 @@ import { z } from "zod";
 
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
     // coding now allows user to select from a subset of models
-    imagine: "xai-grok-4.1-fast",
+    imagine: "openai-gpt-4.1",
     // multimodal requires a vision-capable model for image analysis
-    multimodal: "xai-grok-4.1-fast",
+    multimodal: "openai-gpt-4.1",
     // Chain-specific tools removed - they can use any model the user selects
 };
 
@@ -449,6 +449,27 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
+    // BNB Chain / BSC (routes to on_chain — Four.meme tools + generic EVM)
+    {
+        id: 'bnb',
+        intent: 'on_chain',
+        patterns: [
+            /\bbnb\s*(chain|smart\s*chain|network|wallet|portfolio)?\b/i,
+            /\bbsc\b/i,
+            /\bbinance\s*smart\s*chain\b/i,
+            /\bfour\.?meme\b/i,
+            /\b4\.?meme\b/i,
+            /\bpancake\s*swap\b/i,
+            /\bmeme\s*(token|coin|launchpad)\b.*\b(bnb|bsc)\b/i,
+            /\b(bnb|bsc)\b.*\bmeme\s*(token|coin|launchpad)\b/i,
+        ],
+        keywords: ['bnb chain', 'bsc', 'binance smart chain', 'bnb network',
+            'four.meme', 'four meme', '4meme', 'fourmeme', 'pancakeswap',
+            'bnb meme', 'bsc meme', 'meme launchpad bnb', 'bonding curve bnb'],
+        tokens: ['BNB', 'WBNB'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
 ];
 
 /**
@@ -469,8 +490,8 @@ function detectChainFromRegistry(message: string): ChainInfo | null {
         if (chain.patterns.some(p => p.test(message))) {
             return chain;
         }
-        // Check keywords
-        if (chain.keywords.some(k => lowerMessage.includes(k.toLowerCase()))) {
+        // Check keywords (with word boundary protection)
+        if (chain.keywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(message))) {
             return chain;
         }
         // Check token mentions (e.g., "MON balance", "MNT price")
@@ -773,6 +794,29 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "mantle", "mnt token", "mantle network", "mantle chain",
             "mantle l2", "mantle wallet", "mantle portfolio", "on mantle",
             "mantlescan", "merchant moe", "butter exchange", "meth", "cmeth",
+        ],
+        priority: 95,
+    },
+
+    // BNB Chain / Four.meme specific (routes to on_chain)
+    {
+        intent: "on_chain",
+        patterns: [
+            /\bfour\.?meme\b/i,
+            /\b4\.?meme\b/i,
+            /\bfour\.?meme\s*(token|launchpad|rankings?|hot|trending|new|graduated)\b/i,
+            /\bmeme\s*(token|coin|launchpad)\b.*\b(bnb|bsc|binance)\b/i,
+            /\b(bnb|bsc|binance)\b.*\bmeme\s*(token|coin|launchpad)\b/i,
+            /\b(hottest|trending|top|best|new|newest)\b.*\b(meme|token)\b.*\b(bnb|bsc|four\.?meme)\b/i,
+            /\bbonding\s*curve\b.*\b(bnb|bsc|four\.?meme)\b/i,
+            /\bpancake\s*swap\s*(graduate|graduated|listing|launch)\b/i,
+        ],
+        keywords: [
+            "four.meme", "four meme", "4meme", "fourmeme",
+            "bnb meme token", "bsc meme token", "meme launchpad bnb",
+            "meme coin bnb", "bonding curve bnb", "bonding curve bsc",
+            "pancakeswap graduated", "four.meme rankings", "four.meme hot",
+            "four.meme trending", "four.meme new tokens",
         ],
         priority: 95,
     },
@@ -1112,7 +1156,7 @@ Only use the "${chatContext}" context if the address format is compatible or no 
     // Helper function to attempt LLM classification
     const attemptLLMClassification = async (attempt: number = 1): Promise<any> => {
         const { object } = await generateObject({
-            model: myProvider.languageModel("xai-grok-4.1-fast"),
+            model: myProvider.languageModel("openai-gpt-4.1"),
             schema: z.object({
                 primaryIntent: z.enum([
                     "imagine",

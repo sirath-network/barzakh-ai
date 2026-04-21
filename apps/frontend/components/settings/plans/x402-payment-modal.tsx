@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Loader2, Copy, Check, Wallet, AlertCircle, ExternalLink, LogOut, AlertTriangle, Sparkles, ShieldCheck } from "lucide-react";
 import { formatUnits } from "viem";
 import { useAccount, useBalance, useSwitchChain, useSignTypedData, useSignMessage, useDisconnect } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { base } from "viem/chains";
 
 interface X402PaymentModalProps {
@@ -48,8 +48,9 @@ export function X402PaymentModal({
   const [confirmPlanChange, setConfirmPlanChange] = useState(false);
   const [walletVerified, setWalletVerified] = useState(false);
 
-  // RainbowKit/Wagmi hooks
+  // Wagmi hooks
   const { address, isConnected, chain } = useAccount();
+  const { setShowAuthFlow, handleLogOut } = useDynamicContext();
 
   // USDC balance on Cronos Mainnet
   const { data: usdcBalance } = useBalance({
@@ -363,13 +364,13 @@ export function X402PaymentModal({
         className="sm:max-w-md w-[90%] rounded-xl"
         onPointerDownOutside={(e: any) => {
           const target = e.target as HTMLElement;
-          if (target.closest('[data-rk]') || target.closest('[data-radix-popper-content-wrapper]')) {
+          if (target.closest('[data-dynamic]') || target.closest('[data-radix-popper-content-wrapper]')) {
             e.preventDefault();
           }
         }}
         onInteractOutside={(e: any) => {
           const target = e.target as HTMLElement;
-          if (target.closest('[data-rk]') || target.closest('[data-radix-popper-content-wrapper]')) {
+          if (target.closest('[data-dynamic]') || target.closest('[data-radix-popper-content-wrapper]')) {
             e.preventDefault();
           }
         }}
@@ -435,22 +436,14 @@ export function X402PaymentModal({
                 <div className="w-full max-w-xs space-y-3">
                   {!isConnected ? (
                     /* Step 1: Connect Wallet */
-                    <ConnectButton.Custom>
-                      {({ openConnectModal, mounted }) => {
-                        const ready = mounted;
-                        return (
-                          <ButtonAny
-                            onClick={openConnectModal}
-                            disabled={!ready}
-                            className="w-full"
-                            size="lg"
-                          >
-                            <Wallet className="mr-2 h-4 w-4" />
-                            Connect Wallet to Continue
-                          </ButtonAny>
-                        );
-                      }}
-                    </ConnectButton.Custom>
+                    <ButtonAny
+                      onClick={() => setShowAuthFlow(true)}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Connect Wallet to Continue
+                    </ButtonAny>
                   ) : !isOnCorrectChain ? (
                     /* Step 2: Switch to correct chain */
                     <ButtonAny
@@ -476,16 +469,12 @@ export function X402PaymentModal({
                             <ShieldCheck className="h-4 w-4 text-zinc-500" />
                           )}
                         </div>
-                        <ConnectButton.Custom>
-                          {({ openAccountModal }) => (
-                            <button
-                              onClick={openAccountModal}
-                              className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
-                            >
-                              Change
-                            </button>
-                          )}
-                        </ConnectButton.Custom>
+                        <button
+                          onClick={() => { disconnect(); handleLogOut(); }}
+                          className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
+                        >
+                          Change
+                        </button>
                       </div>
 
                       <ButtonAny
@@ -563,22 +552,14 @@ export function X402PaymentModal({
               <div className="space-y-3">
                 {!isConnected ? (
                   <div className="flex flex-col items-center gap-3">
-                    <ConnectButton.Custom>
-                      {({ openConnectModal, mounted }) => {
-                        const ready = mounted;
-                        return (
-                          <ButtonAny
-                            onClick={openConnectModal}
-                            disabled={!ready}
-                            className="w-full"
-                            size="lg"
-                          >
-                            <Wallet className="mr-2 h-4 w-4" />
-                            Connect Wallet
-                          </ButtonAny>
-                        );
-                      }}
-                    </ConnectButton.Custom>
+                    <ButtonAny
+                      onClick={() => setShowAuthFlow(true)}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Connect Wallet
+                    </ButtonAny>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -613,17 +594,13 @@ export function X402PaymentModal({
                           <Wallet className="h-4 w-4" />
                           <span className="font-medium text-sm">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                         </div>
-                        <ConnectButton.Custom>
-                          {({ openAccountModal }) => (
-                            <button
-                              onClick={openAccountModal}
-                              className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 transition-colors"
-                            >
-                              <LogOut className="h-3 w-3" />
-                              Disconnect
-                            </button>
-                          )}
-                        </ConnectButton.Custom>
+                        <button
+                          onClick={() => { disconnect(); handleLogOut(); }}
+                          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                        >
+                          <LogOut className="h-3 w-3" />
+                          Disconnect
+                        </button>
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-zinc-500 dark:text-zinc-400">Amount:</span>

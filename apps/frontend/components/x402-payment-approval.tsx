@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useBalance, useSwitchChain, useSignTypedData, useDisconnect, useSignMessage } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { base } from "viem/chains";
 import { formatUnits } from "viem";
 import { CreditCard, Check, AlertCircle, Loader2, Sparkles, Zap, Crown, ShieldCheck, Wallet, LogOut } from "lucide-react";
@@ -66,6 +66,7 @@ function usdToUsdcUnits(usdAmount: number): bigint {
 
 export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
     const { address, isConnected, chain } = useAccount();
+    const { setShowAuthFlow, handleLogOut } = useDynamicContext();
     const { switchChain } = useSwitchChain();
     const { disconnect } = useDisconnect();
     const { data: usdcBalance, isLoading: isLoadingBalance } = useBalance({
@@ -575,17 +576,13 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                                     <Wallet className="size-4" />
                                     <span className="font-medium text-sm">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                                 </div>
-                                <ConnectButton.Custom>
-                                    {({ openAccountModal }) => (
-                                        <button
-                                            onClick={openAccountModal}
-                                            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 transition-colors"
-                                        >
-                                            <LogOut className="size-3" />
-                                            Disconnect
-                                        </button>
-                                    )}
-                                </ConnectButton.Custom>
+                                <button
+                                    onClick={() => { disconnect(); handleLogOut(); }}
+                                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                                >
+                                    <LogOut className="size-3" />
+                                    Disconnect
+                                </button>
                             </div>
                             <div className="flex justify-between items-center text-sm">
                                 <span className="text-zinc-500 dark:text-zinc-400">Amount:</span>
@@ -622,21 +619,16 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                     {/* Action Buttons */}
                     <div className="space-y-2">
                         {!isConnected ? (
-                            <div className="w-full [&_button]:w-full">
-                                <ConnectButton.Custom>
-                                    {({ openConnectModal, mounted }) => (
-                                        <ButtonAny
-                                            onClick={openConnectModal}
-                                            disabled={!mounted}
-                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Wallet className="size-4" />
-                                                Connect Wallet
-                                            </div>
-                                        </ButtonAny>
-                                    )}
-                                </ConnectButton.Custom>
+                            <div className="w-full">
+                                <ButtonAny
+                                    onClick={() => setShowAuthFlow(true)}
+                                    className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Wallet className="size-4" />
+                                        Connect Wallet
+                                    </div>
+                                </ButtonAny>
                             </div>
                         ) : isWrongChain ? (
                             <ButtonAny

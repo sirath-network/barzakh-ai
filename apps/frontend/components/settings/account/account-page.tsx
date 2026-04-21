@@ -669,7 +669,7 @@ export default function AccountSettingsPage() {
 
       <DeleteAccountModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onCloseAction={() => setIsDeleteModalOpen(false)}
       />
 
       {showCropModal && (

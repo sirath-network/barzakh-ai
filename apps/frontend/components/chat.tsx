@@ -403,7 +403,7 @@ export function Chat({
 
                 <div className="w-full max-w-3xl mt-4 md:mt-8 flex-none">
                   <div className="w-full mb-4">
-                    <QuestionSuggestions append={append} history={history} user={user} />
+                    <QuestionSuggestions appendAction={append} history={history} user={user} />
                   </div>
                   <div className="w-full">
                     {guestLimitReached && !user ? (
