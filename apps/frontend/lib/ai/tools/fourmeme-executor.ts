@@ -476,12 +476,23 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
     }),
     execute: async ({ tokenAddress, amount, slippagePercent }) => {
       try {
+        // Clean and validate address
+        const cleanAddress = tokenAddress.trim().toLowerCase();
+        
         // Hallucination safeguard
-        if (tokenAddress.toLowerCase() === "0x823fc8ef7295188d95708516d7458d6154179083") {
+        if (cleanAddress === "0x823fc8ef7295188d95708516d7458d6154179083") {
            return {
              status: "error",
              message: "Warning: You used a placeholder address (0x823fc8ef...). If you do not have the real address in context, you MUST call searchFourMemeTokens with the token name first to get the correct address."
            };
+        }
+
+        // Length validation (0x + 40 chars = 42)
+        if (!cleanAddress.startsWith("0x") || cleanAddress.length !== 42) {
+          return {
+            status: "error",
+            message: `Invalid address: "${tokenAddress}". It is either truncated or malformed (expected 40 hex characters). Please search for the token again to get the full correct address.`
+          };
         }
 
         // 1. Auth check
@@ -509,7 +520,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           address: HELPER_ADDRESS,
           abi: HELPER_ABI,
           functionName: "getTokenInfo",
-          args: [tokenAddress as `0x${string}`],
+          args: [cleanAddress as `0x${string}`],
         });
 
         const [, tokenManager, quote, , , , , , , , , liquidityAdded] =
@@ -528,7 +539,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           address: HELPER_ADDRESS,
           abi: HELPER_ABI,
           functionName: "tryBuy",
-          args: [tokenAddress as `0x${string}`, 0n, fundsWei],
+          args: [cleanAddress as `0x${string}`, 0n, fundsWei],
         });
 
         const [, , estimatedAmount, , , amountMsgValue, amountApproval] =
@@ -590,7 +601,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         const buyAmapData = encodeFunctionData({
           abi: BUYTOKEN_AMAP_ABI,
           functionName: "buyTokenAMAP",
-          args: [tokenAddress as `0x${string}`, fundsWei, minAmount],
+          args: [cleanAddress as `0x${string}`, fundsWei, minAmount],
         });
 
         // If automation is disabled, return transaction data for manual approval
@@ -637,7 +648,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
             BUY_TOKEN_PARAMS_TYPES,
             [
               0n,                                 // origin: 0
-              tokenAddress as `0x${string}`,      // token
+              cleanAddress as `0x${string}`,      // token
               walletAddress as `0x${string}`,      // to: buyer's wallet
               0n,                                 // amount: 0 (funds-based)
               0n,                                 // maxFunds: 0 (skip)
@@ -732,6 +743,16 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
     }),
     execute: async ({ tokenAddress, tokenAmount, slippagePercent }) => {
       try {
+        // Clean and validate address
+        const cleanAddress = tokenAddress.trim().toLowerCase();
+
+        // Length validation (0x + 40 chars = 42)
+        if (!cleanAddress.startsWith("0x") || cleanAddress.length !== 42) {
+          return {
+            status: "error",
+            message: `Invalid address: "${tokenAddress}". It is either truncated or malformed (expected 40 hex characters). Please search for the token again to get the full correct address.`
+          };
+        }
         // 1. Auth check
         const isAgentEnabled = await hasDelegation(userId);
         const walletAddress = await getUserAgentWalletAddress(userId);
