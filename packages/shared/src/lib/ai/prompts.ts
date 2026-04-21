@@ -2059,7 +2059,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "openai-gpt-4.1") {
+  if (selectedChatModel === "xai-grok-4.1-fast") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

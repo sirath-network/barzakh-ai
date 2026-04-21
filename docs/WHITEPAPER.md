@@ -52,7 +52,7 @@ The platform processes blockchain queries through a sophisticated intent classif
 | Metric | Value |
 |--------|-------|
 | Blockchain Chains Supported | 14+ (50+ via Relay) |
-| AI Models Integrated | 6+ |
+| AI Models Integrated | 25+ |
 | Blockchain Tools | 50+ |
 | System Prompt Size | 69KB+ |
 | Intent Pattern Rules | 400+ |
@@ -119,10 +119,10 @@ flowchart TB
     end
     
     subgraph Layer4["Layer 4: AI Abstraction"]
-        OpenAI["OpenAI GPT-4o/5"]
-        Anthropic["Anthropic Claude"]
-        xAI["xAI Grok"]
-        Zhipu["Zhipu GLM-4.7"]
+        OpenAI["OpenAI GPT-4o/5.4"]
+        Anthropic["Anthropic Claude Opus 4.7"]
+        xAI["xAI Grok 4.2"]
+        Zhipu["GLM-5.1 / Kimi / Qwen"]
         OpenRouter["as an AI Aggregator"]
     end
     
@@ -288,16 +288,14 @@ export const myProvider: any = customProvider({
 
 | Model ID | Display Name | Provider | Strength | Use Case |
 |----------|--------------|----------|----------|----------|
-| `openai-gpt-4o` | **GPT 4o** | OpenAI | Speed | Fast queries, simple tasks |
-| `openai-gpt-4.1` | **GPT 4.1** | OpenAI | Reasoning | Multi-step analysis |
-| `openai-gpt-5.1` | **GPT 5.1** | OpenRouter | Frontier | Complex blockchain analysis |
-| `openai-gpt-5.2` | **GPT 5.2** | OpenRouter | Advanced | Research-grade tasks |
-| `zai-glm-4.7` | **GLM 4.7** | OpenRouter | Multilingual | broad coverage |
-| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | OpenRouter | Speed | Fast, lightweight tasks |
-| `anthropic-opus-4.5` | **Claude Opus 4.5 Thinking** | OpenRouter | Deep Analysis | Code generation, extended reasoning |
-| `google-gemini-3-flash` | **Gemini 3 Flash** | OpenRouter | Speed | Fast Gemini responses |
-| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | OpenRouter | Preview | Experimental tasks |
-| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | OpenRouter | Speed | Fast reasoning |
+| `openai-gpt-4o`/`4.1` | **GPT 4o/4.1** | OpenAI | Versatility | General purpose reasoning |
+| `openai-gpt-5.x` | **GPT 5.4 Apex** | OpenRouter | Apex Intelligence | Ultra-complex problem solving |
+| `anthropic-opus-4.7` | **Claude Opus 4.7** | OpenRouter | Nuanced Reasoning | Deep analysis, thinking mode |
+| `google-gemini-3.1` | **Gemini 3.1 Pro** | OpenRouter | Multi-modal | Large-context intelligence |
+| `xai-grok-4.20` | **Grok 4.20** | OpenRouter | Peak Reasoning | Real-time witty intelligence |
+| `kimi-k2.6` | **Kimi K2.6** | OpenRouter | Long Context | Complex multi-turn workflows |
+| `qwen-3.6-plus` | **Qwen 3.6 Plus** | OpenRouter | High Efficiency | High-performance reasoning |
+| `zai-glm-5.1` | **GLM 5.1** | OpenRouter | Multilingual | Global-scale intelligence |
 
 
 ### Intent Classification System

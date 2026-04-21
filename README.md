@@ -58,12 +58,14 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | Feature | Description |
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
+| **Autonomous Token Launches** | 4-step end-to-end launch on Four.meme with automated logo resolution and tax config |
+| **Scheduled Agent Workflows** | Background monitoring for subscriptions and automated task execution via `api/cron` |
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
 | **Arkham Intelligence** | 43 tools for whale tracking, entity investigation, fund flow analysis across 20+ chains |
 | **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos Testnet) with optional NFT minting |
 | **Multi-Model AI** | GPT-4o/4.1/5, Claude Opus 4.6, Grok 4.1, GLM 4.7 with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
-| **100+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, Mantle, EVM (Including BNB Chain), Aptos, Solana, Flow, SEI, Creditcoin |
+| **100+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 | **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
@@ -285,18 +287,15 @@ sequenceDiagram
 
 ### Supported Models
 
-| Model ID | Display Name | Provider | Backend Model | Use Case |
-|----------|--------------|----------|---------------|----------|
-| `openai-gpt-4o` | **GPT 4o** | OpenRouter | `openai/gpt-4o` | Fast, lightweight tasks |
-| `openai-gpt-4.1` | **GPT 4.1** | OpenRouter | `openai/gpt-4.1` | Complex, multi-step tasks |
-| `openai-gpt-5.1` | **GPT 5.1** | OpenRouter | `openai/gpt-5.1` | Experimental, next-gen |
-| `openai-gpt-5.2` | **GPT 5.2** | OpenRouter | `openai/gpt-5.2` | Experimental, advanced |
-| `zai-glm-4.7` | **GLM 4.7** | OpenRouter | `z-ai/glm-4.7` | Multilingual |
-| `anthropic-haiku-4.5` | **Claude Haiku 4.5** | OpenRouter | `anthropic/claude-haiku-4.5` | Fast, lightweight Claude |
-| `anthropic-opus-4.6` | **Claude Opus 4.6 Thinking** | OpenRouter | `anthropic/claude-opus-4.6` | Deep analysis, thinking mode |
-| `google-gemini-3-flash` | **Gemini 3 Flash** | OpenRouter | `google/gemini-3-flash-preview` | Fast Gemini responses |
-| `google-gemini-2.5-flash-preview` | **Gemini 2.5 Flash Preview** | OpenRouter | `google/gemini-2.5-flash` | Preview Gemini tasks |
-| `xai-grok-4.1-fast` | **Grok 4.1 Fast** | OpenRouter | `x-ai/grok-4.1-fast` | Fast reasoning |
+| Provider | Model IDs | Strength |
+|----------|-----------|----------|
+| **OpenAI** | `openai-gpt-4o`, `4.1`, `5.1`, `5.2`, `5.3-codex`, `5.4` | Reasoning, coding, and apex intelligence |
+| **Anthropic** | `claude-haiku-4.5`, `sonnet-4.6`, `opus-4.6`, `4.7` | Deep thinking and nuanced analysis |
+| **Google** | `gemini-2.5-flash`, `3-flash`, `3.1-pro`, `gemma-4-31b` | Multimodal and large-context |
+| **xAI** | `grok-4.1-fast`, `grok-4.20` | Real-time knowledge and peak reasoning |
+| **Moonshot** | `kimi-k2-thinking`, `k2.5`, `k2.6` | High-performance long-context reasoning |
+| **Alibaba** | `qwen-3.5-flash`, `3.5-plus`, `3.6-plus` | Frontier high-efficiency intelligence |
+| **Zhipu** | `zai-glm-4.7`, `5.1` | Advanced multilingual capabilities |
 
 ### Image Generation
 
@@ -343,6 +342,30 @@ flowchart LR
     ChainContext --> |"Preserve context"| Routes
     LLMFallback --> |"Ambiguous"| General
 ```
+
+---
+
+## AI Agent Architecture
+
+Barzakh AI features a dual-mode execution engine that allows users to choose between granular control and full autonomy.
+
+### 🤖 Execution Modes: Manual vs. Autonomous
+
+| Mode | Trigger | Signing Method | Best For |
+|------|---------|----------------|----------|
+| **Manual** | Default | User signs each transaction via Dynamic SDK / Extension Wallet | New users, large trades, high-stakes DeFi |
+| **Autonomous** | Settings Enabled | Agent signs instantly using a backend-delegated MPC wallet | High-frequency trading, auto-launching, background tasks |
+
+### 🔐 Agent Automation & Security
+When **Agent Automation** is enabled in settings, the system sets up a dedicated embedded wallet powered by the **Dynamic SDK**.
+- **Delegated Access**: The agent is granted permission to sign specific types of transactions within user-defined limits.
+- **Backend Signing**: Transactions are prepared by the `agent-executor.ts` and signed using the `getAgentPrivateKey` utility, allowing for "Zero-Click" execution.
+- **Instant Response**: Perfect for multi-step flows like Four.meme launches where multiple transactions (Logo Storage + Metadata + Launch) are executed in a single natural language session.
+
+### ⏳ Background Automation (Cron)
+Barzakh AI uses deferred background workers for non-blocking tasks, located in `api/cron`:
+- **Protocol Monitoring**: Continuously checks for cross-chain bridge completions to update chat UI state.
+- **Subscription Engine**: Automatically monitors and manages user tiers and billing cycles.
 
 ---
 
@@ -442,6 +465,46 @@ const relayTools = {
 
 ---
 
+### 🚀 Four.meme Autonomous Token Launchpad
+
+Barzakh AI features a deep, technical integration with **Four.meme**, allowing for the fully autonomous creation and launch of meme tokens on the BNB Chain (BSC). This integration is designed for high reliability and "Zero-Click" execution.
+
+#### 🛠️ Automated 4-Step Execution Flow
+1. **DEX Authentication**: The agent autonomously generates a nonce and signs a login challenge using the agent's delegated wallet to obtain a secure JWT session from the Four.meme backend.
+2. **Metadata & Logo Upload**: Multi-modal attachments (PNG, JPG, WEBP, GIF) are intercepted from the chat, proxied through Cloudflare R2 for optimization, and uploaded to the Four.meme secure storage.
+3. **Smart Contract Preparation**: The agent constructs the `TokenCreate` transaction payload, auto-configuring complex bonding curve parameters and tax distributions.
+4. **On-Chain Execution**: Transactions are signed and broadcast via the embedded agent wallet (Chain ID 56).
+
+#### 🔍 Robust On-Chain Event Parsing
+To provide the user with the instant contract address and project URL, the agent implements a multi-ABI fallback strategy for decoding logs:
+- **Primary Method**: Standard ABI decoding of the `TokenCreate` event.
+- **Secondary Method**: Topic0 Signature Matching. The agent specifically scans for the unique hash:  
+  `0x396d5e902b675b032348d3d2e9517ee8f0c4a926603fbc075d3d282ff00cad20`
+- **Deductive Fallback**: In high-traffic periods, the agent cross-references log topics against the user's wallet address to isolate and extract the newly generated token address with 100% accuracy.
+
+#### 📊 Advanced Tax Configuration
+Supports professional-grade distribution models at launch:
+- **Burn Rate**: Deflationary supply reduction.
+- **Dividends**: Automated sharing with token holders.
+- **Liquidity**: Auto-feeding the bonding curve liquidity.
+- **Custom Recipients**: Specific dev/fund recipient wallets with automated percentage splits.
+
+#### 🎯 Template Prompt (Copy & Paste)
+> [User attaches image/gif] + prompt:
+
+```text
+Launch a token named 'Testing Tokens' with symbol 'TEST' 
+Description: 'ur description here' 
+Use the image I just uploaded and add:
+- 5% Total Tax
+- 10% Funds Recipient Wallet (0x15b263cdCf21bb9cba53D12275CD66b05FCE14B8)
+- Burn 20%
+- Divide To Holders 20% (min 5000000 balance)
+- Add to Liquidity 50%
+```
+
+---
+
 ### 🔶 BNB Chain Integration
 
 Barzakh AI provides **native BNB Chain (BSC) support**:
@@ -466,6 +529,9 @@ Trade 100 USDC on Base for BNB
 ```
 ```
 Swap 0.1 BNB to USDC on BSC
+```
+```
+Launch a token on four.meme named 'Testing' with symbol 'TEST'. Burn 10%, add 90% to liquidity.
 ```
 ```
 Bridge $20 of ETH from Ethereum to BNB Chain

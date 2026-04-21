@@ -13,7 +13,7 @@ const VALID_MODELS = [
   "openai-gpt-5.1",
   "google-gemini-3-flash",
   "google-gemini-2.5-flash-preview",
-  "openai-gpt-4.1",
+  "xai-grok-4.1-fast",
 ];
 
 export async function POST(request: Request) {
