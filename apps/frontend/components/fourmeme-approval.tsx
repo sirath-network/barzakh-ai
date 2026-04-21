@@ -121,6 +121,32 @@ export function FourMemeApproval({ result }: FourMemeApprovalProps) {
         }
     };
 
+    // Error state: show compact inline error, NOT the approval modal
+    if (result.status === "error") {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-4 max-w-md w-full shadow-lg"
+            >
+                <div className="flex items-center gap-3 text-rose-500">
+                    <div className="size-8 rounded-full bg-rose-500/20 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="size-4" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-sm">
+                            {result.type === "launch" ? "Launch" :
+                             result.type === "sell" ? "Sell" : "Buy"} Failed
+                        </h3>
+                        <p className="text-[11px] opacity-80 mt-0.5 leading-tight">
+                            {result.message || "An unexpected error occurred."}
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    }
+
     if (step === "success" || result.status === "success") {
         return (
             <motion.div
