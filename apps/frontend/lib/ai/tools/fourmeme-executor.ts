@@ -349,7 +349,7 @@ export const quoteFourMemeBuyTool = tool({
         return { status: "error", error: "Invalid amount. Provide a BNB amount (e.g. '0.01') or USD amount (e.g. '$0.5')." };
       }
 
-      const fundsWei = BigInt(Math.floor(parsed.bnbAmount * 1e18));
+      const fundsWei = alignToGwei(BigInt(Math.floor(parsed.bnbAmount * 1e18)));
       const publicClient = getPublicClient();
 
       // Call tryBuy(token, 0, fundsWei) — funds-based buy
@@ -541,7 +541,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           return { status: "error", type: "buy", message: "Invalid amount." };
         }
 
-        const fundsWei = BigInt(Math.floor(parsed.bnbAmount * 1e18));
+        const fundsWei = alignToGwei(BigInt(Math.floor(parsed.bnbAmount * 1e18)));
         const publicClient = getPublicClient();
 
         console.log(
@@ -576,7 +576,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
           args: [cleanAddress as `0x${string}`, 0n, fundsWei],
         });
 
-        const [, , estimatedAmount, , , amountMsgValue, amountApproval] =
+        const [, , estimatedAmount, , , amountMsgValue, amountApproval, amountFunds] =
           tryBuyResult;
 
         // Apply slippage
@@ -588,6 +588,32 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         console.log(
           `[FourMeme] Estimated: ${formatTokens(estimatedAmount)} tokens, minAmount: ${formatTokens(minAmount)}, msgValue: ${formatBnb(amountMsgValue)} BNB`
         );
+
+        // 4.5 Balance Check (Avoids "transfer amount exceeds balance" reverts)
+        if (quote === ZERO_ADDRESS) {
+          const balance = await publicClient.getBalance({ address: walletAddress as `0x${string}` });
+          if (balance < amountMsgValue) {
+            return {
+              status: "error",
+              type: "buy",
+              message: `Insufficient BNB balance in your agent wallet. You have ${formatBnb(balance)} BNB, but this transaction requires ${formatBnb(amountMsgValue)} BNB (including network fees and bonding curve costs). Please fund your wallet at: ${walletAddress}`
+            };
+          }
+        } else {
+          const balance = await publicClient.readContract({
+            address: quote as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [walletAddress as `0x${string}`],
+          });
+          if (balance < amountApproval) {
+            return {
+              status: "error",
+              type: "buy",
+              message: `Insufficient balance of the required quote token (${quote}) in your agent wallet. This specific Four.meme token requires paying with a non-native BEP-20 token. You need @ ${amountApproval.toString()} (unit wei) but only have ${balance.toString()}. Please fund your agent wallet or try a BNB-standard meme token.`
+            };
+          }
+        }
 
         // 5. Approve if BEP-20 quote
         if (quote !== ZERO_ADDRESS && amountApproval > 0n) {
@@ -637,7 +663,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         const buyAmapData = encodeFunctionData({
           abi: BUYTOKEN_AMAP_ABI,
           functionName: "buyTokenAMAP",
-          args: [cleanAddress as `0x${string}`, fundsWei, minAmount],
+          args: [cleanAddress as `0x${string}`, amountFunds, minAmount],
         });
 
         // If automation is disabled, return transaction data for manual approval
@@ -688,7 +714,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
               walletAddress as `0x${string}`,      // to: buyer's wallet
               0n,                                 // amount: 0 (funds-based)
               0n,                                 // maxFunds: 0 (skip)
-              fundsWei,                           // funds: BNB to spend
+              amountFunds,                        // funds: BNB to spend (from quote)
               minAmount,                          // minAmount: slippage protection
             ]
           );
@@ -805,19 +831,18 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
 
         const publicClient = getPublicClient();
 
+        console.log(`[FourMeme] Fetching balance of ${tokenAddress} for ${walletAddress}...`);
+        const balance = await publicClient.readContract({
+          address: cleanAddress as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [walletAddress as `0x${string}`],
+        });
+
         if (isAll) {
-          console.log(`[FourMeme] Fetching balance of ${tokenAddress} for ${walletAddress}...`);
-          const balance = await publicClient.readContract({
-            address: tokenAddress as `0x${string}`,
-            abi: ERC20_ABI,
-            functionName: "balanceOf",
-            args: [walletAddress as `0x${string}`],
-          });
-          
           if (balance === 0n) {
             return { status: "error", type: "sell", message: "You do not have any of these tokens in your agent wallet." };
           }
-          
           tokensToSellWei = alignToGwei(balance);
           displayAmount = (Number(tokensToSellWei) / 1e18).toString();
         } else {
@@ -826,6 +851,13 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
             return { status: "error", type: "sell", message: "Token amount must be > 0." };
           }
           tokensToSellWei = alignToGwei(BigInt(Math.floor(tokens * 1e18)));
+          if (balance < tokensToSellWei) {
+            return { 
+              status: "error", 
+              type: "sell", 
+              message: `Insufficient token balance. You have ${formatTokens(balance)} tokens in your agent wallet, but you tried to sell ${displayAmount}.` 
+            };
+          }
         }
 
         console.log(

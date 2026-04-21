@@ -249,6 +249,9 @@ export async function executeRelaySwap(
           nonce: currentNonce,
       });
 
+      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain
+      preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+
       const baseTx = {
           to: preparedReq.to,
           value: preparedReq.value,
@@ -280,12 +283,28 @@ export async function executeRelaySwap(
         serializableTx
       );
 
-      // 3. Broadcast
       const txHash = await publicClient.sendRawTransaction({
           serializedTransaction: signedTx as `0x${string}`
       });
+      console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}. Waiting for confirmation...`);
+      const receipt = await publicClient.waitForTransactionReceipt({ 
+        hash: txHash,
+        timeout: 60_000, // 60s max wait
+      });
 
-      // 4. Record for audit
+      if (receipt.status !== "success") {
+        console.error(`[AgentPayment] Relay swap reverted on-chain: ${txHash}`);
+        return {
+          success: false,
+          transactionHash: txHash,
+          error: "Transaction reverted on-chain. This may be due to slippage or protocol conditions.",
+          operationType: "relay_swap",
+        };
+      }
+
+      console.log(`[AgentPayment] Relay swap confirmed!`);
+
+      // 5. Record for audit
       await recordAgentTransaction({
         userId: params.userId,
         walletAddress: credentials.walletAddress,
@@ -296,7 +315,8 @@ export async function executeRelaySwap(
           inputToken: params.inputToken,
           outputToken: params.outputToken,
           chainId: params.chainId,
-          attempt
+          attempt,
+          gasUsed: receipt.gasUsed.toString(),
         },
       });
 
@@ -381,6 +401,9 @@ export async function executeOnChainTransaction(
           chain: targetChain as any,
           nonce: currentNonce,
       });
+      
+      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain
+      preparedReq.gas = (preparedReq.gas * 120n) / 100n;
       console.log(`[AgentPayment] Gas estimated: ${preparedReq.gas}, type: ${preparedReq.type}`);
 
       const baseTx = {
@@ -420,7 +443,25 @@ export async function executeOnChainTransaction(
       const txHash = await publicClient.sendRawTransaction({
           serializedTransaction: signedTx as `0x${string}`
       });
-      console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}`);
+      console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}, waiting for confirmation...`);
+
+      // 4. Wait for confirmation
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: 60_000, // 60s max wait
+      });
+
+      if (receipt.status !== "success") {
+        console.error(`[AgentPayment] On-chain transaction reverted: ${txHash}`);
+        return {
+          success: false,
+          transactionHash: txHash,
+          error: "Transaction reverted on-chain. Please check the explorer for details.",
+          operationType: "on_chain_tx",
+        };
+      }
+
+      console.log(`[AgentPayment] On-chain transaction confirmed!`);
 
       // Record for audit
       await recordAgentTransaction({
@@ -432,7 +473,8 @@ export async function executeOnChainTransaction(
         metadata: {
           description: params.description,
           chainId: params.chainId,
-          attempt
+          attempt,
+          gasUsed: receipt.gasUsed.toString(),
         },
       });
 
