@@ -167,7 +167,11 @@ export const searchFourMemeTokens = tool({
         };
       });
 
-      const summary = results.map((r: any) => `[${r.index}] ${r.name} (${r.symbol}) - ${r.address}`).join("\n");
+      const tableHeader = "| Index | Name | Symbol | Address | Progress | Market Cap | Status |\n|-------|------|--------|---------|----------|------------|--------|";
+      const tableRows = results.map((r: any) => 
+        `| ${r.index} | ${r.name} | ${r.symbol} | ${r.address} | ${r.progress || "N/A"} | ${r.market_cap} | ${r.is_graduated ? "DEX" : "Bonding"} |`
+      ).join("\n");
+      const summaryTable = `${tableHeader}\n${tableRows}`;
 
       return {
         status: "success",
@@ -177,8 +181,8 @@ export const searchFourMemeTokens = tool({
         filter_type: type,
         filter_status: status,
         results,
-        summary,
-        note: `Found ${total} tokens on Four.meme (BNB Chain). Showing ${results.length} sorted by ${type}. Tokens marked as "graduated" have migrated to PancakeSwap DEX. When presenting/buying tokens, refer to them by their [index] and use the exact 0x... address provided in the results.`,
+        summary: summaryTable,
+        note: `Found ${total} tokens on Four.meme (BNB Chain). Showing ${results.length} sorted by ${type}. IMPORTANT: To buy or view details, ALWAYS use the "Address" provided in the table for the corresponding "Index".`,
       };
     } catch (error: any) {
       return {
@@ -413,15 +417,19 @@ export const getFourMemeRankings = tool({
         };
       });
 
-      const summary = results.map((r: any) => `[${r.index}] ${r.name} (${r.symbol}) - ${r.address}`).join("\n");
+      const tableHeader = "| Index | Rank | Name | Symbol | Address | Progress | Market Cap |\n|-------|------|------|--------|---------|----------|------------|";
+      const tableRows = results.map((r: any) => 
+        `| ${r.index} | ${r.rank} | ${r.name} | ${r.symbol} | ${r.address} | ${r.progress || "N/A"} | ${r.market_cap} |`
+      ).join("\n");
+      const summaryTable = `${tableHeader}\n${tableRows}`;
 
       return {
         status: "success",
         ranking_type: rankingType,
         count: results.length,
         results,
-        summary,
-        note: `Top ${results.length} tokens ranked by ${rankingType} on Four.meme (BNB Chain). Tokens marked as "graduated" have migrated to PancakeSwap DEX. When presenting/buying tokens, refer to them by their [index] and ALWAYS use the exact 0x... address provided in the results.`,
+        summary: summaryTable,
+        note: `Top ${results.length} tokens ranked by ${rankingType} on Four.meme (BNB Chain). IMPORTANT: To buy or view details, ALWAYS use the "Address" provided in the table for the corresponding "Index".`,
       };
     } catch (error: any) {
       return {

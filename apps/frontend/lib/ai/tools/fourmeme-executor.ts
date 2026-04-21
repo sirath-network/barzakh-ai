@@ -480,7 +480,7 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
         if (tokenAddress.toLowerCase() === "0x823fc8ef7295188d95708516d7458d6154179083") {
            return {
              status: "error",
-             message: "Warning: You are using a documentation example address (0x823fc8ef...). Please search for the actual token first and use the address provided in the search results."
+             message: "Warning: You used a placeholder address (0x823fc8ef...). If you do not have the real address in context, you MUST call searchFourMemeTokens with the token name first to get the correct address."
            };
         }
 
@@ -575,6 +575,12 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
               message: `Approval failed: ${approveResult.error}`,
             };
           }
+
+          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
+          await publicClient.waitForTransactionReceipt({ 
+            hash: approveResult.transactionHash as `0x${string}` 
+          });
+          console.log(`[FourMeme] Approval confirmed! Proceeding with buy.`);
         }
 
         // 6. Execute buy — try buyTokenAMAP first, fallback to X Mode buyToken if error "A"
@@ -823,6 +829,12 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
               message: `Token approval failed: ${approveResult.error}`,
             };
           }
+
+          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
+          await publicClient.waitForTransactionReceipt({ 
+            hash: approveResult.transactionHash as `0x${string}` 
+          });
+          console.log(`[FourMeme] Approval confirmed! Proceeding with sell.`);
         } else {
           console.log(`[FourMeme] Allowance sufficient, skipping approval step.`);
         }
