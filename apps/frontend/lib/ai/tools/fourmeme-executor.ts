@@ -203,11 +203,7 @@ const ERC20_ABI = [
 function getPublicClient() {
   return createPublicClient({
     chain: bsc,
-    transport: fallback([
-      http(BSC_RPC_URL, { timeout: 60000 }),
-      http("https://binance.llamarpc.com", { timeout: 60000 }),
-      http("https://bsc-dataseed.binance.org", { timeout: 60000 }),
-    ]),
+    transport: http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 }),
   });
 }
 

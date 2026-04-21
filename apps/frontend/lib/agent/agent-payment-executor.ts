@@ -230,7 +230,9 @@ export async function executeRelaySwap(
 
       const publicClient: any = createPublicClient({
           chain: targetChain as any,
-          transport: http() 
+          transport: targetChain.id === 56 
+            ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
+            : http(undefined, { timeout: 30000 })
       });
 
       // Fetch nonce - either fresh or incremented
@@ -357,7 +359,9 @@ export async function executeOnChainTransaction(
 
       const publicClient: any = createPublicClient({
           chain: targetChain as any,
-          transport: http()
+          transport: targetChain.id === 56 
+            ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
+            : http(undefined, { timeout: 30000 })
       });
 
       // Fetch nonce
