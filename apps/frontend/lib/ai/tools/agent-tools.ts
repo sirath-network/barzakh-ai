@@ -18,11 +18,7 @@ const BSC_RPC_URL =
 function getPublicClient() {
   return createPublicClient({
     chain: bsc,
-    transport: fallback([
-      http(BSC_RPC_URL, { timeout: 60000 }),
-      http("https://binance.llamarpc.com", { timeout: 60000 }),
-      http("https://bsc-dataseed.binance.org", { timeout: 60000 }),
-    ]),
+    transport: http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 }),
   });
 }
 
@@ -48,7 +44,7 @@ const ERC20_ABI = [
  */
 export const createGetAgentWalletInfoTool = (userId: string) =>
   tool({
-    description: "Get the AI agent's own wallet address and BNB balance on BSC. Use this to verify your identity or check if you have enough gas.",
+    description: "REQUIRED: Get the AI agent's own wallet address and BNB balance on BSC. You MUST call this at the start of any trading lifecycle to know where funds are located.",
     parameters: z.object({}),
     execute: async () => {
       try {
@@ -79,7 +75,7 @@ export const createGetAgentWalletInfoTool = (userId: string) =>
  */
 export const createGetAgentTokenBalanceTool = (userId: string) =>
   tool({
-    description: "Get the AI agent's balance for a specific token (0x...) on BSC. Use this before selling to ensure you have the tokens.",
+    description: "REQUIRED: Get the AI agent's balance for a specific token (0x...) on BSC. You MUST call this before selling to ensure you have positive balance.",
     parameters: z.object({
       tokenAddress: z.string().describe("The token contract address on BSC (0x...)"),
     }),

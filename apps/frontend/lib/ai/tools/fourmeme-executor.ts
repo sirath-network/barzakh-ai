@@ -196,6 +196,16 @@ const ERC20_ABI = [
     ],
     outputs: [{ name: "", type: "bool" as const }],
   },
+  {
+    name: "allowance",
+    type: "function" as const,
+    stateMutability: "view" as const,
+    inputs: [
+      { name: "owner", type: "address" as const },
+      { name: "spender", type: "address" as const },
+    ],
+    outputs: [{ name: "", type: "uint256" as const }],
+  },
 ] as const;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -699,7 +709,7 @@ export const createFourMemeSellTool = (userId: string) =>
     description: `Execute a sell on Four.meme (BNB Chain bonding curve) using the user's embedded agent wallet.
 Sells tokens back to the bonding curve for BNB.
 REQUIRES Agent Automation to be ENABLED. Only works for bonding curve tokens (not graduated DEX tokens).
-Always call quoteFourMemeSell first to show the estimate before executing.`,
+REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confirm where your funds are before executing. Also call quoteFourMemeSell to show the estimate.`,
     parameters: z.object({
       tokenAddress: z
         .string()
@@ -742,8 +752,8 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
             return { status: "error", message: "You do not have any of these tokens in your agent wallet." };
           }
           
-          tokensToSellWei = balance;
-          displayAmount = (Number(balance) / 1e18).toString();
+          tokensToSellWei = alignToGwei(balance);
+          displayAmount = (Number(tokensToSellWei) / 1e18).toString();
         } else {
           const tokens = parseFloat(tokenAmount);
           if (tokens <= 0 || isNaN(tokens)) {
@@ -774,35 +784,47 @@ Always call quoteFourMemeSell first to show the estimate before executing.`,
           };
         }
 
-        // 3. Approve token to tokenManager
-        console.log(
-          `[FourMeme] Approving ${tokensToSellWei} tokens to ${tokenManager}`
-        );
-
-        const approveData = encodeFunctionData({
+        // 3. Approve token to tokenManager (only if needed)
+        console.log(`[FourMeme] Checking allowance for ${tokenAddress}...`);
+        const currentAllowance = await publicClient.readContract({
+          address: tokenAddress as `0x${string}`,
           abi: ERC20_ABI,
-          functionName: "approve",
-          args: [tokenManager, tokensToSellWei],
+          functionName: "allowance",
+          args: [walletAddress as `0x${string}`, tokenManager],
         });
 
-        const approveResult = await executeOnChainTransaction({
-          userId,
-          description: "Four.meme: Approve tokens for sell",
-          estimatedValueUsd: "0",
-          chainId: 56,
-          transaction: {
-            to: tokenAddress as `0x${string}`,
-            value: 0n,
-            data: approveData,
+        if (currentAllowance < tokensToSellWei) {
+          console.log(
+            `[FourMeme] Allowance insufficient (${currentAllowance} < ${tokensToSellWei}), approving...`
+          );
+
+          const approveData = encodeFunctionData({
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [tokenManager, tokensToSellWei],
+          });
+
+          const approveResult = await executeOnChainTransaction({
+            userId,
+            description: "Four.meme: Approve tokens for sell",
+            estimatedValueUsd: "0",
             chainId: 56,
-          },
-        });
+            transaction: {
+              to: tokenAddress as `0x${string}`,
+              value: 0n,
+              data: approveData,
+              chainId: 56,
+            },
+          });
 
-        if (!approveResult.success) {
-          return {
-            status: "error",
-            message: `Token approval failed: ${approveResult.error}`,
-          };
+          if (!approveResult.success) {
+            return {
+              status: "error",
+              message: `Token approval failed: ${approveResult.error}`,
+            };
+          }
+        } else {
+          console.log(`[FourMeme] Allowance sufficient, skipping approval step.`);
         }
 
         // 4. Execute sellToken

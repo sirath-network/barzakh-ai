@@ -223,7 +223,7 @@ export async function executeRelaySwap(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // 1. Prepare transaction locally via viem publicClient
-      const targetChain = Object.values(allChains).find(c => c.id === params.chainId);
+      const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
       if (!targetChain) {
           throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
       }
@@ -352,7 +352,7 @@ export async function executeOnChainTransaction(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // 1. Prepare transaction locally via viem publicClient
-      const targetChain = Object.values(allChains).find(c => c.id === params.chainId);
+      const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
       if (!targetChain) {
           throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
       }
