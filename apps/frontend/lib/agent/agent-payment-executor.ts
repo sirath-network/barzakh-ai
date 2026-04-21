@@ -364,11 +364,15 @@ export async function executeOnChainTransaction(
             : http(undefined, { timeout: 30000 })
       });
 
+      console.log(`[AgentPayment] On-chain tx attempt ${attempt}: preparing tx for chain ${params.chainId}...`);
+
       // Fetch nonce
       if (currentNonce === null) {
           currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
+          console.log(`[AgentPayment] Nonce fetched: ${currentNonce}`);
       }
 
+      console.log(`[AgentPayment] Estimating gas...`);
       const preparedReq = await publicClient.prepareTransactionRequest({
           account: credentials.walletAddress as `0x${string}`,
           to: params.transaction.to as `0x${string}`,
@@ -377,6 +381,7 @@ export async function executeOnChainTransaction(
           chain: targetChain as any,
           nonce: currentNonce,
       });
+      console.log(`[AgentPayment] Gas estimated: ${preparedReq.gas}, type: ${preparedReq.type}`);
 
       const baseTx = {
           to: preparedReq.to,
@@ -404,15 +409,18 @@ export async function executeOnChainTransaction(
       }
 
       // 2. Sign transaction
+      console.log(`[AgentPayment] Signing transaction...`);
       const signedTx = await signTransactionForUser(
         credentials,
         serializableTx
       );
+      console.log(`[AgentPayment] Transaction signed. Broadcasting...`);
 
       // 3. Broadcast
       const txHash = await publicClient.sendRawTransaction({
           serializedTransaction: signedTx as `0x${string}`
       });
+      console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}`);
 
       // Record for audit
       await recordAgentTransaction({

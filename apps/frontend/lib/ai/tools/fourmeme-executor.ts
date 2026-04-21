@@ -624,7 +624,8 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
 
           console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
           await publicClient.waitForTransactionReceipt({ 
-            hash: approveResult.transactionHash as `0x${string}` 
+            hash: approveResult.transactionHash as `0x${string}`,
+            timeout: 30_000, // 30s max wait for approval confirmation
           });
           console.log(`[FourMeme] Approval confirmed! Proceeding with buy.`);
         }
@@ -893,7 +894,8 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
 
           console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
           await publicClient.waitForTransactionReceipt({ 
-            hash: approveResult.transactionHash as `0x${string}` 
+            hash: approveResult.transactionHash as `0x${string}`,
+            timeout: 30_000, // 30s max wait for approval confirmation
           });
           console.log(`[FourMeme] Approval confirmed! Proceeding with sell.`);
         } else {
@@ -925,6 +927,7 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
           };
         }
 
+        console.log(`[FourMeme] Executing sell transaction: ${displayAmount} tokens to ${tokenManager}...`);
         const sellResult = await executeOnChainTransaction({
           userId,
           description: `Four.meme: Sell ${displayAmount} tokens (${tokenAddress})`,
@@ -937,6 +940,7 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
             chainId: 56,
           },
         });
+        console.log(`[FourMeme] Sell tx result: success=${sellResult.success}, hash=${sellResult.transactionHash || 'N/A'}, error=${sellResult.error || 'none'}`);
 
         if (!sellResult.success) {
           return {

@@ -247,6 +247,10 @@ function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] 
   return [...activeTools];
 }
 
+// Vercel Serverless Function Configuration
+// On-chain tool execution (approval + sell/buy + receipt) can take 30-90 seconds
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   const {
     id,
