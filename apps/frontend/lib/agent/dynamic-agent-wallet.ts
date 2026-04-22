@@ -39,23 +39,17 @@ export interface DelegationCredentials {
   revokedAt?: Date;
 }
 
-// ─── Singleton Client ───────────────────────────────────────────────────────
-
-let evmDelegatedClient: any = null;
-
 function getEvmDelegatedClient() {
   if (!DYNAMIC_ENVIRONMENT_ID || !DYNAMIC_API_KEY) {
     throw new Error(
       "Missing NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID or DYNAMIC_API_TOKEN for delegated access"
     );
   }
-  if (!evmDelegatedClient) {
-    evmDelegatedClient = createDelegatedEvmWalletClient({
-      environmentId: DYNAMIC_ENVIRONMENT_ID,
-      apiKey: DYNAMIC_API_KEY,
-    });
-  }
-  return evmDelegatedClient;
+  // Create a fresh client on every call to prevent socket hang issues in Vercel serverless
+  return createDelegatedEvmWalletClient({
+    environmentId: DYNAMIC_ENVIRONMENT_ID,
+    apiKey: DYNAMIC_API_KEY,
+  });
 }
 
 // ─── Core Signing Operations ────────────────────────────────────────────────
