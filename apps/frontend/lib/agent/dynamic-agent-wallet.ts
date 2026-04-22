@@ -54,20 +54,26 @@ function getEvmDelegatedClient() {
 
 // ─── Core Signing Operations ────────────────────────────────────────────────
 
-/**
- * Signs a message using the user's delegated embedded wallet.
- */
 export async function signMessageForUser(
   credentials: DelegationCredentials,
   message: string
 ): Promise<string> {
   const client = getEvmDelegatedClient();
-  return delegatedSignMessage(client, {
+  
+  const signPromise = delegatedSignMessage(client, {
     walletId: credentials.walletId,
     walletApiKey: credentials.walletApiKey,
     keyShare: credentials.keyShare,
     message,
   });
+
+  const timeoutPromise = new Promise<string>((_, reject) => 
+    setTimeout(() => reject(new Error("Dynamic API Timeout: Message signing took longer than 15 seconds.")), 15000)
+  );
+
+  signPromise.catch(() => {}); // Suppress unhandled rejection if it fails after timeout
+
+  return Promise.race([signPromise, timeoutPromise]);
 }
 
 import { createWalletClient, http } from "viem";
@@ -99,12 +105,21 @@ export async function signTypedDataForUser(
 
   const client = getEvmDelegatedClient();
   const cleanWalletId = credentials.walletId.replace(/^server-managed-/, "");
-  return delegatedSignTypedData(client, {
+  
+  const signPromise = delegatedSignTypedData(client, {
     walletId: cleanWalletId,
     walletApiKey: credentials.walletApiKey,
     keyShare: credentials.keyShare,
     typedData,
   });
+
+  const timeoutPromise = new Promise<string>((_, reject) => 
+    setTimeout(() => reject(new Error("Dynamic API Timeout: Typed data signing took longer than 15 seconds.")), 15000)
+  );
+
+  signPromise.catch(() => {}); // Suppress unhandled rejection if it fails after timeout
+
+  return Promise.race([signPromise, timeoutPromise]);
 }
 
 /**
@@ -127,12 +142,21 @@ export async function signTransactionForUser(
 
   const client = getEvmDelegatedClient();
   const cleanWalletId = credentials.walletId.replace(/^server-managed-/, "");
-  return delegatedSignTransaction(client, {
+  
+  const signPromise = delegatedSignTransaction(client, {
     walletId: cleanWalletId,
     walletApiKey: credentials.walletApiKey,
     keyShare: credentials.keyShare,
     transaction,
   });
+
+  const timeoutPromise = new Promise<string>((_, reject) => 
+    setTimeout(() => reject(new Error("Dynamic API Timeout: Transaction signing took longer than 15 seconds.")), 15000)
+  );
+
+  signPromise.catch(() => {}); // Suppress unhandled rejection if it fails after timeout
+
+  return Promise.race([signPromise, timeoutPromise]);
 }
 
 /**

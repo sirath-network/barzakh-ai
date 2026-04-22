@@ -488,10 +488,14 @@ export async function executeOnChainTransaction(
       const errorMsg = error.message?.toLowerCase() || "";
       console.error(`[AgentPayment] On-chain tx attempt ${attempt} failed:`, error.message);
 
-      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced")) {
+      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced") || errorMsg.includes("timeout")) {
           if (attempt < maxAttempts) {
-              currentNonce = (currentNonce ?? 0) + 1;
-              console.log(`[AgentPayment] Retrying on-chain tx with incremented nonce: ${currentNonce}`);
+              if (!errorMsg.includes("timeout")) {
+                 currentNonce = (currentNonce ?? 0) + 1;
+                 console.log(`[AgentPayment] Retrying on-chain tx with incremented nonce: ${currentNonce}`);
+              } else {
+                 console.log(`[AgentPayment] Retrying on-chain tx due to signing timeout (attempt ${attempt + 1})...`);
+              }
               continue;
           }
       }
