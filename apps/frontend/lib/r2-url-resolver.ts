@@ -21,11 +21,19 @@ export async function resolveR2UrlsInMessages(messages: any[]): Promise<any[]> {
 
         for (const part of message.content as any[]) {
             // Check for image parts with R2 URLs
-            if (part.type === 'image' && typeof part.image === 'string') {
-                const imageUrl = part.image;
+            if (part.type === 'image' && part.image) {
+                let imageUrl = '';
+                let isUrlObject = false;
+
+                if (typeof part.image === 'string') {
+                    imageUrl = part.image;
+                } else if (part.image instanceof URL) {
+                    imageUrl = part.image.toString();
+                    isUrlObject = true;
+                }
 
                 // Check if it's a legacy R2 URL that needs resolution
-                if (imageUrl.includes('r2.barzakh.tech') || isR2Url(imageUrl)) {
+                if (imageUrl && (imageUrl.includes('r2.barzakh.tech') || isR2Url(imageUrl))) {
                     try {
                         const key = extractR2Key(imageUrl);
                         if (key) {
@@ -34,7 +42,7 @@ export async function resolveR2UrlsInMessages(messages: any[]): Promise<any[]> {
                                 console.log(`[resolveR2Urls] Resolved legacy R2 URL: ${imageUrl.slice(0, 50)}...`);
                                 resolvedContent.push({
                                     ...part,
-                                    image: signedUrl,
+                                    image: isUrlObject ? new URL(signedUrl) : signedUrl,
                                 });
                                 hasModifications = true;
                                 continue;
