@@ -248,8 +248,9 @@ function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] 
 }
 
 // Vercel Serverless Function Configuration
-// On-chain tool execution (approval + sell/buy + receipt) can take 30-90 seconds
-export const maxDuration = 120;
+// Multi-step on-chain flows (approval tx + wait + trade tx + wait) can exceed 120s.
+// 300s covers the worst case: approval(60s) + sell(60s) + AI streaming overhead.
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const {
@@ -986,6 +987,21 @@ export async function POST(request: Request) {
 
   return createDataStreamResponse({
     execute: (dataStream) => {
+      // ─── Keepalive Heartbeat ──────────────────────────────────────────
+      // During long on-chain tool executions (approval + sell = 30-60s),
+      // no tokens flow on the HTTP stream. Vercel's edge proxy has a ~25s
+      // streaming idle timeout and kills silent connections (status 0, 0ms).
+      // This heartbeat sends a lightweight ping every 15s to keep the
+      // connection alive through multi-step blockchain transactions.
+      const keepaliveInterval = setInterval(() => {
+        try {
+          dataStream.writeData({ type: 'keepalive', ts: Date.now() });
+        } catch {
+          // Stream already closed — clean up silently
+          clearInterval(keepaliveInterval);
+        }
+      }, 15_000);
+
       try {
         const result = streamText({
           model: myProvider.languageModel(finalModel),
@@ -1004,6 +1020,9 @@ export async function POST(request: Request) {
           experimental_generateMessageId: generateUUID,
           tools: wrappedTools,
           onFinish: async ({ response, reasoning }) => {
+            // Clear keepalive once streaming is fully complete
+            clearInterval(keepaliveInterval);
+
             after(async () => {
               try {
                 // Skip saving messages for incognito/temporary chats
@@ -1051,6 +1070,7 @@ export async function POST(request: Request) {
           sendReasoning: true,
         });
       } catch (error) {
+        clearInterval(keepaliveInterval);
         console.error("Error in streamText:", error);
         // If still getting tool invocation error, try with fresh conversation
         if ((error as any).message?.includes("ToolInvocation must have a result")) {

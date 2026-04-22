@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["dev.barzakh.tech"],
   // Dynamic Node SDK has native CJS/WASM binaries that can't be bundled by Turbopack
   serverExternalPackages: [
-    "@dynamic-labs-wallet/node",
-    "@dynamic-labs-wallet/node-evm",
-    "@dynamic-labs-wallet/node-svm",
     "@evervault/wasm-attestation-bindings",
   ],
   images: {

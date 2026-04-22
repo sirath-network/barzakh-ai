@@ -648,12 +648,9 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
             };
           }
 
-          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
-          await publicClient.waitForTransactionReceipt({ 
-            hash: approveResult.transactionHash as `0x${string}`,
-            timeout: 30_000, // 30s max wait for approval confirmation
-          });
-          console.log(`[FourMeme] Approval confirmed! Proceeding with buy.`);
+          // executeOnChainTransaction already waits for receipt confirmation internally.
+          // No need to wait again here — doing so doubles the wait time and causes Vercel timeouts.
+          console.log(`[FourMeme] Approval confirmed: ${approveResult.transactionHash}. Proceeding with buy.`);
         }
 
         // 6. Execute buy — try buyTokenAMAP first, fallback to X Mode buyToken if error "A"
@@ -908,6 +905,7 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
             description: "Four.meme: Approve tokens for sell",
             estimatedValueUsd: "0",
             chainId: 56,
+            waitForReceipt: false, // <-- Do NOT wait to keep TCP socket hot!
             transaction: {
               to: tokenAddress as `0x${string}`,
               value: 0n,
@@ -924,12 +922,9 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
             };
           }
 
-          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
-          await publicClient.waitForTransactionReceipt({ 
-            hash: approveResult.transactionHash as `0x${string}`,
-            timeout: 30_000, // 30s max wait for approval confirmation
-          });
-          console.log(`[FourMeme] Approval confirmed! Proceeding with sell.`);
+          // executeOnChainTransaction already waits for receipt confirmation internally.
+          // No need to wait again here — doing so doubles the wait time and causes Vercel timeouts.
+          console.log(`[FourMeme] Approval confirmed: ${approveResult.transactionHash}. Proceeding with sell.`);
         } else {
           console.log(`[FourMeme] Allowance sufficient, skipping approval step.`);
         }
@@ -970,6 +965,7 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
             value: 0n,
             data: sellData,
             chainId: 56,
+            gas: 500000n, // Hardcode generous gas limit to bypass viem eth_estimateGas, allowing it to succeed before the Approval tx mines!
           },
         });
         console.log(`[FourMeme] Sell tx result: success=${sellResult.success}, hash=${sellResult.transactionHash || 'N/A'}, error=${sellResult.error || 'none'}`);
@@ -1355,7 +1351,7 @@ export function createFourMemeLaunchTool(userId: string) {
 
         const successMessage = `Successfully launched ${name} (${symbol}) on Four.meme!\n\n` +
            `Contract Address: ${tokenAddress || "Unknown (check explorer)"}\n` +
-           `[Four.meme Link](${tokenAddress ? `https://four.meme/en/token/${tokenAddress}` : "N/A"})\n` +
+           `[Four.meme Link](${tokenAddress ? `https://four.meme/en/token/${tokenAddress.toLowerCase()}` : "N/A"})\n` +
            `[Explorer Link](https://bscscan.com/tx/${launchResult.transactionHash})`;
 
         return {
@@ -1364,7 +1360,7 @@ export function createFourMemeLaunchTool(userId: string) {
           transactionHash: launchResult.transactionHash,
           explorerUrl: `https://bscscan.com/tx/${launchResult.transactionHash}`,
           tokenAddress: tokenAddress || "Unknown (check explorer)",
-          fourMemeUrl: tokenAddress ? `https://four.meme/en/token/${tokenAddress}` : undefined,
+          fourMemeUrl: tokenAddress ? `https://four.meme/en/token/${tokenAddress.toLowerCase()}` : undefined,
           details: { name, symbol, imgUrl, presale: presaleBnb },
         };
 
