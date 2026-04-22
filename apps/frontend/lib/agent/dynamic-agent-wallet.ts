@@ -45,11 +45,18 @@ function getEvmDelegatedClient() {
       "Missing NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID or DYNAMIC_API_TOKEN for delegated access"
     );
   }
-  // Create a fresh client on every call to prevent socket hang issues in Vercel serverless
-  return createDelegatedEvmWalletClient({
+  if ((globalThis as any)._dynamicEvmClient) {
+    return (globalThis as any)._dynamicEvmClient;
+  }
+
+  // Create a singleton client to prevent socket hang issues in Vercel serverless
+  const client = createDelegatedEvmWalletClient({
     environmentId: DYNAMIC_ENVIRONMENT_ID,
     apiKey: DYNAMIC_API_KEY,
   });
+
+  (globalThis as any)._dynamicEvmClient = client;
+  return client;
 }
 
 // ─── Core Signing Operations ────────────────────────────────────────────────
