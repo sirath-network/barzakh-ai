@@ -648,12 +648,9 @@ Always call quoteFourMemeBuy first to show the estimate before executing.`,
             };
           }
 
-          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
-          await publicClient.waitForTransactionReceipt({ 
-            hash: approveResult.transactionHash as `0x${string}`,
-            timeout: 30_000, // 30s max wait for approval confirmation
-          });
-          console.log(`[FourMeme] Approval confirmed! Proceeding with buy.`);
+          // executeOnChainTransaction already waits for receipt confirmation internally.
+          // No need to wait again here — doing so doubles the wait time and causes Vercel timeouts.
+          console.log(`[FourMeme] Approval confirmed: ${approveResult.transactionHash}. Proceeding with buy.`);
         }
 
         // 6. Execute buy — try buyTokenAMAP first, fallback to X Mode buyToken if error "A"
@@ -924,12 +921,9 @@ REQUIRED: Always call getAgentWalletInfo or getAgentTokenBalance first to confir
             };
           }
 
-          console.log(`[FourMeme] Approval broadcasted: ${approveResult.transactionHash}. Waiting for confirmation...`);
-          await publicClient.waitForTransactionReceipt({ 
-            hash: approveResult.transactionHash as `0x${string}`,
-            timeout: 30_000, // 30s max wait for approval confirmation
-          });
-          console.log(`[FourMeme] Approval confirmed! Proceeding with sell.`);
+          // executeOnChainTransaction already waits for receipt confirmation internally.
+          // No need to wait again here — doing so doubles the wait time and causes Vercel timeouts.
+          console.log(`[FourMeme] Approval confirmed: ${approveResult.transactionHash}. Proceeding with sell.`);
         } else {
           console.log(`[FourMeme] Allowance sufficient, skipping approval step.`);
         }

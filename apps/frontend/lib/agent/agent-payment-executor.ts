@@ -289,7 +289,7 @@ export async function executeRelaySwap(
       console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}. Waiting for confirmation...`);
       const receipt = await publicClient.waitForTransactionReceipt({ 
         hash: txHash,
-        timeout: 60_000, // 60s max wait
+        timeout: 45_000, // 45s — sufficient for BSC/EVM chains
       });
 
       if (receipt.status !== "success") {
@@ -448,7 +448,7 @@ export async function executeOnChainTransaction(
       // 4. Wait for confirmation
       const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash,
-        timeout: 60_000, // 60s max wait
+        timeout: 45_000, // 45s — BSC block time is ~3s, plenty of margin
       });
 
       if (receipt.status !== "success") {
