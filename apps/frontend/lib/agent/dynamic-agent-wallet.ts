@@ -59,7 +59,7 @@ export async function signMessageForUser(
   message: string
 ): Promise<string> {
   const client = getEvmDelegatedClient();
-  
+
   const signPromise = delegatedSignMessage(client, {
     walletId: credentials.walletId,
     walletApiKey: credentials.walletApiKey,
@@ -67,11 +67,11 @@ export async function signMessageForUser(
     message,
   });
 
-  const timeoutPromise = new Promise<string>((_, reject) => 
+  const timeoutPromise = new Promise<string>((_, reject) =>
     setTimeout(() => reject(new Error("Dynamic API Timeout: Message signing took longer than 15 seconds.")), 15000)
   );
 
-  signPromise.catch(() => {}); // Suppress unhandled rejection if it fails after timeout
+  signPromise.catch(() => { }); // Suppress unhandled rejection if it fails after timeout
 
   return Promise.race([signPromise, timeoutPromise]);
 }
@@ -96,16 +96,16 @@ export async function signTypedDataForUser(
 ): Promise<string> {
   // Graceful fallback for local development or users who haven't linked a Dynamic Embedded Wallet via webhook
   if (credentials.walletApiKey === "server-managed") {
-      const privateKey = await getAgentPrivateKey(credentials.userId);
-      if (!privateKey) throw new Error("Fallback server wallet not found in database.");
-      const account = privateKeyToAccount(privateKey as `0x${string}`);
-      const walletClient = createWalletClient({ account, transport: http() });
-      return await walletClient.signTypedData(typedData as any);
+    const privateKey = await getAgentPrivateKey(credentials.userId);
+    if (!privateKey) throw new Error("Fallback server wallet not found in database.");
+    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    const walletClient = createWalletClient({ account, transport: http() });
+    return await walletClient.signTypedData(typedData as any);
   }
 
   const client = getEvmDelegatedClient();
   const cleanWalletId = credentials.walletId.replace(/^server-managed-/, "");
-  
+
   const signPromise = delegatedSignTypedData(client, {
     walletId: cleanWalletId,
     walletApiKey: credentials.walletApiKey,
@@ -113,11 +113,11 @@ export async function signTypedDataForUser(
     typedData,
   });
 
-  const timeoutPromise = new Promise<string>((_, reject) => 
+  const timeoutPromise = new Promise<string>((_, reject) =>
     setTimeout(() => reject(new Error("Dynamic API Timeout: Typed data signing took longer than 15 seconds.")), 15000)
   );
 
-  signPromise.catch(() => {}); // Suppress unhandled rejection if it fails after timeout
+  signPromise.catch(() => { }); // Suppress unhandled rejection if it fails after timeout
 
   return Promise.race([signPromise, timeoutPromise]);
 }
@@ -132,17 +132,17 @@ export async function signTransactionForUser(
 ): Promise<string> {
   // Graceful fallback for local development or users who haven't linked a Dynamic Embedded Wallet via webhook
   if (credentials.walletApiKey === "server-managed") {
-      const privateKey = await getAgentPrivateKey(credentials.userId);
-      if (!privateKey) throw new Error("Fallback server wallet not found in database.");
-      const account = privateKeyToAccount(privateKey as `0x${string}`);
-      const targetChain = Object.values(allChains).find(c => c.id === transaction.chainId) || allChains.mainnet;
-      const walletClient = createWalletClient({ account, chain: targetChain as any, transport: http() });
-      return await walletClient.signTransaction(transaction as any);
+    const privateKey = await getAgentPrivateKey(credentials.userId);
+    if (!privateKey) throw new Error("Fallback server wallet not found in database.");
+    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    const targetChain = Object.values(allChains).find(c => c.id === transaction.chainId) || allChains.mainnet;
+    const walletClient = createWalletClient({ account, chain: targetChain as any, transport: http() });
+    return await walletClient.signTransaction(transaction as any);
   }
 
   const client = getEvmDelegatedClient();
   const cleanWalletId = credentials.walletId.replace(/^server-managed-/, "");
-  
+
   const signPromise = delegatedSignTransaction(client, {
     walletId: cleanWalletId,
     walletApiKey: credentials.walletApiKey,
@@ -150,11 +150,11 @@ export async function signTransactionForUser(
     transaction,
   });
 
-  const timeoutPromise = new Promise<string>((_, reject) => 
+  const timeoutPromise = new Promise<string>((_, reject) =>
     setTimeout(() => reject(new Error("Dynamic API Timeout: Transaction signing took longer than 15 seconds.")), 15000)
   );
 
-  signPromise.catch(() => {}); // Suppress unhandled rejection if it fails after timeout
+  signPromise.catch(() => { }); // Suppress unhandled rejection if it fails after timeout
 
   return Promise.race([signPromise, timeoutPromise]);
 }

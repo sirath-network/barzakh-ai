@@ -304,7 +304,7 @@ export function generateStatusFromTool(
   }
 
   // Ultimate fallback
-  return "Processing your request and analyzing data to provide the best response";
+  return "Processing your request";
 }
 
 /**

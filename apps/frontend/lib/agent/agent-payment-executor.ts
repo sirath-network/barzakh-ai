@@ -85,6 +85,8 @@ export interface OnChainTxParams {
   chainId: number;
   /** Transaction to sign + broadcast */
   transaction: TransactionSerializable;
+  /** Whether to wait for on-chain receipt confirmation (default: true) */
+  waitForReceipt?: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -247,10 +249,13 @@ export async function executeRelaySwap(
           data: params.transaction.data as `0x${string}`,
           chain: targetChain as any,
           nonce: currentNonce,
+          gas: params.transaction.gas,
       });
 
-      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain
-      preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain, ONLY if gas wasn't manually overridden
+      if (!params.transaction.gas && preparedReq.gas) {
+          preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+      }
 
       const baseTx = {
           to: preparedReq.to,
@@ -400,10 +405,13 @@ export async function executeOnChainTransaction(
           data: params.transaction.data as `0x${string}`,
           chain: targetChain as any,
           nonce: currentNonce,
+          gas: params.transaction.gas,
       });
       
-      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain
-      preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain, ONLY if gas wasn't manually overridden
+      if (!params.transaction.gas && preparedReq.gas) {
+          preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+      }
       console.log(`[AgentPayment] Gas estimated: ${preparedReq.gas}, type: ${preparedReq.type}`);
 
       const baseTx = {
@@ -444,6 +452,30 @@ export async function executeOnChainTransaction(
           serializedTransaction: signedTx as `0x${string}`
       });
       console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}, waiting for confirmation...`);
+
+      if (params.waitForReceipt === false) {
+          console.log(`[AgentPayment] Skipping receipt confirmation as requested. Returning success.`);
+          // Record for audit even without receipt
+          await recordAgentTransaction({
+            userId: params.userId,
+            walletAddress: credentials.walletAddress,
+            operationType: "on_chain_tx",
+            amount: params.estimatedValueUsd,
+            signature: txHash,
+            metadata: {
+              description: params.description,
+              chainId: params.chainId,
+              attempt,
+              gasUsed: "0",
+            },
+          });
+          return {
+            success: true,
+            transactionHash: txHash,
+            spentAmount: params.estimatedValueUsd,
+            operationType: "on_chain_tx",
+          };
+      }
 
       // 4. Wait for confirmation
       const receipt = await publicClient.waitForTransactionReceipt({
