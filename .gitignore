@@ -3,3 +3,8 @@ node_modules
 .next
 .vercel
 .vscode
+
+# Environments
+.env
+.env.*
+!.env.example

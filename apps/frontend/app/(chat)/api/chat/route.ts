@@ -13,6 +13,7 @@ import { allTools, getGroupConfig, systemPrompt as baseSystemPrompt } from "@bar
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
+import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
 import {
   decrementRemainingMessageCount,
   decrementGuestMessageCount,
@@ -757,6 +758,7 @@ export async function POST(request: Request) {
     safeActiveTools.push("executeFourMemeSell");
     safeActiveTools.push("executeFourMemeLaunch");
     safeActiveTools.push("executeAgenticRelaySwap");
+    safeActiveTools.push("querySignalAgent");
 
     if (isAgentEnabledLocally) {
       // Remove all manual quoting and execution tools when automation is enabled to simplify AI routing
@@ -774,6 +776,7 @@ export async function POST(request: Request) {
     ...allTools,
     // Autonomous execution tools (Agentic) - Always available if authenticated
     ...(session?.user?.id ? {
+      querySignalAgent: createQuerySignalAgentTool(session.user.id),
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain swap autonomously using the user's embedded agent wallet. Accepts exact same parameters as prepareRelayTransaction.",
         parameters: z.object({

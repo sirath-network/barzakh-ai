@@ -32,7 +32,7 @@ import {
   getDelegationCredentials,
   recordAgentTransaction,
 } from "./agent-wallet-store";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, parseUnits } from "viem";
 import type { TransactionSerializable } from "viem";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -377,7 +377,16 @@ export async function executeOnChainTransaction(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // 1. Prepare transaction locally via viem publicClient
-      const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
+      let targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
+      if (!targetChain && params.chainId === 5042002) {
+          targetChain = {
+              id: 5042002,
+              name: 'Arc Testnet',
+              nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+              rpcUrls: { default: { http: ['https://rpc.testnet.arc.network'] } }
+          } as any;
+      }
+
       if (!targetChain) {
           throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
       }
@@ -386,7 +395,7 @@ export async function executeOnChainTransaction(
           chain: targetChain as any,
           transport: targetChain.id === 56 
             ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
-            : http(undefined, { timeout: 30000 })
+            : targetChain.id === 5042002 ? http("https://rpc.testnet.arc.network", { timeout: 30000 }) : http(undefined, { timeout: 30000 })
       });
 
       console.log(`[AgentPayment] On-chain tx attempt ${attempt}: preparing tx for chain ${params.chainId}...`);
@@ -545,4 +554,115 @@ export async function executeOnChainTransaction(
     error: "Max retries exceeded for on-chain transaction",
     operationType: "on_chain_tx",
   };
+}
+
+// ─── Arc Nanopayments & Swarm Intelligence (Hackathon) ─────────────────────────
+
+export interface ArcNanopaymentParams {
+  userId: string;
+  amount: number;
+  destinationWallet: string;
+}
+
+/**
+ * Autonomously pays a micro-invoice on the Arc blockchain using USDC.
+ * This satisfies the "Agent-to-Agent Payment Loop" using Circle Nanopayments.
+ */
+export async function executeArcNanopayment(
+  params: ArcNanopaymentParams
+): Promise<PaymentExecutionResult> {
+  try {
+    const ARC_CHAIN_ID = 5042002; // Arc Testnet Chain ID
+
+    console.log(`[AgentPayment] Executing ${params.amount} USDC Nanopayment on Arc to ${params.destinationWallet}...`);
+
+    // On Arc, USDC is the native gas token, so a transfer is just a native value transfer.
+    // parseUnits uses 18 decimals since native tokens use 18 decimals.
+    const txValue = parseUnits(params.amount.toString(), 18); 
+
+    return await executeOnChainTransaction({
+      userId: params.userId,
+      description: `Nanopayment to Signal Agent`,
+      estimatedValueUsd: params.amount.toString(),
+      chainId: ARC_CHAIN_ID,
+      transaction: {
+        to: params.destinationWallet as `0x${string}`,
+        value: txValue,
+        data: "0x",
+      },
+      waitForReceipt: true,
+    });
+  } catch (error: any) {
+    console.error("[AgentPayment] Arc Nanopayment failed:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to execute Arc Nanopayment",
+      operationType: "on_chain_tx",
+    };
+  }
+}
+
+/**
+ * The core Swarm Consumer logic.
+ * 1. Pings the Signal Agent
+ * 2. Catches the 402 Payment Required
+ * 3. Pays the invoice on Arc
+ * 4. Retries the request with the transaction receipt
+ */
+export async function querySignalAgent(
+  userId: string,
+  imageUrl: string,
+  tokenName: string,
+  marketData?: any
+): Promise<any> {
+  // Use the signal agent's URL. In a real environment, this would be an env var pointing to the Vercel deployment.
+  const signalAgentUrl = process.env.SIGNAL_AGENT_URL || "http://localhost:3005/api/sentiment"; 
+
+  console.log(`[Swarm] Querying Signal Agent for ${tokenName}...`);
+  
+  // 1. Initial Request
+  let response = await fetch(signalAgentUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image_url: imageUrl, token_name: tokenName, market_data: marketData })
+  });
+
+  // 2. Handle x402 Payment Required
+  if (response.status === 402) {
+    const errorData = await response.json();
+    const invoice = errorData.x402_invoice;
+    
+    console.log(`[Swarm] 402 Payment Required. Agent requested ${invoice.amount} ${invoice.currency} on ${invoice.chain}.`);
+    
+    // 3. Execute Nanopayment on Arc
+    const paymentResult = await executeArcNanopayment({
+      userId,
+      amount: invoice.amount,
+      destinationWallet: invoice.destination_wallet
+    });
+
+    if (!paymentResult.success || !paymentResult.transactionHash) {
+      throw new Error(`Failed to pay Signal Agent invoice: ${paymentResult.error}`);
+    }
+
+    console.log(`[Swarm] Payment successful! TxHash: ${paymentResult.transactionHash}. Retrying request...`);
+
+    // 4. Retry with Receipt Header
+    response = await fetch(signalAgentUrl, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "x-402-receipt": paymentResult.transactionHash // Provide the Arc txHash as proof
+      },
+      body: JSON.stringify({ image_url: imageUrl, token_name: tokenName, market_data: marketData })
+    });
+  }
+
+  if (!response.ok) {
+    throw new Error(`Signal Agent failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  console.log(`[Swarm] Received Intelligence:`, data);
+  return data;
 }
