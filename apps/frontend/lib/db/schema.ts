@@ -218,7 +218,7 @@ export type X402Transaction = InferSelectModel<typeof x402_transactions>;
 export const relay_swap_tracking = pgTable("RelaySwapTracking", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   userId: uuid("userId").notNull().references(() => user.id),
-  swapRequestId: text("swapRequestId").notNull().unique(), // Hash of swap params
+  swapRequestId: text("swapRequestId").notNull(), // Hash of swap params (not unique — same swap can be repeated)
   transactionHash: varchar("transactionHash", { length: 128 }), // Optional, for record keeping
   completedAt: timestamp("completedAt").notNull().defaultNow(),
 });
@@ -243,6 +243,7 @@ export const agent_wallet = pgTable("AgentWallet", {
   userId: uuid("userId").notNull().references(() => user.id),
   walletAddress: varchar("walletAddress", { length: 128 }).notNull(),
   privateKeyEncrypted: text("privateKeyEncrypted"), // Encrypted with AES-256-GCM
+  chain: varchar("chain", { length: 32 }).notNull().default("evm"), // "evm" | "solana"
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 

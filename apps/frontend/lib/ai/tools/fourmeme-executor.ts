@@ -223,10 +223,12 @@ function validateAddress(addr: string): string | null {
   return cleaned;
 }
 
+const BSC_RPC = process.env.BNBCHAIN_RPC_URL || "https://bsc-dataseed1.binance.org";
+
 function getPublicClient() {
   return createPublicClient({
     chain: bsc,
-    transport: http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 }),
+    transport: http(BSC_RPC, { timeout: 30000 }),
   });
 }
 

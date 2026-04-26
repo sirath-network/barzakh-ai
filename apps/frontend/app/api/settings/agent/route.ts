@@ -1,8 +1,8 @@
 /**
- * Agent Automation Settings API
+ * Agent Automation Settings API (Multi-Chain)
  * 
- * GET  /api/settings/agent — Get agent automation status, spend limits, recent txs
- * POST /api/settings/agent — Update spend limits or revoke delegation
+ * GET  /api/settings/agent — Get agent automation status, wallets, spend, recent txs
+ * POST /api/settings/agent — Create/delete wallets, enable/disable automation per chain
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -10,11 +10,14 @@ import { auth } from "@/app/(auth)/auth";
 import {
   hasDelegation,
   getUserAgentWalletAddress,
+  getAllUserWallets,
   getRecentTransactions,
   get24hSpend,
   revokeDelegation,
 } from "@/lib/agent/agent-wallet-store";
+import type { WalletChain } from "@/lib/agent/agent-wallet-store";
 import { isDelegatedAccessEnabled } from "@/lib/agent/dynamic-agent-wallet";
+import * as allChains from "viem/chains";
 
 export async function GET() {
   try {
@@ -24,26 +27,74 @@ export async function GET() {
     }
 
     const userId = session.user.id;
-    const isEnabled = await hasDelegation(userId);
-    const walletAddress = await getUserAgentWalletAddress(userId);
+
+    // Fetch per-chain status
+    const [evmEnabled, solanaEnabled] = await Promise.all([
+      hasDelegation(userId, "evm"),
+      hasDelegation(userId, "solana"),
+    ]);
+    const isEnabled = evmEnabled || solanaEnabled;
+
+    // Get all wallets for the user
+    const wallets = await getAllUserWallets(userId);
+
+    // Legacy: single walletAddress field (EVM) for backward compatibility
+    const evmWallet = wallets.find(w => w.chain === "evm");
+    const solanaWallet = wallets.find(w => w.chain === "solana");
 
     const recentTxs = await getRecentTransactions(userId, 10);
     const spent24h = await get24hSpend(userId);
 
     return NextResponse.json({
       agentEnabled: isEnabled,
+      evmEnabled,
+      solanaEnabled,
       serverConfigured: isDelegatedAccessEnabled(),
-      walletAddress,
+      // Legacy single address (EVM first, then Solana)
+      walletAddress: evmWallet?.walletAddress || solanaWallet?.walletAddress || null,
+      // Multi-chain wallet data
+      wallets: wallets.map(w => ({
+        walletAddress: w.walletAddress,
+        chain: w.chain,
+        createdAt: w.createdAt.toISOString(),
+      })),
+      evmWalletAddress: evmWallet?.walletAddress || null,
+      solanaWalletAddress: solanaWallet?.walletAddress || null,
 
       spent24h,
-      recentTransactions: recentTxs.map((tx) => ({
-        id: tx.id,
-        type: tx.operationType,
-        amount: tx.amount,
-        signature: tx.signature,
-        metadata: tx.metadata,
-        createdAt: tx.createdAt.toISOString(),
-      })),
+      recentTransactions: recentTxs.map((tx) => {
+        let explorerBase = "https://etherscan.io/tx";
+        let chainName = "EVM";
+        const chainId = (tx.metadata as any)?.chainId;
+        const isSolana = (tx.metadata as any)?.chain === "solana";
+        
+        if (isSolana) {
+          explorerBase = "https://solscan.io/tx";
+          chainName = "Solana";
+        } else if (chainId === 5042002) {
+          explorerBase = "https://testnet.arcscan.app/tx"; // Arc Testnet
+          chainName = "Arc Testnet";
+        } else if (chainId) {
+          const matchedChain = Object.values(allChains).find((c: any) => c.id === chainId) as any;
+          if (matchedChain) {
+            chainName = matchedChain.name;
+            if (matchedChain.blockExplorers?.default?.url) {
+              explorerBase = matchedChain.blockExplorers.default.url + "/tx";
+            }
+          }
+        }
+        
+        return {
+          id: tx.id,
+          type: tx.operationType,
+          amount: tx.amount,
+          signature: tx.signature,
+          metadata: tx.metadata,
+          explorerUrl: `${explorerBase}/${tx.signature}`,
+          chainName,
+          createdAt: tx.createdAt.toISOString(),
+        };
+      }),
     });
   } catch (error: any) {
     console.error("[API] Agent settings GET error:", error);
@@ -60,32 +111,41 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
     const body = await request.json();
+    const chain: WalletChain = body.chain || "evm";
+
+    // Validate chain parameter
+    if (!["evm", "solana"].includes(chain)) {
+      return NextResponse.json(
+        { error: "Invalid chain. Must be 'evm' or 'solana'." },
+        { status: 400 }
+      );
+    }
 
     // Handle revoke delegation
     if (body.action === "revoke") {
-      const revoked = await revokeDelegation(userId);
+      const revoked = await revokeDelegation(userId, chain);
       return NextResponse.json({
         success: revoked,
         message: revoked
-          ? "Agent automation has been disabled"
+          ? `Agent automation has been disabled for ${chain.toUpperCase()}`
           : "No active delegation found",
       });
     }
 
     // Handle enable agent automation
     if (body.action === "enable") {
-      const walletAddress = await getUserAgentWalletAddress(userId);
+      const walletAddress = await getUserAgentWalletAddress(userId, chain);
       if (!walletAddress) {
         return NextResponse.json({
           success: false,
-          message: "Create an agent wallet first",
+          message: `Create a ${chain.toUpperCase()} agent wallet first`,
         }, { status: 400 });
       }
       const { enableAgentAutomation } = await import("@/lib/agent/agent-wallet-store");
-      await enableAgentAutomation(userId, walletAddress);
+      await enableAgentAutomation(userId, walletAddress, chain);
       return NextResponse.json({
         success: true,
-        message: "Agent automation enabled",
+        message: `Agent automation enabled for ${chain.toUpperCase()}`,
       });
     }
 
@@ -94,19 +154,21 @@ export async function POST(request: NextRequest) {
     // Handle create agent wallet (server-side generation)
     if (body.action === "create_agent_wallet") {
       const { createAgentWallet } = await import("@/lib/agent/agent-wallet-store");
-      const existing = await getUserAgentWalletAddress(userId);
+      const existing = await getUserAgentWalletAddress(userId, chain);
       if (existing) {
         return NextResponse.json({
           success: true,
           walletAddress: existing,
-          message: "Agent wallet already exists",
+          chain,
+          message: `${chain.toUpperCase()} agent wallet already exists`,
         });
       }
-      const walletAddress = await createAgentWallet(userId);
+      const walletAddress = await createAgentWallet(userId, chain);
       return NextResponse.json({
         success: true,
         walletAddress,
-        message: "Agent wallet created",
+        chain,
+        message: `${chain.toUpperCase()} agent wallet created`,
       });
     }
 
@@ -120,27 +182,46 @@ export async function POST(request: NextRequest) {
         );
       }
       const { registerEmbeddedWallet } = await import("@/lib/agent/agent-wallet-store");
-      await registerEmbeddedWallet(userId, walletAddress);
+      await registerEmbeddedWallet(userId, walletAddress, chain);
       return NextResponse.json({
         success: true,
         walletAddress,
+        chain,
         message: "Embedded wallet registered",
+      });
+    }
+
+    // Handle delete wallet (revokes delegation + removes wallet)
+    if (body.action === "delete_wallet") {
+      const { deleteAgentWallet } = await import("@/lib/agent/agent-wallet-store");
+      const existing = await getUserAgentWalletAddress(userId, chain);
+      if (!existing) {
+        return NextResponse.json({
+          success: false,
+          message: `No ${chain.toUpperCase()} agent wallet found to delete`,
+        }, { status: 404 });
+      }
+      await deleteAgentWallet(userId, chain);
+      return NextResponse.json({
+        success: true,
+        message: `${chain.toUpperCase()} agent wallet deleted successfully. Automation has been disabled.`,
       });
     }
 
     // Handle export wallet
     if (body.action === "export_wallet") {
       const { getAgentPrivateKey } = await import("@/lib/agent/agent-wallet-store");
-      const privateKey = await getAgentPrivateKey(userId);
+      const privateKey = await getAgentPrivateKey(userId, chain);
       if (!privateKey) {
         return NextResponse.json({
           success: false,
-          message: "Agent wallet not found",
+          message: `${chain.toUpperCase()} agent wallet not found`,
         }, { status: 404 });
       }
       return NextResponse.json({
         success: true,
         privateKey,
+        chain,
         message: "Wallet exported successfully",
       });
     }

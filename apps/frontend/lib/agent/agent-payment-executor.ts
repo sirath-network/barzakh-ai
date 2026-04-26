@@ -32,8 +32,19 @@ import {
   getDelegationCredentials,
   recordAgentTransaction,
 } from "./agent-wallet-store";
-import { createPublicClient, http, parseUnits } from "viem";
+import { createPublicClient, http, parseUnits, parseGwei } from "viem";
 import type { TransactionSerializable } from "viem";
+
+// ─── RPC Configuration ──────────────────────────────────────────────────────
+const MONAD_RPC = process.env.MONAD_RPC_URL || "https://monad-mainnet.drpc.org";
+const BSC_RPC = process.env.BNBCHAIN_RPC_URL || "https://bsc-dataseed1.binance.org";
+
+function getRpcTransport(chainId: number) {
+  if (chainId === 56) return http(BSC_RPC, { timeout: 30000 });
+  if (chainId === 143) return http(MONAD_RPC, { timeout: 30000 });
+  if (chainId === 5042002) return http("https://rpc.testnet.arc.network", { timeout: 30000 });
+  return http(undefined, { timeout: 30000 });
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -68,8 +79,8 @@ export interface RelaySwapParams {
   outputToken: string;
   /** Chain ID for the transaction */
   chainId: number;
-  /** EVM Transaction to sign + broadcast */
-  transaction: TransactionSerializable;
+  /** EVM Transaction to sign + broadcast, OR Solana transaction payload */
+  transaction: any; // TransactionSerializable | { solanaTransaction: string }
   /** Explicit classification of the operation */
   operationType?: "relay_swap" | "erc20_approve" | "transfer";
 }
@@ -96,22 +107,27 @@ export interface OnChainTxParams {
 /**
  * Gets the user's delegation credentials or throws a descriptive error.
  */
-async function getUserCredentials(userId: string): Promise<DelegationCredentials> {
+async function getUserCredentials(userId: string, chainId?: number): Promise<DelegationCredentials> {
   if (!isDelegatedAccessEnabled()) {
     throw new Error("Agent automation is not configured on this instance");
   }
 
-  const credentials = await getDelegationCredentials(userId);
+  let chain: "evm" | "solana" | undefined = undefined;
+  if (chainId !== undefined) {
+    chain = chainId === 792703809 ? "solana" : "evm";
+  }
+
+  const credentials = await getDelegationCredentials(userId, chain);
   if (!credentials) {
     throw new Error(
       "Agent automation is not enabled for your account. " +
-      "Go to Settings → Wallet → Enable Agent Automation to allow the AI to execute transactions from your embedded wallet."
+      "Go to Settings → Wallet Settings → Enable Agent Automation to allow the AI to execute transactions from your embedded wallet."
     );
   }
 
   if (credentials.revokedAt) {
     throw new Error(
-      "Agent automation has been revoked. Re-enable it in Settings → Wallet."
+      "Agent automation has been revoked. Re-enable it in Settings → Wallet Settings."
     );
   }
 
@@ -133,29 +149,29 @@ async function getSuggestedNonce(publicClient: any, address: string): Promise<nu
  * Robustly executes a transaction with retries for nonce/gas issues.
  */
 async function executeWithRetry(
-    operation: () => Promise<string>,
-    retries: number = 3
+  operation: () => Promise<string>,
+  retries: number = 3
 ): Promise<string> {
-    let lastError: any;
-    for (let i = 0; i < retries; i++) {
-        try {
-            return await operation();
-        } catch (error: any) {
-            lastError = error;
-            const errorMsg = error.message?.toLowerCase() || "";
-            
-            // If it's a nonce issue, we should allow the loop to continue and potentially 
-            // the caller will increment the nonce before the next attempt.
-            if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced")) {
-                console.warn(`[AgentExecutor] Transaction failed (attempt ${i+1}/${retries}): ${errorMsg}. Retrying...`);
-                continue;
-            }
-            
-            // For other errors (insufficient funds, etc), fail fast
-            throw error;
-        }
+  let lastError: any;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      const errorMsg = error.message?.toLowerCase() || "";
+
+      // If it's a nonce issue, we should allow the loop to continue and potentially 
+      // the caller will increment the nonce before the next attempt.
+      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced") || errorMsg.includes("higher priority")) {
+        console.warn(`[AgentExecutor] Transaction failed (attempt ${i + 1}/${retries}): ${errorMsg}. Retrying...`);
+        continue;
+      }
+
+      // For other errors (insufficient funds, etc), fail fast
+      throw error;
     }
-    throw lastError;
+  }
+  throw lastError;
 }
 
 // ─── x402 Subscription Payments ─────────────────────────────────────────────
@@ -168,7 +184,7 @@ export async function executeX402Payment(
   params: X402PaymentParams
 ): Promise<PaymentExecutionResult> {
   try {
-    const credentials = await getUserCredentials(params.userId);
+    const credentials = await getUserCredentials(params.userId, 8453);
     const amount = parseFloat(params.amount);
 
 
@@ -218,31 +234,116 @@ import * as allChains from "viem/chains";
 export async function executeRelaySwap(
   params: RelaySwapParams
 ): Promise<PaymentExecutionResult> {
-  const credentials = await getUserCredentials(params.userId);
+  const credentials = await getUserCredentials(params.userId, params.chainId);
   let currentNonce: number | null = null;
   const maxAttempts = 3;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  // ─── Solana Execution Branch ───
+  if (params.chainId === 792703809) {
     try {
-      // 1. Prepare transaction locally via viem publicClient
-      const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
-      if (!targetChain) {
-          throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
+      console.log(`[AgentPayment] Executing Solana relay swap...`);
+      const { Connection, VersionedTransaction } = await import("@solana/web3.js");
+      const { signSolanaTransaction } = await import("./dynamic-agent-wallet");
+
+      if (!params.transaction?.solanaTransaction) {
+        throw new Error("Missing base64 solanaTransaction in Relay payload");
       }
 
-      const publicClient: any = createPublicClient({
-          chain: targetChain as any,
-          transport: targetChain.id === 56 
-            ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
-            : http(undefined, { timeout: 30000 })
+      const txBuffer = Buffer.from(params.transaction.solanaTransaction, "base64");
+      const versionedTx = VersionedTransaction.deserialize(txBuffer);
+
+      // Sign transaction
+      const signedTx = await signSolanaTransaction(params.userId, versionedTx);
+
+      // Broadcast transaction
+      const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+      const connection = new Connection(rpcUrl, "confirmed");
+
+      console.log(`[AgentPayment] Broadcasting Solana transaction...`);
+      const signature = await connection.sendTransaction(signedTx, { skipPreflight: false });
+
+      console.log(`[AgentPayment] Broadcasted! Hash: ${signature}. Waiting for confirmation...`);
+      const latestBlockHash = await connection.getLatestBlockhash();
+
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature
+      }, "confirmed");
+
+      console.log(`[AgentPayment] Solana swap confirmed!`);
+
+      // Record for audit
+      await recordAgentTransaction({
+        userId: params.userId,
+        walletAddress: await (await import("./agent-wallet-store")).getUserAgentWalletAddress(params.userId, "solana") || credentials.walletAddress,
+        operationType: params.operationType || "relay_swap",
+        amount: params.inputAmount,
+        signature: signature,
+        metadata: {
+          inputToken: params.inputToken,
+          outputToken: params.outputToken,
+          chainId: params.chainId,
+          chain: "solana"
+        },
       });
+
+      return {
+        success: true,
+        transactionHash: signature,
+        spentAmount: params.inputAmount,
+        operationType: "relay_swap",
+      };
+    } catch (error: any) {
+      console.error(`[AgentPayment] Solana relay swap failed:`, error);
+      return {
+        success: false,
+        error: error.message || "Failed to execute Solana relay swap",
+        operationType: "relay_swap",
+      };
+    }
+  }
+  // ─── EVM Execution Branch ───
+
+  // Resolve chain + publicClient OUTSIDE the try block so they're accessible in catch for retry nonce re-fetch
+  const targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
+  if (!targetChain) {
+    return { success: false, error: `Chain ID ${params.chainId} is not supported locally.`, operationType: "relay_swap" };
+  }
+  const publicClient: any = createPublicClient({
+    chain: targetChain as any,
+    transport: getRpcTransport(targetChain.id),
+  });
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
 
       // Fetch nonce - either fresh or incremented
       if (currentNonce === null) {
-          currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
+        currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
       }
 
-      const preparedReq = await publicClient.prepareTransactionRequest({
+      // Monad (chain 143): dRPC rejects eth_estimateGas even without fee hints because it
+      // internally computes totalCost = gasLimit × its own feeEstimate, which exceeds the
+      // provider's security cap for high-value native transfers. Skip estimation entirely
+      // and use a safe hardcoded gas limit. Relay swap txs typically use 200-400k gas;
+      // 500k provides adequate headroom. Monad charges for provided gasLimit, not used gas.
+      let preparedReq: any;
+      if (targetChain.id === 143) {
+        const gasLimit = params.transaction.gas ? BigInt(params.transaction.gas) : 500_000n;
+        preparedReq = {
+          account: credentials.walletAddress as `0x${string}`,
+          to: params.transaction.to as `0x${string}`,
+          value: typeof params.transaction.value === 'bigint' ? params.transaction.value : BigInt(params.transaction.value || 0),
+          data: params.transaction.data as `0x${string}`,
+          nonce: currentNonce,
+          gas: gasLimit,
+          maxFeePerGas: parseGwei('150'),
+          maxPriorityFeePerGas: parseGwei('2'),
+          type: 'eip1559',
+        };
+      } else {
+        preparedReq = await publicClient.prepareTransactionRequest({
           account: credentials.walletAddress as `0x${string}`,
           to: params.transaction.to as `0x${string}`,
           value: typeof params.transaction.value === 'bigint' ? params.transaction.value : BigInt(params.transaction.value || 0),
@@ -250,36 +351,37 @@ export async function executeRelaySwap(
           chain: targetChain as any,
           nonce: currentNonce,
           gas: params.transaction.gas,
-      });
+        });
 
-      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain, ONLY if gas wasn't manually overridden
-      if (!params.transaction.gas && preparedReq.gas) {
+        // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain, ONLY if gas wasn't manually overridden
+        if (!params.transaction.gas && preparedReq.gas) {
           preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+        }
       }
 
       const baseTx = {
-          to: preparedReq.to,
-          value: preparedReq.value,
-          data: preparedReq.data,
-          nonce: preparedReq.nonce,
-          gas: preparedReq.gas,
-          chainId: targetChain.id,
+        to: preparedReq.to,
+        value: preparedReq.value,
+        data: preparedReq.data,
+        nonce: preparedReq.nonce,
+        gas: preparedReq.gas,
+        chainId: targetChain.id,
       };
 
       let serializableTx: any;
       if (preparedReq.type === 'eip1559') {
-          serializableTx = {
-              ...baseTx,
-              maxFeePerGas: preparedReq.maxFeePerGas,
-              maxPriorityFeePerGas: preparedReq.maxPriorityFeePerGas,
-              type: "eip1559"
-          };
+        serializableTx = {
+          ...baseTx,
+          maxFeePerGas: preparedReq.maxFeePerGas,
+          maxPriorityFeePerGas: preparedReq.maxPriorityFeePerGas,
+          type: "eip1559"
+        };
       } else {
-          serializableTx = {
-              ...baseTx,
-              gasPrice: preparedReq.gasPrice,
-              type: "legacy"
-          };
+        serializableTx = {
+          ...baseTx,
+          gasPrice: preparedReq.gasPrice,
+          type: "legacy"
+        };
       }
 
       // 2. Sign the transaction payload
@@ -289,10 +391,10 @@ export async function executeRelaySwap(
       );
 
       const txHash = await publicClient.sendRawTransaction({
-          serializedTransaction: signedTx as `0x${string}`
+        serializedTransaction: signedTx as `0x${string}`
       });
       console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}. Waiting for confirmation...`);
-      const receipt = await publicClient.waitForTransactionReceipt({ 
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash: txHash,
         timeout: 45_000, // 45s — sufficient for BSC/EVM chains
       });
@@ -336,13 +438,15 @@ export async function executeRelaySwap(
       console.error(`[AgentPayment] Relay swap attempt ${attempt} failed:`, error.message);
 
       // Handle nonce issues by incrementing and retrying
-      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced")) {
-          if (attempt < maxAttempts) {
-              // Increment nonce manually for retry
-              currentNonce = (currentNonce ?? 0) + 1;
-              console.log(`[AgentPayment] Retrying with incremented nonce: ${currentNonce}`);
-              continue;
-          }
+      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced") || errorMsg.includes("higher priority")) {
+        if (attempt < maxAttempts) {
+          // Wait briefly for pending txs to settle, then re-fetch the correct nonce
+          console.log(`[AgentPayment] Nonce conflict detected, waiting 3s before retry...`);
+          await new Promise(r => setTimeout(r, 3000));
+          currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
+          console.log(`[AgentPayment] Re-fetched nonce: ${currentNonce}. Retrying...`);
+          continue;
+        }
       }
 
       // Final attempt or non-retryable error
@@ -370,44 +474,61 @@ export async function executeRelaySwap(
 export async function executeOnChainTransaction(
   params: OnChainTxParams
 ): Promise<PaymentExecutionResult> {
-  const credentials = await getUserCredentials(params.userId);
+  const credentials = await getUserCredentials(params.userId, params.chainId);
   let currentNonce: number | null = null;
   const maxAttempts = 3;
 
+  let targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
+  if (!targetChain && params.chainId === 5042002) {
+    targetChain = {
+      id: 5042002,
+      name: 'Arc Testnet',
+      nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+      rpcUrls: { default: { http: ['https://rpc.testnet.arc.network'] } }
+    } as any;
+  }
+
+  if (!targetChain) {
+    throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
+  }
+
+  const publicClient: any = createPublicClient({
+    chain: targetChain as any,
+    transport: getRpcTransport(targetChain.id),
+  });
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      // 1. Prepare transaction locally via viem publicClient
-      let targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
-      if (!targetChain && params.chainId === 5042002) {
-          targetChain = {
-              id: 5042002,
-              name: 'Arc Testnet',
-              nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-              rpcUrls: { default: { http: ['https://rpc.testnet.arc.network'] } }
-          } as any;
-      }
-
-      if (!targetChain) {
-          throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
-      }
-
-      const publicClient: any = createPublicClient({
-          chain: targetChain as any,
-          transport: targetChain.id === 56 
-            ? http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 })
-            : targetChain.id === 5042002 ? http("https://rpc.testnet.arc.network", { timeout: 30000 }) : http(undefined, { timeout: 30000 })
-      });
-
       console.log(`[AgentPayment] On-chain tx attempt ${attempt}: preparing tx for chain ${params.chainId}...`);
 
       // Fetch nonce
       if (currentNonce === null) {
-          currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
-          console.log(`[AgentPayment] Nonce fetched: ${currentNonce}`);
+        currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
+        console.log(`[AgentPayment] Nonce fetched: ${currentNonce}`);
       }
 
       console.log(`[AgentPayment] Estimating gas...`);
-      const preparedReq = await publicClient.prepareTransactionRequest({
+
+      // Monad (chain 143): dRPC rejects eth_estimateGas even without fee hints because it
+      // internally computes totalCost = gasLimit × its own feeEstimate, which exceeds the
+      // provider's security cap for high-value native transfers. Skip estimation entirely
+      // and use a safe hardcoded gas limit.
+      let preparedReq: any;
+      if (targetChain.id === 143) {
+        const gasLimit = params.transaction.gas ? BigInt(params.transaction.gas) : 500_000n;
+        preparedReq = {
+          account: credentials.walletAddress as `0x${string}`,
+          to: params.transaction.to as `0x${string}`,
+          value: typeof params.transaction.value === 'bigint' ? params.transaction.value : BigInt(params.transaction.value || 0),
+          data: params.transaction.data as `0x${string}`,
+          nonce: currentNonce,
+          gas: gasLimit,
+          maxFeePerGas: parseGwei('150'),
+          maxPriorityFeePerGas: parseGwei('2'),
+          type: 'eip1559',
+        };
+      } else {
+        preparedReq = await publicClient.prepareTransactionRequest({
           account: credentials.walletAddress as `0x${string}`,
           to: params.transaction.to as `0x${string}`,
           value: typeof params.transaction.value === 'bigint' ? params.transaction.value : BigInt(params.transaction.value || 0),
@@ -415,37 +536,38 @@ export async function executeOnChainTransaction(
           chain: targetChain as any,
           nonce: currentNonce,
           gas: params.transaction.gas,
-      });
-      
-      // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain, ONLY if gas wasn't manually overridden
-      if (!params.transaction.gas && preparedReq.gas) {
+        });
+
+        // Add a 20% gas buffer to prevent Out-Of-Gas reverts on-chain, ONLY if gas wasn't manually overridden
+        if (!params.transaction.gas && preparedReq.gas) {
           preparedReq.gas = (preparedReq.gas * 120n) / 100n;
+        }
       }
       console.log(`[AgentPayment] Gas estimated: ${preparedReq.gas}, type: ${preparedReq.type}`);
 
       const baseTx = {
-          to: preparedReq.to,
-          value: preparedReq.value,
-          data: preparedReq.data,
-          nonce: preparedReq.nonce,
-          gas: preparedReq.gas,
-          chainId: targetChain.id,
+        to: preparedReq.to,
+        value: preparedReq.value,
+        data: preparedReq.data,
+        nonce: preparedReq.nonce,
+        gas: preparedReq.gas,
+        chainId: targetChain.id,
       };
 
       let serializableTx: any;
       if (preparedReq.type === 'eip1559') {
-          serializableTx = {
-              ...baseTx,
-              maxFeePerGas: preparedReq.maxFeePerGas,
-              maxPriorityFeePerGas: preparedReq.maxPriorityFeePerGas,
-              type: "eip1559"
-          };
+        serializableTx = {
+          ...baseTx,
+          maxFeePerGas: preparedReq.maxFeePerGas,
+          maxPriorityFeePerGas: preparedReq.maxPriorityFeePerGas,
+          type: "eip1559"
+        };
       } else {
-          serializableTx = {
-              ...baseTx,
-              gasPrice: preparedReq.gasPrice,
-              type: "legacy"
-          };
+        serializableTx = {
+          ...baseTx,
+          gasPrice: preparedReq.gasPrice,
+          type: "legacy"
+        };
       }
 
       // 2. Sign transaction
@@ -458,32 +580,32 @@ export async function executeOnChainTransaction(
 
       // 3. Broadcast
       const txHash = await publicClient.sendRawTransaction({
-          serializedTransaction: signedTx as `0x${string}`
+        serializedTransaction: signedTx as `0x${string}`
       });
       console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}, waiting for confirmation...`);
 
       if (params.waitForReceipt === false) {
-          console.log(`[AgentPayment] Skipping receipt confirmation as requested. Returning success.`);
-          // Record for audit even without receipt
-          await recordAgentTransaction({
-            userId: params.userId,
-            walletAddress: credentials.walletAddress,
-            operationType: "on_chain_tx",
-            amount: params.estimatedValueUsd,
-            signature: txHash,
-            metadata: {
-              description: params.description,
-              chainId: params.chainId,
-              attempt,
-              gasUsed: "0",
-            },
-          });
-          return {
-            success: true,
-            transactionHash: txHash,
-            spentAmount: params.estimatedValueUsd,
-            operationType: "on_chain_tx",
-          };
+        console.log(`[AgentPayment] Skipping receipt confirmation as requested. Returning success.`);
+        // Record for audit even without receipt
+        await recordAgentTransaction({
+          userId: params.userId,
+          walletAddress: credentials.walletAddress,
+          operationType: "on_chain_tx",
+          amount: params.estimatedValueUsd,
+          signature: txHash,
+          metadata: {
+            description: params.description,
+            chainId: params.chainId,
+            attempt,
+            gasUsed: "0",
+          },
+        });
+        return {
+          success: true,
+          transactionHash: txHash,
+          spentAmount: params.estimatedValueUsd,
+          operationType: "on_chain_tx",
+        };
       }
 
       // 4. Wait for confirmation
@@ -529,16 +651,19 @@ export async function executeOnChainTransaction(
       const errorMsg = error.message?.toLowerCase() || "";
       console.error(`[AgentPayment] On-chain tx attempt ${attempt} failed:`, error.message);
 
-      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced") || errorMsg.includes("timeout")) {
-          if (attempt < maxAttempts) {
-              if (!errorMsg.includes("timeout")) {
-                 currentNonce = (currentNonce ?? 0) + 1;
-                 console.log(`[AgentPayment] Retrying on-chain tx with incremented nonce: ${currentNonce}`);
-              } else {
-                 console.log(`[AgentPayment] Retrying on-chain tx due to signing timeout (attempt ${attempt + 1})...`);
-              }
-              continue;
+      if (errorMsg.includes("nonce too low") || errorMsg.includes("already known") || errorMsg.includes("replacement transaction underpriced") || errorMsg.includes("higher priority") || errorMsg.includes("timeout")) {
+        if (attempt < maxAttempts) {
+          if (errorMsg.includes("timeout")) {
+            console.log(`[AgentPayment] Retrying on-chain tx due to signing timeout (attempt ${attempt + 1})...`);
+          } else {
+            // Wait briefly for pending txs to settle, then re-fetch the correct nonce
+            console.log(`[AgentPayment] Nonce conflict detected, waiting 3s before retry...`);
+            await new Promise(r => setTimeout(r, 3000));
+            currentNonce = await getSuggestedNonce(publicClient, credentials.walletAddress);
+            console.log(`[AgentPayment] Re-fetched nonce: ${currentNonce}. Retrying...`);
           }
+          continue;
+        }
       }
 
       return {
@@ -578,7 +703,7 @@ export async function executeArcNanopayment(
 
     // On Arc, USDC is the native gas token, so a transfer is just a native value transfer.
     // parseUnits uses 18 decimals since native tokens use 18 decimals.
-    const txValue = parseUnits(params.amount.toString(), 18); 
+    const txValue = parseUnits(params.amount.toString(), 18);
 
     return await executeOnChainTransaction({
       userId: params.userId,
@@ -616,10 +741,10 @@ export async function querySignalAgent(
   marketData?: any
 ): Promise<any> {
   // Use the signal agent's URL. In a real environment, this would be an env var pointing to the Vercel deployment.
-  const signalAgentUrl = process.env.SIGNAL_AGENT_URL || "http://localhost:3005/api/sentiment"; 
+  const signalAgentUrl = process.env.SIGNAL_AGENT_URL || "http://localhost:3005/api/sentiment";
 
   console.log(`[Swarm] Querying Signal Agent for ${tokenName}...`);
-  
+
   // 1. Initial Request
   let response = await fetch(signalAgentUrl, {
     method: "POST",
@@ -631,9 +756,9 @@ export async function querySignalAgent(
   if (response.status === 402) {
     const errorData = await response.json();
     const invoice = errorData.x402_invoice;
-    
+
     console.log(`[Swarm] 402 Payment Required. Agent requested ${invoice.amount} ${invoice.currency} on ${invoice.chain}.`);
-    
+
     // 3. Execute Nanopayment on Arc
     const paymentResult = await executeArcNanopayment({
       userId,
@@ -650,7 +775,7 @@ export async function querySignalAgent(
     // 4. Retry with Receipt Header
     response = await fetch(signalAgentUrl, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "x-402-receipt": paymentResult.transactionHash // Provide the Arc txHash as proof
       },

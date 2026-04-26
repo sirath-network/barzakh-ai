@@ -82,7 +82,7 @@ export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) 
                 // (Settings → Embedded Wallets → Create on Login: Always)
             }}
         >
-            {children}
+            {children as any}
         </DynamicContextProviderAsync>
     );
 }

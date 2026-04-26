@@ -21,16 +21,31 @@ import {
   Key,
   Eye,
   EyeOff,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
+type WalletChain = "evm" | "solana";
+
+interface WalletInfo {
+  walletAddress: string;
+  chain: WalletChain;
+  createdAt: string;
+}
+
 interface AgentStatus {
   agentEnabled: boolean;
+  evmEnabled: boolean;
+  solanaEnabled: boolean;
   serverConfigured: boolean;
   walletAddress: string | null;
+  wallets: WalletInfo[];
+  evmWalletAddress: string | null;
+  solanaWalletAddress: string | null;
 
   spent24h: number;
   recentTransactions: Array<{
@@ -39,9 +54,50 @@ interface AgentStatus {
     amount: string;
     signature: string;
     metadata?: Record<string, unknown>;
+    explorerUrl?: string;
+    chainName?: string;
     createdAt: string;
   }>;
 }
+
+const CHAIN_CONFIG = {
+  evm: {
+    label: "EVM",
+    sublabel: "Ethereum, BSC, Base, etc.",
+    iconDark: "/images/embeded-wallet-icon/dark-evm.png",
+    iconLight: "/images/embeded-wallet-icon/light-evm.png",
+    color: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+    borderColor: "border-blue-500/20",
+    tag: "EVM",
+    explorerPrefix: "https://etherscan.io/address/",
+  },
+  solana: {
+    label: "Solana",
+    sublabel: "SOL, SPL Tokens",
+    iconDark: "/images/embeded-wallet-icon/dark-solana.png",
+    iconLight: "/images/embeded-wallet-icon/light-solana.png",
+    color: "text-purple-500",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/20",
+    tag: "SOL",
+    explorerPrefix: "https://solscan.io/account/",
+  },
+} as const;
+
+const getChainBadgeColor = (chainName: string) => {
+  const name = chainName.toLowerCase();
+  if (name.includes("solana")) return "bg-purple-500/10 text-purple-500";
+  if (name.includes("arc")) return "bg-blue-500/10 text-blue-500";
+  if (name.includes("bnb") || name.includes("binance")) return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400";
+  if (name.includes("monad")) return "bg-fuchsia-500/10 text-fuchsia-500";
+  if (name.includes("base")) return "bg-blue-500/10 text-blue-500";
+  if (name.includes("arbitrum")) return "bg-sky-500/10 text-sky-500";
+  if (name.includes("optimism")) return "bg-red-500/10 text-red-500";
+  if (name.includes("polygon")) return "bg-violet-500/10 text-violet-500";
+  if (name.includes("ethereum") || name.includes("mainnet")) return "bg-indigo-500/10 text-indigo-500";
+  return "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400";
+};
 
 export function AgentAutomationSection() {
   const { data: session } = useSession();
@@ -49,21 +105,22 @@ export function AgentAutomationSection() {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+  const [isCreatingWallet, setIsCreatingWallet] = useState<WalletChain | null>(null);
 
-  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   // Export state
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportChain, setExportChain] = useState<WalletChain>("evm");
   const [isExporting, setIsExporting] = useState(false);
   const [exportedKey, setExportedKey] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [showKeyVisible, setShowKeyVisible] = useState(false);
 
-
-  // Embedded wallet address comes ONLY from the backend — never from client-side detection
-  // This prevents confusion with the user's external wallet
-  const displayAddress = status?.walletAddress || null;
+  // Delete wallet state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteChain, setDeleteChain] = useState<WalletChain>("evm");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -87,74 +144,67 @@ export function AgentAutomationSection() {
     }
   }, [session, fetchStatus]);
 
-  const handleCreateEmbeddedWallet = async () => {
-    setIsCreatingWallet(true);
+  const handleCreateWallet = async (chain: WalletChain) => {
+    setIsCreatingWallet(chain);
     try {
-      // Create the agent wallet server-side (Dynamic's client-side createEmbeddedWallet
-      // requires Dynamic auth, which we don't use in connect-only mode)
       const res = await fetch("/api/settings/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create_agent_wallet" }),
+        body: JSON.stringify({ action: "create_agent_wallet", chain }),
       });
       const data = await res.json();
 
       if (data.success && data.walletAddress) {
-        toast.success("Agent wallet created!");
-        fetchStatus(); // Refresh to show the new address from backend
+        fetchStatus();
       } else {
-        toast.error(data.message || "Failed to create agent wallet");
+        toast.error(data.message || `Failed to create ${CHAIN_CONFIG[chain].label} wallet`);
       }
     } catch (error: any) {
-      console.error("Failed to create agent wallet:", error);
-      toast.error(error.message || "Failed to create agent wallet");
+      console.error(`Failed to create ${chain} wallet:`, error);
+      toast.error(error.message || `Failed to create ${CHAIN_CONFIG[chain].label} wallet`);
     } finally {
-      setIsCreatingWallet(false);
+      setIsCreatingWallet(null);
     }
   };
 
-  const handleRevoke = async () => {
+  const handleToggleAutomation = async (chain: WalletChain, enable: boolean) => {
     setIsUpdating(true);
     try {
       const res = await fetch("/api/settings/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "revoke" }),
+        body: JSON.stringify({ action: enable ? "enable" : "revoke", chain }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success("Agent automation disabled");
         fetchStatus();
       } else {
-        toast.error(data.message || "Failed to disable agent automation");
+        toast.error(data.message || `Failed to ${enable ? "enable" : "disable"} automation`);
       }
     } catch (error) {
-      toast.error("Failed to disable agent automation");
+      toast.error(`Failed to ${enable ? "enable" : "disable"} automation`);
     } finally {
       setIsUpdating(false);
     }
   };
 
-
-
-  const copyAddress = () => {
-    const addr = displayAddress;
-    if (addr) {
-      navigator.clipboard.writeText(addr);
-      setCopiedAddress(true);
-      toast.success("Embedded wallet address copied");
-      setTimeout(() => setCopiedAddress(false), 2000);
-    }
+  const copyAddress = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    toast.success("Wallet address copied");
+    setTimeout(() => setCopiedAddress(null), 2000);
   };
 
-  const handleExportKey = async () => {
+  const handleExportKey = async (chain: WalletChain) => {
+    setExportChain(chain);
+    setShowExportModal(true);
     setIsExporting(true);
     setExportedKey(null);
     try {
       const res = await fetch("/api/settings/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "export_wallet" }),
+        body: JSON.stringify({ action: "export_wallet", chain }),
       });
       const data = await res.json();
       if (data.success && data.privateKey) {
@@ -178,6 +228,44 @@ export function AgentAutomationSection() {
     }
   };
 
+  const handleDeleteWallet = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/settings/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_wallet", chain: deleteChain }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${CHAIN_CONFIG[deleteChain].label} wallet deleted`);
+        setShowDeleteModal(false);
+        fetchStatus();
+      } else {
+        toast.error(data.message || "Failed to delete wallet");
+      }
+    } catch (error) {
+      toast.error("Failed to delete wallet");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteModal = (chain: WalletChain) => {
+    setDeleteChain(chain);
+    setShowDeleteModal(true);
+  };
+
+  // Helper: check if a chain's automation is enabled
+  const isChainEnabled = (chain: WalletChain) => {
+    if (!status) return false;
+    return chain === "evm" ? status.evmEnabled : status.solanaEnabled;
+  };
+
+  // Helper: get wallet address for a chain
+  const getWalletForChain = (chain: WalletChain) => {
+    return status?.wallets?.find(w => w.chain === chain)?.walletAddress || null;
+  };
 
 
   if (isLoading) {
@@ -189,6 +277,119 @@ export function AgentAutomationSection() {
       </div>
     );
   }
+
+  const renderWalletCard = (chain: WalletChain) => {
+    const config = CHAIN_CONFIG[chain];
+    const walletAddress = getWalletForChain(chain);
+    const enabled = isChainEnabled(chain);
+
+    return (
+      <div key={chain} className="p-4 rounded-xl bg-muted/50 border border-border space-y-3">
+        {/* Chain header */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap text-sm font-medium text-foreground min-w-0">
+            <img src={config.iconLight} alt={config.label} className="w-5 h-5 object-contain block dark:hidden" />
+            <img src={config.iconDark} alt={config.label} className="w-5 h-5 object-contain hidden dark:block" />
+            <span className="truncate">{config.label}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${config.bgColor} ${config.color} font-medium shrink-0`}>
+              {config.tag}
+            </span>
+            {enabled && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-medium shrink-0 flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Active
+              </span>
+            )}
+          </div>
+        </div>
+
+        {walletAddress ? (
+          /* ── Wallet exists ── */
+          <>
+            {/* Address + actions */}
+            <div className="flex flex-col gap-3">
+              <div className="bg-muted/30 p-2.5 sm:p-3 rounded-lg border border-border/30 w-full overflow-hidden">
+                <p className="text-[10px] sm:text-[11px] font-mono text-muted-foreground/90 break-all leading-relaxed">
+                  {walletAddress}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 gap-y-2 flex-wrap px-1">
+              <button
+                onClick={() => copyAddress(walletAddress)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors group"
+              >
+                <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                {copiedAddress === walletAddress ? "Copied" : "Copy"}
+              </button>
+              <button
+                onClick={() => handleExportKey(chain)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Key className="w-3.5 h-3.5" />
+                Export
+              </button>
+              <button
+                onClick={() => openDeleteModal(chain)}
+                className="flex items-center gap-1 text-xs text-red-500/70 hover:text-red-500 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
+            </div>
+
+            {/* Automation toggle */}
+            {enabled ? (
+              <button
+                onClick={() => handleToggleAutomation(chain, false)}
+                disabled={isUpdating}
+                className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl border border-red-500/10 dark:border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/5 font-semibold text-[11px] sm:text-xs transition-all disabled:opacity-50"
+              >
+                {isUpdating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <PowerOff className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span className="truncate">Stop {config.label} Automation</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleToggleAutomation(chain, true)}
+                disabled={isUpdating}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl ${config.bgColor} hover:opacity-90 ${config.color} font-semibold text-[11px] sm:text-xs transition-all border ${config.borderColor} disabled:opacity-50`}
+              >
+                {isUpdating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Power className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span className="truncate">Enable {config.label} Automation</span>
+              </button>
+            )}
+          </>
+        ) : (
+          /* ── No wallet — create button ── */
+          <div className="flex flex-col items-center gap-2 py-2">
+            <p className="text-xs text-muted-foreground">
+              No {config.label} wallet yet
+            </p>
+            <button
+              onClick={() => handleCreateWallet(chain)}
+              disabled={isCreatingWallet === chain}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl ${config.bgColor} ${config.color} hover:opacity-90 font-semibold text-xs transition-all border ${config.borderColor} disabled:opacity-50`}
+            >
+              {isCreatingWallet === chain ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Plus className="w-3.5 h-3.5" />
+              )}
+              Create {config.label} Wallet
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm transition-all duration-300">
@@ -202,7 +403,7 @@ export function AgentAutomationSection() {
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-foreground leading-tight">Agent Automation</h2>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                AI-driven autonomous transactions
+                AI-driven autonomous transactions — EVM & Solana
               </p>
             </div>
           </div>
@@ -217,201 +418,152 @@ export function AgentAutomationSection() {
 
       <div className="p-5 sm:p-6 md:p-8 space-y-6">
 
-        {/* ── Step 1: Embedded Wallet ── */}
-        {displayAddress ? (
-          /* Show embedded wallet address */
-          <div className="p-4 rounded-xl bg-muted/50 border border-border">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground min-w-0">
-                <Wallet className="w-4 h-4 text-primary shrink-0" />
-                <span className="truncate hidden xs:inline">Your Embedded Wallet</span>
-                <span className="truncate xs:hidden">Wallet</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
-                  MPC
-                </span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={() => {
-                    setShowExportModal(true);
-                    if (!exportedKey) handleExportKey();
-                  }}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  Export
-                </button>
-                <button
-                  onClick={copyAddress}
-                  className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors group"
-                >
-                  <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                  {copiedAddress ? "Copied" : "Copy"}
-                </button>
-              </div>
+        {/* ── Multi-chain wallet cards ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {renderWalletCard("evm")}
+          {renderWalletCard("solana")}
+        </div>
+
+        {/* Spend Summary — only if any automation is enabled */}
+        {status?.agentEnabled && (
+          <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/40 transition-colors">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Spent (24h)</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums">
+                ${(status.spent24h || 0).toFixed(2)}
+              </p>
             </div>
-            <p className="text-[11px] font-mono text-muted-foreground/80 break-all bg-muted/30 p-2 rounded-lg border border-border/30">{displayAddress}</p>
-            <div className="flex items-start gap-2 mt-3 p-2.5 rounded-lg bg-primary/5 text-[11px] text-muted-foreground leading-relaxed">
-              <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span>Dedicated MPC wallet for autonomous operations.</span>
-            </div>
-          </div>
-        ) : (
-          /* No embedded wallet — show create button */
-          <div className="p-5 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5">
-            <div className="text-center space-y-3">
-              <div className="mx-auto w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-border">
-                <Wallet className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Embedded Wallet Required</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  A dedicated agent wallet will be generated for AI automation. This is separate from your connected wallet.
-                </p>
-              </div>
-              <button
-                onClick={handleCreateEmbeddedWallet}
-                disabled={isCreatingWallet}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-              >
-                {isCreatingWallet ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                Create Embedded Wallet
-              </button>
+            <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
+              <HandCoins className="w-4 h-4 text-primary/80" />
             </div>
           </div>
         )}
 
-        {status?.agentEnabled ? (
-          /* ── Agent is ENABLED ── */
-          <div className="space-y-4">
-            {/* Spend Summary */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/40 transition-colors">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Spent (24h)</p>
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  ${(status.spent24h || 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
-                <HandCoins className="w-4 h-4 text-primary/80" />
-              </div>
+        {/* How it works — shown when no wallets exist */}
+        {(!getWalletForChain("evm") && !getWalletForChain("solana")) && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">How it works</h3>
+            <div className="space-y-2.5">
+              {[
+                {
+                  icon: Wallet,
+                  title: "Create agent wallets",
+                  desc: "Generate EVM and/or Solana wallets for autonomous AI operations.",
+                },
+                {
+                  icon: Shield,
+                  title: "Enable automation per chain",
+                  desc: "Enable automation independently for EVM and Solana chains.",
+                },
+                {
+                  icon: Zap,
+                  title: "Fully autonomous",
+                  desc: "AI executes swaps, subscriptions, and on-chain queries without manual approval.",
+                },
+                {
+                  icon: Settings2,
+                  title: "You're in control",
+                  desc: "Revoke access at any time, per chain.",
+                },
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                  <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5 shrink-0">
+                    <step.icon className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{step.title}</p>
+                    <p className="text-xs text-muted-foreground">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-
-
-            {/* Disable Button */}
-            <button
-              onClick={handleRevoke}
-              disabled={isUpdating}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl border border-red-500/10 dark:border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/5 font-semibold text-sm transition-all disabled:opacity-50"
-            >
-              {isUpdating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <PowerOff className="w-4 h-4" />
-              )}
-              Stop Agent Automation
-            </button>
           </div>
-        ) : (
-          /* ── Agent is DISABLED ── */
-          <div className="space-y-4">
-            {/* How it works */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">How it works</h3>
-              <div className="space-y-2.5">
-                {[
-                  {
-                    icon: Wallet,
-                    title: "Fund your agent wallet",
-                    desc: "Send USDC, ETH, or tokens to the address above (separate from your connected wallet).",
-                  },
-                  {
-                    icon: Shield,
-                    title: "Enable automation",
-                    desc: "Click 'Enable Agent Automation' to let the AI sign transactions from your agent wallet.",
-                  },
-                  {
-                    icon: Zap,
-                    title: "Fully autonomous",
-                    desc: "AI executes swaps, subscriptions, and on-chain queries without manual approval.",
-                  },
-                  {
-                    icon: Settings2,
-                    title: "You're in control",
-                    desc: "Revoke access at any time.",
-                  },
-                ].map((step, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                    <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5 shrink-0">
-                      <step.icon className="w-3.5 h-3.5 text-primary" />
+        )}
+
+        {/* Safety notice — always show */}
+        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Safety first</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400/80">
+                The AI operates autonomously. Total spent are visible here. You can revoke access instantly per chain if needed.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Transaction History */}
+        {status?.recentTransactions && status.recentTransactions.length > 0 && (
+          <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-zinc-800/30">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
+            </div>
+            <div className="space-y-2">
+              {status.recentTransactions.map((tx) => {
+                const chainId = tx.metadata?.chainId;
+
+                // Determine token symbol if missing (like Arc testnet payments)
+                let tokenSymbol = tx.metadata?.inputToken || "";
+                if (!tokenSymbol && chainId === 5042002) {
+                  tokenSymbol = "USDC";
+                }
+
+                const explorerUrl = tx.explorerUrl || `https://etherscan.io/tx/${tx.signature}`;
+
+                return (
+                  <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/40 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                        {tx.type === "relay_swap" ? (
+                          <Zap className="w-4 h-4 text-primary" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <span className="truncate hidden sm:block">{tx.type === "relay_swap" ? "Autonomous Swap" : "Operation"}</span>
+                          {tx.chainName && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 font-medium ${getChainBadgeColor(tx.chainName)}`}>
+                              {tx.chainName}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {new Date(tx.createdAt).toLocaleString(undefined, {
+                            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+                          })}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{step.title}</p>
-                      <p className="text-xs text-muted-foreground">{step.desc}</p>
+
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-foreground">
+                          {tx.amount === "Approval" ? "Approval" : `${tx.amount} ${tokenSymbol}`}
+                        </p>
+                        {typeof tx.metadata?.outputToken === "string" && (
+                          <p className="text-[10px] text-muted-foreground">
+                            to {tx.metadata.outputToken as string}
+                          </p>
+                        )}
+                      </div>
+
+                      <a
+                        href={explorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors shrink-0"
+                        title="View on Explorer"
+                      >
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-
-            {/* Safety notice */}
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Safety first</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400/80">
-                    The AI operates autonomously. Total spent are visible here. You can revoke access instantly if needed.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Enable button — only if embedded wallet exists */}
-            {!displayAddress ? (
-              <div className="p-3 rounded-xl bg-muted/50 border border-border">
-                <p className="text-sm text-muted-foreground text-center">
-                  Create an agent wallet first to enable automation.
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={async () => {
-                  setIsUpdating(true);
-                  try {
-                    const res = await fetch("/api/settings/agent", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "enable" }),
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      toast.success("Agent automation enabled!");
-                      fetchStatus();
-                    } else {
-                      toast.error(data.message || "Failed to enable agent automation");
-                    }
-                  } catch (error) {
-                    toast.error("Failed to enable agent automation");
-                  } finally {
-                    setIsUpdating(false);
-                  }
-                }}
-                disabled={isUpdating}
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 disabled:opacity-50"
-              >
-                {isUpdating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Power className="w-4 h-4" />
-                )}
-                Enable Agent Automation
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -432,10 +584,10 @@ export function AgentAutomationSection() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Key className="w-5 h-5 text-amber-500" />
-              Export Private Key
+              Export {CHAIN_CONFIG[exportChain].label} Private Key
             </DialogTitle>
             <DialogDescription>
-              This is the private key for your embedded agent wallet.
+              This is the private key for your {CHAIN_CONFIG[exportChain].label} agent wallet.
               Anyone with this key has full control over the funds in this wallet.
             </DialogDescription>
           </DialogHeader>
@@ -451,7 +603,7 @@ export function AgentAutomationSection() {
           </div>
 
           <div className="space-y-3">
-            <Label>Private Key</Label>
+            <Label>Private Key <span className={`text-xs ${CHAIN_CONFIG[exportChain].color}`}>({CHAIN_CONFIG[exportChain].tag})</span></Label>
             {isExporting ? (
               <div className="flex items-center justify-center p-4 border rounded-md bg-muted/50 h-[68px]">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -500,6 +652,75 @@ export function AgentAutomationSection() {
                 <>
                   <Copy className="w-4 h-4" />
                   Copy Key
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Wallet Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              Delete {CHAIN_CONFIG[deleteChain].label} Wallet
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete your {CHAIN_CONFIG[deleteChain].label} agent wallet and remove all associated keys from our servers.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {isChainEnabled(deleteChain) && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl">
+                <div className="flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <div className="text-sm text-amber-800 dark:text-amber-300">
+                    <p className="font-semibold mb-1">{CHAIN_CONFIG[deleteChain].label} Automation is active</p>
+                    <p>Automation will be automatically disabled before the wallet is deleted.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
+              <div className="flex gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+                <div className="text-sm text-red-800 dark:text-red-300">
+                  <p className="font-semibold mb-1">This action is irreversible</p>
+                  <p>Make sure you have exported your private key and withdrawn all funds before deleting. A new wallet address will be generated if you create one again.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="gap-2"
+              onClick={handleDeleteWallet}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Delete Wallet
                 </>
               )}
             </Button>

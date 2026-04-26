@@ -11,14 +11,12 @@ import { getUserAgentWalletAddress } from "@/lib/agent/agent-wallet-store";
 import { createPublicClient, http, fallback, formatEther } from "viem";
 import { bsc } from "viem/chains";
 
-const BSC_RPC_URL =
-  process.env.BSC_RPC_URL ||
-  "https://bnb-mainnet.g.alchemy.com/v2/QmCrH0w-wPKCJ7hBHKn1t";
+const BSC_RPC = process.env.BNBCHAIN_RPC_URL || "https://bsc-dataseed1.binance.org";
 
 function getPublicClient() {
   return createPublicClient({
     chain: bsc,
-    transport: http("https://tiniest-sly-seed.bsc.quiknode.pro/1ca12a92f4abaa2d94c69d7d7d59d65a6539b969/", { timeout: 30000 }),
+    transport: http(BSC_RPC, { timeout: 30000 }),
   });
 }
 
@@ -40,30 +38,48 @@ const ERC20_ABI = [
 ] as const;
 
 /**
- * Returns the agent's wallet address and BNB balance on BSC.
+ * Returns the agent's wallet address and native balances (BNB/SOL).
  */
 export const createGetAgentWalletInfoTool = (userId: string) =>
   tool({
-    description: "REQUIRED: Get the AI agent's own wallet address and BNB balance on BSC. You MUST call this at the start of any trading lifecycle to know where funds are located.",
+    description: "REQUIRED: Get the AI agent's own wallet addresses and native balances (BNB on BSC, SOL on Solana). You MUST call this at the start of any trading lifecycle to know where funds are located.",
     parameters: z.object({}),
     execute: async () => {
       try {
-        const address = await getUserAgentWalletAddress(userId);
-        if (!address) {
+        const evmAddress = await getUserAgentWalletAddress(userId, "evm");
+        const solanaAddress = await getUserAgentWalletAddress(userId, "solana");
+        
+        if (!evmAddress && !solanaAddress) {
           return { error: "No agent wallet found for this user." };
         }
 
-        const client = getPublicClient();
-        const balance = await client.getBalance({ address: address as `0x${string}` });
+        const result: any = {};
 
-        return {
-          address,
-          bnbBalance: formatEther(balance),
-          chain: "BSC (56)",
-          explorers: {
-            address: `https://bscscan.com/address/${address}`
-          }
-        };
+        if (evmAddress) {
+          const client = getPublicClient();
+          const balance = await client.getBalance({ address: evmAddress as `0x${string}` });
+          result.evm = {
+            address: evmAddress,
+            bnbBalance: formatEther(balance),
+            chain: "BSC (56)",
+            explorer: `https://bscscan.com/address/${evmAddress}`
+          };
+        }
+
+        if (solanaAddress) {
+          const { Connection, PublicKey } = await import("@solana/web3.js");
+          const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+          const connection = new Connection(rpcUrl);
+          const balanceLamports = await connection.getBalance(new PublicKey(solanaAddress));
+          result.solana = {
+            address: solanaAddress,
+            solBalance: (balanceLamports / 1e9).toString(),
+            chain: "Solana",
+            explorer: `https://solscan.io/account/${solanaAddress}`
+          };
+        }
+
+        return result;
       } catch (error: any) {
         return { error: error.message || "Failed to fetch agent wallet info." };
       }
@@ -71,46 +87,81 @@ export const createGetAgentWalletInfoTool = (userId: string) =>
   });
 
 /**
- * Returns the agent's balance for a specific token on BSC.
+ * Returns the agent's balance for a specific token (EVM or Solana).
  */
 export const createGetAgentTokenBalanceTool = (userId: string) =>
   tool({
-    description: "REQUIRED: Get the AI agent's balance for a specific token (0x...) on BSC. You MUST call this before selling to ensure you have positive balance.",
+    description: "REQUIRED: Get the AI agent's balance for a specific token. Auto-detects EVM (0x...) vs Solana (base58) based on token address format. You MUST call this before selling to ensure you have positive balance.",
     parameters: z.object({
-      tokenAddress: z.string().describe("The token contract address on BSC (0x...)"),
+      tokenAddress: z.string().describe("The token contract address (0x... for EVM, base58 for Solana)"),
     }),
     execute: async ({ tokenAddress }) => {
       try {
-        const address = await getUserAgentWalletAddress(userId);
-        if (!address) {
-          return { error: "No agent wallet found for this user." };
+        const isSolana = !tokenAddress.startsWith("0x");
+
+        if (isSolana) {
+          const solanaAddress = await getUserAgentWalletAddress(userId, "solana");
+          if (!solanaAddress) return { error: "No Solana agent wallet found." };
+
+          const { Connection, PublicKey } = await import("@solana/web3.js");
+          const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+          const connection = new Connection(rpcUrl);
+          
+          const mintPubkey = new PublicKey(tokenAddress);
+          const walletPubkey = new PublicKey(solanaAddress);
+          
+          const { getAssociatedTokenAddress } = await import("@solana/spl-token").catch(() => {
+             throw new Error("Missing @solana/spl-token dependency for Solana balance checks.");
+          });
+          
+          const ata = await getAssociatedTokenAddress(mintPubkey, walletPubkey);
+          
+          try {
+            const balanceInfo = await connection.getTokenAccountBalance(ata);
+            return {
+              tokenAddress,
+              balance: balanceInfo.value.uiAmountString,
+              rawBalance: balanceInfo.value.amount,
+              decimals: balanceInfo.value.decimals
+            };
+          } catch (e: any) {
+            // Token account might not exist if balance is 0
+            if (e.message?.includes("could not find account")) {
+              return { tokenAddress, balance: "0", rawBalance: "0", decimals: 0 };
+            }
+            throw e;
+          }
+        } else {
+          // EVM logic
+          const evmAddress = await getUserAgentWalletAddress(userId, "evm");
+          if (!evmAddress) return { error: "No EVM agent wallet found." };
+
+          const client = getPublicClient();
+          
+          // 1. Get balance
+          const balance = await client.readContract({
+            address: tokenAddress as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [evmAddress as `0x${string}`],
+          });
+
+          // 2. Get decimals
+          const decimals = await client.readContract({
+            address: tokenAddress as `0x${string}`,
+            abi: ERC20_ABI,
+            functionName: "decimals",
+          });
+
+          const formattedBalance = Number(balance) / Math.pow(10, decimals);
+
+          return {
+            tokenAddress,
+            balance: formattedBalance.toString(),
+            rawBalance: balance.toString(),
+            decimals
+          };
         }
-
-        const client = getPublicClient();
-        
-        // 1. Get balance
-        const balance = await client.readContract({
-          address: tokenAddress as `0x${string}`,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address as `0x${string}`],
-        });
-
-        // 2. Get decimals
-        const decimals = await client.readContract({
-          address: tokenAddress as `0x${string}`,
-          abi: ERC20_ABI,
-          functionName: "decimals",
-        });
-
-        const formattedBalance = Number(balance) / Math.pow(10, decimals);
-
-        return {
-          tokenAddress,
-          balance: formattedBalance.toString(),
-          rawBalance: balance.toString(),
-          decimals
-        };
       } catch (error: any) {
         return { error: error.message || "Failed to fetch token balance." };
       }

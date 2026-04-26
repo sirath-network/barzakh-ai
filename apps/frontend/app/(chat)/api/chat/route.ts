@@ -671,16 +671,46 @@ export async function POST(request: Request) {
         username = userData.username || userData.email || username;
       }
 
-      // Fetch Agent Wallet and Automation Status
+      // Fetch Agent Wallet and Automation Status (Multi-Chain)
       const { hasDelegation, getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-      const isAgentEnabled = await hasDelegation(session.user.id);
-      const agentWalletAddress = await getUserAgentWalletAddress(session.user.id);
+      const [isEvmEnabled, isSolanaEnabled] = await Promise.all([
+        hasDelegation(session.user.id, "evm"),
+        hasDelegation(session.user.id, "solana"),
+      ]);
+      const [evmWalletAddress, solanaWalletAddress] = await Promise.all([
+        getUserAgentWalletAddress(session.user.id, "evm"),
+        getUserAgentWalletAddress(session.user.id, "solana"),
+      ]);
+      const isAgentEnabled = isEvmEnabled || isSolanaEnabled;
+      // Use EVM wallet as primary for backward compatibility
+      const agentWalletAddress = evmWalletAddress;
 
-      if (agentWalletAddress) {
+      if (agentWalletAddress || solanaWalletAddress) {
+        let walletLines: string[] = [];
+
+        // EVM wallet status
+        if (evmWalletAddress) {
+          if (isEvmEnabled) {
+            walletLines.push(`- **EVM Agent Wallet**: ${evmWalletAddress} (ENABLED)`);
+          } else {
+            walletLines.push(`- **EVM Agent Wallet**: ${evmWalletAddress} (Disabled — user must enable in settings)`);
+          }
+        }
+
+        // Solana wallet status
+        if (solanaWalletAddress) {
+          if (isSolanaEnabled) {
+            walletLines.push(`- **Solana Agent Wallet**: ${solanaWalletAddress} (ENABLED)`);
+          } else {
+            walletLines.push(`- **Solana Agent Wallet**: ${solanaWalletAddress} (Disabled — user must enable in settings)`);
+          }
+        }
+
         if (isAgentEnabled) {
-          agentWalletText = `\n- **Agent Automation**: ENABLED\n- **Embedded Agent Wallet**: ${agentWalletAddress}\n  *(CRITICAL DIRECTIVE: You have full delegated access. When the user says "my wallet", "my funds", "swap my USDC", or wants to check "my balance", they are ALWAYS referring to THIS Embedded Agent Wallet. You MUST implicitly use the address ${agentWalletAddress} for ALL tool parameters unconditionally! NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?". If a chain is omitted, simply use \`getEvmOnchainDataUsingZerion\` to instantly scan all chains and discover where their tokens are located. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform a swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
+          const primaryWallet = evmWalletAddress || solanaWalletAddress;
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access. When the user says "my wallet", "my funds", "swap my USDC", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally! NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?". If a chain is omitted, simply use \`getEvmOnchainDataUsingZerion\` to instantly scan all chains and discover where their tokens are located. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform a swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
         } else {
-          agentWalletText = `\n- **Agent Automation**: Disabled (Wallet exists: ${agentWalletAddress}, but user has not delegated access. Instruct them to enable Automation in settings first.)`;
+          agentWalletText = `\n- **Agent Automation**: Disabled\n${walletLines.join("\n")}\n  (Wallet(s) exist but user has not delegated access. Instruct them to enable Automation in settings first.)`;
         }
       } else {
         agentWalletText = "\n- **Agent Automation**: Not configured (No embedded wallet created yet.)";
@@ -778,7 +808,7 @@ export async function POST(request: Request) {
     ...(session?.user?.id ? {
       querySignalAgent: createQuerySignalAgentTool(session.user.id),
       executeAgenticRelaySwap: tool({
-        description: "Execute a Relay cross-chain swap autonomously using the user's embedded agent wallet. Accepts exact same parameters as prepareRelayTransaction.",
+        description: "Execute a Relay cross-chain or same-chain swap autonomously using the embedded agent wallet. Supports ALL EVM chains AND Solana. CRITICAL: DO NOT ask the user for their wallet address or chain ID! Auto-infer chains from token symbols: MON→Monad(143), BNB→BSC(56), SOL→Solana(792703809), ETH→Ethereum(1), CRO→Cronos(25), MNT→Mantle(5000). Monad IS a fully EVM-compatible L1 chain. Proceed immediately — NEVER refuse by claiming a chain is unsupported.",
         parameters: z.object({
           fromChainId: z.number().optional().describe("Source chain ID where funds are coming from (optional, inferred if omitted)"),
           from1ChainId: z.number().optional().describe("Fallback alias for fromChainId (do not use but allowed)"),
@@ -794,11 +824,11 @@ export async function POST(request: Request) {
           // Hard-pin the sender and recipient to the user's authenticated agent wallet
           // to prevent Relay from defaulting to the 0x...1 placeholder address
           const { getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-          const embeddedWallet = await getUserAgentWalletAddress(session.user.id);
-          if (embeddedWallet) {
-            args.userAddress = args.userAddress || embeddedWallet;
-            args.recipientAddress = args.recipientAddress || embeddedWallet;
-          }
+          const evmWallet = await getUserAgentWalletAddress(session.user.id, "evm");
+          const solanaWallet = await getUserAgentWalletAddress(session.user.id, "solana");
+
+          args.evmUserAddress = evmWallet || undefined;
+          args.solanaUserAddress = solanaWallet || undefined;
 
           // REUSE robust inference logic from prepareRelayTransaction
           let prepareResult;
@@ -817,58 +847,42 @@ export async function POST(request: Request) {
             return { status: "error", message: "Failed to generate executable transaction payload." };
           }
 
-          // IDEMPOTENCY CHECK
-          // Check if this specific swap intent (same chains, tokens, and amount) was already completed recently
-          try {
-            const { db } = await import("@/lib/db/db");
-            const { relay_swap_tracking } = await import("@/lib/db/schema");
-            const { eq, and, gt } = await import("drizzle-orm");
-            
-            // Generate a 'parameter-based' ID for broad idempotency (ignores timestamp)
-            const paramBasedId = `swap-intent-${args.fromChainId}-${args.toChainId}-${args.fromToken}-${args.toToken}-${args.amount}`;
-            
-            const recentlyCompleted = await db
-              .select()
-              .from(relay_swap_tracking)
-              .where(
-                and(
-                  eq(relay_swap_tracking.userId, session.user.id),
-                  eq(relay_swap_tracking.swapRequestId, paramBasedId)
-                )
-              )
-              .limit(1);
 
-            if (recentlyCompleted.length > 0) {
-              console.log(`[RelayIdempotency] Found existing completion for parameters: ${paramBasedId}`);
-              return {
-                status: "success",
-                message: "This swap was already completed successfully.",
-                transactionHash: recentlyCompleted[0].transactionHash,
-                explorerUrl: recentlyCompleted[0].transactionHash ? `https://relay.link/transaction/${recentlyCompleted[0].transactionHash}` : undefined,
-                note: "Automatically detected previous successful execution."
-              };
-            }
-          } catch (dbErr) {
-            console.error("[RelayIdempotency] Persistence check failed:", dbErr);
-          }
 
-          // IF automation is disabled, return the prepared transaction for manual approval
+          // IF automation is COMPLETELY disabled (no chain has delegation), return for manual approval
           if (!isAgentEnabledLocally) {
-            // Include both IDs for robust tracking: 
-            // 1. The timestamped ID (for specific message tracking)
-            // 2. The param-based ID (for cross-message idempotency)
-            const paramBasedId = `swap-intent-${args.fromChainId}-${args.toChainId}-${args.fromToken}-${args.toToken}-${args.amount}`;
-            
             return {
               ...rawResult,
               status: "requires_manual_approval",
               message: "Agent automation is not enabled. Please confirm this transaction manually.",
               timestamp: Date.now().toString(),
-              swapIntentId: paramBasedId, // Added for backend idempotency
               preparedAt: Date.now(),
               isAgentExecution: false,
-              _instructionToAI: "Inform the user that automation is off and they need to confirm the swap manually using the card above."
+              _instructionToAI: "Inform the user that automation is off for THIS specific transaction and they need to confirm the swap manually using the card above. IMPORTANT: This status applies ONLY to this transaction. If the user requests another trade in this chat, you MUST still call executeAgenticRelaySwap — never refuse based on previous manual approval results."
             };
+          }
+
+          // Per-chain delegation check: for hybrid setups (e.g. EVM enabled, Solana disabled),
+          // verify that EACH transaction's target chain has active delegation.
+          // If any leg targets a chain without delegation, fall back to manual approval.
+          const { hasDelegation: hasDelegationCheck } = await import("@/lib/agent/agent-wallet-store");
+          const txListForCheck = rawResult.transactions as any[];
+          for (const tx of txListForCheck) {
+            const txChainId = tx.chainId || args.fromChainId;
+            const txChainType = txChainId === 792703809 ? "solana" : "evm";
+            const hasChainDelegation = await hasDelegationCheck(session.user.id, txChainType as any);
+            if (!hasChainDelegation) {
+              console.log(`[AgentExecutor] Chain ${txChainType} (${txChainId}) lacks delegation. Falling back to manual approval.`);
+              return {
+                ...rawResult,
+                status: "requires_manual_approval",
+                message: `Agent automation is not enabled for ${txChainType === "solana" ? "Solana" : "EVM"}. Please confirm this transaction manually.`,
+                timestamp: Date.now().toString(),
+                preparedAt: Date.now(),
+                isAgentExecution: false,
+                _instructionToAI: `Inform the user that ${txChainType === "solana" ? "Solana" : "EVM"} automation is not enabled for THIS specific transaction. They can confirm manually using the card above, or enable ${txChainType === "solana" ? "Solana" : "EVM"} agent automation in Settings → Wallet Settings → Enable Agent Automation. IMPORTANT: This status applies ONLY to this transaction. If the user requests another trade in this chat, you MUST still call executeAgenticRelaySwap — never refuse based on previous manual approval results.`
+              };
+            }
           }
 
           const { executeRelaySwap } = await import("@/lib/agent/agent-payment-executor");
@@ -893,26 +907,14 @@ export async function POST(request: Request) {
                 value: tx.value ? BigInt(tx.value) : 0n,
                 data: tx.data || "0x",
                 chainId: tx.chainId || args.fromChainId,
+                solanaTransaction: tx.solanaTransaction,
               }
             });
             if (!autoResult.success) {
               return { status: "error", message: autoResult.error || "Autonomous execution failed during broadcast." };
             }
-            
-            // Record successful autonomous completion for idempotency
-            try {
-              const { db } = await import("@/lib/db/db");
-              const { relay_swap_tracking } = await import("@/lib/db/schema");
-              const paramBasedId = `swap-intent-${args.fromChainId}-${args.toChainId}-${args.fromToken}-${args.toToken}-${args.amount}`;
-              
-              await db.insert(relay_swap_tracking).values({
-                userId: session.user.id,
-                swapRequestId: paramBasedId,
-                transactionHash: autoResult.transactionHash || null
-              }).onConflictDoNothing(); // Basic idempotency
-            } catch (dbErr) {
-              console.error("[RelayIdempotency] Failed to record autonomous completion:", dbErr);
-            }
+
+
 
             finalHash = autoResult.transactionHash || finalHash;
           }

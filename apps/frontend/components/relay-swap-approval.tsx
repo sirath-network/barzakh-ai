@@ -114,6 +114,10 @@ const CHAIN_NAMES: Record<number, string> = {
     660279: "Xai",
     747474: "Katana",
     7777777: "Zora",
+    // Non-EVM chains (critical for cross-chain destination address detection)
+    792703809: "Solana",
+    8253038: "Bitcoin",
+    728126428: "Tron",
 };
 
 // Block explorers for transaction links
@@ -158,6 +162,9 @@ const BLOCK_EXPLORERS: Record<number, string> = {
     534352: "https://scrollscan.com",
     660279: "https://explorer.xai-chain.net",
     7777777: "https://explorer.zora.energy",
+    // Non-EVM
+    792703809: "https://solscan.io",
+    8253038: "https://mempool.space",
 };
 
 interface RelayTransaction {
@@ -228,9 +235,9 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const isWaitingForAutonomousResult = result.status === "success" && !isInitiallyCompleted && !result.transactions && (result as any).isAgentExecution === true;
 
     const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error">(
-        isInitiallyCompleted ? "success" : 
-        isWaitingForAutonomousResult ? "sending" : 
-        "ready"
+        isInitiallyCompleted ? "success" :
+            isWaitingForAutonomousResult ? "sending" :
+                "ready"
     );
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [txHash, setTxHash] = useState<string | null>(result.transactionHash || null);
@@ -282,10 +289,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
     const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
     const destinationChainIdNum = result.toolParams?.toChainId || getChainIdFromName(destChain || "");
-    const isWrongChain = !!requiredChainIdNum && chain?.id !== requiredChainIdNum;
-
     // Check if source chain is non-EVM (e.g., swapping FROM Solana)
     const isSourceNonEvm = requiredChainIdNum ? isNonEvmChain(requiredChainIdNum) : false;
+
+    // EVM chain switching shouldn't block non-EVM sources since EVM wallet is only used for the destination if at all
+    const isWrongChain = !!requiredChainIdNum && chain?.id !== requiredChainIdNum && !isSourceNonEvm;
 
     // Get source chain wallet from Dynamic SDK (for Solana, Bitcoin, Tron)
     const sourceWallet = useChainWallet(requiredChainIdNum);
@@ -293,7 +301,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     // Address Input Logic
     const [recipientAddress, setRecipientAddress] = useState<string>("");
     const [recipientError, setRecipientError] = useState<string>("");
-    const [showManualInput, setShowManualInput] = useState(false);
+    const [showManualInput, setShowManualInput] = useState(
+        // Auto-open the paste address input when either side is non-EVM
+        // Covers both EVM→Solana (non-EVM dest) and SOL→EVM (non-EVM source)
+        !!(destinationChainIdNum && (isNonEvmChain(destinationChainIdNum) || isSourceNonEvm))
+    );
 
     // Check if we need a separate destination address (e.g. cross-chain to non-EVM, or from non-EVM to EVM)
     const needsDestinationAddress = (() => {
@@ -304,11 +316,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
             return true;
         }
 
-        // If source is non-EVM and destination is EVM, we need the user to provide an EVM address
-        // (unless they have an EVM wallet connected)
+        // If source is non-EVM and destination is EVM, we ALWAYS need a destination address.
+        // We will show the manual input dropdown. If they have an EVM wallet connected, we will auto-fill it.
         if (isSourceNonEvm && destinationChainIdNum && !isNonEvmChain(destinationChainIdNum)) {
-            // If no EVM wallet connected, we need manual input
-            return !address;
+            return true;
         }
 
         return false;
@@ -332,23 +343,22 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     }, [result.toolParams]);
 
-    // Auto-fill recipient address when non-EVM destination wallet is connected, AND clear it if disconnected
+    // Auto-fill recipient address from wallets
     useEffect(() => {
         if (destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
             if (destinationWallet?.address) {
                 setRecipientAddress(destinationWallet.address);
             } else {
-                // Only clear if it was previously set (to avoid wiping manual input unnecessarily? 
-                // Actually, if user matches the chain intent and disconnects, we should probably clear to avoid stale wallet state)
-                // But we must be careful not to wipe 'result.toolParams.recipient' if that was the source.
-                // However, usually toolParams.recipient is set in the INITIAL effect.
-                // This effect tracks WALLET connection. 
-                // If wallet connects, we overwrite. If wallet disconnects, we should probably clear IF it matches the wallet.
-                // For simplicity/correctness with "Synced" behavior:
                 setRecipientAddress("");
             }
+        } else if (isSourceNonEvm && destinationChainIdNum && !isNonEvmChain(destinationChainIdNum)) {
+            // If swapping from non-EVM to EVM, auto-fill with EVM address if connected
+            // Only auto-fill if the recipient address is currently empty to avoid overwriting pasted addresses
+            if (address && !recipientAddress) {
+                setRecipientAddress(address);
+            }
         }
-    }, [destinationWallet?.address, destinationChainIdNum]);
+    }, [destinationWallet?.address, destinationChainIdNum, address, isSourceNonEvm]);
 
     // Validate destination address
     const validateRecipient = (addr: string) => {
@@ -371,11 +381,25 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         return /^0x[a-fA-F0-9]{40}$/.test(addr);
     };
 
+    // Track the recipient used for the current transactions so we know when to refetch
+    const [lastUsedRecipient, setLastUsedRecipient] = useState<string | null>(result.toolParams?.recipient || null);
+
     // Use client transactions if available, otherwise initial
-    const processedTransactions = clientTransactions.length > 0 ? clientTransactions : initialTransactions;
+    // BUT if the user has changed the recipient address, we MUST ignore the initial transactions
+    // because they were built for the wrong/placeholder destination.
+    const isRecipientChanged = needsDestinationAddress && recipientAddress && recipientAddress !== lastUsedRecipient;
+    const processedTransactions = (clientTransactions.length > 0 || isRecipientChanged)
+        ? clientTransactions
+        : initialTransactions;
     // Fetch executable transaction client-side if needed
     useEffect(() => {
         const fetchExecutableTx = async () => {
+            // If the recipient has changed, we should clear the old transactions immediately
+            // so we don't accidentally execute the old ones while waiting.
+            if (isRecipientChanged && clientTransactions.length > 0) {
+                setClientTransactions([]);
+            }
+
             // Determine the effective user address for the quote
             // For non-EVM sources, we need the Dynamic wallet address
             // For EVM sources, we use the connected wagmi address
@@ -403,10 +427,15 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 return;
             }
 
+            // We need to fetch if:
+            // 1. We don't have transactions yet
+            // 2. OR the user changed the recipient address (we must build a new tx for the new destination)
+            const needsRefetch = processedTransactions.length === 0 || isRecipientChanged;
+
             // For non-EVM sources, we don't require wagmi connection, only the Dynamic wallet
             const canFetch = isSourceNonEvm
-                ? (sourceWallet?.address && result.toolParams && processedTransactions.length === 0)
-                : (isConnected && address && result.toolParams && processedTransactions.length === 0);
+                ? (sourceWallet?.address && result.toolParams && needsRefetch)
+                : (isConnected && address && result.toolParams && needsRefetch);
 
             if (canFetch && effectiveUser && result.toolParams) {
                 setClientLoading(true);
@@ -445,6 +474,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         );
 
                         setClientTransactions(txs);
+                        setLastUsedRecipient(effectiveRecipient);
                         setErrorMessage(""); // Clear any previous errors
                     }
                 } catch (err: any) {
@@ -462,20 +492,30 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }, 800);
 
         return () => clearTimeout(timer);
-    }, [isConnected, address, result.toolParams, processedTransactions.length, recipientAddress, needsDestinationAddress, isSourceNonEvm, sourceWallet?.address]);
+    }, [isConnected, address, result.toolParams, processedTransactions.length, recipientAddress, needsDestinationAddress, isSourceNonEvm, sourceWallet?.address, isRecipientChanged]);
 
-    // Reset verification when disconnected
+    // Reset verification when disconnected — also wipe destination address
     useEffect(() => {
         // If Non-EVM source, check dynamic wallet
         if (isSourceNonEvm) {
-            if (!sourceWallet?.address) setIsVerified(false);
+            if (!sourceWallet?.address) {
+                setIsVerified(false);
+                setRecipientAddress("");
+                setRecipientError("");
+                setShowManualInput(false);
+            }
         } else {
             // If EVM source, check wagmi connection
-            if (!isConnected) setIsVerified(false);
+            if (!isConnected) {
+                setIsVerified(false);
+                setRecipientAddress("");
+                setRecipientError("");
+                setShowManualInput(false);
+            }
         }
     }, [isConnected, isSourceNonEvm, sourceWallet?.address]);
 
-    const { handleLogOut, setShowAuthFlow } = useDynamicContext();
+    const { handleLogOut, setShowAuthFlow, primaryWallet } = useDynamicContext();
 
     // Auto-disconnect on success
     useEffect(() => {
@@ -977,7 +1017,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 <>
                                     {requiredChainIdNum !== destinationChainIdNum && (
                                         <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                            <DynamicConnectButton />
+                                            <ButtonAny
+                                                onClick={() => setShowAuthFlow(true)}
+                                                className="w-full h-10 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
+                                            >
+                                                <Wallet className="size-4 mr-2" />
+                                                Connect {getNonEvmChainName(destinationChainIdNum!) || destChain || "Destination"} Wallet
+                                            </ButtonAny>
                                         </div>
                                     )}
                                     <div className="flex items-center gap-3 my-3">
@@ -1036,6 +1082,66 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     </AnimatePresence>
                 </div>
             </div >
+        );
+    };
+
+    const renderMinimalDestinationInput = () => {
+        if (!needsDestinationAddress) return null;
+        return (
+            <div className="space-y-2.5">
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-700" />
+                    <button
+                        onClick={() => setShowManualInput(!showManualInput)}
+                        className={`text-[11px] font-medium transition-all flex items-center gap-1.5 py-1.5 px-3 rounded-full border ${recipientAddress && validateRecipient(recipientAddress)
+                            ? 'text-green-600 dark:text-green-400 border-green-500/30 bg-green-500/5'
+                            : 'text-zinc-200 dark:text-zinc-300 border-zinc-400/50 dark:border-zinc-500/50 bg-zinc-800/10 dark:bg-zinc-700/20 hover:text-white hover:border-zinc-300 dark:hover:border-zinc-400 animate-pulse'
+                            }`}
+                    >
+                        <Wallet className="size-3" />
+                        {recipientAddress && validateRecipient(recipientAddress) ? `${getNonEvmChainName(destinationChainIdNum!) || "EVM"}: ${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}` : getNonEvmChainName(destinationChainIdNum!) ? `Enter ${getNonEvmChainName(destinationChainIdNum!)} Address` : "Enter EVM Address"}
+                        <motion.div animate={{ rotate: showManualInput ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                            <svg width="8" height="5" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </motion.div>
+                    </button>
+                    <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-700" />
+                </div>
+                <AnimatePresence>
+                    {showManualInput && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={recipientAddress}
+                                    onChange={(e) => {
+                                        setRecipientAddress(e.target.value);
+                                        if (e.target.value && !validateRecipient(e.target.value)) {
+                                            setRecipientError("Invalid address format");
+                                        } else {
+                                            setRecipientError("");
+                                        }
+                                    }}
+                                    placeholder={getNonEvmChainName(destinationChainIdNum!) ? `Enter ${getNonEvmChainName(destinationChainIdNum!)} Address` : "0x123..."}
+                                    className="w-full px-3 py-2.5 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700/50 rounded-lg text-sm font-mono text-zinc-900 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 focus:ring-1 focus:ring-zinc-300/30 dark:focus:ring-zinc-500/30 transition-colors"
+                                    autoFocus
+                                />
+                            </div>
+                            {recipientError && (
+                                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                                    <AlertCircle className="size-3" /> {recipientError}
+                                </p>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         );
     };
 
@@ -1139,46 +1245,48 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         </div>
                     </div>
 
-                    {/* Source wallet connection - Show first when source is non-EVM */
-                        !swapAlreadyCompleted && step !== "success" && isSourceNonEvm && !sourceWallet?.address && (
+                    {/* Source wallet connection - Show first when source is not connected */}
+                    {!swapAlreadyCompleted && step !== "success" && (isSourceNonEvm ? !sourceWallet?.address : !isConnected) && (
+                        <>
                             <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Wallet className="size-4 text-zinc-500 dark:text-zinc-400" />
                                     <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                        Connect Your {getNonEvmChainName(requiredChainIdNum!)} Wallet
+                                        Connect Your {isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : sourceChain || "EVM"} Wallet
                                     </p>
                                 </div>
                                 <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
-                                    To swap from {getNonEvmChainName(requiredChainIdNum!)}, connect a wallet like {
-                                        requiredChainIdNum === 792703809 ? "Phantom or Solflare" :
-                                            requiredChainIdNum === 8253038 ? "Xverse or Unisat" :
-                                                requiredChainIdNum === 728126428 ? "TronLink" : "a native wallet"
+                                    To swap from {isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : sourceChain || "EVM"}, connect a wallet like {
+                                        isSourceNonEvm
+                                            ? requiredChainIdNum === 792703809 ? "Phantom or Solflare" :
+                                                requiredChainIdNum === 8253038 ? "Xverse or Unisat" :
+                                                    requiredChainIdNum === 728126428 ? "TronLink" : "a native wallet"
+                                            : "MetaMask or Rabby"
                                     }.
                                 </p>
-                                <DynamicConnectButton />
-                            </div>
-                        )}
-
-                    {/* EVM Source wallet connection - Show first ONLY when destination is Non-EVM (to match the "Source on Top" layout) */
-                        !swapAlreadyCompleted && step !== "success" && !isSourceNonEvm && destinationChainIdNum && isNonEvmChain(destinationChainIdNum) && !isConnected && (
-                            <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Wallet className="size-4 text-zinc-500 dark:text-zinc-400" />
-                                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                        Connect Your {sourceChain} Wallet
-                                    </p>
-                                </div>
-                                <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
-                                    To swap from {sourceChain}, please connect your EVM wallet.
-                                </p>
-                                <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
+                                {isSourceNonEvm ? (
                                     <DynamicConnectButton />
-                                </div>
+                                ) : (
+                                    <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
+                                        <ButtonAny
+                                            onClick={() => setShowAuthFlow(true)}
+                                            className="w-full h-11 bg-white hover:bg-zinc-100 text-black font-semibold shadow-sm border border-zinc-200 dark:border-zinc-800 transition-colors"
+                                        >
+                                            <Wallet className="size-4 mr-2" />
+                                            Connect Wallet
+                                        </ButtonAny>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                            {/* Destination address input — placed right below Connect Wallet for visual flow */}
+                            {renderMinimalDestinationInput()}
+                        </>
+                    )}
 
-                    {/* DESTINATION ADDRESS INPUT (if needed) */}
-                    {!swapAlreadyCompleted && step !== "success" && renderAddressInput()}
+
+                    {/* NOTE: Source EVM wallet connect is handled in the bottom action area */}
+
+                    {/* DESTINATION ADDRESS INPUT moved to bottom action area */}
 
                     {/* ADDRESS DETAILS - Show engaged wallets */}
                     {!swapAlreadyCompleted && step !== "success" && (
@@ -1322,6 +1430,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             {/* Non-EVM Source Chain - Show action buttons when wallet is connected */}
                             {isSourceNonEvm && sourceWallet?.address ? (
                                 <div className="space-y-3">
+                                    {renderMinimalDestinationInput()}
                                     {/* Action button based on state */}
                                     {clientLoading ? (
                                         <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400" variant="outline">
@@ -1335,23 +1444,26 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                                     "Fetching quote..."}
                                         </ButtonAny>
                                     ) : (step === "ready" && !isVerified) || step === "verifying" ? (
-                                        <ButtonAny
-                                            onClick={handleVerify}
-                                            disabled={step === "verifying"}
-                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                        >
-                                            {step === "verifying" ? (
-                                                <>
-                                                    <Loader2 className="size-4 mr-2 animate-spin" />
-                                                    Verifying Ownership...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <ShieldCheck className="size-4 mr-2" />
-                                                    Verify Wallet
-                                                </>
-                                            )}
-                                        </ButtonAny>
+                                        // Hide verify button until destination address is provided (when required)
+                                        needsDestinationAddress && (!recipientAddress || !validateRecipient(recipientAddress)) ? null : (
+                                            <ButtonAny
+                                                onClick={handleVerify}
+                                                disabled={step === "verifying"}
+                                                className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                            >
+                                                {step === "verifying" ? (
+                                                    <>
+                                                        <Loader2 className="size-4 mr-2 animate-spin" />
+                                                        Verifying Ownership...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ShieldCheck className="size-4 mr-2" />
+                                                        Verify Wallet
+                                                    </>
+                                                )}
+                                            </ButtonAny>
+                                        )
                                     ) : step === "ready" ? (
                                         needsDestinationAddress && !recipientAddress ? null : (
                                             <ButtonAny
@@ -1374,21 +1486,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                     ) : null}
                                 </div>
                             ) : isSourceNonEvm && !sourceWallet?.address ? (
-                                /* Non-EVM source without wallet - handled in renderAddressInput usually, but if address input is hidden (e.g. EVM wallet connected), we must show it here */
+                                /* Non-EVM source without wallet - destination input is already shown below the connect wallet card */
                                 null
                             ) : !isConnected ? (
-                                /* Only show bottom connect button if NOT in the "EVM -> Non-EVM" flow (because that flow has the button at the top) */
-                                (!destinationChainIdNum || !isNonEvmChain(destinationChainIdNum)) ? (
-                                    <div className="flex justify-center w-full [&_button]:w-full">
-                                        <ButtonAny
-                                            onClick={() => setShowAuthFlow(true)}
-                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                        >
-                                            <Wallet className="size-4" />
-                                            Connect Wallet
-                                        </ButtonAny>
-                                    </div>
-                                ) : null
+                                /* EVM source without wallet - destination input is already shown below the connect wallet card */
+                                null
                             ) : isWrongChain && requiredChainIdNum ? (
                                 <ButtonAny
                                     onClick={handleSwitchChain}
@@ -1406,25 +1508,29 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                     )}
                                 </ButtonAny>
                             ) : !isVerified ? (
-                                needsDestinationAddress && !recipientAddress ? null : (
-                                    <ButtonAny
-                                        onClick={handleVerify}
-                                        disabled={step === "verifying"}
-                                        className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
-                                    >
-                                        {step === "verifying" ? (
-                                            <>
-                                                <Loader2 className="size-4 mr-2 animate-spin" />
-                                                Verifying Ownership...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ShieldCheck className="size-4 mr-2" />
-                                                Verify Wallet
-                                            </>
-                                        )}
-                                    </ButtonAny>
-                                )
+                                <div className="space-y-3">
+                                    {renderMinimalDestinationInput()}
+                                    {/* Hide verify button until destination address is provided (when required) */}
+                                    {!(needsDestinationAddress && (!recipientAddress || !validateRecipient(recipientAddress))) && (
+                                        <ButtonAny
+                                            onClick={handleVerify}
+                                            disabled={step === "verifying"}
+                                            className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-lg shadow-black/5 dark:shadow-white/5"
+                                        >
+                                            {step === "verifying" ? (
+                                                <>
+                                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                                    Verifying Ownership...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ShieldCheck className="size-4 mr-2" />
+                                                    Verify Wallet
+                                                </>
+                                            )}
+                                        </ButtonAny>
+                                    )}
+                                </div>
                             ) : clientLoading ? (
                                 <ButtonAny disabled className="w-full h-11 bg-zinc-800 text-zinc-400" variant="outline">
                                     <Loader2 className="size-4 mr-2 animate-spin" />

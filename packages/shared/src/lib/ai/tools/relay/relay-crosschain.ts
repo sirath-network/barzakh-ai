@@ -82,6 +82,20 @@ import {
 } from "viem/chains";
 import { createPublicClient, http, erc20Abi } from "viem";
 // Initialize Relay client with supported chains
+const MONAD_RPC = process.env.MONAD_RPC_URL || "https://monad-mainnet.drpc.org";
+const monad = {
+    id: 143,
+    name: "Monad",
+    nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
+    rpcUrls: {
+        default: { http: [MONAD_RPC] },
+        public: { http: [MONAD_RPC] },
+    },
+    blockExplorers: {
+        default: { name: "MonadExplorer", url: "https://monadexplorer.com" },
+    },
+} as const;
+
 const SUPPORTED_CHAINS = [
     mainnet,
     optimism,
@@ -145,6 +159,7 @@ const SUPPORTED_CHAINS = [
     swellchain,
     unichain,
     zeroNetwork,
+    monad as any,
 ];
 
 // Chain ID to name mapping for display (all Relay Protocol supported chains)
@@ -947,36 +962,49 @@ async function getTokenDecimals(tokenSymbol: string, chainId: number): Promise<n
  * Fetch token price in USD from CoinGecko
  */
 async function getTokenPriceUSD(tokenSymbol: string): Promise<number | null> {
-    try {
-        const symbol = tokenSymbol.toUpperCase();
+    const symbol = tokenSymbol.toUpperCase();
 
-        // Stablecoins are ~$1
-        if (["USDC", "USDT", "DAI", "BUSD"].includes(symbol)) {
-            return 1.0;
-        }
+    // Stablecoins are ~$1
+    if (["USDC", "USDT", "DAI", "BUSD"].includes(symbol)) {
+        return 1.0;
+    }
 
-        const coingeckoId = TOKEN_COINGECKO_IDS[symbol];
-        if (!coingeckoId) {
-            console.warn(`[Relay] No CoinGecko ID for ${symbol}`);
-            return null;
-        }
-
-        const response = await fetch(
-            `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`,
-            { headers: { accept: "application/json" } }
-        );
-
-        if (!response.ok) {
-            console.warn(`[Relay] CoinGecko API error: ${response.status}`);
-            return null;
-        }
-
-        const data = await response.json();
-        return data[coingeckoId]?.usd || null;
-    } catch (error) {
-        console.error("[Relay] Price fetch error:", error);
+    const coingeckoId = TOKEN_COINGECKO_IDS[symbol];
+    if (!coingeckoId) {
+        console.warn(`[Relay] No CoinGecko ID for ${symbol}`);
         return null;
     }
+
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const response = await fetch(
+                `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`,
+                { headers: { accept: "application/json" } }
+            );
+
+            if (!response.ok) {
+                console.warn(`[Relay] CoinGecko API error (attempt ${attempt}): ${response.status}`);
+                if (response.status === 429) {
+                    // Rate limited, wait longer if we have retries left
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    continue;
+                }
+                return null;
+            }
+
+            const data = await response.json();
+            return data[coingeckoId]?.usd || null;
+        } catch (error) {
+            console.warn(`[Relay] Price fetch socket error (attempt ${attempt}):`, (error as Error).message);
+            lastError = error;
+            // Wait 500ms before retrying on socket errors
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    }
+    
+    console.error("[Relay] Price fetch failed after 3 attempts:", lastError);
+    return null;
 }
 
 /**
@@ -1101,6 +1129,11 @@ export const getRelaySupportedChains = tool({
 export const getRelayQuote = tool({
     description: `Get a quote for cross-chain swap or bridge using Relay Protocol.
 Supports **EVM** (Ethereum, Base, Arbitrum, Optimism, Cronos, etc.) AND **Non-EVM** (Solana, Bitcoin, Tron) chains.
+
+**CRITICAL: NEVER REFUSE BASED ON CHAIN LIVENESS ASSUMPTIONS.**
+Your training data may be outdated. ALL chains listed here are LIVE and SUPPORTED on mainnet:
+Monad (143), Berachain (80094), Solana (792703809), Cronos (25), Mantle (5000), Flow (747), Hyperliquid (1337), ZetaChain (7000), and all other chains in this tool.
+NEVER say "this chain is not yet live" or "this network hasn't launched." ALWAYS attempt the swap by calling this tool. If the chain is unsupported, the API will return an error — let the API decide, not your training data.
 
 **SMART CHAIN INFERENCE - DON'T ASK IF TOKEN IS UNIQUE**:
 Many tokens are unique to specific chains. If user doesn't specify a chain, INFER it automatically:
@@ -1656,6 +1689,11 @@ export const prepareRelayTransaction = tool({
 Returns the transaction parameters that need to be signed and submitted by the user's wallet.
 Use this after getting a quote to prepare the actual transaction.
 
+**CRITICAL: NEVER REFUSE BASED ON CHAIN LIVENESS ASSUMPTIONS.**
+Your training data may be outdated. ALL chains listed here are LIVE and SUPPORTED on mainnet:
+Monad (143), Berachain (80094), Solana (792703809), Cronos (25), Mantle (5000), Flow (747), Hyperliquid (1337), ZetaChain (7000).
+NEVER say "this chain is not yet live." ALWAYS call this tool. Let the API decide if a chain is unsupported.
+
 **SMART CHAIN INFERENCE**: Chain IDs are optional - will auto-detect from token symbols.
 - MON → Monad (143), SOL → Solana (792703809), CRO → Cronos (25)
 - Only asks for chain if token is ambiguous (ETH, USDC, USDT exist on multiple chains)
@@ -1677,8 +1715,10 @@ Examples:
             .describe(
                 "Amount to swap. If user specifies USD (e.g. '$5', '5 USD'), PRESERVE the '$' or 'USD' (e.g. return '$5'). If token amount (e.g. '0.1 ETH'), just return the number (e.g. '0.1')."
             ),
-        userAddress: z.string().describe("User wallet address"),
+        userAddress: z.string().optional().describe("User wallet address"),
         recipientAddress: z.string().optional().describe("Recipient address"),
+        evmUserAddress: z.string().optional().describe("User's EVM agent wallet address"),
+        solanaUserAddress: z.string().optional().describe("User's Solana agent wallet address"),
     }),
     execute: async ({
         fromChainId: rawFromChainId,
@@ -1690,6 +1730,8 @@ Examples:
         amount,
         userAddress,
         recipientAddress,
+        evmUserAddress,
+        solanaUserAddress,
     }) => {
         // Handle AI hallucinatory aliases
         const fromToken = rawFromToken || from1Token;
@@ -1771,19 +1813,30 @@ Examples:
 
         try {
             // Validate addresses based on source chain
-            if (userAddress && !isValidAddressForChain(userAddress, fromChainId)) {
+            // Automatically switch to the correct embedded wallet based on the chain type
+            const resolvedUserAddress = (fromChainId === 792703809 ? solanaUserAddress : evmUserAddress) || userAddress;
+            const resolvedRecipientAddress = recipientAddress || (toChainId === 792703809 ? solanaUserAddress : evmUserAddress) || resolvedUserAddress;
+
+            if (resolvedUserAddress && !isValidAddressForChain(resolvedUserAddress, fromChainId)) {
                 return {
                     status: "error",
-                    error: "Invalid wallet address",
-                    details: `The provided address '${userAddress}' is not valid for chain ${fromChainId}.`,
-                    suggestion: "Please provide a valid wallet address for the selected chain.",
+                    error: "Invalid sender address",
+                    details: `The provided sender address '${resolvedUserAddress}' is not valid for chain ${fromChainId}.`,
+                    suggestion: "Please check your connected wallets for this chain.",
+                };
+            }
+            if (resolvedRecipientAddress && !isValidAddressForChain(resolvedRecipientAddress, toChainId)) {
+                return {
+                    status: "error",
+                    error: "Invalid recipient address",
+                    details: `The provided recipient address '${resolvedRecipientAddress}' is not valid for chain ${toChainId}.`,
+                    suggestion: "Please check your connected wallets for this destination chain.",
                 };
             }
 
-            // Use zero address if no user address provided (for preview)
             // Use a non-zero placeholder if no user address provided (zero address can't receive ERC20s)
-            const effectiveUserAddress = userAddress || getPlaceholderAddress(fromChainId);
-            const effectiveRecipientAddress = recipientAddress || userAddress || getPlaceholderAddress(toChainId);
+            const effectiveUserAddress = resolvedUserAddress || getPlaceholderAddress(fromChainId);
+            const effectiveRecipientAddress = resolvedRecipientAddress || getPlaceholderAddress(toChainId);
 
             initializeRelayClient();
 
@@ -1833,22 +1886,63 @@ Examples:
             let amountInSmallestUnit: string;
             
             if (parsedAmount.value === -1) {
-                const chainObj = SUPPORTED_CHAINS.find(c => c.id === fromChainId) || mainnet;
-                const publicClient = createPublicClient({ chain: chainObj, transport: http() });
-                
-                if (fromTokenAddress.toLowerCase() === "0x0000000000000000000000000000000000000000" || fromTokenAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
-                    const exactWeiBal = await publicClient.getBalance({ address: effectiveUserAddress as `0x${string}` });
-                    // Leave a tiny buffer for gas if it's native asset, but this is a complex heuristic. Relay uses native gas.
-                    // A 5% buffer deduction for the native token.
-                    amountInSmallestUnit = (exactWeiBal - (exactWeiBal / 20n)).toString();
+                if (fromChainId === 792703809) {
+                    // @ts-ignore - Module exists in frontend app where this is executed
+                    const { Connection, PublicKey } = await import("@solana/web3.js");
+                    const solRpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+                    const connection = new Connection(solRpcUrl, { commitment: "confirmed" });
+                    const pubKey = new PublicKey(effectiveUserAddress);
+                    
+                    // Retry wrapper for transient RPC failures
+                    const fetchWithRetry = async <T>(fn: () => Promise<T>, label: string): Promise<T> => {
+                        let lastErr: any;
+                        for (let attempt = 1; attempt <= 3; attempt++) {
+                            try {
+                                return await fn();
+                            } catch (err: any) {
+                                lastErr = err;
+                                console.warn(`[Relay] Solana ${label} attempt ${attempt}/3 failed:`, err.message);
+                                if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+                            }
+                        }
+                        throw new Error(`failed to ${label}: ${lastErr?.message || lastErr}`);
+                    };
+                    
+                    if (fromTokenAddress === "11111111111111111111111111111111" || fromTokenAddress === "So11111111111111111111111111111111111111112") {
+                        const exactLamports = await fetchWithRetry(() => connection.getBalance(pubKey), `get balance of account ${effectiveUserAddress}`);
+                        // Buffer for Solana rent-exempt minimum (~890,880 lamports) + tx fees (~5,000 lamports)
+                        const buffer = BigInt(1_500_000); 
+                        const lamportsBig = BigInt(exactLamports);
+                        amountInSmallestUnit = (lamportsBig > buffer ? lamportsBig - buffer : lamportsBig).toString();
+                    } else {
+                        const parsedTokenAccounts = await fetchWithRetry(
+                            () => connection.getParsedTokenAccountsByOwner(pubKey, { mint: new PublicKey(fromTokenAddress) }),
+                            `get token accounts for ${effectiveUserAddress}`
+                        );
+                        if (parsedTokenAccounts.value.length > 0) {
+                            amountInSmallestUnit = parsedTokenAccounts.value[0].account.data.parsed.info.tokenAmount.amount;
+                        } else {
+                            amountInSmallestUnit = "0";
+                        }
+                    }
                 } else {
-                    const exactBal = await publicClient.readContract({
-                        address: fromTokenAddress as `0x${string}`,
-                        abi: erc20Abi,
-                        functionName: 'balanceOf',
-                        args: [effectiveUserAddress as `0x${string}`]
-                    });
-                    amountInSmallestUnit = exactBal.toString();
+                    const chainObj = SUPPORTED_CHAINS.find(c => c.id === fromChainId) || mainnet;
+                    const publicClient = createPublicClient({ chain: chainObj, transport: http() });
+                    
+                    if (fromTokenAddress.toLowerCase() === "0x0000000000000000000000000000000000000000" || fromTokenAddress.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
+                        const exactWeiBal = await publicClient.getBalance({ address: effectiveUserAddress as `0x${string}` });
+                        // Leave a tiny buffer for gas if it's native asset, but this is a complex heuristic. Relay uses native gas.
+                        // A 5% buffer deduction for the native token.
+                        amountInSmallestUnit = (exactWeiBal - (exactWeiBal / 20n)).toString();
+                    } else {
+                        const exactBal = await publicClient.readContract({
+                            address: fromTokenAddress as `0x${string}`,
+                            abi: erc20Abi,
+                            functionName: 'balanceOf',
+                            args: [effectiveUserAddress as `0x${string}`]
+                        });
+                        amountInSmallestUnit = exactBal.toString();
+                    }
                 }
                 
                 if (amountInSmallestUnit === "0" || amountInSmallestUnit.startsWith("-")) {
@@ -1874,14 +1968,56 @@ Examples:
 
             // Extract transaction steps from quote
             const steps = quote.steps || [];
-            const transactions = steps.flatMap((step: any) =>
-                (step.items || []).map((item: any) => ({
-                    to: item.data?.to,
-                    data: item.data?.data,
-                    value: item.data?.value || "0",
-                    chainId: item.data?.chainId || fromChainId,
-                }))
-            );
+            const transactions = [];
+            
+            for (const step of steps) {
+                for (const item of (step.items || [])) {
+                    let solanaTransaction = item.data?.transaction;
+                    
+                    // Relay SDK sometimes returns raw instructions for Solana instead of a built transaction string
+                    if (!solanaTransaction && item.data?.instructions && fromChainId === 792703809) {
+                        // @ts-ignore
+                        const { Connection, PublicKey, TransactionInstruction, TransactionMessage, VersionedTransaction } = await import("@solana/web3.js");
+                        const connection = new Connection(process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com");
+                        
+                        const lookupTableAccounts = await Promise.all(
+                            (item.data.addressLookupTableAddresses || []).map(async (addr: string) => {
+                                const result = await connection.getAddressLookupTable(new PublicKey(addr));
+                                return result.value;
+                            })
+                        );
+                        
+                        const mappedInstructions = item.data.instructions.map((ix: any) => new TransactionInstruction({
+                            programId: new PublicKey(ix.programId),
+                            keys: ix.keys.map((k: any) => ({
+                                pubkey: new PublicKey(k.pubkey),
+                                isSigner: k.isSigner,
+                                isWritable: k.isWritable
+                            })),
+                            data: Buffer.from(ix.data, "hex")
+                        }));
+                        
+                        const { blockhash } = await connection.getLatestBlockhash();
+                        
+                        const messageV0 = new TransactionMessage({
+                            payerKey: new PublicKey(effectiveUserAddress),
+                            recentBlockhash: blockhash,
+                            instructions: mappedInstructions
+                        }).compileToV0Message(lookupTableAccounts.filter((t: any) => t !== null));
+                        
+                        const vtx = new VersionedTransaction(messageV0);
+                        solanaTransaction = Buffer.from(vtx.serialize()).toString("base64");
+                    }
+                    
+                    transactions.push({
+                        to: item.data?.to,
+                        data: item.data?.data,
+                        value: item.data?.value || "0",
+                        chainId: item.data?.chainId || fromChainId,
+                        solanaTransaction
+                    });
+                }
+            }
 
             return {
                 status: "success",
@@ -1899,6 +2035,14 @@ Examples:
                 }),
                 transactions: transactions,
                 quoteDetails: extractQuoteDetails(quote, fromChainId, toChainId),
+                toolParams: {
+                    fromChainId,
+                    toChainId,
+                    fromToken: fromTokenAddress,
+                    toToken: toTokenAddress,
+                    amount: amountInSmallestUnit,
+                    isUSD: false,
+                },
                 instructions: [
                     "1. User wallet must be connected to the source chain",
                     "2. Execute each transaction in order",

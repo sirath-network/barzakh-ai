@@ -73,11 +73,12 @@ Unlike prepareRelayTransaction, this will actually securely sign and broadcast t
             const txData = item.data || item;
             
             // Build the transaction literal expected by Viem/Dynamic
-            const transaction: TransactionSerializable = {
+            const transaction: any = {
                 to: txData.to,
                 value: txData.value ? BigInt(txData.value) : 0n,
                 data: txData.data || "0x",
                 chainId: txData.chainId || fromChainId,
+                solanaTransaction: txData.transaction,
             };
 
             console.log(`[AgentExecutor] Signing and broadcasting transaction...`);
