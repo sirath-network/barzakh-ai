@@ -192,6 +192,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [hasFetchedNfts, setHasFetchedNfts] = useState(false);
   const [nftPortfolioValue, setNftPortfolioValue] = useState<number>(0);
+  const [isUntrackable, setIsUntrackable] = useState(false);
 
   const WalletAny = Wallet as any;
   const ArrowUpRightAny = ArrowUpRight as any;
@@ -235,6 +236,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
   // Fetch protocol positions
   const fetchProtocolPositions = async () => {
+    if (isUntrackable) return;
     setLoadingProtocols(true);
     try {
       const walletAddress = result.id;
@@ -246,6 +248,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Protocol Positions Fetch Error:", response.status, errorData);
+
+        // Check for untrackable wallet error
+        if (response.status === 400 && (errorData.error?.toLowerCase().includes("untrackable") || JSON.stringify(errorData).toLowerCase().includes("untrackable"))) {
+          setIsUntrackable(true);
+        }
+
         throw new Error(`Failed to fetch protocol positions: ${response.status} ${errorData.error || ''}`);
       }
 
@@ -332,6 +340,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
   // Fetch NFT Collections
   const fetchNftCollections = async () => {
+    if (isUntrackable) return;
     setLoadingNfts(true);
     try {
       const walletAddress = result.id;
@@ -343,6 +352,12 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("NFT Collections Fetch Error:", response.status, errorData);
+
+        // Check for untrackable wallet error
+        if (response.status === 400 && (errorData.error?.toLowerCase().includes("untrackable") || JSON.stringify(errorData).toLowerCase().includes("untrackable"))) {
+          setIsUntrackable(true);
+        }
+
         throw new Error(`Failed to fetch NFT collections: ${response.status} ${errorData.error || ''}`);
       }
 
@@ -494,6 +509,21 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     <div className="w-full max-w-full space-y-4 font-sans">
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* Untrackable Wallet Warning */}
+        {isUntrackable && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="md:col-span-3 p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-400 flex items-start gap-3"
+          >
+            <Activity className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-bold mb-1">Exchange Wallet Detected</p>
+              <p>This address appears to be an exchange hot wallet (Binance, Coinbase, etc.). Zerion cannot track real-time portfolio data for these types of addresses. Try using Arkham Intelligence for detailed exchange wallet flows.</p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Hero Card: Total Balance */}
         <motion.div

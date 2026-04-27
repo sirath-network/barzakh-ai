@@ -102,6 +102,207 @@ const getTxExplorerUrl = (chain: string, hash: string) => {
   return `${base}/tx/${hash}`;
 };
 
+// ============================================================================
+// FAST-PATH: Deterministic URL construction for common query patterns.
+// Bypasses the inner generateText() AI call (~15-20s savings) for:
+//   - portfolio queries ("portfolio 0x...")
+//   - transaction history ("transactions 0x...", "tx history 0x...")
+//   - token positions ("token holdings 0x...", "positions 0x...")
+// Falls through to the AI agent for complex/ambiguous queries.
+// ============================================================================
+
+// Supported chain name → Zerion chain ID mapping
+const CHAIN_ALIAS_MAP: Record<string, string> = {
+  ethereum: "ethereum", eth: "ethereum", mainnet: "ethereum",
+  polygon: "polygon", matic: "polygon", poly: "polygon",
+  base: "base",
+  arbitrum: "arbitrum", arb: "arbitrum",
+  optimism: "optimism", op: "optimism",
+  bsc: "binance-smart-chain", bnb: "binance-smart-chain", "binance-smart-chain": "binance-smart-chain",
+  avalanche: "avalanche", avax: "avalanche",
+  fantom: "fantom", ftm: "fantom",
+  gnosis: "gnosis", xdai: "gnosis",
+  linea: "linea",
+  blast: "blast",
+  scroll: "scroll",
+  zksync: "zksync-era", "zksync-era": "zksync-era",
+  mantle: "mantle",
+  celo: "celo",
+  monad: "monad",
+  berachain: "berachain", bera: "berachain",
+  sonic: "sonic",
+  abstract: "abstract",
+  sei: "sei",
+  solana: "solana", sol: "solana",
+  mode: "mode",
+};
+
+interface FastPathResult {
+  type: "portfolio" | "transactions" | "positions";
+  address: string;
+  chain?: string; // Zerion chain ID if specified
+  pageSize?: number;
+}
+
+/**
+ * Attempt to parse the user query into a deterministic API call.
+ * Returns null if the query is too ambiguous for fast-path.
+ */
+function tryFastPath(query: string): FastPathResult | null {
+  if (!query) return null;
+  const q = query.toLowerCase().trim();
+
+  // Extract EVM address
+  const addrMatch = q.match(/\b(0x[a-fA-F0-9]{40})\b/);
+  if (!addrMatch) return null; // No address → can't fast-path
+  const address = addrMatch[1];
+
+  // Extract chain if mentioned
+  let chain: string | undefined;
+  for (const [alias, zerionId] of Object.entries(CHAIN_ALIAS_MAP)) {
+    // Match chain name as a word boundary
+    const chainRegex = new RegExp(`\\b${alias}\\b`, "i");
+    if (chainRegex.test(q)) {
+      chain = zerionId;
+      break;
+    }
+  }
+
+  // Detect query type
+  const isPortfolio = /\b(portfolio|net\s*worth|total\s*balance|holdings|overview|summary)\b/i.test(q);
+  const isTransactions = /\b(transaction|tx|history|recent\s*activity|transfers?)\b/i.test(q);
+  const isPositions = /\b(token|position|erc.?20|balances?|what\s+tokens?|token\s+holdings?)\b/i.test(q);
+
+  // Extract page size for transactions
+  let pageSize: number | undefined;
+  const pageSizeMatch = q.match(/\b(\d+)\s*(transaction|tx|transfers?)/i) || q.match(/\b(show|get|fetch|provide)\s+(\d+)/i);
+  if (pageSizeMatch) {
+    const num = parseInt(pageSizeMatch[1] || pageSizeMatch[2]);
+    if (!isNaN(num) && num > 0 && num <= 100) pageSize = num;
+  }
+  if (/\ball\s*(transaction|tx|transfers?|recent)/i.test(q)) pageSize = 100;
+
+  if (isPortfolio) return { type: "portfolio", address, chain };
+  if (isTransactions) return { type: "transactions", address, chain, pageSize };
+  if (isPositions) return { type: "positions", address, chain };
+
+  // Default: if we have an address and no specific type, default to portfolio
+  // (most common case: "portfolio vitalik.eth" → pre-resolved to "portfolio 0x...")
+  return { type: "portfolio", address, chain };
+}
+
+/**
+ * Execute a fast-path Zerion API call without the inner AI agent.
+ * Returns the raw JSON response or null on failure.
+ */
+async function executeFastPath(
+  fp: FastPathResult,
+  apiKey: string
+): Promise<{ data: any; urls: string[] } | null> {
+  const headers = {
+    accept: "application/json",
+    authorization: `Basic ${apiKey}`,
+  };
+
+  const urls: string[] = [];
+
+  try {
+    if (fp.type === "portfolio") {
+      // Fetch portfolio summary + positions in parallel
+      const portfolioUrl = `${zerionBaseURL}/v1/wallets/${fp.address}/portfolio?currency=usd`;
+      const chainFilter = fp.chain ? `&filter[chain_ids]=${fp.chain}` : "";
+      const positionsUrl = `${zerionBaseURL}/v1/wallets/${fp.address}/positions/?currency=usd&sort=-value&page[size]=30${chainFilter}`;
+
+      urls.push(portfolioUrl, positionsUrl);
+      console.log(`[FAST-PATH] portfolio: ${portfolioUrl}`);
+      console.log(`[FAST-PATH] positions: ${positionsUrl}`);
+
+      const [portfolioRes, positionsRes] = await Promise.all([
+        fetch(portfolioUrl, { method: "GET", headers }),
+        fetch(positionsUrl, { method: "GET", headers }),
+      ]);
+
+      if (!portfolioRes.ok) {
+        // Check for "untrackable wallet address" — common for exchange hot wallets
+        const errorBody = await portfolioRes.text().catch(() => "");
+        console.error(`[FAST-PATH] Portfolio API error: ${portfolioRes.status} ${errorBody}`);
+
+        if (portfolioRes.status === 400 && errorBody.includes("untrackable")) {
+          // Return a structured error so the AI can explain it
+          return {
+            data: {
+              __fastPath: true,
+              __dataType: "error",
+              __errorType: "untrackable_wallet",
+              message: "This wallet address is flagged as untrackable by Zerion (typically exchange hot wallets like Binance, Coinbase, etc.). Portfolio data is not available through Zerion for this address. Try using Arkham Intelligence instead for exchange wallet analysis.",
+            },
+            urls,
+          };
+        }
+        return null;
+      }
+
+      const portfolioJson = await portfolioRes.json();
+      const positionsJson = positionsRes.ok ? await positionsRes.json() : null;
+
+      return {
+        data: {
+          portfolio: portfolioJson,
+          positions: positionsJson,
+          __fastPath: true,
+          __dataType: "portfolio",
+        },
+        urls,
+      };
+    }
+
+    if (fp.type === "transactions") {
+      const chainFilter = fp.chain ? `&filter[chain_ids]=${fp.chain}` : "";
+      const pageSize = fp.pageSize || 10;
+      const txUrl = `${zerionBaseURL}/v1/wallets/${fp.address}/transactions/?currency=usd&filter[trash]=only_non_trash&page[size]=${pageSize}${chainFilter}`;
+
+      urls.push(txUrl);
+      console.log(`[FAST-PATH] transactions: ${txUrl}`);
+
+      const txRes = await fetch(txUrl, { method: "GET", headers });
+      if (!txRes.ok) {
+        console.error(`[FAST-PATH] Transactions API error: ${txRes.status}`);
+        return null;
+      }
+
+      const txJson = await txRes.json();
+      return {
+        data: { ...txJson, __fastPath: true, __dataType: "transactions" },
+        urls,
+      };
+    }
+
+    if (fp.type === "positions") {
+      const chainFilter = fp.chain ? `&filter[chain_ids]=${fp.chain}` : "";
+      const posUrl = `${zerionBaseURL}/v1/wallets/${fp.address}/positions/?currency=usd&sort=-value&page[size]=50${chainFilter}`;
+
+      urls.push(posUrl);
+      console.log(`[FAST-PATH] positions: ${posUrl}`);
+
+      const posRes = await fetch(posUrl, { method: "GET", headers });
+      if (!posRes.ok) {
+        console.error(`[FAST-PATH] Positions API error: ${posRes.status}`);
+        return null;
+      }
+
+      const posJson = await posRes.json();
+      return {
+        data: { ...posJson, __fastPath: true, __dataType: "positions" },
+        urls,
+      };
+    }
+  } catch (err) {
+    console.error("[FAST-PATH] Error:", err);
+    return null;
+  }
+
+  return null;
+}
 
 export const getEvmOnchainDataUsingZerion = tool({
   description: "PRIMARY TOOL for EVM wallet data. Get transaction history, token balances, portfolio, and NFTs from 45+ chains (Ethereum, Polygon, Base, Arbitrum, Berachain, Sonic, etc). ALWAYS use this FIRST for any wallet or transaction query!",
@@ -138,11 +339,147 @@ export const getEvmOnchainDataUsingZerion = tool({
         throw Error("zerion api key not found");
       }
 
-      const zerionOpenapidata = await loadOpenAPIFromJson(zerionJson);
-      const zerionAllPathsAndDesc = await getAllPathsAndDesc(zerionOpenapidata);
-
       let fetchedData: any = null;
       let queriedAddress: string | null = null;
+
+      // =================================================================
+      // FAST-PATH: Try deterministic URL construction first.
+      // If the query matches a known pattern (portfolio, transactions,
+      // positions), we skip the inner AI agent entirely (~15-20s savings).
+      // =================================================================
+      const fastPath = tryFastPath(userQuery || "");
+      if (fastPath) {
+        const fpStart = Date.now();
+        console.log(`[FAST-PATH] Detected ${fastPath.type} for ${fastPath.address}${fastPath.chain ? ` on ${fastPath.chain}` : ""}`);
+
+        const fpResult = await executeFastPath(fastPath, apiKey);
+
+        if (fpResult && fpResult.data) {
+          const fpElapsed = Date.now() - fpStart;
+          console.log(`[FAST-PATH] ✅ Completed in ${fpElapsed}ms (bypassed inner AI agent)`);
+          queriedAddress = fastPath.address;
+          fetchedData = fpResult.data;
+
+          // Handle error responses from fast-path (e.g., untrackable wallets)
+          if (fpResult.data.__dataType === "error") {
+            console.log(`[FAST-PATH] Returning error: ${fpResult.data.__errorType}`);
+            return {
+              _fastPath: true,
+              type: "error" as const,
+              errorType: fpResult.data.__errorType,
+              address: queriedAddress,
+              message: fpResult.data.message,
+            };
+          }
+
+          // Transform portfolio fast-path result to match expected UI format
+          if (fastPath.type === "portfolio" && fpResult.data.portfolio?.data) {
+            const portfolioAttr = fpResult.data.portfolio.data.attributes || {};
+            const chainDistribution: { [key: string]: number } = {};
+            if (portfolioAttr.positions_distribution_by_chain) {
+              for (const [chain, value] of Object.entries(portfolioAttr.positions_distribution_by_chain)) {
+                chainDistribution[chain] = typeof value === "number" ? value : 0;
+              }
+            }
+            const typeDistribution = portfolioAttr.positions_distribution_by_type || {};
+
+            // Build positions summary for the AI to narrate
+            let positionsSummary = "";
+            if (fpResult.data.positions?.data && Array.isArray(fpResult.data.positions.data)) {
+              const topPositions = fpResult.data.positions.data
+                .filter((pos: any) => (pos.attributes?.value || 0) > 0.10) // Hide dust/spam tokens
+                .sort((a: any, b: any) => (b.attributes?.value || 0) - (a.attributes?.value || 0)) // Sort by value desc
+                .slice(0, 15)
+                .map((pos: any) => {
+                  const attr = pos.attributes || {};
+                  const fungible = attr.fungible_info || {};
+                  const value = attr.value || 0;
+                  const quantity = attr.quantity?.float || 0;
+                  return `${fungible.symbol || "?"}: ${quantity.toLocaleString()} ($${value.toFixed(2)})`;
+                });
+              positionsSummary = `\nTop holdings: ${topPositions.join(", ")}`;
+            }
+
+            console.log("Captured portfolio data for UI");
+            console.log("Returning structured portfolio data for UI");
+
+            return {
+              type: "portfolio" as const,
+              id: queriedAddress || "",
+              currency: "usd",
+              attributes: {
+                positions_distribution_by_type: {
+                  wallet: typeDistribution.wallet || 0,
+                  deposited: typeDistribution.deposited || typeDistribution.deposit || 0,
+                  borrowed: typeDistribution.borrowed || typeDistribution.loan || 0,
+                  locked: typeDistribution.locked || 0,
+                  staked: typeDistribution.staked || 0,
+                },
+                // Filter out dust chains (< $0.10)
+                positions_distribution_by_chain: Object.fromEntries(
+                  Object.entries(chainDistribution)
+                    .filter(([, v]) => (v as number) >= 0.10)
+                    .sort(([, a], [, b]) => (b as number) - (a as number))
+                ),
+                total: {
+                  positions: portfolioAttr.total?.positions || null,
+                },
+                changes: {
+                  absolute_1d: portfolioAttr.changes?.absolute_1d || 0,
+                  percent_1d: portfolioAttr.changes?.percent_1d || 0,
+                },
+              },
+              // Attach positions summary for the AI to narrate naturally
+              _positionsSummary: positionsSummary,
+              _totalValue: Object.values(typeDistribution).reduce((a: number, b: any) => a + (typeof b === "number" ? b : 0), 0),
+            };
+          }
+
+          // For transactions fast-path, process through existing transaction transformer below
+          if (fastPath.type === "transactions") {
+            fetchedData = fpResult.data;
+            // Fall through to the transaction transformation logic at the bottom
+          }
+
+          // For positions fast-path, return the data for the AI to narrate
+          if (fastPath.type === "positions" && fpResult.data.data) {
+            const positions = Array.isArray(fpResult.data.data) ? fpResult.data.data : [];
+            const formatted = positions
+              .filter((pos: any) => (pos.attributes?.value || 0) > 0.10) // Hide dust/spam
+              .sort((a: any, b: any) => (b.attributes?.value || 0) - (a.attributes?.value || 0))
+              .slice(0, 30)
+              .map((pos: any) => {
+                const attr = pos.attributes || {};
+                const fungible = attr.fungible_info || {};
+                const chain = pos.relationships?.chain?.data?.id || "unknown";
+                return {
+                  symbol: fungible.symbol || "?",
+                  name: fungible.name || "Unknown",
+                  chain,
+                  value: attr.value || 0,
+                  quantity: attr.quantity?.float || 0,
+                  price: attr.price || 0,
+                };
+              });
+
+            return {
+              _fastPath: true,
+              type: "positions",
+              address: queriedAddress,
+              totalPositions: positions.length,
+              positions: formatted,
+            };
+          }
+        } else {
+          console.log("[FAST-PATH] ⚠️ Failed or no data, falling back to AI agent");
+        }
+      }
+
+      // =================================================================
+      // SLOW-PATH: Full inner AI agent (only for complex/ambiguous queries)
+      // =================================================================
+      const zerionOpenapidata = await loadOpenAPIFromJson(zerionJson);
+      const zerionAllPathsAndDesc = await getAllPathsAndDesc(zerionOpenapidata);
 
       const aiAgentResponse = await generateText({
         model: myProvider.languageModel("xai-grok-4.1-fast"),

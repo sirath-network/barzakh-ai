@@ -42,10 +42,11 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Zerion API error:", response.status, errorText);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData?.errors?.[0]?.detail || "Failed to fetch positions from Zerion";
+      console.error("Zerion API error:", response.status, errorData);
       return NextResponse.json(
-        { error: "Failed to fetch positions from Zerion" },
+        { error: errorMessage },
         { status: response.status }
       );
     }
@@ -61,4 +62,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

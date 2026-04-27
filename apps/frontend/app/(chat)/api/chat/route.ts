@@ -279,6 +279,7 @@ export async function POST(request: Request) {
   let activeUserId: string;
   let isGuest = false;
   let guestSessionId: string | null = null;
+  let user_info: any = null; // Hoisted to outer scope for reuse in agent wallet config
 
   if (session?.user?.id) {
     activeUserId = session.user.id;
@@ -341,7 +342,7 @@ export async function POST(request: Request) {
     }
 
     const users = await getUserById(activeUserId);
-    let user_info = users[0];
+    user_info = users[0];
 
     if (user_info.tier !== "free" && user_info.x402PeriodEnd) {
       const periodEnd = new Date(user_info.x402PeriodEnd);
@@ -663,21 +664,18 @@ export async function POST(request: Request) {
     let agentWalletText = "\n- **Agent Automation**: Disabled (User MUST authorize transactions manually)";
 
     try {
-      const freshUserData = await getUserById(session.user.id);
-      if (freshUserData && freshUserData.length > 0) {
-        const userData = freshUserData[0];
-        currentTier = userData.tier || 'free';
-        currentBillingCycle = userData.billingCycle || 'monthly';
-        username = userData.username || userData.email || username;
-      }
+      // Reuse user_info already fetched above (line 343) instead of a duplicate DB call.
+      // This avoids a redundant getUserById round-trip (~200-400ms savings).
+      const userData = user_info; // already fresh from the rate-limit check above
+      currentTier = userData.tier || 'free';
+      currentBillingCycle = userData.billingCycle || 'monthly';
+      username = userData.username || userData.email || username;
 
-      // Fetch Agent Wallet and Automation Status (Multi-Chain)
+      // Fetch Agent Wallet and Automation Status (Multi-Chain) — all in parallel
       const { hasDelegation, getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-      const [isEvmEnabled, isSolanaEnabled] = await Promise.all([
+      const [isEvmEnabled, isSolanaEnabled, evmWalletAddress, solanaWalletAddress] = await Promise.all([
         hasDelegation(session.user.id, "evm"),
         hasDelegation(session.user.id, "solana"),
-      ]);
-      const [evmWalletAddress, solanaWalletAddress] = await Promise.all([
         getUserAgentWalletAddress(session.user.id, "evm"),
         getUserAgentWalletAddress(session.user.id, "solana"),
       ]);
@@ -735,14 +733,30 @@ export async function POST(request: Request) {
     const chat = await getChatById({ id });
 
     if (!chat) {
-      const title = await generateTitleFromUserMessage({ message: userMessage });
-      // Pass forkedFromChatId if this is a forked chat from a shared conversation
+      // Create the Chat record IMMEDIATELY with a placeholder title
+      // so the FK constraint is satisfied when saveMessages() runs below.
       await saveChat({
         id,
         userId: activeUserId,
-        title,
+        title: "New Chat",
         forkedFromChatId: history_for_context_id,
       });
+
+      // Defer title generation to background — it calls an AI model (~1-3s)
+      // and should not block the main response stream.
+      // We UPDATE the title asynchronously after the chat row already exists.
+      const titlePromise = generateTitleFromUserMessage({ message: userMessage })
+        .then(async (title) => {
+          const { updateChatTitleById } = await import("@/lib/db/queries");
+          await updateChatTitleById({ chatId: id, title });
+        })
+        .catch((err) => {
+          console.error("Failed to generate chat title (chat already saved with fallback):", err);
+          // Chat already exists with "New Chat" title — no data loss
+        });
+
+      // Fire-and-forget: runs concurrently with the streaming response.
+      void titlePromise;
     }
   }
 
@@ -1019,8 +1033,8 @@ export async function POST(request: Request) {
 - **AGENT IDENTITY**: You have an embedded agent wallet on BNB Chain. If you are unsure about your address or BNB balance, use \`getAgentWalletInfo\`. To check a specific token balance, use \`getAgentTokenBalance\`.
 - **SELL ALL**: The \`executeFourMemeSell\` tool now supports the string "all" for \`tokenAmount\`. Use this when the user wants to liquidate their entire position.`,
           messages: resolvedMessages, // Use resolved messages with signed R2 URLs
-          maxSteps: 10,
-          maxRetries: 3, // Retry up to 3 times on failure
+          maxSteps: 8,
+          maxRetries: 2, // Retry up to 2 times on failure
           experimental_activeTools: safeActiveTools,
           experimental_generateMessageId: generateUUID,
           tools: wrappedTools,
