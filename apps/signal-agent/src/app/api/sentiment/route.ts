@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const base64Image = Buffer.from(arrayBuffer).toString('base64');
     const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-    // 3. Process with AI/ML API (Gemini 3 Flash Preview)
+    // 3. Process with OpenRouter (Gemini 2.5 Flash)
     let prompt = `Analyze this image associated with the token ${token_name}. Are there bullish or bearish signals? Provide a sentiment score from 0 to 100 where 100 is extremely bullish, a VERY short analysis (maximum 2 sentences), and a definitive trading signal (e.g. STRONG BUY, BUY, HOLD, SELL, LONG, SHORT). Additionally, provide specific numeric trade targets: "entry_price", "take_profit", and "stop_loss". Output purely as JSON with keys "sentiment_score", "analysis", "trading_signal", "entry_price", "take_profit", and "stop_loss" and nothing else.`;
 
     if (market_data) {
@@ -61,14 +61,14 @@ export async function POST(req: Request) {
         Incorporate this multi-timeframe price action, volume, and momentum into your specific trading signal and analysis!`;
     }
 
-    const aimlResponse = await fetch('https://api.aimlapi.com/v1/chat/completions', {
+    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.AIMLAPI_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-1-pro-preview',
+        model: 'google/gemini-2.5-flash',
         response_format: { type: "json_object" },
         messages: [
           {
@@ -83,16 +83,16 @@ export async function POST(req: Request) {
       }),
     });
 
-    if (!aimlResponse.ok) {
-      const errorText = await aimlResponse.text();
-      throw new Error(`AI/ML API Error: ${aimlResponse.status} - ${errorText}`);
+    if (!openRouterResponse.ok) {
+      const errorText = await openRouterResponse.text();
+      throw new Error(`OpenRouter API Error: ${openRouterResponse.status} - ${errorText}`);
     }
 
-    const aimlData = await aimlResponse.json();
-    let content = aimlData.choices[0].message.content;
+    const responseData = await openRouterResponse.json();
+    let content = responseData.choices[0].message.content;
 
     if (!content) {
-      throw new Error("No response text from Gemini via AI/ML API");
+      throw new Error("No response text from Gemini via OpenRouter");
     }
 
     // Clean markdown blocks if the model wrapped it
