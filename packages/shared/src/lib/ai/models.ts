@@ -45,6 +45,84 @@ interface ChatModel {
   description: string;
 }
 
+// Tier-based model access control
+// Defines which models are available on each subscription tier.
+// Each tier inherits all models from lower tiers.
+export type SubscriptionTier = "free" | "pro" | "ultimate";
+
+// Models available on the FREE tier — generous selection of efficient, available models
+const FREE_TIER_MODELS: readonly string[] = [
+  "openai-gpt-4o",
+  "openai-gpt-4.1",
+  "google-gemini-2.5-flash-preview",
+  "google-gemini-3-flash",
+  "google-gemma-4-31b-it",
+  "anthropic-haiku-4.5",
+  "xai-grok-4.1-fast",
+  "kimi-k2-thinking",
+  "qwen-3.5-flash",
+  "zai-glm-4.7",
+] as const;
+
+// Additional models unlocked on the PRO tier (on top of free)
+const PRO_TIER_EXTRA_MODELS: readonly string[] = [
+  "openai-gpt-5.1",
+  "openai-gpt-5.2",
+  "anthropic-sonnet-4.6",
+  "anthropic-opus-4.6",
+  "google-gemini-3.1-pro-preview",
+  "xai-grok-4.20",
+  "kimi-k2.5",
+  "qwen-3.5-plus",
+  "zai-glm-5.1",
+] as const;
+
+// Additional models unlocked on the ULTIMATE tier (on top of pro)
+const ULTIMATE_TIER_EXTRA_MODELS: readonly string[] = [
+  "openai-gpt-5.3-codex",
+  "openai-gpt-5.4",
+  "anthropic-opus-4.7",
+  "kimi-k2.6",
+  "qwen-3.6-plus",
+] as const;
+
+// Pre-computed sets for fast lookups
+const PRO_TIER_MODELS: readonly string[] = [...FREE_TIER_MODELS, ...PRO_TIER_EXTRA_MODELS];
+const ULTIMATE_TIER_MODELS: readonly string[] = [...PRO_TIER_MODELS, ...ULTIMATE_TIER_EXTRA_MODELS];
+
+/**
+ * Get the list of model IDs available for a given subscription tier.
+ * Returns undefined for ultimate (all models allowed).
+ */
+export function getModelsForTier(tier: SubscriptionTier): readonly string[] | undefined {
+  switch (tier) {
+    case "free":
+      return FREE_TIER_MODELS;
+    case "pro":
+      return PRO_TIER_MODELS;
+    case "ultimate":
+      return undefined; // Ultimate has access to ALL models
+    default:
+      return FREE_TIER_MODELS;
+  }
+}
+
+/**
+ * Check if a specific model is available for a given tier.
+ */
+export function isModelAvailableForTier(modelId: string, tier: SubscriptionTier): boolean {
+  if (tier === "ultimate") return true;
+  const allowedModels = getModelsForTier(tier);
+  return allowedModels ? allowedModels.includes(modelId) : false;
+}
+
+/**
+ * Get the fallback model for a tier when the requested model is not available.
+ */
+export function getFallbackModelForTier(tier: SubscriptionTier): string {
+  return DEFAULT_CHAT_MODEL; // Always fall back to default (Gemini 2.5 Flash)
+}
+
 export const chatModels: Array<ChatModel> = [
   // --- OpenAI ---
   {

@@ -8,7 +8,7 @@ import {
 import { after } from "next/server";
 import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
-import { myProvider } from "@barzakh/shared/lib/ai/models";
+import { myProvider, isModelAvailableForTier, getFallbackModelForTier, type SubscriptionTier } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig, systemPrompt as baseSystemPrompt } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
@@ -725,7 +725,18 @@ export async function POST(request: Request) {
   // ALWAYS use forced model if the effectiveGroup has one defined, regardless of how we got here
   // This ensures image tools always use appropriate models even when user manually selects a group
   const groupForcedModel = FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP];
-  const effectiveModel = groupForcedModel || selectedChatModel;
+  let effectiveModel = groupForcedModel || selectedChatModel;
+
+  // Server-side tier enforcement: validate the selected model against user's tier
+  // This prevents API-level bypass of frontend tier restrictions
+  if (!isGuest && user_info) {
+    const userTier = (user_info.tier || "free") as SubscriptionTier;
+    if (!groupForcedModel && !isModelAvailableForTier(effectiveModel, userTier)) {
+      console.warn(`[TIER] User ${user_info.email} (${userTier}) attempted to use restricted model: ${effectiveModel}. Falling back.`);
+      effectiveModel = getFallbackModelForTier(userTier);
+    }
+  }
+
   const finalModel = isGuest ? "google-gemini-2.5-flash-preview" : effectiveModel;
 
   // For incognito/temporary chats, skip all DB persistence

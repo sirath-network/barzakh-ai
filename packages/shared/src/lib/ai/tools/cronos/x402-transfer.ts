@@ -27,13 +27,13 @@ const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
 const PLAN_FEATURES: Record<string, string[]> = {
     pro: [
         "50-150 messages/day (based on billing cycle)",
-        "Access to all AI models",
+        "Access to 19 AI models (incl. GPT 5.1/5.2, Claude Sonnet/Opus, Gemini 3.1 Pro)",
         "Priority support",
         "Advanced blockchain tools",
     ],
     ultimate: [
         "250-500 messages/day (based on billing cycle)",
-        "Unlimited AI model access",
+        "Unlimited access to ALL 24 AI models (incl. GPT 5.3 Codex, GPT 5.4, Claude Opus 4.7)",
         "Dedicated priority support",
         "Full API access",
         "Custom integrations",

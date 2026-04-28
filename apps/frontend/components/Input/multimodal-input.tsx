@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { sanitizeUIMessages } from "@barzakh/shared/lib/utils/utils";
+import { getModelsForTier, type SubscriptionTier } from "@barzakh/shared/lib/ai/models";
 import { PreviewAttachment } from "../preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -252,6 +253,12 @@ function PureMultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [previousModel, setPreviousModel] = useLocalStorage<string | null>("previousModel", null);
+
+  // Derive allowed models based on user's subscription tier
+  const tierAllowedModels = useMemo(() => {
+    const tier = (user as any)?.tier as SubscriptionTier | undefined;
+    return getModelsForTier(tier || "free");
+  }, [(user as any)?.tier]);
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     "input",
@@ -1145,7 +1152,7 @@ function PureMultimodalInput({
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}
                       disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup) || !user}
-                      allowedModels={undefined}
+                      allowedModels={tierAllowedModels}
                     />
                   )}
 

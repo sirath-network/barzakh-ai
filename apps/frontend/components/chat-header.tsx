@@ -145,8 +145,8 @@ function PureChatHeader({
 
         {/* === Right Section === */}
         <div className="flex items-center justify-end gap-2 z-20">
-          {/* Incognito Mode Toggle - only show on new chats (before first message) */}
-          {!title && messages.length === 0 && (
+          {/* Incognito Mode Toggle - only show for logged-in users on new chats (before first message) */}
+          {user && !title && messages.length === 0 && (
             <TooltipAny>
               <TooltipTriggerAny asChild>
                 <ButtonAny

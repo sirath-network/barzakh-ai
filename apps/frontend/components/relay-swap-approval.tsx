@@ -11,7 +11,8 @@ import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info,
 import { createClient } from "@relayprotocol/relay-sdk";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { motion, AnimatePresence } from "framer-motion";
-import { useChainWallet, isNonEvmChain, getNonEvmChainName } from "@/hooks/use-chain-wallet";
+import { useChainWallet, isNonEvmChain, getNonEvmChainName, SOLANA_CHAIN_ID, BITCOIN_CHAIN_ID, TRON_CHAIN_ID } from "@/hooks/use-chain-wallet";
+import { WALLET_TAB_INDEX } from "@/components/providers/dynamic-wallet-provider";
 
 // Dynamic import DynamicWidget to prevent SSR issues
 const DynamicWidget = dynamic(
@@ -28,17 +29,44 @@ const ButtonAny = Button as any;
 // Solana RPC URL - use env var or fallback to public endpoint
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://solana-rpc.publicnode.com";
 
-// Custom connect button for Dynamic SDK - styled like the EVM wallet connect button
-const DynamicConnectButton = () => {
-    const { setShowAuthFlow } = useDynamicContext();
+/**
+ * Map a Relay chain ID to the appropriate Dynamic wallet tab index.
+ * This ensures the wallet picker only shows relevant wallets for the chain.
+ */
+function getWalletTabForChain(chainId?: number): number {
+    if (!chainId) return WALLET_TAB_INDEX.ALL;
+    switch (chainId) {
+        case SOLANA_CHAIN_ID:  return WALLET_TAB_INDEX.SOLANA;
+        case BITCOIN_CHAIN_ID: return WALLET_TAB_INDEX.BITCOIN;
+        case TRON_CHAIN_ID:    return WALLET_TAB_INDEX.ALL; // Tron doesn't have its own tab
+        default:               return WALLET_TAB_INDEX.EVM;
+    }
+}
+
+/**
+ * Chain-aware connect button — pre-selects the correct wallet tab
+ * in the Dynamic SDK modal before opening the auth flow.
+ * e.g. SOL source → Solana tab (Phantom, Solflare, Backpack)
+ *      EVM source → EVM tab (MetaMask, Rabby, WalletConnect)
+ */
+const DynamicConnectButton = ({ chainId, label }: { chainId?: number; label?: string }) => {
+    const { setShowAuthFlow, setSelectedTabIndex } = useDynamicContext() as any;
+
+    const handleConnect = () => {
+        const tabIndex = getWalletTabForChain(chainId);
+        if (typeof setSelectedTabIndex === 'function') {
+            setSelectedTabIndex(tabIndex);
+        }
+        setShowAuthFlow(true);
+    };
 
     return (
         <ButtonAny
-            onClick={() => setShowAuthFlow(true)}
+            onClick={handleConnect}
             className="w-full h-11 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
         >
             <Wallet className="size-4 mr-2" />
-            Connect Wallet
+            {label || "Connect Wallet"}
         </ButtonAny>
     );
 };
@@ -515,7 +543,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     }, [isConnected, isSourceNonEvm, sourceWallet?.address]);
 
-    const { handleLogOut, setShowAuthFlow, primaryWallet } = useDynamicContext();
+    const { handleLogOut, setShowAuthFlow, setSelectedTabIndex, primaryWallet } = useDynamicContext() as any;
 
     // Auto-disconnect on success
     useEffect(() => {
@@ -987,7 +1015,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     {isEvmDestination && isSourceNonEvm && (
                         <div className="mb-3">
                             <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                <DynamicConnectButton />
+                                <DynamicConnectButton chainId={destinationChainIdNum} label="Connect EVM Wallet" />
                             </div>
                             <div className="flex items-center gap-3 my-3">
                                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
@@ -1017,13 +1045,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 <>
                                     {requiredChainIdNum !== destinationChainIdNum && (
                                         <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                            <ButtonAny
-                                                onClick={() => setShowAuthFlow(true)}
-                                                className="w-full h-10 bg-white text-black hover:bg-zinc-100 font-semibold text-sm shadow-sm"
-                                            >
-                                                <Wallet className="size-4 mr-2" />
-                                                Connect {getNonEvmChainName(destinationChainIdNum!) || destChain || "Destination"} Wallet
-                                            </ButtonAny>
+                                            <DynamicConnectButton
+                                                chainId={destinationChainIdNum}
+                                                label={`Connect ${getNonEvmChainName(destinationChainIdNum!) || destChain || "Destination"} Wallet`}
+                                            />
                                         </div>
                                     )}
                                     <div className="flex items-center gap-3 my-3">
@@ -1258,25 +1283,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 <p className="text-xs text-zinc-500 dark:text-zinc-500 mb-3">
                                     To swap from {isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : sourceChain || "EVM"}, connect a wallet like {
                                         isSourceNonEvm
-                                            ? requiredChainIdNum === 792703809 ? "Phantom or Solflare" :
-                                                requiredChainIdNum === 8253038 ? "Xverse or Unisat" :
-                                                    requiredChainIdNum === 728126428 ? "TronLink" : "a native wallet"
+                                            ? requiredChainIdNum === SOLANA_CHAIN_ID ? "Phantom, Solflare, or Backpack" :
+                                                requiredChainIdNum === BITCOIN_CHAIN_ID ? "Xverse or Unisat" :
+                                                    requiredChainIdNum === TRON_CHAIN_ID ? "TronLink" : "a native wallet"
                                             : "MetaMask or Rabby"
                                     }.
                                 </p>
-                                {isSourceNonEvm ? (
-                                    <DynamicConnectButton />
-                                ) : (
-                                    <div className="flex justify-center w-full [&_button]:w-full [&_button]:h-10 [&_button]:text-sm">
-                                        <ButtonAny
-                                            onClick={() => setShowAuthFlow(true)}
-                                            className="w-full h-11 bg-white hover:bg-zinc-100 text-black font-semibold shadow-sm border border-zinc-200 dark:border-zinc-800 transition-colors"
-                                        >
-                                            <Wallet className="size-4 mr-2" />
-                                            Connect Wallet
-                                        </ButtonAny>
-                                    </div>
-                                )}
+                                {/* Chain-aware connect button — auto-selects the correct wallet tab */}
+                                <DynamicConnectButton
+                                    chainId={requiredChainIdNum}
+                                    label={`Connect ${isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : ""} Wallet`}
+                                />
                             </div>
                             {/* Destination address input — placed right below Connect Wallet for visual flow */}
                             {renderMinimalDestinationInput()}

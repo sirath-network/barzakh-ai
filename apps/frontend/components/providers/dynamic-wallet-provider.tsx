@@ -16,6 +16,9 @@ import { SolanaWalletConnectors } from "@dynamic-labs/solana";
 import { BitcoinWalletConnectors } from "@dynamic-labs/bitcoin";
 import { TronWalletConnectors } from "@dynamic-labs/tron";
 
+// Import FilterChain for chain-specific wallet tab filtering
+import { FilterChain } from "@dynamic-labs/sdk-react-core";
+
 interface DynamicWalletProviderProps {
     children: ReactNode;
 }
@@ -30,6 +33,20 @@ if (typeof window !== 'undefined') {
         originalWarn(...args);
     };
 }
+
+/**
+ * Wallet list tab indices — used by relay-swap-approval.tsx to
+ * programmatically switch to the correct chain tab before opening
+ * the Dynamic auth modal via `setSelectedTabIndex`.
+ *
+ * IMPORTANT: Keep these in sync with the `tabs.items` order below!
+ */
+export const WALLET_TAB_INDEX = {
+    ALL: 0,
+    EVM: 1,
+    SOLANA: 2,
+    BITCOIN: 3,
+} as const;
 
 /**
  * DynamicWalletProvider
@@ -80,6 +97,23 @@ export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) 
                 initialAuthenticationMode: "connect-only",
                 // Embedded wallet creation is configured in the Dynamic Dashboard
                 // (Settings → Embedded Wallets → Create on Login: Always)
+                //
+                // Wallet list tab views — allows relay-swap-approval to filter
+                // wallets by source chain before opening the auth modal.
+                // Tab index constants exported as WALLET_TAB_INDEX.
+                overrides: {
+                    views: [{
+                        type: "wallet-list" as const,
+                        tabs: {
+                            items: [
+                                { label: { text: "All" } },                                    // index 0
+                                { label: { text: "EVM" }, walletsFilter: FilterChain("EVM") }, // index 1
+                                { label: { text: "Solana" }, walletsFilter: FilterChain("SOL") }, // index 2
+                                { label: { text: "Bitcoin" }, walletsFilter: FilterChain("BTC") }, // index 3
+                            ],
+                        },
+                    }],
+                },
             }}
         >
             {children as any}
