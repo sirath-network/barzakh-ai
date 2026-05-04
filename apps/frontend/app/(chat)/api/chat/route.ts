@@ -8,12 +8,13 @@ import {
 import { after } from "next/server";
 import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
-import { myProvider } from "@barzakh/shared/lib/ai/models";
+import { myProvider, isModelAvailableForTier, getFallbackModelForTier, type SubscriptionTier } from "@barzakh/shared/lib/ai/models";
 import { allTools, getGroupConfig, systemPrompt as baseSystemPrompt } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
 import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
+import { createAutonomousSubscriptionTool } from "@/lib/ai/tools/agent-subscription-tool";
 import {
   decrementRemainingMessageCount,
   decrementGuestMessageCount,
@@ -717,7 +718,7 @@ export async function POST(request: Request) {
       console.warn("Failed to fetch fresh user data or agent config, using session:", error);
     }
 
-    const userSubscriptionContext = `\n\n## Current User Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}${agentWalletText}\n\nWhen using initiateX402Payment, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
+    const userSubscriptionContext = `\n\n## Current User Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}${agentWalletText}\n\nCRITICAL SUBSCRIPTION RULES:\n1. If the user wants to upgrade, downgrade, or cancel their subscription AND Agent Automation is ENABLED with an EVM wallet, you MUST use \`executeAutonomousSubscription\`. Do not use \`initiateX402Payment\` as it will halt execution and ask the user to pay manually.\n2. If Agent Automation is NOT enabled, or the user does not have an EVM agent wallet, you MUST use \`initiateX402Payment\` for upgrades/downgrades.\n3. Always ask the user for confirmation (e.g. "Do you want me to automatically upgrade you to Ultimate for $X using your agent wallet?") BEFORE executing \`executeAutonomousSubscription\`, unless they explicitly authorized it in their message.\n\nWhen using \`initiateX402Payment\`, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
     systemPrompt = systemPrompt + userSubscriptionContext;
   }
 
@@ -725,7 +726,17 @@ export async function POST(request: Request) {
   // ALWAYS use forced model if the effectiveGroup has one defined, regardless of how we got here
   // This ensures image tools always use appropriate models even when user manually selects a group
   const groupForcedModel = FORCED_MODEL_BY_GROUP[effectiveGroup as keyof typeof FORCED_MODEL_BY_GROUP];
-  const effectiveModel = groupForcedModel || selectedChatModel;
+  let effectiveModel = groupForcedModel || selectedChatModel;
+
+  // Server-side tier enforcement: validate model access
+  if (!isGuest && user_info) {
+    const userTier = (user_info.tier as SubscriptionTier) || "free";
+    if (!isModelAvailableForTier(effectiveModel, userTier)) {
+      console.warn(`[TIER] User ${user_info.email} (${userTier}) requested restricted model ${effectiveModel}, downgrading to default`);
+      effectiveModel = getFallbackModelForTier(userTier);
+    }
+  }
+
   const finalModel = isGuest ? "google-gemini-2.5-flash-preview" : effectiveModel;
 
   // For incognito/temporary chats, skip all DB persistence
@@ -805,11 +816,14 @@ export async function POST(request: Request) {
     safeActiveTools.push("querySignalAgent");
 
     if (isAgentEnabledLocally) {
+      safeActiveTools.push("executeAutonomousSubscription");
+
       // Remove all manual quoting and execution tools when automation is enabled to simplify AI routing
       safeActiveTools = safeActiveTools.filter(toolName => ![
         "prepareRelayTransaction",
         "getRelayBridgeQuote",
-        "getRelayQuote"
+        "getRelayQuote",
+        "initiateX402Payment"
       ].includes(toolName));
     }
   }
@@ -974,6 +988,7 @@ export async function POST(request: Request) {
       // Agent Wallet & Identity Tools
       getAgentWalletInfo: createGetAgentWalletInfoTool(session.user.id),
       getAgentTokenBalance: createGetAgentTokenBalanceTool(session.user.id),
+      executeAutonomousSubscription: createAutonomousSubscriptionTool(session.user.id),
     } : {}),
     // Override shared package quote tools with viem-based versions (always available)
     quoteFourMemeBuy: quoteFourMemeBuyTool,

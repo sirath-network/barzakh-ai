@@ -591,6 +591,7 @@ const PurePreviewMessage = ({
                       // They are handled internally by getMonadPortfolio
                       'createImage',
                       'initiateX402Payment',
+                      'executeAutonomousSubscription',
                       // Relay Protocol - all quote tools show UI
                       'getRelayQuote',
                       'getRelayBridgeQuote',
@@ -685,6 +686,7 @@ const PurePreviewMessage = ({
                               </div>
                             ),
                             initiateX402Payment: <X402PaymentApprovalAny result={result} />,
+                            executeAutonomousSubscription: <X402PaymentApprovalAny result={result} />,
                             // Relay Protocol - all quote tools show UI with swap/bridge details
                             getRelayQuote: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,
                             getRelayBridgeQuote: typeof result === 'string' ? null : <RelaySwapApprovalAny result={result} />,

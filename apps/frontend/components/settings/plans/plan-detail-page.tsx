@@ -32,6 +32,7 @@ const plans: Plan[] = [
     description: "Explore the top projects for free",
     image: "/images/barzakh/plan/free.png",
     features: [
+      "10 AI models (GPT 4o, GPT 4.1, Gemini Flash & more)",
       "Top 5 popular projects",
       "Top 5 surging projects",
       "Momentum graph preview",
@@ -49,6 +50,7 @@ const plans: Plan[] = [
     description: "Grind with Pro",
     image: "/images/barzakh/plan/pro.png",
     features: [
+      "19 AI models (incl. GPT 5.x, Claude Opus, Gemini Pro)",
       "Comprehensive project analysis",
       "Alerts when momentum breaks out",
       "Alerts on bookmarked projects",
@@ -68,6 +70,7 @@ const plans: Plan[] = [
     description: "Access higher limits",
     image: "/images/barzakh/plan/ultimate.png",
     features: [
+      "All 24+ AI models (incl. GPT 5.4, Opus 4.7, Kimi K2.6)",
       "All Pro features",
       "Higher chat limits",
       "3 custom daily reports",

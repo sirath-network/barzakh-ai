@@ -181,6 +181,79 @@ export const chatModels: Array<ChatModel> = [
   },
 ];
 
+// ──────────────────────────────────────────────────
+// Tier-based model access control
+// ──────────────────────────────────────────────────
+
+export type SubscriptionTier = "free" | "pro" | "ultimate" | "guest";
+
+/**
+ * Models available on the FREE tier.
+ * Curated for cost-efficiency while still impressive.
+ */
+const FREE_TIER_MODELS: readonly string[] = [
+  "openai-gpt-4o",
+  "openai-gpt-4.1",
+  "anthropic-haiku-4.5",
+  "google-gemini-2.5-flash-preview",
+  "google-gemini-3-flash",
+  "google-gemma-4-31b-it",
+  "xai-grok-4.1-fast",
+  "kimi-k2-thinking",
+  "qwen-3.5-flash",
+  "zai-glm-4.7",
+] as const;
+
+/**
+ * Models available on the PRO tier (includes all free models).
+ */
+const PRO_TIER_MODELS: readonly string[] = [
+  ...FREE_TIER_MODELS,
+  "openai-gpt-5.1",
+  "openai-gpt-5.2",
+  "anthropic-sonnet-4.6",
+  "anthropic-opus-4.6",
+  "google-gemini-3.1-pro-preview",
+  "xai-grok-4.20",
+  "kimi-k2.5",
+  "qwen-3.5-plus",
+  "zai-glm-5.1",
+] as const;
+
+/**
+ * Get the list of allowed model IDs for a given subscription tier.
+ * Returns undefined for ultimate (all models allowed).
+ */
+export function getModelsForTier(tier: SubscriptionTier): readonly string[] | undefined {
+  switch (tier) {
+    case "guest":
+    case "free":
+      return FREE_TIER_MODELS;
+    case "pro":
+      return PRO_TIER_MODELS;
+    case "ultimate":
+      return undefined; // Ultimate has access to ALL models
+    default:
+      return FREE_TIER_MODELS;
+  }
+}
+
+/**
+ * Check if a specific model is available for a given tier.
+ */
+export function isModelAvailableForTier(modelId: string, tier: SubscriptionTier): boolean {
+  const allowedModels = getModelsForTier(tier);
+  if (!allowedModels) return true; // Ultimate: all models
+  return allowedModels.includes(modelId);
+}
+
+/**
+ * Get the fallback model for a tier when the requested model isn't available.
+ */
+export function getFallbackModelForTier(tier: SubscriptionTier): string {
+  return DEFAULT_CHAT_MODEL; // google-gemini-2.5-flash-preview
+}
+
 interface ImagineModel {
   id: string;
   name: string;

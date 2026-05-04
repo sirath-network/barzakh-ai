@@ -15,17 +15,17 @@ function parseLimit(value: string | null): number {
 
 // USD prices for each plan and billing cycle (in cents)
 const PLAN_PRICES_CENTS: Record<string, Record<string, number>> = {
-        pro: {
-          monthly: 2500,
-          quarterly: 6600,
-          yearly: 24000,
-        },
-        ultimate: {
-          monthly: 25000,
-          quarterly: 66000,
-          yearly: 240000,
-        },
-      };
+    pro: {
+        monthly: 2500,
+        quarterly: 6600,
+        yearly: 24000,
+    },
+    ultimate: {
+        monthly: 25000,
+        quarterly: 66000,
+        yearly: 240000,
+    },
+};
 
 /**
  * GET /api/billing/x402/transactions

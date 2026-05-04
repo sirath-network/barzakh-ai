@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 import { sanitizeUIMessages } from "@barzakh/shared/lib/utils/utils";
+import { getModelsForTier, type SubscriptionTier } from "@barzakh/shared/lib/ai/models";
 import { PreviewAttachment } from "../preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -259,6 +260,12 @@ function PureMultimodalInput({
   );
   const [localStorageChatMode, setLocalStorageChatMode] =
     useLocalStorage<SearchGroupId>("chatMode", "search");
+
+  // Derive allowed models based on user tier
+  const allowedModels = useMemo(() => {
+    const tier = (user?.tier as SubscriptionTier) || "free";
+    return getModelsForTier(tier);
+  }, [user?.tier]);
 
   const showSuggestions = messages.length === 0 && !input && !disableSuggestions;
 
@@ -1145,7 +1152,7 @@ function PureMultimodalInput({
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}
                       disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup) || !user}
-                      allowedModels={undefined}
+                      allowedModels={allowedModels}
                     />
                   )}
 

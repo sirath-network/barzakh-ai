@@ -1700,7 +1700,8 @@ Always assume information being asked is related to Cronos blockchain, if not to
 - **getRelaySupportedChains**: Get list of supported chains and token support levels
 
 ## 7. x402 Subscription Payment Tools (Barzakh AI Subscriptions)
-- **initiateX402Payment**: Initiate a subscription payment for Barzakh AI. Use this when user wants to subscribe, upgrade, or renew a subscription. Parameters: planId ('pro' or 'ultimate'), billingCycle ('monthly', 'quarterly', 'yearly'). Returns a payment component for user approval.
+- **executeAutonomousSubscription**: Use this tool to autonomously subscribe, upgrade, downgrade, or cancel the user's subscription WHEN Agent Automation is ENABLED and they have an EVM wallet. It executes the x402 payment entirely autonomously.
+- **initiateX402Payment**: Initiate a subscription payment manually. Use this ONLY when Agent Automation is DISABLED. Parameters: planId ('pro' or 'ultimate'), billingCycle ('monthly', 'quarterly', 'yearly'). Returns a payment component for user approval.
 - **getSubscriptionInfo**: Get information about available subscription plans and pricing. Use when users ask about subscription options without wanting to subscribe immediately.
 
 Subscription Pricing:
@@ -1756,10 +1757,11 @@ Examples:
 Use webSearch tool for general Cronos ecosystem questions, news, tutorials, and documentation.
 
 ## For Subscription Queries:
-- "I want to subscribe" / "subscribe to pro monthly" → Use initiateX402Payment with planId and billingCycle
-- "What subscription plans are available?" / "pricing?" → Use getSubscriptionInfo
-- "Upgrade my plan" / "renew my subscription" → Use initiateX402Payment
-- "How much is the ultimate plan?" → Use getSubscriptionInfo first, or initiateX402Payment if user is ready
+- "I want to subscribe" / "subscribe to pro monthly" → Use \`executeAutonomousSubscription\` if Agent Automation is enabled, otherwise use \`initiateX402Payment\`
+- "What subscription plans are available?" / "pricing?" → Use \`getSubscriptionInfo\`
+- "Upgrade my plan" / "renew my subscription" → Use \`executeAutonomousSubscription\` if Agent Automation is enabled, otherwise use \`initiateX402Payment\`
+- "Cancel my subscription" → Use \`executeAutonomousSubscription\` if Agent Automation is enabled
+- "How much is the ultimate plan?" → Use \`getSubscriptionInfo\` first, then proceed based on user intent
 
 ## 8. Detecting Cronos Mainnet vs zkEVM (CRITICAL)
 

@@ -11,29 +11,29 @@ import { z } from "zod";
 
 // USD prices for each plan and billing cycle (must match backend pricing)
 const PLAN_PRICES_USD: Record<string, Record<string, number>> = {
-  pro: {
-    monthly: 25,
-    quarterly: 66,
-    yearly: 240,
-  },
-  ultimate: {
-    monthly: 250,
-    quarterly: 660,
-    yearly: 2400,
-  },
+    pro: {
+        monthly: 25,
+        quarterly: 66,
+        yearly: 240,
+    },
+    ultimate: {
+        monthly: 250,
+        quarterly: 660,
+        yearly: 2400,
+    },
 };
 
 // Plan features for display
 const PLAN_FEATURES: Record<string, string[]> = {
     pro: [
         "50-150 messages/day (based on billing cycle)",
-        "Access to all AI models",
+        "Access to 19 AI models (incl. GPT 5.x, Claude Opus, Gemini Pro)",
         "Priority support",
         "Advanced blockchain tools",
     ],
     ultimate: [
         "250-500 messages/day (based on billing cycle)",
-        "Unlimited AI model access",
+        "Access to all 24+ AI models (incl. GPT 5.4, Opus 4.7, Kimi K2.6)",
         "Dedicated priority support",
         "Full API access",
         "Custom integrations",

@@ -50,7 +50,10 @@ export function X402PaymentModal({
 
   // Wagmi hooks
   const { address, isConnected, chain } = useAccount();
-  const { setShowAuthFlow, handleLogOut } = useDynamicContext();
+  const { setShowAuthFlow, handleLogOut, showAuthFlow: dynamicAuthFlowVisible } = useDynamicContext();
+
+  // Track if we opened the Dynamic auth flow to prevent modal close
+  const [awaitingWalletConnect, setAwaitingWalletConnect] = useState(false);
 
   // USDC balance on Cronos Mainnet
   const { data: usdcBalance } = useBalance({
@@ -106,6 +109,7 @@ export function X402PaymentModal({
       setCopied(false);
       setConfirmPlanChange(false);
       setWalletVerified(false);
+      setAwaitingWalletConnect(false);
       resetSignTypedData?.();
     }
   }, [isOpen, planId, billingCycle, resetSignTypedData]);
@@ -115,12 +119,20 @@ export function X402PaymentModal({
     setWalletVerified(false);
   }, [address]);
 
-  // Auto-close modal when wallet disconnects after verification/payment step
+  // Clear awaitingWalletConnect once wallet actually connects
   useEffect(() => {
-    if (isOpen && !isConnected && (step === "payment" || step === "verify" || walletVerified)) {
+    if (isConnected && awaitingWalletConnect) {
+      setAwaitingWalletConnect(false);
+    }
+  }, [isConnected, awaitingWalletConnect]);
+
+  // Auto-close modal when wallet disconnects after verification/payment step
+  // BUT NOT when Dynamic auth flow is active (wallet connecting)
+  useEffect(() => {
+    if (isOpen && !isConnected && !awaitingWalletConnect && (step === "payment" || step === "verify" || walletVerified)) {
       onClose();
     }
-  }, [isConnected, isOpen, step, walletVerified, onClose]);
+  }, [isConnected, isOpen, step, walletVerified, awaitingWalletConnect, onClose]);
 
   // Step 1: Verify wallet ownership before payment
   const verifyWalletOwnership = async () => {
@@ -351,11 +363,21 @@ export function X402PaymentModal({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Handle dialog close
+  // Handle dialog close — prevent closing during wallet connection or signing flows
   const handleOpenChange = (open: boolean) => {
     if (!open) {
+      // Don't close during active wallet connection or signing flows
+      if (awaitingWalletConnect || dynamicAuthFlowVisible || step === "verify" || step === "signing" || step === "settling") {
+        return;
+      }
       onClose();
     }
+  };
+
+  // Helper to open Dynamic auth flow with tracking
+  const openWalletConnect = () => {
+    setAwaitingWalletConnect(true);
+    setShowAuthFlow(true);
   };
 
   return (
@@ -363,16 +385,14 @@ export function X402PaymentModal({
       <DialogContentAny
         className="sm:max-w-md w-[90%] rounded-xl"
         onPointerDownOutside={(e: any) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('[data-dynamic]') || target.closest('[data-radix-popper-content-wrapper]')) {
-            e.preventDefault();
-          }
+          // Always prevent pointer-down-outside from closing the dialog.
+          // This modal should only be closed via the X button.
+          // Dynamic SDK wallet popups, Rabby extension popups, etc.
+          // all render outside our dialog's DOM tree.
+          e.preventDefault();
         }}
         onInteractOutside={(e: any) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('[data-dynamic]') || target.closest('[data-radix-popper-content-wrapper]')) {
-            e.preventDefault();
-          }
+          e.preventDefault();
         }}
         onFocusOutside={(e: any) => {
           e.preventDefault();
@@ -437,7 +457,7 @@ export function X402PaymentModal({
                   {!isConnected ? (
                     /* Step 1: Connect Wallet */
                     <ButtonAny
-                      onClick={() => setShowAuthFlow(true)}
+                      onClick={() => openWalletConnect()}
                       className="w-full"
                       size="lg"
                     >
@@ -553,7 +573,7 @@ export function X402PaymentModal({
                 {!isConnected ? (
                   <div className="flex flex-col items-center gap-3">
                     <ButtonAny
-                      onClick={() => setShowAuthFlow(true)}
+                      onClick={() => openWalletConnect()}
                       className="w-full"
                       size="lg"
                     >

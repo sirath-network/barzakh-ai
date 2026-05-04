@@ -45,6 +45,11 @@ interface X402PaymentApprovalProps {
         reason?: string;
         error?: string;
         isDuplicate?: boolean;
+        isAgentExecution?: boolean;
+        planId?: string;
+        billingCycle?: string;
+        txHash?: string;
+        explorerUrl?: string;
         currentSubscription?: {
             tier: string;
             billingCycle: string;
@@ -223,6 +228,80 @@ export function X402PaymentApproval({ result }: X402PaymentApprovalProps) {
                 </motion.div>
             );
         }
+        
+        // Check if this was an autonomous agent execution success
+        if (result.isAgentExecution && result.success) {
+            const PlanIcon = result.planId?.toLowerCase() === "ultimate" ? Crown : Zap;
+            
+            return (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="w-full max-w-md mx-auto"
+                >
+                    <div className="relative overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900/90 backdrop-blur-xl shadow-2xl">
+                        {/* Marble Header Image */}
+                        <div className="relative h-32 w-full overflow-hidden">
+                            <Image
+                                src="/images/barzakh/banner/x402-art.png"
+                                alt="Marble Texture"
+                                fill
+                                className="object-cover opacity-80"
+                                style={{ objectPosition: "50% 35%" }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/40 to-transparent" />
+
+                            {/* Header Content on top of Marble */}
+                            <div className="absolute bottom-0 left-0 right-0 p-5 pb-2 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/5">
+                                        <Check className="size-5 text-green-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-white text-lg">Subscription Active</h3>
+                                        <p className="text-xs text-zinc-300 flex items-center gap-1">
+                                            Autonomously Executed
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-5 pt-3">
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                Your agent wallet successfully upgraded your account to the <span className="font-medium text-zinc-800 dark:text-zinc-200">{result.planId?.toUpperCase()}</span> plan ({result.billingCycle}).
+                            </p>
+                            
+                            {result.explorerUrl && (
+                                <div className="mt-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/50">
+                                    <a
+                                        href={result.explorerUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex justify-between items-center text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="size-3" />
+                                            <span>View Transaction on BaseScan</span>
+                                        </div>
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 text-center border-t border-zinc-200 dark:border-zinc-800/50">
+                            <p className="text-[10px] uppercase tracking-wider text-zinc-500 dark:text-zinc-600 font-semibold">
+                                Barzakh AI Agent Executor
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
+            );
+        }
+        
         return null;
     }
 
