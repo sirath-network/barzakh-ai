@@ -37,9 +37,9 @@ import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
   // coding allows all models (no restriction)
-  imagine: "google-gemini-2.5-flash-preview",
+  imagine: "model-router",
   // multimodal requires a vision-capable model for image analysis
-  multimodal: "xai-grok-4.1-fast",
+  multimodal: "model-router",
 };
 
 

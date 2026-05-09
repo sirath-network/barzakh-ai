@@ -737,7 +737,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const finalModel = isGuest ? "google-gemini-2.5-flash-preview" : effectiveModel;
+  const finalModel = isGuest ? "model-router" : effectiveModel;
 
   // For incognito/temporary chats, skip all DB persistence
   if (!isTemporary) {

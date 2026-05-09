@@ -123,7 +123,7 @@ flowchart TB
         Anthropic["Anthropic Claude Opus 4.7"]
         xAI["xAI Grok 4.2"]
         Zhipu["GLM-5.1 / Kimi / Qwen"]
-        OpenRouter["as an AI Aggregator"]
+        Azure["Azure AI Foundry"]
     end
     
     subgraph Layer5["Layer 5: Blockchain Tools"]
@@ -255,30 +255,23 @@ Barzakh AI implements a **custom provider abstraction** supporting 6+ frontier A
 
 ```typescript
 // Model Configuration (models.ts)
-import { openai } from "@ai-sdk/openai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
-const openrouter = createOpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
+const azureFoundry = createOpenAI({
+  baseURL: process.env.AZURE_FOUNDRY_ENDPOINT,
+  apiKey: process.env.AZURE_FOUNDRY_API_KEY,
 });
 
 export const myProvider: any = customProvider({
   languageModels: {
-    "openai-gpt-4o": openai("gpt-4o"),
-    "openai-gpt-4.1": openai("gpt-4.1-2025-04-14"),
-    "openai-gpt-5.1": openrouter("openai/gpt-5.1"),
-    "openai-gpt-5.2": openrouter("openai/gpt-5.2"),
-    "anthropic-opus-4.5": openrouter("anthropic/claude-opus-4.5"),
-    "anthropic-haiku-4.5": openrouter("anthropic/claude-haiku-4.5"),
-    "google-gemini-3-flash": openrouter("google/gemini-3-flash-preview"),
-    "google-gemini-2.5-flash-preview": openrouter("google/gemini-2.5-flash"),
-    "xai-grok-4.1-fast": openrouter("x-ai/grok-4.1-fast"),
-    "zai-glm-4.7": openrouter("z-ai/glm-4.7"),
-
-    "title-model": openai("gpt-4-turbo"),
-    "block-model": openai("gpt-4o"),
+    "gpt-5.5": azureFoundry("gpt-5.5"),
+    "gpt-4o": azureFoundry("gpt-4o"),
+    "gpt-4o-mini": azureFoundry("gpt-4o-mini"),
+    "grok-4-20-reasoning": azureFoundry("grok-4-20-reasoning"),
+    "grok-4-20-non-reasoning": azureFoundry("grok-4-20-non-reasoning"),
+    "model-router": azureFoundry("model-router"),
+    "kimi-k2.6": azureFoundry("Kimi-K2.6"),
   },
   imageModels: {},
 });
@@ -288,14 +281,13 @@ export const myProvider: any = customProvider({
 
 | Model ID | Display Name | Provider | Strength | Use Case |
 |----------|--------------|----------|----------|----------|
-| `openai-gpt-4o`/`4.1` | **GPT 4o/4.1** | OpenAI | Versatility | General purpose reasoning |
-| `openai-gpt-5.x` | **GPT 5.4 Apex** | OpenRouter | Apex Intelligence | Ultra-complex problem solving |
-| `anthropic-opus-4.7` | **Claude Opus 4.7** | OpenRouter | Nuanced Reasoning | Deep analysis, thinking mode |
-| `google-gemini-3.1` | **Gemini 3.1 Pro** | OpenRouter | Multi-modal | Large-context intelligence |
-| `xai-grok-4.20` | **Grok 4.20** | OpenRouter | Peak Reasoning | Real-time witty intelligence |
-| `kimi-k2.6` | **Kimi K2.6** | OpenRouter | Long Context | Complex multi-turn workflows |
-| `qwen-3.6-plus` | **Qwen 3.6 Plus** | OpenRouter | High Efficiency | High-performance reasoning |
-| `zai-glm-5.1` | **GLM 5.1** | OpenRouter | Multilingual | Global-scale intelligence |
+| `gpt-5.5` | **GPT 5.5** | Azure AI Foundry | Flagship Intelligence | Ultra-complex reasoning |
+| `gpt-4o` | **GPT 4o** | Azure AI Foundry | Versatility | General purpose reasoning |
+| `gpt-4o-mini` | **GPT 4o Mini** | Azure AI Foundry | Efficiency | Lightweight tasks |
+| `grok-4-20-reasoning` | **Grok 4.20 Reasoning** | Azure AI Foundry | Deep Reasoning | Extended thinking |
+| `grok-4-20-non-reasoning` | **Grok 4.20 Fast** | Azure AI Foundry | Speed | Real-time responses |
+| `model-router` | **Model Router** | Azure AI Foundry | Auto-Selection | Optimal model routing |
+| `kimi-k2.6` | **Kimi K2.6** | Azure AI Foundry | Long Context | Complex multi-turn workflows |
 
 
 ### Intent Classification System
@@ -369,8 +361,8 @@ Certain intents require specific models for optimal results:
 
 ```typescript
 export const FORCED_MODEL_BY_GROUP = {
-    coding: "anthropic-opus-4.5",    // Claude for code generation
-    imagine: "openai-gpt-4.1",    // GPT-4.1 for image prompts
+    imagine: "gpt-4o",    // GPT-4o for image prompts
+    multimodal: "gpt-4o", // GPT-4o for vision tasks
     // Chain tools use user-selected model
 };
 ```

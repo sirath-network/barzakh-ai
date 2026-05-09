@@ -2070,7 +2070,7 @@ export const systemPrompt = ({
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "xai-grok-4.1-fast") {
+  if (selectedChatModel === "model-router") {
     return regularPrompt;
   } else {
     return `${regularPrompt} `;

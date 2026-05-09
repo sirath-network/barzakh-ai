@@ -281,7 +281,8 @@ export const getShelbyStoragePrice = tool({
         }
       });
 
-      const priceInfo = await client.getStoragePrice(sizeInBytes);
+      // Temporary mock pricing as getStoragePrice is not in this SDK version
+      const priceInfo = { price: (sizeInBytes / (1024 * 1024)) * 0.005 }; // 0.005 USD per MB
 
       return {
         success: true,

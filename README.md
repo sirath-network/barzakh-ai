@@ -1184,10 +1184,9 @@ NEXTAUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=...                     # Google OAuth (optional)
 GOOGLE_CLIENT_SECRET=...
 
-# ── AI Providers (At least one required) ─────────────────────────────────
-OPENAI_API_KEY=sk-...                    # OpenAI API key
-OPENROUTER_API_KEY=...                   # OpenRouter (gives access to Claude, Grok, Gemini, etc.)
-GOOGLE_GENERATIVE_AI_API_KEY=...         # Gemini image generation
+# ── AI Providers (Required) ───────────────────────────────────────────
+AZURE_FOUNDRY_ENDPOINT=https://...services.ai.azure.com/openai/v1
+AZURE_FOUNDRY_API_KEY=...               # Azure AI Foundry API key
 
 # ── Blockchain / Relay Protocol ──────────────────────────────────────────
 # No API key needed for Relay Protocol — it's open and permissionless!

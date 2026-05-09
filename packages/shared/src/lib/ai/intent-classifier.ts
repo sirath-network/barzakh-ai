@@ -18,9 +18,9 @@ import { z } from "zod";
 
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
     // coding now allows user to select from a subset of models
-    imagine: "xai-grok-4.1-fast",
+    imagine: "model-router",
     // multimodal requires a vision-capable model for image analysis
-    multimodal: "xai-grok-4.1-fast",
+    multimodal: "model-router",
     // Chain-specific tools removed - they can use any model the user selects
 };
 
@@ -1156,7 +1156,7 @@ Only use the "${chatContext}" context if the address format is compatible or no 
     // Helper function to attempt LLM classification
     const attemptLLMClassification = async (attempt: number = 1): Promise<any> => {
         const { object } = await generateObject({
-            model: myProvider.languageModel("xai-grok-4.1-fast"),
+            model: myProvider.languageModel("model-router"),
             schema: z.object({
                 primaryIntent: z.enum([
                     "imagine",
@@ -1192,7 +1192,6 @@ User message: "${message}"
 JSON Response:`,
             maxTokens: 150,
             mode: 'json',
-            temperature: 0,
         });
         return object;
     };

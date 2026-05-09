@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const base64Image = Buffer.from(arrayBuffer).toString('base64');
     const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-    // 3. Process with OpenRouter (Gemini 2.5 Flash)
+    // 3. Process with Azure AI Foundry (GPT-4o)
     let prompt = `Analyze this image associated with the token ${token_name}. Are there bullish or bearish signals? Provide a sentiment score from 0 to 100 where 100 is extremely bullish, a VERY short analysis (maximum 2 sentences), and a definitive trading signal (e.g. STRONG BUY, BUY, HOLD, SELL, LONG, SHORT). Additionally, provide specific numeric trade targets: "entry_price", "take_profit", and "stop_loss". Output purely as JSON with keys "sentiment_score", "analysis", "trading_signal", "entry_price", "take_profit", and "stop_loss" and nothing else.`;
 
     if (market_data) {
@@ -61,14 +61,15 @@ export async function POST(req: Request) {
         Incorporate this multi-timeframe price action, volume, and momentum into your specific trading signal and analysis!`;
     }
 
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const azureEndpoint = process.env.AZURE_FOUNDRY_ENDPOINT || 'https://siraths-resource.services.ai.azure.com/openai/v1';
+    const openRouterResponse = await fetch(`${azureEndpoint}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${process.env.AZURE_FOUNDRY_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o',
         response_format: { type: "json_object" },
         messages: [
           {
@@ -85,14 +86,14 @@ export async function POST(req: Request) {
 
     if (!openRouterResponse.ok) {
       const errorText = await openRouterResponse.text();
-      throw new Error(`OpenRouter API Error: ${openRouterResponse.status} - ${errorText}`);
+      throw new Error(`Azure AI Foundry API Error: ${openRouterResponse.status} - ${errorText}`);
     }
 
     const responseData = await openRouterResponse.json();
     let content = responseData.choices[0].message.content;
 
     if (!content) {
-      throw new Error("No response text from Gemini via OpenRouter");
+      throw new Error("No response text from GPT-4o via Azure AI Foundry");
     }
 
     // Clean markdown blocks if the model wrapped it

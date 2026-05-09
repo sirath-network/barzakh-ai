@@ -25,7 +25,7 @@ export const getZetaApiData = tool({
       const allPaths = await getAllPaths(openapidata);
       console.log("use prompt is -- ", userQuery);
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("xai-grok-4.1-fast"),
+        model: myProvider.languageModel("model-router"),
         output: "array",
         schema: z.string().describe("the api endpoint"),
         system: `\n

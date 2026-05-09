@@ -148,7 +148,7 @@ export const translateTransactions = tool({
         // Fallback to LLM if no structured data found (e.g. user provided raw text)
         console.log("Using LLM to select endpoints...");
         const { object: apiEndpointsArray } = await generateObject({
-          model: myProvider.languageModel("xai-grok-4.1-fast"),
+          model: myProvider.languageModel("model-router"),
           output: "array",
           schema: z.string().describe("the api endpoint"),
           system: `\n
