@@ -61,13 +61,13 @@ interface ChatModel {
 }
 
 export const chatModels: Array<ChatModel> = [
-    // --- Azure Model Router ---
+  // --- Azure Model Router ---
   {
     id: "model-router",
-    name: "AMR 1o",
+    name: "BRZKH v1",
     description: "Auto-selects the best model for your task",
   },
-  
+
   // --- OpenAI ---
   {
     id: "gpt-4o",
@@ -245,7 +245,7 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "google/gemini-3.1-flash-image-preview",
+    id: "openai/gpt-5.4-image-2",
     name: "Gemini 3.1 Flash Image Preview",
     description:
       "Gemini 3.1 Flash Image Preview via OpenRouter for fast, high-fidelity generations.",

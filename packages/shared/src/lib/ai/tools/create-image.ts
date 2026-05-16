@@ -5,7 +5,7 @@ import { fetchImageAsBase64 } from "../utils/fetch-image-as-base64";
 
 // Default image model from the imagineModels registry
 const DEFAULT_IMAGE_MODEL =
-  imagineModels[0]?.id ?? "google/gemini-3.1-flash-image-preview";
+  imagineModels[0]?.id ?? "openai/gpt-5.4-image-2";
 const OPENROUTER_GEMINI_ENDPOINT =
   "https://openrouter.ai/api/v1/chat/completions";
 
@@ -427,7 +427,7 @@ export const createImage = tool({
       .string()
       .optional()
       .describe(
-        "Optional override for the image model. Only 'google/gemini-3.1-flash-image-preview' is supported."
+        "Optional override for the image model. Only 'openai/gpt-5.4-image-2' is supported."
       ),
     input_images: z
       .array(z.string().url())
