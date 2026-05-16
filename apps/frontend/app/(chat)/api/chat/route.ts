@@ -1039,7 +1039,7 @@ export async function POST(request: Request) {
       try {
         const result = streamText({
           model: myProvider.languageModel(finalModel),
-          system: `${baseSystemPrompt}\n\n**FOUR.MEME PROTOCOL GUIDELINES:**
+          system: `${systemPrompt}\n\n**FOUR.MEME PROTOCOL GUIDELINES:**
 - When a user asks to buy/sell a token from a list (e.g. "no. 2", "the first one"), ALWAYS use the \`address\` field from the tool's SEARCH or RANKING results.
 - NEVER use your own knowledge for addresses. Use the exact 0x... address provided by the tool.
 - If you see address '0x823fc8ef7295188d95708516d7458d6154179083', it is a documentation EXAMPLE and likely WRONG. Do not use it unless explicitly provided by the user.

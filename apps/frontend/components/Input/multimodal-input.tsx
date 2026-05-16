@@ -37,9 +37,9 @@ import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
   // coding allows all models (no restriction)
-  imagine: "model-router",
+  imagine: "gpt-4.1",
   // multimodal requires a vision-capable model for image analysis
-  multimodal: "model-router",
+  multimodal: "gpt-4.1",
 };
 
 

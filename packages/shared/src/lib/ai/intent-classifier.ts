@@ -18,9 +18,9 @@ import { z } from "zod";
 
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
     // coding now allows user to select from a subset of models
-    imagine: "model-router",
+    imagine: "gpt-4.1",
     // multimodal requires a vision-capable model for image analysis
-    multimodal: "model-router",
+    multimodal: "gpt-4.1",
     // Chain-specific tools removed - they can use any model the user selects
 };
 

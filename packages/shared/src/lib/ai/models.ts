@@ -32,6 +32,7 @@ export const DEFAULT_CHAT_MODEL: string = "gpt-5.3-chat";
 
 export const myProvider: any = customProvider({
   languageModels: {
+    "gpt-4.1": azureFoundry("gpt-4.1"),
     "gpt-4o": azureFoundry("gpt-4o"),
     "gpt-4o-mini": azureFoundry("gpt-4o-mini"),
     "gpt-5.3-chat": azureFoundry("gpt-5.3-chat"),
@@ -50,6 +51,7 @@ export const myProvider: any = customProvider({
     "grok-4-1-fast-reasoning": azureFoundry("grok-4-1-fast-reasoning"),
     "grok-4-20-non-reasoning": azureFoundry("grok-4-20-non-reasoning"),
     "grok-4-20-reasoning": azureFoundry("grok-4-20-reasoning"),
+    "grok-4.3": azureFoundry("grok-4.3"),
   },
   imageModels: {},
 });
@@ -64,20 +66,25 @@ export const chatModels: Array<ChatModel> = [
   // --- Azure Model Router ---
   {
     id: "model-router",
-    name: "BRZKH v1",
+    name: "BZKH v1",
     description: "Auto-selects the best model for your task",
   },
 
   // --- OpenAI ---
+  {
+    id: "gpt-4o-mini",
+    name: "GPT 4o Mini",
+    description: "Lightweight & cost-effective",
+  },
   {
     id: "gpt-4o",
     name: "GPT 4o",
     description: "Fast & efficient for everyday tasks",
   },
   {
-    id: "gpt-4o-mini",
-    name: "GPT 4o Mini",
-    description: "Lightweight & cost-effective",
+    id: "gpt-4.1",
+    name: "GPT 4.1",
+    description: "Latest GPT 4.1 with improved coding & instruction following",
   },
   {
     id: "gpt-5.3-chat",
@@ -90,11 +97,6 @@ export const chatModels: Array<ChatModel> = [
     description: "Code-focused GPT 5.3 model",
   },
   {
-    id: "gpt-5.4",
-    name: "GPT 5.4",
-    description: "Advanced general-purpose reasoning",
-  },
-  {
     id: "gpt-5.4-nano",
     name: "GPT 5.4 Nano",
     description: "Ultra-fast GPT 5.4 model for lightweight tasks",
@@ -103,6 +105,11 @@ export const chatModels: Array<ChatModel> = [
     id: "gpt-5.4-mini",
     name: "GPT 5.4 Mini",
     description: "Fast GPT 5.4 intelligence for everyday tasks",
+  },
+  {
+    id: "gpt-5.4",
+    name: "GPT 5.4",
+    description: "Advanced general-purpose reasoning",
   },
   {
     id: "gpt-5.4-pro",
@@ -160,6 +167,11 @@ export const chatModels: Array<ChatModel> = [
     name: "Grok 4.20 Reasoning",
     description: "Deep reasoning & extended thinking",
   },
+  {
+    id: "grok-4.3",
+    name: "Grok 4.3",
+    description: "Latest xAI flagship with advanced reasoning",
+  },
 ];
 
 // ──────────────────────────────────────────────────
@@ -176,13 +188,14 @@ const FREE_TIER_MODELS: readonly string[] = [
   "model-router",
   "gpt-4o",
   "gpt-4o-mini",
-  "gpt-5.3-chat",
+  "gpt-4.1",
 ] as const;
 
 /**
  * Models available on the PRO tier (includes all free models).
  */
 const PRO_TIER_MODELS: readonly string[] = [
+  "gpt-4.1",
   "gpt-4o",
   "gpt-4o-mini",
   "gpt-5.3-chat",
@@ -201,6 +214,7 @@ const PRO_TIER_MODELS: readonly string[] = [
   "grok-4-1-fast-reasoning",
   "grok-4-20-non-reasoning",
   "grok-4-20-reasoning",
+  "grok-4.3",
 ] as const;
 
 /**
@@ -245,7 +259,7 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "openai/gpt-5.4-image-2",
+    id: "google/gemini-3.1-flash-image-preview",
     name: "Gemini 3.1 Flash Image Preview",
     description:
       "Gemini 3.1 Flash Image Preview via OpenRouter for fast, high-fidelity generations.",
