@@ -1,7 +1,32 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
+let azureNetworkingConfigured = false;
+
+async function configureAzureFetchNetworking(): Promise<void> {
+  if (azureNetworkingConfigured) return;
+  azureNetworkingConfigured = true;
+
+  try {
+    const net = await import("node:net");
+    const desiredTimeout =
+      Number(process.env.AZURE_FOUNDRY_CONNECT_ATTEMPT_TIMEOUT_MS) || 5_000;
+    const currentTimeout = net.getDefaultAutoSelectFamilyAttemptTimeout?.();
+
+    if (typeof currentTimeout === "number" && currentTimeout < desiredTimeout) {
+      net.setDefaultAutoSelectFamilyAttemptTimeout?.(desiredTimeout);
+      console.log(
+        `[models] Raised Node autoSelectFamily attempt timeout from ${currentTimeout}ms to ${desiredTimeout}ms for Azure Foundry fetches`
+      );
+    }
+  } catch {
+    // Best-effort WSL/Node networking tuning. Non-Node runtimes can ignore this.
+  }
+}
+
 const sanitizeAzureFoundryFetch: typeof fetch = async (input, init) => {
+  await configureAzureFetchNetworking();
+
   if (typeof init?.body === "string") {
     try {
       const body = JSON.parse(init.body);
@@ -259,9 +284,9 @@ interface ImagineModel {
 
 export const imagineModels: Array<ImagineModel> = [
   {
-    id: "google/gemini-3.1-flash-image-preview",
-    name: "Gemini 3.1 Flash Image Preview",
+    id: "gpt-image-2",
+    name: "GPT-Image-2",
     description:
-      "Gemini 3.1 Flash Image Preview via OpenRouter for fast, high-fidelity generations.",
+      "Azure AI Foundry GPT-Image-2 for high-fidelity image generation and editing.",
   },
 ];

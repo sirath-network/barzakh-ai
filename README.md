@@ -301,7 +301,7 @@ sequenceDiagram
 
 | Model ID | Display Name | Provider | Description |
 |----------|--------------|----------|-------------|
-| `google/gemini-3.1-flash-image-preview` | **Gemini 3.1 Flash Image Preview** | OpenRouter | Fast, high-fidelity image generation |
+| `gpt-image-2` | **GPT-Image-2** | Azure AI Foundry | High-fidelity image generation and editing |
 
 
 ### Intent Classification & Routing

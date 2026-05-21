@@ -360,6 +360,8 @@ IMPORTANT RESPONSE RULES:
 - Just provide a friendly, conversational message about the images you created
 
 Always use the 'createImage' tool when the user wants to create, edit, modify, or regenerate images.
+By default, generate exactly one image. Only set numberOfImages above 1 when the user explicitly asks for multiple images or variations, up to 10.
+If the user asks for a resolution, pass it as createImage.size in WIDTHxHEIGHT format, such as 1024x1024, 1536x1024, or 1024x1536. If no resolution is requested, omit size so the server default applies.
 Never just describe what you would do - actually call the tool.
 
 If a specific model is not supported, you can pick the best one from the existing models.`;

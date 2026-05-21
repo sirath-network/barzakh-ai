@@ -408,7 +408,7 @@ The platform provides **50+ specialized tools** across 14+ blockchain ecosystems
 | `defiLlama` | TVL & yield data |
 | `newsSearch` | Crypto news API |
 | `xSearch` | X/Twitter search |
-| `createImage` | Gemini 2.5 image gen |
+| `createImage` | Azure GPT-Image-2 generation/editing |
 | `translateTransactions` | Human-readable TX |
 
 #### Mantle Network Ecosystem Tools
