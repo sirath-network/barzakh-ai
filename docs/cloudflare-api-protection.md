@@ -373,17 +373,27 @@ components:
         selectedChatModel:
           type: string
           enum:
-            - openai-gpt-4o      # GPT 4o
-            - openai-gpt-4.1      # GPT 4.1
-            - openai-gpt-5.1   # GPT 5.1
-            - openai-gpt-5.2   # GPT 5.2
-            - zai-glm-4.7        # GLM 4.7
-            - anthropic-haiku-4.5    # Claude Haiku 4.5
-            - anthropic-opus-4.6     # Claude Opus 4.6 Thinking
-            - google-gemini-3-flash  # Gemini 3 Flash
-            - google-gemini-2.5-flash-preview  # Gemini 2.5 Flash Preview
-            - xai-grok-4.1-fast  # Grok 4.1 Fast
-          default: openai-gpt-5.1
+            - model-router        # BZKH v1 Azure model router
+            - gpt-4o-mini        # GPT 4o Mini
+            - gpt-4o             # GPT 4o
+            - gpt-4.1            # GPT 4.1
+            - gpt-5.3-chat       # GPT 5.3 Chat
+            - gpt-5.3-codex      # GPT 5.3 Codex
+            - gpt-5.4            # GPT 5.4
+            - gpt-5.4-nano       # GPT 5.4 Nano
+            - gpt-5.4-mini       # GPT 5.4 Mini
+            - gpt-5.4-pro        # GPT 5.4 Pro
+            - gpt-5.5            # GPT 5.5
+            - deepseek-v3.2      # DeepSeek V3.2
+            - deepseek-v4-flash  # DeepSeek V4 Flash
+            - kimi-k2.5          # Kimi K2.5
+            - kimi-k2.6          # Kimi K2.6
+            - grok-4-1-fast-non-reasoning
+            - grok-4-1-fast-reasoning
+            - grok-4-20-non-reasoning
+            - grok-4-20-reasoning
+            - grok-4.3
+          default: gpt-5.3-chat
         group:
           type: string
           enum:

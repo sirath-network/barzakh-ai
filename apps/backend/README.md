@@ -1,14 +1,14 @@
 # Barzakh AI - Backend API
 
-Supplementary backend services for the Barzakh AI platform, providing an OpenAI-compatible API.
+Supplementary backend services for the Barzakh AI platform, providing OpenAI-compatible chat endpoints backed by the shared Azure AI Foundry provider configuration.
 
 ## Overview
 
 This package contains supplementary backend services that complement the main frontend application. Built with:
 
-- **Next.js 16.1.0** with App Router
+- **Next.js 16.2.6** with App Router
 - **React 19.2.0**
-- **Vercel AI SDK 4.1.17**
+- **Vercel AI SDK 4.3.19**
 - **TypeScript 5.x**
 
 ## Architecture
@@ -57,11 +57,11 @@ pnpm dev:api
 | Category | Technology |
 |----------|------------|
 | **Runtime** | Node.js 18+ |
-| **Framework** | Next.js 16.1.0 |
+| **Framework** | Next.js 16.2.6 |
 | **Language** | TypeScript 5.x |
-| **AI** | Vercel AI SDK 4.1.17 |
-| **Database** | Drizzle ORM 0.34.0 |
-| **Web3** | Wagmi 2.14.11, Viem 2.23.4 |
+| **AI** | Vercel AI SDK 4.3.19 |
+| **Database** | Drizzle ORM 0.45.2 |
+| **Web3** | Wagmi 2.14.11, Viem 2.23.4 (API compatibility package) |
 
 ## Related Packages
 

@@ -1341,6 +1341,12 @@ function patternMatchedDifferentTopic(patternResult: IntentClassification | null
     return patternResult.primaryIntent !== expectedIntent && patternResult.confidence > 0.5;
 }
 
+function isTrivialConversationalMessage(message: string): boolean {
+    const normalized = message.trim().toLowerCase();
+    if (!normalized || normalized.length > 80) return false;
+    return /^(hi+|hello+|hey+|yo+|sup|gm|gn|good\s+(morning|afternoon|evening|night)|thanks?|thank\s+you|ty|ok(?:ay)?|cool|nice|great|awesome|test)[!.?\s]*$/.test(normalized);
+}
+
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
 const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
 
@@ -1374,6 +1380,16 @@ export async function classifyIntent(
     }
 
     const startTime = Date.now();
+
+    if (isTrivialConversationalMessage(message)) {
+        return {
+            primaryIntent: "search",
+            confidence: 1,
+            indicators: ["fast_trivial_conversation"],
+            requiresMultiTool: false,
+            classificationMethod: "pattern",
+        };
+    }
 
     // Step 1: Try pattern matching first (fast)
     const patternResult = classifyByPatterns(message);

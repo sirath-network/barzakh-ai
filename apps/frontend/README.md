@@ -6,19 +6,19 @@ The main Next.js application powering the Barzakh AI platform - an enterprise-gr
 
 This is the frontend package of the Barzakh AI monorepo, built with:
 
-- **Next.js 16.1.0** with App Router and Turbopack
+- **Next.js 16.2.6** with App Router and Turbopack
 - **React 19.2.0** with streaming SSR
 - **TypeScript 5.6.3** for type safety
-- **Vercel AI SDK 4.1.17** for multi-model AI orchestration
-- **Drizzle ORM 0.34.1** for type-safe database access
+- **Vercel AI SDK 4.3.19** for multi-model AI orchestration
+- **Drizzle ORM 0.45.2** for type-safe database access
 - **Wagmi 2.19.5 + Viem 2.41.2** for Web3 wallet integration
 
 ## Features
 
-- **Multi-Model AI**: GPT-5.x, Claude Opus 4.6, GLM 4.7, and 6+ models
-- **50+ Blockchain Tools**: Cronos, Aptos, Solana, SEI, Flow, Zeta, Monad, and more
+- **Azure-hosted Multi-Model AI**: GPT-4o/4.1/5.x, Grok, Kimi, DeepSeek, and BZKH model-router deployments
+- **100+ Blockchain Tools**: Cronos, Aptos, Solana, SEI, Flow, Zeta, Monad, and more
 - **VVS DEX Integration**: Swap quotes, pool info, token lists
-- **x402 Gasless Payments**: EIP-3009 USDC payments on Cronos
+- **x402 Gasless Payments**: EIP-3009/EIP-712 USDC payments on Base
 - **2FA + Wallet Auth**: TOTP, email OTP, and EIP-191 wallet signatures
 
 ## Prerequisites
@@ -26,7 +26,7 @@ This is the frontend package of the Barzakh AI monorepo, built with:
 | Requirement | Version |
 |-------------|---------|
 | Node.js | 18+ |
-| pnpm | 8.6+ |
+| pnpm | 10.11+ |
 | PostgreSQL | 15+ |
 
 ## Installation
@@ -62,13 +62,30 @@ GOOGLE_CLIENT_SECRET=...
 # AI Providers
 AZURE_FOUNDRY_ENDPOINT=https://...services.ai.azure.com/openai/v1
 AZURE_FOUNDRY_API_KEY=...
+AZURE_FOUNDRY_CONNECT_ATTEMPT_TIMEOUT_MS=5000
+
+# Imagine / Azure GPT-Image-2
+AZURE_FOUNDRY_IMAGE_MODEL=gpt-image-2
+AZURE_FOUNDRY_IMAGE_QUALITY=low
+AZURE_FOUNDRY_IMAGE_SIZE=1024x1024
+AZURE_FOUNDRY_IMAGE_TIMEOUT_MS=600000
+AZURE_FOUNDRY_IMAGE_STREAM=false
+AZURE_FOUNDRY_IMAGE_PARTIAL_IMAGES=2
+
+# Cloudflare R2 image/file persistence
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=...
+R2_PUBLIC_URL=...
 
 # Payments
 STRIPE_SECRET_KEY=sk_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
 # x402 Crypto Payments
-CRONOS_RPC_URL=https://evm.cronos.org
+BASE_MAINNET_RPC_URL=https://mainnet.base.org
+NEXT_PUBLIC_X402_RECEIVER_ADDRESS=0x...
 
 # External APIs
 ZERION_API_KEY=...
@@ -126,13 +143,13 @@ apps/frontend/
 
 | Category | Technologies |
 |----------|-------------|
-| **Core** | Next.js 16.1.0, React 19.2.0, TypeScript 5.6.3 |
+| **Core** | Next.js 16.2.6, React 19.2.0, TypeScript 5.6.3 |
 | **Styling** | TailwindCSS 3.4.1, Radix UI, Framer Motion 11.3.19 |
-| **Database** | PostgreSQL, Drizzle ORM 0.34.1 |
+| **Database** | PostgreSQL, Drizzle ORM 0.45.2 |
 | **Auth** | NextAuth.js 5.0.0-beta.30 |
 | **Web3** | Wagmi 2.19.5, Viem 2.41.2, Dynamic SDK 4.x |
-| **AI** | Vercel AI SDK 4.1.17 |
-| **Payments** | Stripe 18.5.0, x402 Protocol |
+| **AI** | Vercel AI SDK 4.3.19 |
+| **Payments** | Stripe 18.5.0, x402 Protocol on Base |
 
 ## Related Packages
 

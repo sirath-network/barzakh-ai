@@ -91,7 +91,7 @@ export const chatModels: Array<ChatModel> = [
   // --- Azure Model Router ---
   {
     id: "model-router",
-    name: "BZKH v1",
+    name: "Barzakh 1.0",
     description: "Auto-selects the best model for your task",
   },
 

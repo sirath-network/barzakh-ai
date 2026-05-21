@@ -249,6 +249,24 @@ function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] 
   return [...activeTools];
 }
 
+const FAST_CHAT_MODEL = process.env.FAST_CHAT_MODEL || "gpt-4o-mini";
+
+function hasMultimodalContent(content: unknown): boolean {
+  return Array.isArray(content) && content.some((part: any) =>
+    part?.type === "image" || part?.type === "file" || part?.image || part?.file
+  );
+}
+
+function isFastConversationalMessage(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized || normalized.length > 80) return false;
+
+  // Deterministic fast lane for small talk that never needs tools, routing, wallet
+  // context, web search, or a heavyweight model. This removes the extra intent LLM
+  // call that made simple prompts like "hello!" wait before streaming started.
+  return /^(hi+|hello+|hey+|yo+|sup|gm|gn|good\s+(morning|afternoon|evening|night)|thanks?|thank\s+you|ty|ok(?:ay)?|cool|nice|great|awesome|test)[!.?\s]*$/.test(normalized);
+}
+
 // Vercel Serverless Function Configuration
 // Multi-step on-chain flows (approval tx + wait + trade tx + wait) can exceed 120s.
 // 300s covers the worst case: approval(60s) + sell(60s) + AI streaming overhead.
@@ -461,6 +479,7 @@ export async function POST(request: Request) {
   };
 
   const userMessageText = extractTextFromMessage(userMessage.content);
+  const isFastChat = isFastConversationalMessage(userMessageText) && !hasMultimodalContent(userMessage.content);
 
   if (userMessageText) {
     const aiVulnCheck = performAISecurityCheck(userMessageText, {
@@ -575,8 +594,9 @@ export async function POST(request: Request) {
     return null;
   }
 
-  // Get chain context from chat history
-  const chatContext = extractChainContext(messages);
+  // Get chain context from chat history. Fast small-talk does not need context
+  // scanning, so skip the history pass on the latency-sensitive path.
+  const chatContext = isFastChat ? null : extractChainContext(messages);
 
   // Detect if conversation has image generation history
   function hasImageGenerationHistory(msgs: typeof messages): boolean {
@@ -618,9 +638,9 @@ export async function POST(request: Request) {
     return false;
   }
 
-  const hasImageContext = hasImageGenerationHistory(messages);
+  const hasImageContext = isFastChat ? false : hasImageGenerationHistory(messages);
 
-  if (userMessageText && userMessageText.length > 0) {
+  if (userMessageText && userMessageText.length > 0 && !isFastChat) {
     try {
       classificationResult = await classifyIntent(userMessageText, {
         fallbackToLLM: true,
@@ -650,15 +670,28 @@ export async function POST(request: Request) {
   let systemPrompt = "";
 
   try {
-    const groupConfig = await getGroupConfig(effectiveGroup);
-    tools = [...(groupConfig?.tools || [])] as any[];
-    systemPrompt = groupConfig?.systemPrompt || "";
+    if (isFastChat) {
+      tools = [];
+      systemPrompt = baseSystemPrompt({ selectedChatModel: FAST_CHAT_MODEL });
+      effectiveGroup = "search";
+      classificationResult = {
+        primaryIntent: "search",
+        confidence: 1,
+        indicators: ["fast_conversational_message"],
+        requiresMultiTool: false,
+        classificationMethod: "pattern",
+      };
+    } else {
+      const groupConfig = await getGroupConfig(effectiveGroup);
+      tools = [...(groupConfig?.tools || [])] as any[];
+      systemPrompt = groupConfig?.systemPrompt || "";
+    }
   } catch (error) {
     console.error("Failed to get group config:", error);
     // Continue with empty tools and system prompt
   }
 
-  if (!isGuest && session?.user) {
+  if (!isGuest && session?.user && !isFastChat) {
     let currentTier = session.user.tier || 'free';
     let currentBillingCycle = session.user.billingCycle || 'monthly';
     let username = session.user.username || session.user.email;
@@ -737,7 +770,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const finalModel = isGuest ? "model-router" : effectiveModel;
+  const finalModel = isFastChat ? FAST_CHAT_MODEL : (isGuest ? "model-router" : effectiveModel);
 
   // For incognito/temporary chats, skip all DB persistence
   if (!isTemporary) {
@@ -753,21 +786,24 @@ export async function POST(request: Request) {
         forkedFromChatId: history_for_context_id,
       });
 
-      // Defer title generation to background — it calls an AI model (~1-3s)
-      // and should not block the main response stream.
-      // We UPDATE the title asynchronously after the chat row already exists.
-      const titlePromise = generateTitleFromUserMessage({ message: userMessage })
-        .then(async (title) => {
-          const { updateChatTitleById } = await import("@/lib/db/queries");
-          await updateChatTitleById({ chatId: id, title });
-        })
-        .catch((err) => {
-          console.error("Failed to generate chat title (chat already saved with fallback):", err);
-          // Chat already exists with "New Chat" title — no data loss
+      if (isFastChat) {
+        // Keep the placeholder title for trivial greetings. Do not fire a second
+        // AI title-generation request while the main response is trying to start.
+      } else {
+        // Defer title generation to background — it calls an AI model (~1-3s)
+        // and should not block the main response stream.
+        // We UPDATE the title asynchronously after the chat row already exists.
+        after(async () => {
+          try {
+            const title = await generateTitleFromUserMessage({ message: userMessage });
+            const { updateChatTitleById } = await import("@/lib/db/queries");
+            await updateChatTitleById({ chatId: id, title });
+          } catch (err) {
+            console.error("Failed to generate chat title (chat already saved with fallback):", err);
+            // Chat already exists with "New Chat" title — no data loss
+          }
         });
-
-      // Fire-and-forget: runs concurrently with the streaming response.
-      void titlePromise;
+      }
     }
   }
 
@@ -793,8 +829,9 @@ export async function POST(request: Request) {
   // and any UI-format fields that streamText's Zod schema rejects.
   const coreMessages = toCoreSafeMessages(cleanedMessages);
 
-  // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI
-  const resolvedMessages = await resolveR2UrlsInMessages(coreMessages);
+  // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI.
+  // Fast text-only chat skips this extra async pass entirely.
+  const resolvedMessages = isFastChat ? coreMessages : await resolveR2UrlsInMessages(coreMessages);
 
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
@@ -804,7 +841,7 @@ export async function POST(request: Request) {
 
   // Inject autonomous execution tools contextually if authenticated
   let isAgentEnabledLocally = false;
-  if (session?.user?.id) {
+  if (session?.user?.id && !isFastChat) {
     const { hasDelegation } = await import("@/lib/agent/agent-wallet-store");
     isAgentEnabledLocally = await hasDelegation(session.user.id);
 
@@ -1050,9 +1087,9 @@ export async function POST(request: Request) {
           messages: resolvedMessages, // Use resolved messages with signed R2 URLs
           maxSteps: 8,
           maxRetries: 2, // Retry up to 2 times on failure
-          experimental_activeTools: safeActiveTools,
+          experimental_activeTools: safeActiveTools as any,
           experimental_generateMessageId: generateUUID,
-          tools: wrappedTools,
+          tools: (isFastChat ? {} : wrappedTools) as any,
           onFinish: async ({ response, reasoning }) => {
             // Clear keepalive once streaming is fully complete
             clearInterval(keepaliveInterval);
@@ -1117,9 +1154,9 @@ export async function POST(request: Request) {
             messages: freshMessages,
             maxSteps: 10,
             maxRetries: 3, // Retry up to 3 times on failure
-            experimental_activeTools: safeActiveTools,
+            experimental_activeTools: safeActiveTools as any,
             experimental_generateMessageId: generateUUID,
-            tools: wrappedTools,
+            tools: (isFastChat ? {} : wrappedTools) as any,
             onFinish: async ({ response, reasoning }) => {
               after(async () => {
                 try {
