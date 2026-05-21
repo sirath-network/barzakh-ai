@@ -607,4 +607,4 @@ CRON_SECRET=your-cron-secret-key
 
 ## Contact
 
-For billing or security questions: [Contact Support](https://www.barzakh.tech/contact)
+For billing or security questions: [Contact Support](https://sirath.network/contact)

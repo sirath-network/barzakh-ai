@@ -244,7 +244,7 @@ export default function PrivacyPage() {
                 </p>
                 <ul>
                     <li><strong>Email:</strong> <a href="mailto:support@barzakh.tech" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@barzakh.tech</a></li>
-                    <li><strong>Website:</strong> <a href="https://www.barzakh.tech/contact" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">www.barzakh.tech/contact</a></li>
+                    <li><strong>Website:</strong> <a href="https://sirath.network/contact" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">sirath.network/contact</a></li>
                 </ul>
                 <p>
                     For privacy-related inquiries, please include "Privacy Request" in your subject line. We aim to respond to all inquiries within 30 days.
