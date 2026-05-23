@@ -13,7 +13,6 @@ const DynamicContextProviderAsync = dynamic(
 // Import wallet connectors - all chains unified under Dynamic
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { SolanaWalletConnectors } from "@dynamic-labs/solana";
-import { BitcoinWalletConnectors } from "@dynamic-labs/bitcoin";
 import { TronWalletConnectors } from "@dynamic-labs/tron";
 
 interface DynamicWalletProviderProps {
@@ -37,7 +36,6 @@ if (typeof window !== 'undefined') {
  * Unified wallet provider for ALL chains via Dynamic SDK:
  * - EVM (MetaMask, Rabby, Phantom, WalletConnect, etc.)
  * - Solana (Phantom, Solflare, etc.)
- * - Bitcoin (Xverse, Unisat, etc.)
  * - Tron (TronLink, etc.)
  * 
  * Also enables embedded wallets (MPC-based) for users without external wallets.
@@ -73,7 +71,6 @@ export function DynamicWalletProvider({ children }: DynamicWalletProviderProps) 
                 walletConnectors: [
                     EthereumWalletConnectors,
                     SolanaWalletConnectors,
-                    BitcoinWalletConnectors,
                     TronWalletConnectors,
                 ],
                 // Connect-only mode - we use next-auth for authentication

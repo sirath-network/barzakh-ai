@@ -109,12 +109,12 @@ export const createGetAgentTokenBalanceTool = (userId: string) =>
           
           const mintPubkey = new PublicKey(tokenAddress);
           const walletPubkey = new PublicKey(solanaAddress);
-          
-          const { getAssociatedTokenAddress } = await import("@solana/spl-token").catch(() => {
-             throw new Error("Missing @solana/spl-token dependency for Solana balance checks.");
-          });
-          
-          const ata = await getAssociatedTokenAddress(mintPubkey, walletPubkey);
+          const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+          const associatedTokenProgramId = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+          const [ata] = PublicKey.findProgramAddressSync(
+            [walletPubkey.toBuffer(), tokenProgramId.toBuffer(), mintPubkey.toBuffer()],
+            associatedTokenProgramId,
+          );
           
           try {
             const balanceInfo = await connection.getTokenAccountBalance(ata);
