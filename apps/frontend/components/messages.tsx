@@ -39,7 +39,7 @@ function PureMessages({
 }: MessagesProps) {
   return (
     <div
-      className={`relative flex flex-col min-w-0 w-full max-w-full gap-6 md:gap-8 pt-4 ${
+      className={`relative flex flex-col min-w-0 w-full max-w-full gap-3 md:gap-4 pt-3 ${
         messages.length === 0 ? "flex-1 justify-center md:justify-start" : "flex-1"
       }`}
     >
@@ -47,10 +47,14 @@ function PureMessages({
 
       {messages.map((message, index) => {
         const prevMessage = index > 0 ? messages[index - 1] : null;
-        const isNewConversationTurn = prevMessage && prevMessage.role !== message.role;
+        const isUserAfterAssistant =
+          message.role === "user" && prevMessage?.role === "assistant";
 
         return (
-          <div key={message.id} className={isNewConversationTurn ? "mt-2" : ""}>
+          <div
+            key={message.id}
+            className={isUserAfterAssistant ? "mt-5 md:mt-6" : ""}
+          >
             <PreviewMessageAny
               chatId={chatId}
               message={message}
@@ -64,7 +68,6 @@ function PureMessages({
               selectedGroup={selectedGroup}
               reload={reload}
               isReadonly={isReadonly}
-              showIcon={index > 0 && messages[index - 1].role == "user"}
               allMessages={messages}
             />
           </div>

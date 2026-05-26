@@ -27,7 +27,6 @@ import { ArtifactProvider } from "@/context/artifact-context";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ArtifactViewer } from "./artifact-viewer";
 import { Overview } from "./overview";
-import { QuestionSuggestions } from "./Input/question-suggestions";
 import { GuestLimitBanner } from "@/components/guest-limit-banner";
 import dynamic from "next/dynamic";
 
@@ -145,6 +144,10 @@ export function Chat({
       // Don't refresh history for incognito chats (they're not persisted)
       if (!isIncognito) {
         mutate("/api/history");
+        // Title generation can finish shortly after the response stream. Revalidate
+        // again so the sidebar/header pick up the refined topic title without a refresh.
+        window.setTimeout(() => mutate("/api/history"), 1500);
+        window.setTimeout(() => mutate("/api/history"), 4000);
       }
       // Update URL to forked chat ID when user sends first message on shared chat
       if (isSharedChat && !isIncognito && typeof window !== 'undefined') {
@@ -402,9 +405,6 @@ export function Chat({
                 </div>
 
                 <div className="w-full max-w-3xl mt-4 md:mt-8 flex-none">
-                  <div className="w-full mb-4">
-                    <QuestionSuggestions appendAction={append} history={history} user={user} />
-                  </div>
                   <div className="w-full">
                     {guestLimitReached && !user ? (
                       <GuestLimitBanner />

@@ -33,7 +33,6 @@ import {
   Ghost,
 } from "lucide-react";
 import type { Chat as ChatHistory } from "@/lib/db/schema";
-import { QuestionSuggestions } from "./question-suggestions";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
   // coding allows all models (no restriction)
@@ -248,9 +247,18 @@ function PureMultimodalInput({
     setIsMounted(true);
   }, []);
 
-  const MAX_HEIGHT = 300;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
+  const hasQueuedAttachments = attachments.length > 0 || uploadQueue.length > 0;
+  const isMobileComposer = isMounted && width < 768;
+  // Keep the composer bounded on mobile. With attachments plus a long prompt,
+  // the old 300px textarea pushed the action row below the viewport, making
+  // the send button look clipped/cut off.
+  const MAX_HEIGHT = isMobileComposer
+    ? hasQueuedAttachments
+      ? 132
+      : 188
+    : 300;
   const [isFocused, setIsFocused] = useState(false);
   const [previousModel, setPreviousModel] = useLocalStorage<string | null>("previousModel", null);
 
@@ -266,8 +274,6 @@ function PureMultimodalInput({
     const tier = (user?.tier as SubscriptionTier) || "free";
     return getModelsForTier(tier);
   }, [user?.tier]);
-
-  const showSuggestions = messages.length === 0 && !input && !disableSuggestions;
 
   // Dynamic rotating placeholders with typewriter effect
   const placeholders = useMemo(() => [
@@ -495,6 +501,11 @@ function PureMultimodalInput({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    adjustHeight();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [MAX_HEIGHT, attachments.length, uploadQueue.length]);
 
   useEffect(() => {
     setLocalStorageInput(input);
@@ -959,12 +970,6 @@ function PureMultimodalInput({
       )}
     >
       <AnimatePresence>
-        {showSuggestions && (
-          <QuestionSuggestions appendAction={append} history={history} user={user} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {!isAtBottom && messages.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -1008,7 +1013,7 @@ function PureMultimodalInput({
         className={cn(
           "relative w-full flex flex-col rounded-3xl transition-all duration-300",
           "bg-zinc-100 dark:bg-zinc-800",
-          "overflow-hidden",
+          "overflow-hidden md:max-h-none max-h-[calc(100dvh-7rem)]",
           isIncognito && "ring-2 ring-violet-500/60 shadow-[0_0_15px_rgba(139,92,246,0.3),0_0_30px_rgba(139,92,246,0.1)]"
         )}
         style={isIncognito ? {
@@ -1027,7 +1032,7 @@ function PureMultimodalInput({
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="flex flex-wrap gap-2 sm:gap-3 px-4 py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30 overflow-hidden"
+                className="flex flex-wrap gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30 overflow-y-auto overscroll-contain max-h-28 md:max-h-none"
               >
                 {attachments.map((attachment, index) => (
                   <motion.div
@@ -1066,7 +1071,7 @@ function PureMultimodalInput({
             )}
         </AnimatePresence>
 
-        <div className="relative flex items-end w-full px-2 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
+        <div className="relative flex items-end w-full min-h-0 px-2 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
 
 
           {/* Custom animated placeholder - only when not focused */}
@@ -1092,7 +1097,7 @@ function PureMultimodalInput({
               "pl-4 pr-4 py-2.5 md:py-3.5 text-base",
               "!bg-transparent border-0 focus:ring-0 focus-visible:ring-0",
               "placeholder:text-neutral-500 dark:placeholder:text-neutral-500",
-              "resize-none transition-[height] duration-200 ease-out"
+              "resize-none transition-[height] duration-200 ease-out overflow-y-auto overscroll-contain"
             )}
             style={{ maxHeight: `${MAX_HEIGHT}px`, backgroundColor: 'transparent' }}
             rows={1}
@@ -1132,10 +1137,10 @@ function PureMultimodalInput({
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden relative z-20"
+              className="overflow-hidden relative z-20 flex-none"
             >
-              <div className="flex items-center justify-between w-full px-2 pb-1.5 md:pb-2 pt-0.5 md:pt-1">
-                <div className="flex flex-row gap-1 items-center">
+              <div className="flex items-center justify-between gap-2 w-full min-w-0 px-2 pb-1.5 md:pb-2 pt-0.5 md:pt-1">
+                <div className="flex min-w-0 flex-row gap-1 items-center overflow-hidden">
                   <AttachmentsButton
                     fileInputRef={fileInputRef}
                     isLoading={isLoading}
@@ -1145,7 +1150,7 @@ function PureMultimodalInput({
                     onGroupSelect={handleGroupSelect}
                   />
                 </div>
-                <div className="flex flex-row gap-1 items-center">
+                <div className="flex flex-none flex-row gap-1 items-center">
                   {/* Show model selector unless user is a guest (not logged in) on a readonly chat */}
                   {!(isReadonly && !user?.id) && (
                     <ModelSelector
@@ -1182,8 +1187,7 @@ function PureMultimodalInput({
       </div>
 
       {isIncognito && (
-        <div className="flex items-start justify-center gap-1.5 py-1.5 px-4">
-          <Ghost size={12} className="text-violet-400/80 flex-shrink-0 mt-[3px]" />
+        <div className="flex items-start justify-center py-1.5 px-4">
           <p className="text-center text-[10px] md:text-xs text-violet-400/80 leading-tight">
             This chat won&apos;t appear in your history and will not be used to train models.
           </p>

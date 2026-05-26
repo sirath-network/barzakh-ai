@@ -17,7 +17,7 @@ function ensureTavilyDnsPreferIpv4(): void {
   }
 }
 
-const TAVILY_PARALLEL_LIMIT = 2;
+const TAVILY_PARALLEL_LIMIT = 6;
 
 async function allSettledWithLimit<T, R>(
   items: readonly T[],
@@ -59,8 +59,8 @@ const TRANSIENT_AXIOS_CODES = new Set([
   "ECONNABORTED",
 ]);
 
-const MAX_TRANSIENT_RETRIES = 3;
-const TRANSIENT_BACKOFF_MS = 350;
+const MAX_TRANSIENT_RETRIES = 1;
+const TRANSIENT_BACKOFF_MS = 250;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -179,7 +179,7 @@ function getPublishedDate(obj: Record<string, unknown>): string | undefined {
 
 export const webSearch = tool({
   description:
-    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. IMPORTANT: For crypto/blockchain/token queries, ALWAYS use ALL THREE topic types ['general', 'news', 'finance'] to get comprehensive results from different sources. This ensures you find both news articles and financial data. For social sentiment or latest updates, ALWAYS include a specific query targeting x.com (e.g., 'query site:x.com') in the 'queries' array.",
+    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. For speed, prefer ONE precise query, topic ['general'], searchDepth ['basic'], and maxResults [3]. Add 'news' only when the user explicitly asks for news coverage; add 'finance' only when they ask for market/price data. Include x.com only when the user specifically asks for social sentiment or tweets.",
   parameters: z.object({
     queries: z.array(
       z.string().describe("Array of search queries. Do NOT include specific years like '2025' or '2026' - let the search find the most relevant results. Use 'latest' or 'upcoming' for time-sensitive queries instead of hardcoded years.")
@@ -188,26 +188,26 @@ export const webSearch = tool({
       .array(
         z
           .number()
-          .describe("Array of maximum number of results to return per query.")
+          .describe("Array of maximum number of results to return per query. Use [3] for fast answers unless the user asks for deep research.")
       )
       .optional()
-      .default([5]),
+      .default([3]),
     topics: z
       .array(
         z
           .enum(["general", "news", "finance"])
-          .describe("Topic types to search. For crypto/blockchain queries, ALWAYS pass ALL THREE: ['general', 'news', 'finance'] for comprehensive coverage. 'finance' is critical for token/TGE/market queries.")
+          .describe("Topic types to search. Default to ['general'] for speed. Add 'news' only for explicit news requests; add 'finance' only for explicit market/price data.")
       )
       .optional()
-      .default(["general", "news", "finance"]),
+      .default(["general"]),
     searchDepth: z
       .array(
         z
           .enum(["basic", "advanced"])
-          .describe("Array of search depths. Use 'advanced' for comprehensive research that needs more detailed results.")
+          .describe("Array of search depths. Use 'basic' for fast answers. Use 'advanced' only for deep research requests.")
       )
       .optional()
-      .default(["advanced"]),
+      .default(["basic"]),
     timeRange: z
       .enum(["day", "week", "month", "year", "all"])
       .describe("Time range to filter results. Use 'day' for today's news, 'week' for recent updates, 'month' for monthly trends. Default is 'week' for most queries.")
@@ -225,9 +225,9 @@ export const webSearch = tool({
   }),
   execute: async ({
     queries,
-    maxResults = [5],
-    topics = ["general", "news", "finance"],
-    searchDepth = ["advanced"],
+    maxResults = [3],
+    topics = ["general"],
+    searchDepth = ["basic"],
     timeRange = "week",
     include_domains = [],
     exclude_domains = [],
@@ -307,7 +307,7 @@ export const webSearch = tool({
 
             const data = await tvly.search(query, {
               topic,
-              maxResults: maxResults[index] || maxResults[0] || 10,
+              maxResults: maxResults[index] || maxResults[0] || 3,
               searchDepth: depth,
               includeAnswer: includeAnswerLevel,
               includeImages: false,

@@ -27,20 +27,57 @@ export async function saveSearchModeAsCookie(mode: SearchGroupId) {
   cookieStore.set("search-mode", mode);
 }
 
+function extractUserTextForTitle(message: Message): string {
+  let userText = "";
+
+  if (typeof message.content === "string") {
+    userText = message.content;
+  } else if (Array.isArray(message.content)) {
+    userText = (message.content as any[])
+      .filter((part) => part?.type === "text" && typeof part.text === "string")
+      .map((part) => part.text)
+      .join(" ");
+  }
+
+  return userText
+    .replace(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:[\s\S]*?\]/gi, "")
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/[`*_>#\-[\](){}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export async function generateFallbackTitleFromUserMessage({
+  message,
+}: {
+  message: Message;
+}) {
+  const userText = extractUserTextForTitle(message);
+
+  if (!userText) {
+    return "New Chat";
+  }
+
+  const fillerPattern = /^(please|pls|can|could|would|will|you|help|me|to|with|the|a|an|about|explain|tell|show|make|create|generate|write|build|fix|how|what|why|when|where|is|are|do|does|did)$/i;
+  const words = userText
+    .split(/\s+/)
+    .map((word) => word.replace(/^\W+|\W+$/g, ""))
+    .filter(Boolean);
+
+  const topicWords = words.filter((word, index) => index < 2 || !fillerPattern.test(word));
+  const selectedWords = (topicWords.length >= 2 ? topicWords : words).slice(0, 6);
+  const title = selectedWords.join(" ").slice(0, 70).trim();
+
+  return title || "New Chat";
+}
+
 export async function generateTitleFromUserMessage({
   message,
 }: {
   message: Message;
 }) {
-  let userText = "";
-  if (typeof message.content === "string") {
-    userText = message.content;
-  } else if (Array.isArray(message.content)) {
-    const textPart = (message.content as any[]).find((part) => part.type === "text");
-    if (textPart && "text" in textPart) {
-      userText = textPart.text;
-    }
-  }
+  const userText = extractUserTextForTitle(message);
 
   if (!userText) {
     return "New Chat";

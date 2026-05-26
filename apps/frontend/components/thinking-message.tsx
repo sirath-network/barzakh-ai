@@ -1,6 +1,5 @@
 "use client";
 
-import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
 import { motion } from "@/lib/framer-motion";
 import { cn } from "@barzakh/shared/lib/utils/utils";
@@ -66,10 +65,9 @@ export const ThinkingMessage = ({ messages = [] }: ThinkingMessageProps) => {
     >
       <div
         className={cn(
-          "flex flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full"
+          "flex flex-row md:items-start pl-0.5 w-full"
         )}
       >
-        <AssistantAvatar />
         <div className="flex flex-col gap-4 w-full">
           <ThinkingAnimation statusText={statusText} />
         </div>

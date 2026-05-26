@@ -38,7 +38,6 @@ const MessageEditorAny = MessageEditor as any;
 const MessageReasoningAny = MessageReasoning as any;
 const MarkdownAny = Markdown as any;
 const ThinkingAnimationAny = ThinkingAnimation as any;
-const AssistantAvatarAny = AssistantAvatar as any;
 const ButtonAny = Button as any;
 const PencilEditIconAny = PencilEditIcon as any;
 const CheckAny = Check as any;
@@ -121,7 +120,6 @@ const getAttachmentSize = (attachment: any) => {
   return isImage ? "custom250" : "custom100";
 };
 
-import { AssistantAvatar } from "./assistant-avatar";
 import { ThinkingAnimation } from "./thinking-animation";
 import { AIGeneratedImage, AIGeneratedImageGrid } from "./ai-generated-image";
 import { generateStatusFromMessage } from "@/lib/status-generator";
@@ -292,9 +290,6 @@ const PurePreviewMessage = ({
   selectedGroup,
   reload,
   isReadonly,
-  showIcon = true,
-  staticAvatarSrc,
-  avatarSize = 32,
   allMessages = [],
 }: {
   chatId: string;
@@ -309,9 +304,6 @@ const PurePreviewMessage = ({
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
-  showIcon?: boolean;
-  staticAvatarSrc?: string;
-  avatarSize?: number;
   allMessages?: Message[];
 }) => {
   const [mode, setMode] = useState<"view" | "edit">("view");
@@ -501,14 +493,6 @@ const PurePreviewMessage = ({
             }
           )}
         >
-          {message.role === 'assistant' && (
-            <AssistantAvatarAny
-              showIcon={showIcon}
-              staticImageSrc={staticAvatarSrc}
-              size={avatarSize}
-            />
-          )}
-
           <div className={cn(
             "flex flex-col gap-1 min-w-0 max-w-full",
             message.role === 'user' ? "w-full" : "w-full"
@@ -1062,7 +1046,7 @@ const PurePreviewMessage = ({
                   {/* === BOTTOM SECTION: MESSAGE ACTIONS & SOURCE BADGES === */}
                   {message.role === "assistant" && (
                     <motion.div
-                      className="flex flex-col mt-2"
+                      className="flex flex-col mt-1"
                       initial={isPreloaded ? false : { opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: isPreloaded ? 0 : 0.3, delay: isPreloaded ? 0 : 0.4 }}

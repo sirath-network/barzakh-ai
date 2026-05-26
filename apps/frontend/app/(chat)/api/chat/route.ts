@@ -9,7 +9,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
 import { myProvider, isModelAvailableForTier, getFallbackModelForTier, type SubscriptionTier } from "@barzakh/shared/lib/ai/models";
-import { allTools, getGroupConfig, systemPrompt as baseSystemPrompt } from "@barzakh/shared/lib/ai/prompts";
+import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
@@ -33,7 +33,7 @@ import {
   sanitizeResponseMessages,
 } from "@barzakh/shared/lib/utils/utils";
 import { cleanMessageContentForStorage } from "@barzakh/shared/lib/utils/restore-image-urls";
-import { generateTitleFromUserMessage } from "../../actions";
+import { generateFallbackTitleFromUserMessage, generateTitleFromUserMessage } from "../../actions";
 import {
   performSecurityCheck,
   securityBlockResponse,
@@ -250,11 +250,23 @@ function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] 
 }
 
 const FAST_CHAT_MODEL = process.env.FAST_CHAT_MODEL || "gpt-4o-mini";
+const FAST_SEARCH_MODEL = process.env.FAST_SEARCH_MODEL || FAST_CHAT_MODEL;
 
 function hasMultimodalContent(content: unknown): boolean {
   return Array.isArray(content) && content.some((part: any) =>
     part?.type === "image" || part?.type === "file" || part?.image || part?.file
   );
+}
+
+function extractTextFromMessage(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((p): p is { type: 'text'; text: string } => p?.type === 'text' && typeof p.text === 'string')
+      .map(p => p.text)
+      .join(' ');
+  }
+  return '';
 }
 
 function isFastConversationalMessage(text: string): boolean {
@@ -265,6 +277,20 @@ function isFastConversationalMessage(text: string): boolean {
   // context, web search, or a heavyweight model. This removes the extra intent LLM
   // call that made simple prompts like "hello!" wait before streaming started.
   return /^(hi+|hello+|hey+|yo+|sup|gm|gn|good\s+(morning|afternoon|evening|night)|thanks?|thank\s+you|ty|ok(?:ay)?|cool|nice|great|awesome|test)[!.?\s]*$/.test(normalized);
+}
+
+function isFastRealtimeSearchMessage(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized || normalized.length > 260) return false;
+
+  // Keep transactional/on-chain actions on the full router. The fast lane is only
+  // for current-info questions like "when tea mainnet?", "latest X", dates,
+  // roadmaps, launches, TGE/mainnet/testnet/airdrop/news, etc.
+  if (/\b(0x[a-f0-9]{40}|sei1[a-z0-9]{38,}|swap|bridge|buy|sell|trade|portfolio|wallet|balance|transaction|tx|nft|subscribe|upgrade|downgrade|cancel subscription)\b/i.test(text)) {
+    return false;
+  }
+
+  return /\b(when|wen|date|mainnet|testnet|launch|released?|release date|roadmap|tge|airdrop|claim|latest|recent|today|this week|news|announcement|announced|eta|go live|live|deadline|price)\b/i.test(normalized);
 }
 
 // Vercel Serverless Function Configuration
@@ -293,6 +319,19 @@ export async function POST(request: Request) {
     isTemporary?: boolean;
   } = await request.json();
 
+  const userMessage = getMostRecentUserMessage(messages);
+  if (!userMessage) {
+    return new Response("No user message found", { status: 400 });
+  }
+
+  // Compute latency-sensitive lanes before auth/context DB work. This lets trivial
+  // greetings and obvious realtime-search prompts skip old-chat context hydration
+  // and other expensive routing setup before the first token can stream.
+  const userMessageText = extractTextFromMessage(userMessage.content);
+  const hasMultimodal = hasMultimodalContent(userMessage.content);
+  const isFastChat = isFastConversationalMessage(userMessageText) && !hasMultimodal;
+  const isFastRealtimeSearch = isFastRealtimeSearchMessage(userMessageText) && !hasMultimodal;
+
   // Authenticate first - BEFORE accessing any user data
   const session = await auth();
   let activeUserId: string;
@@ -303,7 +342,7 @@ export async function POST(request: Request) {
   if (session?.user?.id) {
     activeUserId = session.user.id;
 
-    if (history_for_context_id) {
+    if (history_for_context_id && !isFastChat && !isFastRealtimeSearch) {
       try {
         const contextChat = await getChatById({ id: history_for_context_id });
         const canAccessContext = contextChat && (
@@ -441,11 +480,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const userMessage = getMostRecentUserMessage(messages);
-  if (!userMessage) {
-    return new Response("No user message found", { status: 400 });
-  }
-
   // ===========================================
   // SECURITY CHECK: Prompt Injection Protection
   // ===========================================
@@ -467,20 +501,6 @@ export async function POST(request: Request) {
   // AI VULNERABILITY CHECKS
   // Protects against: Sponge attacks, Model extraction, Adversarial inputs
   // ===========================================
-  const extractTextFromMessage = (content: unknown): string => {
-    if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-      return content
-        .filter((p): p is { type: 'text'; text: string } => p?.type === 'text' && typeof p.text === 'string')
-        .map(p => p.text)
-        .join(' ');
-    }
-    return '';
-  };
-
-  const userMessageText = extractTextFromMessage(userMessage.content);
-  const isFastChat = isFastConversationalMessage(userMessageText) && !hasMultimodalContent(userMessage.content);
-
   if (userMessageText) {
     const aiVulnCheck = performAISecurityCheck(userMessageText, {
       checkSponge: true,      // Detect DoS via expensive computation
@@ -594,9 +614,9 @@ export async function POST(request: Request) {
     return null;
   }
 
-  // Get chain context from chat history. Fast small-talk does not need context
-  // scanning, so skip the history pass on the latency-sensitive path.
-  const chatContext = isFastChat ? null : extractChainContext(messages);
+  // Get chain context from chat history. Fast small-talk/current-info searches do not need context
+  // scanning, so skip the history pass on the latency-sensitive paths.
+  const chatContext = (isFastChat || isFastRealtimeSearch) ? null : extractChainContext(messages);
 
   // Detect if conversation has image generation history
   function hasImageGenerationHistory(msgs: typeof messages): boolean {
@@ -638,9 +658,9 @@ export async function POST(request: Request) {
     return false;
   }
 
-  const hasImageContext = isFastChat ? false : hasImageGenerationHistory(messages);
+  const hasImageContext = (isFastChat || isFastRealtimeSearch) ? false : hasImageGenerationHistory(messages);
 
-  if (userMessageText && userMessageText.length > 0 && !isFastChat) {
+  if (userMessageText && userMessageText.length > 0 && !isFastChat && !isFastRealtimeSearch) {
     try {
       classificationResult = await classifyIntent(userMessageText, {
         fallbackToLLM: true,
@@ -672,12 +692,23 @@ export async function POST(request: Request) {
   try {
     if (isFastChat) {
       tools = [];
-      systemPrompt = baseSystemPrompt({ selectedChatModel: FAST_CHAT_MODEL });
+      systemPrompt = "You are Barzakh AI. Fast chat mode: reply to simple greetings and acknowledgements in exactly one short, friendly sentence on a single line. Do not split the reply into multiple paragraphs. Example: Hello! What can I help you with today? Do not use tools. Do not mention wallets, markets, protocols, or subscriptions unless the user asks.";
       effectiveGroup = "search";
       classificationResult = {
         primaryIntent: "search",
         confidence: 1,
         indicators: ["fast_conversational_message"],
+        requiresMultiTool: false,
+        classificationMethod: "pattern",
+      };
+    } else if (isFastRealtimeSearch) {
+      tools = ["webSearch"];
+      systemPrompt = "You are Barzakh AI. Fast search mode: answer current-info questions quickly. Use exactly one webSearch call with one concise query, topics ['general'], searchDepth ['basic'], and maxResults [3]. Then answer directly and briefly from the retrieved sources. If sources disagree or no firm date exists, say that clearly. Do not call wallet, chain, subscription, market, or image tools.";
+      effectiveGroup = "search";
+      classificationResult = {
+        primaryIntent: "search",
+        confidence: 1,
+        indicators: ["fast_realtime_search"],
         requiresMultiTool: false,
         classificationMethod: "pattern",
       };
@@ -691,7 +722,7 @@ export async function POST(request: Request) {
     // Continue with empty tools and system prompt
   }
 
-  if (!isGuest && session?.user && !isFastChat) {
+  if (!isGuest && session?.user && !isFastChat && !isFastRealtimeSearch) {
     let currentTier = session.user.tier || 'free';
     let currentBillingCycle = session.user.billingCycle || 'monthly';
     let username = session.user.username || session.user.email;
@@ -770,24 +801,27 @@ export async function POST(request: Request) {
     }
   }
 
-  const finalModel = isFastChat ? FAST_CHAT_MODEL : (isGuest ? "model-router" : effectiveModel);
+  const finalModel = isFastChat ? FAST_CHAT_MODEL : (isFastRealtimeSearch ? FAST_SEARCH_MODEL : (isGuest ? "model-router" : effectiveModel));
 
   // For incognito/temporary chats, skip all DB persistence
   if (!isTemporary) {
     const chat = await getChatById({ id });
 
     if (!chat) {
-      // Create the Chat record IMMEDIATELY with a placeholder title
-      // so the FK constraint is satisfied when saveMessages() runs below.
+      const initialTitle = await generateFallbackTitleFromUserMessage({ message: userMessage });
+
+      // Create the Chat record IMMEDIATELY with a deterministic topic title
+      // so the FK constraint is satisfied when saveMessages() runs below and
+      // the UI never has to show the generic "New Chat" title after sending.
       await saveChat({
         id,
         userId: activeUserId,
-        title: "New Chat",
+        title: initialTitle,
         forkedFromChatId: history_for_context_id,
       });
 
       if (isFastChat) {
-        // Keep the placeholder title for trivial greetings. Do not fire a second
+        // Keep the deterministic title for trivial greetings. Do not fire a second
         // AI title-generation request while the main response is trying to start.
       } else {
         // Defer title generation to background — it calls an AI model (~1-3s)
@@ -823,7 +857,7 @@ export async function POST(request: Request) {
   }
 
   // SOLUTION 1: Clean messages before passing to streamText
-  const cleanedMessages = validateAndCleanMessages(messages);
+  const cleanedMessages = validateAndCleanMessages((isFastChat || isFastRealtimeSearch) ? [userMessage] : messages);
 
   // Convert to valid CoreMessage[] — normalizes multipart content, data URIs,
   // and any UI-format fields that streamText's Zod schema rejects.
@@ -831,7 +865,8 @@ export async function POST(request: Request) {
 
   // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI.
   // Fast text-only chat skips this extra async pass entirely.
-  const resolvedMessages = isFastChat ? coreMessages : await resolveR2UrlsInMessages(coreMessages);
+  const resolvedMessages = (isFastChat || isFastRealtimeSearch) ? coreMessages : await resolveR2UrlsInMessages(coreMessages);
+  const modelMessages = isFastChat ? toCoreSafeMessages([userMessage]) : resolvedMessages;
 
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
@@ -841,7 +876,7 @@ export async function POST(request: Request) {
 
   // Inject autonomous execution tools contextually if authenticated
   let isAgentEnabledLocally = false;
-  if (session?.user?.id && !isFastChat) {
+  if (session?.user?.id && !isFastChat && !isFastRealtimeSearch) {
     const { hasDelegation } = await import("@/lib/agent/agent-wallet-store");
     isAgentEnabledLocally = await hasDelegation(session.user.id);
 
@@ -867,7 +902,7 @@ export async function POST(request: Request) {
 
   // Wrap webSearch to enforce single execution per request
   let hasWebSearchExecuted = false;
-  const wrappedTools = {
+  const wrappedTools = isFastChat ? {} : {
     ...allTools,
     // Autonomous execution tools (Agentic) - Always available if authenticated
     ...(session?.user?.id ? {
@@ -1076,7 +1111,7 @@ export async function POST(request: Request) {
       try {
         const result = streamText({
           model: myProvider.languageModel(finalModel),
-          system: `${systemPrompt}\n\n**FOUR.MEME PROTOCOL GUIDELINES:**
+          system: (isFastChat || isFastRealtimeSearch) ? systemPrompt : `${systemPrompt}\n\n**FOUR.MEME PROTOCOL GUIDELINES:**
 - When a user asks to buy/sell a token from a list (e.g. "no. 2", "the first one"), ALWAYS use the \`address\` field from the tool's SEARCH or RANKING results.
 - NEVER use your own knowledge for addresses. Use the exact 0x... address provided by the tool.
 - If you see address '0x823fc8ef7295188d95708516d7458d6154179083', it is a documentation EXAMPLE and likely WRONG. Do not use it unless explicitly provided by the user.
@@ -1084,9 +1119,9 @@ export async function POST(request: Request) {
 - **TRANSACTION LINKS**: After a successful buy, sell, or launch, ALWAYS provide a clickable markdown link to the transaction on BscScan using the \`explorerUrl\` from the tool result. Format: \`[View on BscScan](url)\`.
 - **AGENT IDENTITY**: You have an embedded agent wallet on BNB Chain. If you are unsure about your address or BNB balance, use \`getAgentWalletInfo\`. To check a specific token balance, use \`getAgentTokenBalance\`.
 - **SELL ALL**: The \`executeFourMemeSell\` tool now supports the string "all" for \`tokenAmount\`. Use this when the user wants to liquidate their entire position.`,
-          messages: resolvedMessages, // Use resolved messages with signed R2 URLs
-          maxSteps: 8,
-          maxRetries: 2, // Retry up to 2 times on failure
+          messages: modelMessages, // Fast small-talk sends only the latest user message
+          maxSteps: isFastChat ? 1 : (isFastRealtimeSearch ? 3 : 8),
+          maxRetries: isFastChat ? 0 : (isFastRealtimeSearch ? 1 : 2), // Keep fast lanes tight; full tool flows can retry more
           experimental_activeTools: safeActiveTools as any,
           experimental_generateMessageId: generateUUID,
           tools: (isFastChat ? {} : wrappedTools) as any,
@@ -1152,8 +1187,8 @@ export async function POST(request: Request) {
             model: myProvider.languageModel(finalModel),
             system: systemPrompt,
             messages: freshMessages,
-            maxSteps: 10,
-            maxRetries: 3, // Retry up to 3 times on failure
+            maxSteps: isFastChat ? 1 : (isFastRealtimeSearch ? 3 : 10),
+            maxRetries: isFastChat ? 0 : (isFastRealtimeSearch ? 1 : 3), // Retry more only on the full fallback path
             experimental_activeTools: safeActiveTools as any,
             experimental_generateMessageId: generateUUID,
             tools: (isFastChat ? {} : wrappedTools) as any,
