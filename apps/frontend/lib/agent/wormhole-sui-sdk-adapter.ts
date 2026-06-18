@@ -1,6 +1,6 @@
 import dns from "node:dns";
 import { Wormhole, circle, routes } from "@wormhole-foundation/sdk";
-import { CircleTransfer } from "@wormhole-foundation/sdk-connect";
+import { CircleTransfer, TokenTransfer } from "@wormhole-foundation/sdk-connect";
 import { EvmPlatform, getEvmSignerForKey } from "@wormhole-foundation/sdk-evm";
 import { SolanaPlatform, getSolanaSigner } from "@wormhole-foundation/sdk-solana";
 import { SuiPlatform, SuiSigner } from "@wormhole-foundation/sdk-sui";
@@ -138,32 +138,32 @@ function getAttestationHash(receipt: any): string | undefined {
 
 const autonomousCctpCompletions = new Set<string>();
 
-function cctpCompletionInstruction(params: {
+function bridgeCompletionInstruction(params: {
   sourceTxHash: string;
   destinationChain: string;
   recipientAddress: string;
   network: WormholeSdkNetwork;
+  routeKind: "cctp" | "wtt";
 }) {
-  return `Complete Wormhole CCTP transfer from source burn tx ${params.sourceTxHash} to ${params.destinationChain} recipient ${params.recipientAddress} on ${params.network.toLowerCase()}.`;
+  return `Complete Wormhole ${params.routeKind.toUpperCase()} transfer from source tx ${params.sourceTxHash} to ${params.destinationChain} recipient ${params.recipientAddress} on ${params.network.toLowerCase()}.`;
 }
 
-function scheduleAutonomousCctpCompletion(params: {
+function scheduleAutonomousBridgeCompletion(params: {
   userId: string;
   sourceChain: string;
   destinationChain: string;
   sourceTxHash: string;
   recipientAddress: string;
+  routeKind: "cctp" | "wtt";
   network: WormholeSdkNetwork;
   attempt?: number;
 }) {
   if (process.env.WORMHOLE_CCTP_AUTONOMOUS_COMPLETION === "false") return false;
-  const key = `${params.network}:${params.sourceChain}:${params.destinationChain}:${params.sourceTxHash}`;
+  const key = `${params.routeKind}:${params.network}:${params.sourceChain}:${params.destinationChain}:${params.sourceTxHash}`;
   const attempt = params.attempt || 1;
   if (autonomousCctpCompletions.has(key) && attempt === 1) return true;
   autonomousCctpCompletions.add(key);
-  // Circle testnet attestations are frequently not ready for several minutes.
-  // Do not start the SDK completion loop immediately after the source burn: it
-  // spams `Retrying Circle:GetAttestation .../300` and usually cannot succeed yet.
+  // Circle/TokenBridge testnet attestations are frequently not ready for several minutes.
   const firstDelayMs = Number(process.env.WORMHOLE_CCTP_AUTONOMOUS_COMPLETION_DELAY_MS || "600000");
   const retryDelayMs = Number(process.env.WORMHOLE_CCTP_AUTONOMOUS_RETRY_DELAY_MS || "300000");
   const delayMs = attempt === 1 ? firstDelayMs : retryDelayMs;
@@ -172,7 +172,7 @@ function scheduleAutonomousCctpCompletion(params: {
   const safeTimeoutMs = Number.isFinite(timeoutMs) && timeoutMs >= 0 ? timeoutMs : 30000;
   const maxAttempts = Number(process.env.WORMHOLE_CCTP_AUTONOMOUS_MAX_ATTEMPTS || "6");
   const safeMaxAttempts = Number.isFinite(maxAttempts) && maxAttempts > 0 ? maxAttempts : 6;
-  console.info("[wormhole-cctp] autonomous completion scheduled", {
+  console.info(`[wormhole-${params.routeKind}] autonomous completion scheduled`, {
     sourceTxHash: params.sourceTxHash,
     network: params.network,
     sourceChain: params.sourceChain,
@@ -185,7 +185,7 @@ function scheduleAutonomousCctpCompletion(params: {
   setTimeout(() => {
     void completeWormholeSuiCctpFromSourceTx({ ...params, attestationTimeoutMs: safeTimeoutMs })
       .then((result) => {
-        console.info("[wormhole-cctp] autonomous completion succeeded", {
+        console.info(`[wormhole-${params.routeKind}] autonomous completion succeeded`, {
           sourceTxHash: params.sourceTxHash,
           destinationTxHash: result.destinationTxHash,
           network: params.network,
@@ -195,7 +195,7 @@ function scheduleAutonomousCctpCompletion(params: {
       })
       .catch((error) => {
         const message = error?.message || String(error);
-        console.error("[wormhole-cctp] autonomous completion attempt failed", {
+        console.error(`[wormhole-${params.routeKind}] autonomous completion attempt failed`, {
           sourceTxHash: params.sourceTxHash,
           network: params.network,
           sourceChain: params.sourceChain,
@@ -203,10 +203,10 @@ function scheduleAutonomousCctpCompletion(params: {
           attempt,
           error: message,
         });
-        if (attempt < safeMaxAttempts && /attestation|GetAttestation|timeout|not available|fetch|network|failed/i.test(message)) {
+        if (attempt < safeMaxAttempts && /attestation|GetAttestation|GetVaaBytes|timeout|not available|fetch|network|failed/i.test(message)) {
           setTimeout(() => {
             autonomousCctpCompletions.delete(key);
-            scheduleAutonomousCctpCompletion({ ...params, attempt: attempt + 1 });
+            scheduleAutonomousBridgeCompletion({ ...params, attempt: attempt + 1 });
           }, 0).unref?.();
           return;
         }
@@ -347,15 +347,20 @@ export async function submitWormholeSuiSdkTransfer(
 
   const routeName = (bestRoute.constructor as any)?.meta?.name || bestRoute.constructor?.name || request.quote.routeName;
   const isManualCctp = request.quote.routeKind === "cctp" && /ManualCCTP|CCTPRoute/i.test(String(routeName));
-  if (isManualCctp) {
+  const isManualWtt = request.quote.routeKind === "wtt" && /TokenBridgeRoute/i.test(String(routeName));
+  const isManual = isManualCctp || isManualWtt;
+
+  if (isManual) {
+    const routeKind = request.quote.routeKind as "cctp" | "wtt";
     const completeInline = process.env.WORMHOLE_CCTP_COMPLETE_INLINE === "true";
     if (!completeInline) {
-      const autonomousCompletionScheduled = scheduleAutonomousCctpCompletion({
+      const autonomousCompletionScheduled = scheduleAutonomousBridgeCompletion({
         userId: request.userId,
         sourceChain: sourceChainName,
         destinationChain: destinationChainName,
         sourceTxHash,
         recipientAddress: request.plan.recipientAddress,
+        routeKind,
         network,
       });
       return {
@@ -367,29 +372,20 @@ export async function submitWormholeSuiSdkTransfer(
         finalized: false,
         requiresCompletion: true,
         autonomousCompletionScheduled,
-        completionInstruction: cctpCompletionInstruction({
+        completionInstruction: bridgeCompletionInstruction({
           sourceTxHash,
           destinationChain: destinationChainName,
           recipientAddress: request.plan.recipientAddress,
           network,
+          routeKind,
         }),
-        provider: `wormhole-sdk:${routeName}:source-burn-pending`,
+        provider: `wormhole-sdk:${routeName}:source-initiated-pending`,
       };
     }
 
     const inlineTimeoutMs = Number(process.env.WORMHOLE_CCTP_INLINE_ATTESTATION_TIMEOUT_MS || "90000");
     const timeoutMs = Number.isFinite(inlineTimeoutMs) && inlineTimeoutMs >= 0 ? inlineTimeoutMs : 90000;
-    let trackedReceipt: any = receipt;
     try {
-      if (typeof (bestRoute as any).track === "function") {
-        for await (const update of (bestRoute as any).track(receipt, Number.isFinite(timeoutMs) ? timeoutMs : 600000)) {
-          trackedReceipt = update;
-          if (trackedReceipt?.attestation?.attestation?.attestation) break;
-        }
-      }
-      if (!trackedReceipt?.attestation?.attestation?.attestation) {
-        throw new Error("Circle attestation was not available yet.");
-      }
       const destinationWalletChain = walletChainForSdkChain(destinationChainName);
       const destinationSigner = await getSdkSigner({
         userId: request.userId,
@@ -397,11 +393,19 @@ export async function submitWormholeSuiSdkTransfer(
         sdkChain: destinationChain,
         sourceWalletAddress: request.plan.recipientAddress,
       });
-      const completedReceipt = await (bestRoute as any).complete(destinationSigner, trackedReceipt);
+
+      console.info(`[wormhole-sdk] Completing transfer inline using checkAndCompleteTransfer...`);
+      const completedReceipt = await routes.checkAndCompleteTransfer(
+        bestRoute as any,
+        receipt as any,
+        destinationSigner as any,
+        timeoutMs
+      );
+
       const destinationTxHashes = collectTxHashes((completedReceipt as any)?.destinationTxs || completedReceipt);
       const destinationTxHash = destinationTxHashes[destinationTxHashes.length - 1];
       if (!destinationTxHash) {
-        throw new Error("Wormhole ManualCCTP completed but did not expose a Sui destination tx digest.");
+        throw new Error(`Wormhole manual transfer completed but did not expose a destination tx hash.`);
       }
       return {
         txHash: destinationTxHash,
@@ -409,36 +413,36 @@ export async function submitWormholeSuiSdkTransfer(
         destinationTxHash,
         sourceTxHashes,
         destinationTxHashes,
-        attestationHash: getAttestationHash(trackedReceipt),
+        attestationHash: getAttestationHash(completedReceipt),
         routeState: String((completedReceipt as any)?.state ?? "DestinationFinalized"),
         finalized: true,
         requiresCompletion: false,
         provider: `wormhole-sdk:${routeName}`,
       };
     } catch (error: any) {
-      const attestationHash = getAttestationHash(trackedReceipt) || getAttestationHash(receipt);
       const message = error?.message || String(error);
-      if (/attestation|timeout|GetAttestation|not available/i.test(message)) {
+      if (/attestation|timeout|GetVaaBytes|GetAttestation|not available/i.test(message)) {
         return {
           txHash: sourceTxHash,
           sourceTxHash,
           sourceTxHashes,
-          attestationHash,
+          attestationHash: getAttestationHash(receipt),
           routeState: "SourceInitiated",
           finalized: false,
           requiresCompletion: true,
           autonomousCompletionScheduled: false,
-          completionInstruction: cctpCompletionInstruction({
+          completionInstruction: bridgeCompletionInstruction({
             sourceTxHash,
             destinationChain: destinationChainName,
             recipientAddress: request.plan.recipientAddress,
             network,
+            routeKind,
           }),
-          provider: `wormhole-sdk:${routeName}:source-burn-pending`,
+          provider: `wormhole-sdk:${routeName}:source-initiated-pending`,
         };
       }
       throw new Error(
-        `Wormhole ManualCCTP source burn submitted but destination completion did not finish. sourceTxHash=${sourceTxHash}${attestationHash ? ` attestationHash=${attestationHash}` : ""}. ${message}`,
+        `Wormhole manual transfer initiated but destination completion failed. sourceTxHash=${sourceTxHash}. ${message}`,
       );
     }
   }
@@ -460,6 +464,7 @@ export async function completeWormholeSuiCctpFromSourceTx(input: {
   destinationChain: string;
   sourceTxHash: string;
   recipientAddress: string;
+  routeKind?: "cctp" | "wtt" | "auto";
   network?: WormholeSdkNetwork;
   attestationTimeoutMs?: number;
 }) {
@@ -468,7 +473,7 @@ export async function completeWormholeSuiCctpFromSourceTx(input: {
   const sourceChainName = normalizeSdkChain(input.sourceChain, network);
   const destinationChainName = normalizeSdkChain(input.destinationChain, network);
   if (destinationChainName !== "Sui" && sourceChainName !== "Sui") {
-    throw new Error("CCTP recovery is only wired for transfers into or out of Sui.");
+    throw new Error("Wormhole recovery is only wired for transfers into or out of Sui.");
   }
 
   const wh = new Wormhole(network, [EvmPlatform, SolanaPlatform, SuiPlatform]);
@@ -477,11 +482,45 @@ export async function completeWormholeSuiCctpFromSourceTx(input: {
   const configuredTimeoutMs = input.attestationTimeoutMs ?? Number(process.env.WORMHOLE_CCTP_ATTESTATION_TIMEOUT_MS || "600000");
   const timeoutMs = Number.isFinite(configuredTimeoutMs) ? configuredTimeoutMs : 600000;
 
-  const xfer = await CircleTransfer.from(
-    wh as any,
-    { chain: sourceChain.chain as any, txid: input.sourceTxHash } as any,
-    Math.max(0, timeoutMs),
-  );
+  let xfer: any = null;
+  let routeKind = input.routeKind || "auto";
+  let lastError: Error | null = null;
+
+  if (routeKind === "cctp" || routeKind === "auto") {
+    try {
+      console.info(`[wormhole-recovery] Attempting to recover as CCTP... tx=${input.sourceTxHash}`);
+      xfer = await CircleTransfer.from(
+        wh as any,
+        { chain: sourceChain.chain as any, txid: input.sourceTxHash } as any,
+        routeKind === "auto" ? 15000 : Math.max(0, timeoutMs),
+      );
+      routeKind = "cctp";
+      console.info(`[wormhole-recovery] Successfully recovered as CCTP.`);
+    } catch (e: any) {
+      lastError = e;
+      if (routeKind === "cctp") throw e;
+    }
+  }
+
+  if (!xfer && (routeKind === "wtt" || routeKind === "auto")) {
+    try {
+      console.info(`[wormhole-recovery] Attempting to recover as WTT/TokenBridge... tx=${input.sourceTxHash}`);
+      xfer = await TokenTransfer.from(
+        wh as any,
+        { chain: sourceChain.chain as any, txid: input.sourceTxHash } as any,
+        Math.max(0, timeoutMs),
+      );
+      routeKind = "wtt";
+      console.info(`[wormhole-recovery] Successfully recovered as WTT.`);
+    } catch (e: any) {
+      lastError = e;
+      if (routeKind === "wtt") throw e;
+    }
+  }
+
+  if (!xfer) {
+    throw new Error(`Failed to recover transfer from source tx. Last error: ${lastError?.message || "Unknown error"}`);
+  }
 
   const destinationSigner = await getSdkSigner({
     userId: input.userId,
@@ -489,11 +528,13 @@ export async function completeWormholeSuiCctpFromSourceTx(input: {
     sdkChain: destinationChain,
     sourceWalletAddress: input.recipientAddress,
   });
+
+  console.info(`[wormhole-recovery] Completing transfer on destination...`);
   const completed = await xfer.completeTransfer(destinationSigner as any);
   const destinationTxHashes = collectTxHashes(completed);
   const destinationTxHash = destinationTxHashes[destinationTxHashes.length - 1];
   if (!destinationTxHash) {
-    throw new Error("CCTP recovery completed but no destination transaction hash/digest was returned.");
+    throw new Error("Wormhole recovery completed but no destination transaction hash/digest was returned.");
   }
   return {
     success: true,
@@ -502,9 +543,10 @@ export async function completeWormholeSuiCctpFromSourceTx(input: {
     destinationTxHash,
     destinationTxHashes,
     attestationHash: getAttestationHash(xfer),
-    provider: "wormhole-sdk:ManualCCTP:recovery",
+    provider: `wormhole-sdk:${routeKind === "cctp" ? "ManualCCTP" : "TokenBridge"}:recovery`,
     network,
     sourceChain: sourceChain.chain,
     destinationChain: destinationChain.chain,
+    routeKind,
   };
 }

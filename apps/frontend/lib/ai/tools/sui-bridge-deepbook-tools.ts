@@ -79,15 +79,16 @@ export const createPrepareWormholeSuiBridgeTransferTool = (userId: string) =>
 export const createCompleteWormholeCctpTransferTool = (userId: string) =>
   tool({
     description:
-      "Complete/recover an already-initiated Wormhole ManualCCTP transfer from its source burn transaction hash/digest. Use this after Circle USDC was burned into or out of Sui but destination USDC has not appeared, or a bridge status page shows PENDING CLAIM. This must not initiate a new burn; it fetches Circle attestation and submits the destination completion transaction with the embedded destination wallet. Completion can take up to 15 minutes or more. Do not ask for amount: amount/nonce/message hash are parsed from the source burn transaction. In normal user responses, provide the destination block explorer link, not Wormholescan.",
+      "Complete/recover an already-initiated Wormhole Manual CCTP (USDC) or WTT (ETH, WETH, etc.) transfer from its source transaction hash/digest. Use this after tokens were transferred/burned on the source chain but destination tokens have not appeared, or a bridge status page shows PENDING CLAIM. This must not initiate a new transfer; it fetches the VAA/attestation and submits the destination completion transaction with the embedded destination wallet. Completion can take up to 15 minutes or more. Do not ask for amount: amount/nonce/VAA are parsed from the source transaction. In normal user responses, provide the destination block explorer link, not Wormholescan.",
     parameters: z.object({
-      sourceTxHash: z.string().describe("The source-chain CCTP burn transaction hash/digest, not an ERC20 approval hash."),
+      sourceTxHash: z.string().describe("The source-chain transaction hash/digest, not an ERC20 approval hash."),
       sourceChain: z.string().default("Sepolia").describe("Source Wormhole chain name, e.g. Sepolia, Sui, Ethereum, BaseSepolia."),
       destinationChain: z.string().default("Sui").describe("Destination Wormhole chain name, e.g. Sui or Sepolia."),
-      recipientAddress: z.string().describe("Destination recipient address that should receive the minted USDC."),
+      recipientAddress: z.string().describe("Destination recipient address that should receive the tokens."),
+      routeKind: z.enum(["cctp", "wtt", "auto"]).optional().default("auto").describe("Route kind of the transfer: 'cctp' for native USDC, 'wtt' for ETH or other wrapped tokens, or 'auto' to detect automatically."),
       network: wormholeNetworkSchema.optional().default("Testnet"),
     }),
-    execute: async ({ sourceTxHash, sourceChain, destinationChain, recipientAddress, network }) => {
+    execute: async ({ sourceTxHash, sourceChain, destinationChain, recipientAddress, routeKind, network }) => {
       try {
         const completed = await completeWormholeSuiCctpFromSourceTx({
           userId,
@@ -95,6 +96,7 @@ export const createCompleteWormholeCctpTransferTool = (userId: string) =>
           sourceChain,
           destinationChain,
           recipientAddress,
+          routeKind,
           network: network === "Mainnet" || network === "mainnet" ? "Mainnet" : "Testnet",
         });
         return {

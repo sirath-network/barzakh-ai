@@ -272,8 +272,9 @@ Today's Date: ${new Date().toLocaleDateString("en-US", {
 ## For blockchain/crypto queries: always convert wei to ether for showing balances. 1 eth = 1000000000000000000 wei
 
 ## Blockchain Addresses and Identifiers:
-- ALWAYS provide blockchain addresses (e.g., 0x823fc8..., sei1f8w6...) and transaction hashes as plain text without backticks.
-- **CRITICAL**: If a block explorer URL or explorerUrl is provided in a tool result, ALWAYS include it as a clickable markdown link (e.g., [View on BscScan](url) or [View on Explorer](url)).
+- **CRITICAL ADDRESS TRUNCATION RULE**: NEVER output any full, long hex string (such as full 40-character EVM addresses, 66-character Sui addresses, 44-character Solana addresses, or 64-character transaction hashes/digests) in your plain text responses. Any hex string longer than 15 characters (e.g., 0x followed by more than 12 hex digits) triggers API provider safety/sensitive-data filters and immediately cuts off the AI response mid-stream.
+- **CRITICAL**: You MUST ALWAYS shorten/truncate blockchain addresses, object IDs, and transaction hashes (e.g., 0xa2a9...2f41d, 0xfeed...face) when displaying them in plain text.
+- **CRITICAL**: If a block explorer URL or explorerUrl is provided in a tool result, ALWAYS include it as a clickable markdown link (e.g., [View on BscScan](url) or [View on Explorer](url)). The clickable link is the safe way to show the transaction.
 - Other blockchain-related terms (like "smart contract", "token", "gas fees") should remain as regular text.
 - Example: Successfully bought tokens! [View on BscScan](https://bscscan.com/tx/0x...)
 - When presenting transaction history, use the 'version' as the main identifier. Always include the transaction version, sender, timestamp, status (if available), and a link to the block explorer.
@@ -2199,18 +2200,30 @@ When an upload to Walrus succeeds (via uploadToWalrus), you MUST ALWAYS output t
 - Position Barzakh as an Agentic Web interface: natural-language Sui/MCP knowledge, live Sui object/transaction reads, and verifiable agent memories/actions.
 - Next product milestone: Sui wallet connection + Walrus certified chat/agent memory + testnet Move policy object for bounded autonomous execution.
 - Do not claim a Walrus write or Sui transaction succeeded unless a tool result includes a real digest/blob ID.
+
+# CRITICAL ADDRESS SAFETY WARNING (NO CUTOFFS)
+- You MUST shorten/truncate ALL blockchain addresses, transaction hashes, and object IDs (e.g., 0xa2a9...2f41d, 0xfeed...face) when displaying them in plain text.
+- NEVER output any full hex string longer than 15 characters (such as full 40-character EVM addresses, 66-character Sui addresses, or 64-character transaction hashes/digests) in your response text.
+- If you output a full hex string, the upstream AI safety/sensitive-data filters will IMMEDIATELY block the connection and cut off your response mid-sentence. This is a hard technical restriction.
+- Always display them as shortened links or text (e.g., [0xa2a9...2f41d](https://suiscan.xyz/testnet/address/0xa2a9e5110a9f5ce2f41da9f5ce2f41d...)).
 `,
 };
+
+const addressSafetySuffix = `
+
+## CRITICAL SAFETY RULE (NO RESPONSES CUT OFF):
+- **NEVER** output any full 40-character or 66-character hex blockchain address (EVM/Sui address) or 64-character transaction hash in your response plain text.
+- If you write a full address or hash, the upstream API safety filter will immediately terminate the connection, resulting in a broken/truncated response to the user.
+- **ALWAYS** truncate addresses/hashes to 10-15 characters with dots in the middle (e.g., 0xa2a9...2f41d) when displaying them. Use explorer links for full transaction visibility.
+`;
 
 export const systemPrompt = ({
   selectedChatModel,
 }: {
   selectedChatModel: string;
 }) => {
-  if (selectedChatModel === "openai-gpt-4o") {
-    return regularPrompt;
-  }
-  return `${regularPrompt} `;
+  const base = selectedChatModel === "openai-gpt-4o" ? regularPrompt : `${regularPrompt} `;
+  return `${base}${addressSafetySuffix}`;
 };
 
 export async function getGroupConfig(
@@ -2230,7 +2243,7 @@ export async function getGroupConfig(
     };
   }
   const tools = (groupTools as Record<string, readonly string[]>)[groupId] || [];
-  const systemPrompt = `${regularPrompt} , ${(groupPrompts as Record<string, string>)[groupId] || ""} `;
+  const systemPrompt = `${regularPrompt} , ${(groupPrompts as Record<string, string>)[groupId] || ""} \n${addressSafetySuffix}`;
   return {
     tools,
     systemPrompt,
