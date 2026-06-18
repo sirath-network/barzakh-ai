@@ -85,7 +85,7 @@ const CHAIN_CONFIG = {
   },
   sui: {
     label: "Sui",
-    sublabel: "SUI, Move objects, Walrus demos",
+    sublabel: "SUI, Move objects, Walrus, etc.",
     iconDark: "/images/icon/sui/sui-light.png",
     iconLight: "/images/icon/sui/sui-dark.png",
     color: "text-cyan-500",
