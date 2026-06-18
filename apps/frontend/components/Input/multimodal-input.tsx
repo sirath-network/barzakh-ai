@@ -36,9 +36,9 @@ import type { Chat as ChatHistory } from "@/lib/db/schema";
 
 const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
   // coding allows all models (no restriction)
-  imagine: "gpt-4.1",
+  imagine: "openai-gpt-4.1",
   // multimodal requires a vision-capable model for image analysis
-  multimodal: "gpt-4.1",
+  multimodal: "openai-gpt-4.1",
 };
 
 

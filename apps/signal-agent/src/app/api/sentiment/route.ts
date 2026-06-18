@@ -61,15 +61,15 @@ export async function POST(req: Request) {
         Incorporate this multi-timeframe price action, volume, and momentum into your specific trading signal and analysis!`;
     }
 
-    const azureEndpoint = process.env.AZURE_FOUNDRY_ENDPOINT || 'https://siraths-resource.services.ai.azure.com/openai/v1';
+    const azureEndpoint = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
     const openRouterResponse = await fetch(`${azureEndpoint}/chat/completions`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.AZURE_FOUNDRY_API_KEY}`,
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'openai/gpt-4o',
         response_format: { type: "json_object" },
         messages: [
           {

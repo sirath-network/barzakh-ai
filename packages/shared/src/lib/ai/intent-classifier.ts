@@ -18,9 +18,9 @@ import { z } from "zod";
 
 export const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "imagine" | "multimodal", string>> = {
     // coding now allows user to select from a subset of models
-    imagine: "gpt-4.1",
+    imagine: "openai-gpt-4.1",
     // multimodal requires a vision-capable model for image analysis
-    multimodal: "gpt-4.1",
+    multimodal: "openai-gpt-4.1",
     // Chain-specific tools removed - they can use any model the user selects
 };
 
@@ -193,7 +193,7 @@ interface ChainInfo {
     patterns: RegExp[];
     keywords: string[];
     tokens: string[]; // Native or major tokens
-    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos' | 'bitcoin' | 'tron' | 'ton' | 'dogecoin';
+    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos' | 'sui' | 'bitcoin' | 'tron' | 'ton' | 'dogecoin';
     isEvm: boolean;
 }
 
@@ -324,6 +324,30 @@ const CHAIN_REGISTRY: ChainInfo[] = [
             'jupiter swap', 'raydium', 'orca', 'magic eden', 'pump.fun'],
         tokens: ['SOL', 'BONK', 'JTO', 'JUP'],
         addressFormat: 'base58',
+        isEvm: false,
+    },
+    // Sui (non-EVM, 32-byte 0x Move addresses; explicit Sui wording required to avoid Aptos ambiguity)
+    {
+        id: 'sui',
+        intent: 'sui',
+        patterns: [
+            /\bsui\b/i,
+            /\bsui\s+(network|chain|blockchain|wallet|portfolio|balance|holdings|address|object|objects|move|walrus|deepbook|bridge|mcp|agent|agents?|agentic|overflow)\b/i,
+            /\b(sui|suiwallet|slush|suiet)\s*wallet\b/i,
+            /\b(walrus|deepbook|mysten|suins|suiscan|sui\s*explorer)\b/i,
+            /\b(move\s+objects?|move\s+package|programmable\s+transaction|ptb)\b.*\bsui\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer)\b.*\bsui\b/i,
+            /\bsui\b.*\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer|whale|arkham)\b/i,
+            /\barkham\b.*\bsui\b/i,
+            /\bsui\b.*\barkham\b/i,
+            /\b(whale|whales|large\s+(address|holder|holders)|top\s+holders?)\b.*\bsui\b/i,
+        ],
+        keywords: ['sui', 'sui network', 'sui chain', 'sui blockchain', 'sui wallet', 'sui portfolio',
+            'sui balance', 'sui holdings', 'sui address', 'sui object', 'move objects', 'walrus',
+            'deepbook', 'mysten', 'suiscan', 'sui explorer', 'suins', 'slush wallet', 'sui overflow',
+            'agentic web', 'sui mcp', 'waterx', 'beep a402', 'sui whale', 'arkham sui'],
+        tokens: ['SUI', 'WAL', 'DEEP'],
+        addressFormat: 'sui',
         isEvm: false,
     },
     // Aptos (non-EVM, 64-char hex)
@@ -570,6 +594,31 @@ const INTENT_PATTERNS: IntentPattern[] = [
     // CHAIN-SPECIFIC PATTERNS (Priority 95 - higher than generic on_chain)
     // These must be checked BEFORE generic on_chain to prevent misrouting
     // =========================================================================
+
+    // Sui-specific
+    {
+        intent: "sui",
+        patterns: [
+            /\bsui\b/i,
+            /\bsui\s+(network|chain|blockchain|wallet|portfolio|balance|holdings|address|object|objects|move|walrus|deepbook|bridge|mcp|agent|agents?|agentic|overflow|price|chart)\b/i,
+            /\b(sui|suiwallet|slush|suiet)\s*wallet\b/i,
+            /\b(walrus|deepbook|mysten|suins|suiscan|sui\s*explorer)\b/i,
+            /\b(move\s+objects?|move\s+package|programmable\s+transaction|ptb)\b.*\bsui\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer)\b.*\bsui\b/i,
+            /\bsui\b.*\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer|whale|arkham)\b/i,
+            /\barkham\b.*\bsui\b/i,
+            /\bsui\b.*\barkham\b/i,
+            /\b(whale|whales|large\s+(address|holder|holders)|top\s+holders?)\b.*\bsui\b/i,
+            /\bsui\b.*\b(whale|whales|large\s+(address|holder|holders)|top\s+holders?)\b/i,
+        ],
+        keywords: [
+            "sui", "sui network", "sui chain", "sui blockchain", "sui wallet", "sui portfolio",
+            "sui balance", "sui holdings", "sui address", "sui object", "move objects",
+            "walrus", "deepbook", "mysten", "suiscan", "sui explorer", "suins", "slush wallet",
+            "sui overflow", "sui mcp", "waterx", "beep a402", "sui whale", "arkham sui",
+        ],
+        priority: 95,
+    },
 
     // Aptos-specific
     {
@@ -850,7 +899,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             /\b(swap|bridge|transfer|send|move|convert)\b.*\b([a-z0-9]+)\b.*\b(to|into|for)\b.*\b([a-z0-9]+)\b/i,
 
             // Token specific swaps
-            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|btc|trx|cro|mnt|zeta|mon)\b/i,
+            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|sui|wal|deep|btc|trx|cro|mnt|zeta|mon)\b/i,
 
             // Cross-chain terminology
             /\b(cross[-\s]?chain|cross[-\s]?network|inter[-\s]?chain)\b/i,
@@ -860,8 +909,8 @@ const INTENT_PATTERNS: IntentPattern[] = [
         keywords: [
             "cross-chain swap", "cross-chain bridge", "bridge eth", "swap eth",
             "bridge usdc", "swap usdc", "bridge sol", "swap sol", "swap mon",
-            "from optimism", "from arbitrum", "from base", "from ethereum", "from solana", "from monad",
-            "to optimism", "to arbitrum", "to base", "to ethereum", "to solana", "to monad",
+            "from optimism", "from arbitrum", "from base", "from ethereum", "from solana", "from sui", "from monad",
+            "to optimism", "to arbitrum", "to base", "to ethereum", "to solana", "to sui", "to monad",
             "relay swap", "relay bridge", "gasless swap",
         ],
         priority: 97,
@@ -891,7 +940,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             // Chain references (Generic List)
             /\b(ethereum|eth|evm|mainnet)\b/i,
             /\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb|fantom|gnosis|celo|aurora|metis)\b/i,
-            /\b(bitcoin|btc|tron|trx|solana|sol|ton|dogecoin|doge|zcash|flare|sonic|blast|linea|manta|mantle|abstract|berachain|unichain)\b/i,
+            /\b(bitcoin|btc|tron|trx|solana|sol|sui|walrus|deepbook|ton|dogecoin|doge|zcash|flare|sonic|blast|linea|manta|mantle|abstract|berachain|unichain)\b/i,
         ],
         keywords: [
             "portfolio", "wallet balance", "token balance", "check wallet",
@@ -1105,6 +1154,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "on_chain": Blockchain / crypto queries (wallets, portfolios, tokens, transactions, DeFi, cross-chain swaps, bridges between L2s like Optimism/Arbitrum/Base/Polygon)
     - "aptos": Aptos blockchain specific queries
     - "sei": Sei network specific queries
+    - "sui": Sui blockchain specific queries (SUI, Walrus, DeepBook, Move objects, Sui portfolios, SuiScan, Sui MCP/Agentic Web, Sui whale/Arkham tracing)
     - "solana": Solana blockchain specific queries
     - "cronos": Cronos blockchain specific queries (CRO, VVS Finance, crypto.com chain)
     - "coding": Code writing, debugging, programming help
@@ -1144,6 +1194,7 @@ CRITICAL RULES:
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):
 - EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, wormhole, sei): Accept "0x..." addresses (40 hex chars)
+- Sui and Aptos both use 32-byte "0x..." addresses (64 hex chars); classify as "sui" only when Sui/SUI/Walrus/DeepBook/SuiScan context is present, otherwise Aptos context may apply.
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
     - A Base58 address (32-44 alphanumeric chars): Classify as "solana"
@@ -1153,16 +1204,25 @@ CRITICAL RULES:
 Only use the "${chatContext}" context if the address format is compatible or no address is present.`;
     }
 
+    const formatIntentError = (error: unknown) => {
+        if (error && typeof error === "object") {
+            const maybeError = error as { cause?: { message?: string }; message?: string };
+            return maybeError.cause?.message || maybeError.message || "Unknown error";
+        }
+        return "Unknown error";
+    };
+
     // Helper function to attempt LLM classification
-    const attemptLLMClassification = async (attempt: number = 1): Promise<any> => {
+    const attemptLLMClassification = async () => {
         const { object } = await generateObject({
-            model: myProvider.languageModel("model-router"),
+            model: myProvider.languageModel("openai-gpt-4o"),
             schema: z.object({
                 primaryIntent: z.enum([
                     "imagine",
                     "on_chain",
                     "aptos",
                     "sei",
+                    "sui",
                     "solana",
                     "cronos",
                     "coding",
@@ -1198,7 +1258,7 @@ JSON Response:`,
 
     try {
         // First attempt
-        const object = await attemptLLMClassification(1);
+        const object = await attemptLLMClassification();
 
         return {
             primaryIntent: object.primaryIntent as IntentType,
@@ -1207,11 +1267,11 @@ JSON Response:`,
             requiresMultiTool: false,
             classificationMethod: "llm",
         };
-    } catch (firstError: any) {
+    } catch {
         // Retry once after a short delay (LLM may have returned empty response)
         try {
             await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
-            const object = await attemptLLMClassification(2);
+            const object = await attemptLLMClassification();
 
             return {
                 primaryIntent: object.primaryIntent as IntentType,
@@ -1220,10 +1280,10 @@ JSON Response:`,
                 requiresMultiTool: false,
                 classificationMethod: "llm",
             };
-        } catch (retryError: any) {
+        } catch (retryError: unknown) {
             // Log concisely - only warn, not full error stack
             console.warn("[INTENT] LLM classification failed after retry, using fallback:",
-                retryError?.cause?.message || retryError?.message || "Unknown error");
+                formatIntentError(retryError));
 
             // Fallback: If we have image context (user was generating images), likely a follow-up ("make it blue")
             if (hasImageContext) {
@@ -1250,7 +1310,9 @@ JSON Response:`,
                 // Check for address format mismatches before using context as fallback
                 const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
                 const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
-                const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+                const hasMoveAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+                const hasAptosAddress = hasMoveAddress && !/\b(sui|walrus|deepbook|suiscan|mysten|slush)\b/i.test(message);
+                const hasSuiAddress = hasMoveAddress && /\b(sui|walrus|deepbook|suiscan|mysten|slush)\b/i.test(message);
                 const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
 
                 // If address format conflicts with context, override it
@@ -1287,7 +1349,17 @@ JSON Response:`,
                         classificationMethod: "fallback",
                     };
                 }
-                if (chatContext !== 'aptos' && hasAptosAddress) {
+                if (chatContext !== 'sui' && hasSuiAddress) {
+                    console.log("[INTENT] LLM fallback: Sui address/context detected, using sui");
+                    return {
+                        primaryIntent: 'sui',
+                        confidence: 0.7,
+                        indicators: ['fallback:sui_address_detected'],
+                        requiresMultiTool: false,
+                        classificationMethod: "fallback",
+                    };
+                }
+                if (chatContext !== 'aptos' && chatContext !== 'sui' && hasAptosAddress) {
                     console.log("[INTENT] LLM fallback: Aptos address detected, using aptos");
                     return {
                         primaryIntent: 'aptos',
@@ -1348,7 +1420,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sui', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1399,11 +1471,11 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei', 'aptos', 'sui', 'solana'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
-            EVM_COMPATIBLE_CHAINS.includes(chatContext as IntentType) &&
+            CONTEXT_PRESERVING_CHAINS.includes(chatContext as IntentType) &&
             chatContext !== 'on_chain') {
 
             console.log(
@@ -1509,7 +1581,9 @@ export async function classifyIntent(
         // CRITICAL: Check if addresses in the message indicate a DIFFERENT chain than context
         const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
         const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
-        const hasAptosAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+        const hasMoveAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
+        const hasSuiAddress = hasMoveAddress && /\b(sui|walrus|deepbook|suiscan|mysten|slush)\b/i.test(message);
+        const hasAptosAddress = hasMoveAddress && !hasSuiAddress;
         const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
 
         // Define which chains support EVM addresses (0x format)
@@ -1529,13 +1603,16 @@ export async function classifyIntent(
         const addressMismatchesContext = (
             // User has Solana context but provided EVM address (not a Solana address)
             (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) ||
+            // User has Sui context but provided 40-char EVM address (Sui uses 64-char 0x addresses)
+            (chatContext === 'sui' && hasEvmAddress && !hasSuiAddress) ||
             // User has Aptos context but provided 40-char EVM address (Aptos uses 64-char)
             (chatContext === 'aptos' && hasEvmAddress && !hasAptosAddress) ||
             // User has EVM-compatible context but provided Solana address (and no EVM address)
             (EVM_COMPATIBLE_CHAINS.includes(chatContext) && hasSolanaAddress && !hasEvmAddress) ||
-            // User has non-Aptos context but provided Aptos address (64 hex chars)
-            // Note: Aptos 64-char addresses are distinct from 40-char EVM addresses
-            (chatContext !== 'aptos' && hasAptosAddress) ||
+            // User has non-Sui context but provided Sui-marked 64-char Move address
+            (chatContext !== 'sui' && hasSuiAddress) ||
+            // User has non-Aptos/Sui context but provided unqualified 64-char Move address (default legacy behavior: Aptos)
+            (chatContext !== 'aptos' && chatContext !== 'sui' && hasAptosAddress) ||
             // User has non-Sei context but provided native Sei address (sei1...)
             // Note: If user provides 0x address, they might still want Sei EVM, so only switch for sei1...
             (!EVM_COMPATIBLE_CHAINS.includes(chatContext) && chatContext !== 'sei' && hasSeiAddress)
@@ -1551,7 +1628,7 @@ export async function classifyIntent(
                 return patternResult;
             }
             // Native Sei address always goes to Sei
-            else if (hasSeiAddress) {
+            if (hasSeiAddress) {
                 console.log(
                     `[INTENT] Sei address detected in ${chatContext} context - switching to sei in ${Date.now() - startTime} ms`
                 );
@@ -1563,8 +1640,21 @@ export async function classifyIntent(
                     classificationMethod: 'pattern',
                 };
             }
+            // Sui-marked 64-char Move address/context
+            if (hasSuiAddress) {
+                console.log(
+                    `[INTENT] Sui address/context detected in ${chatContext} context - switching to sui in ${Date.now() - startTime} ms`
+                );
+                return {
+                    primaryIntent: 'sui',
+                    confidence: 0.8,
+                    indicators: ['address_mismatch:sui_address_detected'],
+                    requiresMultiTool: false,
+                    classificationMethod: 'pattern',
+                };
+            }
             // Aptos address (64 hex chars)
-            else if (hasAptosAddress) {
+            if (hasAptosAddress) {
                 console.log(
                     `[INTENT] Aptos address detected in ${chatContext} context - switching to aptos in ${Date.now() - startTime} ms`
                 );
@@ -1577,7 +1667,7 @@ export async function classifyIntent(
                 };
             }
             // Solana address
-            else if (hasSolanaAddress) {
+            if (hasSolanaAddress) {
                 console.log(
                     `[INTENT] Solana address detected in ${chatContext} context - switching to solana in ${Date.now() - startTime} ms`
                 );
@@ -1590,7 +1680,7 @@ export async function classifyIntent(
                 };
             }
             // EVM address (0x 40-char) - default to on_chain for generic EVM
-            else if (hasEvmAddress) {
+            if (hasEvmAddress) {
                 console.log(
                     `[INTENT] EVM address detected in ${chatContext} context - switching to on_chain in ${Date.now() - startTime} ms`
                 );
@@ -1655,7 +1745,7 @@ export function hasBlockchainIndicators(message: string): boolean {
     const blockchainPatterns = [
         /\b0x[a-fA-F0-9]{40}\b/, // EVM address
         /\b[a-zA-Z0-9_-]+\.eth\b/i, // ENS
-        /\b(wallet|portfolio|balance|token|nft|defi|blockchain|crypto)\b/i,
+        /\b(wallet|portfolio|balance|token|nft|defi|blockchain|crypto|sui|walrus|deepbook|suiscan)\b/i,
     ];
 
     return blockchainPatterns.some((p) => p.test(message));
@@ -1668,10 +1758,12 @@ export function extractWalletAddresses(message: string): {
     evm: string[];
     ens: string[];
     solana: string[];
+    sui: string[];
 } {
     const evmPattern = /\b(0x[a-fA-F0-9]{40})\b/g;
     const ensPattern = /\b([a-zA-Z0-9_-]+\.eth)\b/gi;
     const solanaPattern = /\b([1-9A-HJ-NP-Za-km-z]{32,44})\b/g;
+    const suiPattern = /\b(0x[a-fA-F0-9]{64})\b/g;
 
     return {
         evm: [...message.matchAll(evmPattern)].map((m) => m[1]),
@@ -1679,5 +1771,6 @@ export function extractWalletAddresses(message: string): {
         solana: [...message.matchAll(solanaPattern)]
             .map((m) => m[1])
             .filter((addr) => !addr.match(/^0x/)), // Exclude EVM-like strings
+        sui: [...message.matchAll(suiPattern)].map((m) => m[1]),
     };
 }

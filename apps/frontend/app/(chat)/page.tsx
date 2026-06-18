@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { DEFAULT_CHAT_MODEL } from "@barzakh/shared/lib/ai/models";
 import { generateUUID } from "@barzakh/shared/lib/utils/utils";
+import type { SearchGroupId } from "@barzakh/shared/lib/utils/utils";
 import { auth } from "@/app/(auth)/auth";
 
 const Chat = dynamic(() => import("@/components/chat").then((mod) => mod.Chat), {
@@ -12,10 +13,19 @@ const Chat = dynamic(() => import("@/components/chat").then((mod) => mod.Chat), 
   ),
 });
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: Promise<{ group?: string }>;
+}) {
   const id = generateUUID();
-  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
+  const [session, cookieStore, params] = await Promise.all([
+    auth(),
+    cookies(),
+    searchParams ?? Promise.resolve<{ group?: string }>({}),
+  ]);
   const modelIdFromCookie = cookieStore.get("chat-model");
+  const initialGroup: SearchGroupId = params?.group === "sui" ? "sui" : "search";
 
   if (!modelIdFromCookie) {
     return (
@@ -27,6 +37,7 @@ export default async function Page() {
         selectedVisibilityType="private"
         isReadonly={false}
         user={session?.user}
+        initialGroup={initialGroup}
       />
     );
   }
@@ -40,6 +51,7 @@ export default async function Page() {
       selectedVisibilityType="private"
       isReadonly={false}
       user={session?.user}
+      initialGroup={initialGroup}
     />
   );
 }

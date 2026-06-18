@@ -1,6 +1,6 @@
 # Barzakh AI - Backend API
 
-Supplementary backend services for the Barzakh AI platform, providing OpenAI-compatible chat endpoints backed by the shared Azure AI Foundry provider configuration.
+Supplementary backend services for the Barzakh AI platform, providing OpenAI-compatible chat endpoints backed by the shared OpenRouter provider configuration.
 
 ## Overview
 

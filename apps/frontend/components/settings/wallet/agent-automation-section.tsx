@@ -16,7 +16,6 @@ import {
   Copy,
   CheckCircle,
   Zap,
-  Info,
   Plus,
   Key,
   Eye,
@@ -25,11 +24,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
-type WalletChain = "evm" | "solana";
+type WalletChain = "evm" | "solana" | "sui";
 
 interface WalletInfo {
   walletAddress: string;
@@ -41,11 +39,13 @@ interface AgentStatus {
   agentEnabled: boolean;
   evmEnabled: boolean;
   solanaEnabled: boolean;
+  suiEnabled: boolean;
   serverConfigured: boolean;
   walletAddress: string | null;
   wallets: WalletInfo[];
   evmWalletAddress: string | null;
   solanaWalletAddress: string | null;
+  suiWalletAddress: string | null;
 
   spent24h: number;
   recentTransactions: Array<{
@@ -83,10 +83,22 @@ const CHAIN_CONFIG = {
     tag: "SOL",
     explorerPrefix: "https://solscan.io/account/",
   },
+  sui: {
+    label: "Sui",
+    sublabel: "SUI, Move objects, Walrus demos",
+    iconDark: "/images/icon/sui/sui-light.png",
+    iconLight: "/images/icon/sui/sui-dark.png",
+    color: "text-cyan-500",
+    bgColor: "bg-cyan-500/10",
+    borderColor: "border-cyan-500/20",
+    tag: "SUI",
+    explorerPrefix: "https://suiscan.xyz/mainnet/address/",
+  },
 } as const;
 
 const getChainBadgeColor = (chainName: string) => {
   const name = chainName.toLowerCase();
+  if (name.includes("sui")) return "bg-cyan-500/10 text-cyan-500";
   if (name.includes("solana")) return "bg-purple-500/10 text-purple-500";
   if (name.includes("arc")) return "bg-blue-500/10 text-blue-500";
   if (name.includes("bnb") || name.includes("binance")) return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400";
@@ -97,6 +109,11 @@ const getChainBadgeColor = (chainName: string) => {
   if (name.includes("polygon")) return "bg-violet-500/10 text-violet-500";
   if (name.includes("ethereum") || name.includes("mainnet")) return "bg-indigo-500/10 text-indigo-500";
   return "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400";
+};
+
+const middleTruncateAddress = (address: string, prefix = 12, suffix = 10) => {
+  if (address.length <= prefix + suffix + 3) return address;
+  return `${address.slice(0, prefix)}…${address.slice(-suffix)}`;
 };
 
 export function AgentAutomationSection() {
@@ -259,7 +276,9 @@ export function AgentAutomationSection() {
   // Helper: check if a chain's automation is enabled
   const isChainEnabled = (chain: WalletChain) => {
     if (!status) return false;
-    return chain === "evm" ? status.evmEnabled : status.solanaEnabled;
+    if (chain === "evm") return status.evmEnabled;
+    if (chain === "solana") return status.solanaEnabled;
+    return status.suiEnabled;
   };
 
   // Helper: get wallet address for a chain
@@ -283,55 +302,82 @@ export function AgentAutomationSection() {
     const walletAddress = getWalletForChain(chain);
     const enabled = isChainEnabled(chain);
 
+    const explorerUrl = walletAddress ? `${config.explorerPrefix}${walletAddress}` : null;
+
     return (
-      <div key={chain} className="p-4 rounded-xl bg-muted/50 border border-border space-y-3">
+      <div key={chain} className={`flex h-full min-w-0 flex-col rounded-xl border border-border bg-muted/50 p-4 sm:p-5 ${chain === "sui" ? "sm:col-span-2 sm:w-full xl:col-span-1 xl:w-auto" : ""}`}>
         {/* Chain header */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap text-sm font-medium text-foreground min-w-0">
-            <img src={config.iconLight} alt={config.label} className="w-5 h-5 object-contain block dark:hidden" />
-            <img src={config.iconDark} alt={config.label} className="w-5 h-5 object-contain hidden dark:block" />
-            <span className="truncate">{config.label}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${config.bgColor} ${config.color} font-medium shrink-0`}>
-              {config.tag}
-            </span>
-            {enabled && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-medium shrink-0 flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Active
-              </span>
-            )}
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3 text-sm font-medium text-foreground">
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${config.borderColor} ${config.bgColor}`}>
+              <img src={config.iconLight} alt="" className={`${chain === "sui" ? "h-3.5 w-3.5" : "h-5 w-5"} mx-auto block object-contain dark:hidden`} />
+              <img src={config.iconDark} alt="" className={`${chain === "sui" ? "h-3.5 w-3.5" : "h-5 w-5"} mx-auto hidden object-contain dark:block`} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate font-semibold">{config.label}</span>
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${config.bgColor} ${config.color}`}>
+                  {config.tag}
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-[11px] font-normal text-muted-foreground">
+                {config.sublabel}
+              </p>
+            </div>
           </div>
+          {enabled && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Active
+            </span>
+          )}
         </div>
 
         {walletAddress ? (
-          /* ── Wallet exists ── */
-          <>
+          <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3">
             {/* Address + actions */}
-            <div className="flex flex-col gap-3">
-              <div className="bg-muted/30 p-2.5 sm:p-3 rounded-lg border border-border/30 w-full overflow-hidden">
-                <p className="text-[10px] sm:text-[11px] font-mono text-muted-foreground/90 break-all leading-relaxed">
-                  {walletAddress}
+            <a
+              href={explorerUrl ?? undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={walletAddress}
+              aria-label={`View ${config.label} wallet address on explorer`}
+              className={`group flex min-w-0 items-center justify-between gap-3 rounded-lg border ${config.borderColor} bg-background/45 p-3 transition-colors hover:bg-background/70`}
+            >
+              <div className="min-w-0">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                  Embedded agent address
+                </p>
+                <p className="font-mono text-xs text-foreground sm:text-[13px]">
+                  <span className="sm:hidden">{middleTruncateAddress(walletAddress, 10, 8)}</span>
+                  <span className="hidden sm:inline lg:hidden">{middleTruncateAddress(walletAddress, 14, 12)}</span>
+                  <span className="hidden lg:inline xl:hidden">{middleTruncateAddress(walletAddress, 16, 14)}</span>
+                  <span className="hidden xl:inline">{middleTruncateAddress(walletAddress, 18, 16)}</span>
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-4 gap-y-2 flex-wrap px-1">
+              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+            </a>
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
               <button
+                type="button"
                 onClick={() => copyAddress(walletAddress)}
-                className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors group"
+                className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground sm:justify-start sm:px-1 group"
               >
                 <Copy className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                 {copiedAddress === walletAddress ? "Copied" : "Copy"}
               </button>
               <button
+                type="button"
                 onClick={() => handleExportKey(chain)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex min-w-0 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground sm:justify-start sm:px-1"
               >
                 <Key className="w-3.5 h-3.5" />
                 Export
               </button>
               <button
+                type="button"
                 onClick={() => openDeleteModal(chain)}
-                className="flex items-center gap-1 text-xs text-red-500/70 hover:text-red-500 transition-colors"
+                className="inline-flex min-w-0 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-red-500/70 transition-colors hover:bg-red-500/5 hover:text-red-500 sm:justify-start sm:px-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete
@@ -341,6 +387,7 @@ export function AgentAutomationSection() {
             {/* Automation toggle */}
             {enabled ? (
               <button
+                type="button"
                 onClick={() => handleToggleAutomation(chain, false)}
                 disabled={isUpdating}
                 className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl border border-red-500/10 dark:border-red-500/20 text-red-500 dark:text-red-400 hover:bg-red-500/5 font-semibold text-[11px] sm:text-xs transition-all disabled:opacity-50"
@@ -354,6 +401,7 @@ export function AgentAutomationSection() {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => handleToggleAutomation(chain, true)}
                 disabled={isUpdating}
                 className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-3 rounded-xl ${config.bgColor} hover:opacity-90 ${config.color} font-semibold text-[11px] sm:text-xs transition-all border ${config.borderColor} disabled:opacity-50`}
@@ -366,14 +414,14 @@ export function AgentAutomationSection() {
                 <span className="truncate">Enable {config.label} Automation</span>
               </button>
             )}
-          </>
+          </div>
         ) : (
-          /* ── No wallet — create button ── */
-          <div className="flex flex-col items-center gap-2 py-2">
+          <div className="flex flex-col items-center gap-2 py-6 sm:py-8">
             <p className="text-xs text-muted-foreground">
               No {config.label} wallet yet
             </p>
             <button
+              type="button"
               onClick={() => handleCreateWallet(chain)}
               disabled={isCreatingWallet === chain}
               className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl ${config.bgColor} ${config.color} hover:opacity-90 font-semibold text-xs transition-all border ${config.borderColor} disabled:opacity-50`}
@@ -395,7 +443,7 @@ export function AgentAutomationSection() {
     <div className="bg-white dark:bg-zinc-900/80 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800/50 overflow-hidden backdrop-blur-sm transition-all duration-300">
       {/* Header */}
       <div className="p-5 sm:p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 sm:gap-5 flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-2.5 bg-primary/10 rounded-xl border border-border shadow-sm shrink-0">
               <Bot className="w-5 h-5 text-primary" />
@@ -403,7 +451,7 @@ export function AgentAutomationSection() {
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-foreground leading-tight">Agent Automation</h2>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                AI-driven autonomous transactions — EVM & Solana
+                AI-driven autonomous transactions — EVM, Solana & Sui
               </p>
             </div>
           </div>
@@ -419,9 +467,10 @@ export function AgentAutomationSection() {
       <div className="p-5 sm:p-6 md:p-8 space-y-6">
 
         {/* ── Multi-chain wallet cards ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {renderWalletCard("evm")}
           {renderWalletCard("solana")}
+          {renderWalletCard("sui")}
         </div>
 
         {/* Spend Summary — only if any automation is enabled */}
@@ -440,7 +489,7 @@ export function AgentAutomationSection() {
         )}
 
         {/* How it works — shown when no wallets exist */}
-        {(!getWalletForChain("evm") && !getWalletForChain("solana")) && (
+        {(!getWalletForChain("evm") && !getWalletForChain("solana") && !getWalletForChain("sui")) && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">How it works</h3>
             <div className="space-y-2.5">
@@ -448,12 +497,12 @@ export function AgentAutomationSection() {
                 {
                   icon: Wallet,
                   title: "Create agent wallets",
-                  desc: "Generate EVM and/or Solana wallets for autonomous AI operations.",
+                  desc: "Generate EVM, Solana and Sui wallets for autonomous AI operations.",
                 },
                 {
                   icon: Shield,
                   title: "Enable automation per chain",
-                  desc: "Enable automation independently for EVM and Solana chains.",
+                  desc: "Enable automation independently for EVM, Solana and Sui chains.",
                 },
                 {
                   icon: Zap,
@@ -465,8 +514,8 @@ export function AgentAutomationSection() {
                   title: "You're in control",
                   desc: "Revoke access at any time, per chain.",
                 },
-              ].map((step, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+              ].map((step) => (
+                <div key={step.title} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
                   <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5 shrink-0">
                     <step.icon className="w-3.5 h-3.5 text-primary" />
                   </div>

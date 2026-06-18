@@ -309,9 +309,9 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
   },
   table: ({ node, children, ...props }) => {
     return (
-      <div className="my-4 w-full overflow-x-auto rounded-lg border border-border/40 shadow-sm">
+      <div className="markdown-table-scroll" role="region" aria-label="Scrollable table">
         <table
-          className="w-full border-collapse bg-background/50"
+          className="markdown-table"
           {...props}
         >
           {children}
@@ -349,7 +349,7 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
   th: ({ node, children, ...props }) => {
     return (
       <th
-        className="px-4 py-3 text-left text-sm font-semibold text-foreground border-r border-border/30 last:border-r-0"
+        className="px-3 py-2.5 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-semibold text-foreground border-r border-border/30 last:border-r-0 whitespace-nowrap"
         {...props}
       >
         {children}
@@ -359,7 +359,7 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
   td: ({ node, children, ...props }) => {
     return (
       <td
-        className="px-4 py-3 text-sm text-foreground/90 border-r border-border/20 last:border-r-0"
+        className="px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-foreground/90 border-r border-border/20 last:border-r-0 whitespace-nowrap align-top"
         {...props}
       >
         {children}

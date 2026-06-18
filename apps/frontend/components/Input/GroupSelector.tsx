@@ -2,13 +2,11 @@
 
 import {
   cn,
-  SearchGroup,
-  SearchGroupId,
+  type SearchGroup,
+  type SearchGroupId,
   searchGroups,
 } from "@barzakh/shared/lib/utils/utils";
 import {
-  ForwardRefExoticComponent,
-  RefAttributes,
   startTransition,
   useState,
   useCallback,
@@ -44,6 +42,8 @@ interface GroupOptionListProps extends GroupSelectorProps {
 }
 
 const TAILWIND_MD_BREAKPOINT = 768;
+const getGroupListIconSize = (groupId: string) => groupId === "sui" ? 20 : 28;
+const getSelectedChipIconSize = (groupId: string) => groupId === "sui" ? 14 : 20;
 
 // --- Search functionality ---
 const useGroupSearch = (groups: SearchGroup[], query: string) => {
@@ -86,14 +86,14 @@ const GroupOptionList = ({
 
         const content = (
           <>
-            <div className="flex-shrink-0">
+            <div className="flex size-7 flex-shrink-0 items-center justify-center">
               {group.img ? (
                 typeof group.img === "string" ? (
                   <Image
                     src={group.img}
                     alt={`${group.name} icon`}
-                    width={28}
-                    height={28}
+                    width={getGroupListIconSize(group.id)}
+                    height={getGroupListIconSize(group.id)}
                     className="rounded-full object-contain"
                   />
                 ) : (
@@ -101,15 +101,15 @@ const GroupOptionList = ({
                     <Image
                       src={group.img.light}
                       alt={`${group.name} icon`}
-                      width={28}
-                      height={28}
+                      width={getGroupListIconSize(group.id)}
+                      height={getGroupListIconSize(group.id)}
                       className="rounded-full object-contain dark:hidden"
                     />
                     <Image
                       src={group.img.dark}
                       alt={`${group.name} icon`}
-                      width={28}
-                      height={28}
+                      width={getGroupListIconSize(group.id)}
+                      height={getGroupListIconSize(group.id)}
                       className="rounded-full object-contain hidden dark:block"
                     />
                   </>
@@ -385,14 +385,14 @@ export const GroupSelector = ({
 
       {!isDefault && selectedGroup && (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full border border-border/50 animate-in fade-in slide-in-from-left-2">
-          <div className="flex-shrink-0">
+          <div className="flex size-5 flex-shrink-0 items-center justify-center">
             {selectedGroup.img ? (
               typeof selectedGroup.img === "string" ? (
                 <Image
                   src={selectedGroup.img}
                   alt="Selected group icon"
-                  width={20}
-                  height={20}
+                  width={getSelectedChipIconSize(selectedGroup.id)}
+                  height={getSelectedChipIconSize(selectedGroup.id)}
                   className="rounded-full object-contain"
                 />
               ) : (
@@ -400,15 +400,15 @@ export const GroupSelector = ({
                   <Image
                     src={selectedGroup.img.light}
                     alt="Selected group icon"
-                    width={20}
-                    height={20}
+                    width={getSelectedChipIconSize(selectedGroup.id)}
+                    height={getSelectedChipIconSize(selectedGroup.id)}
                     className="rounded-full object-contain dark:hidden"
                   />
                   <Image
                     src={selectedGroup.img.dark}
                     alt="Selected group icon"
-                    width={20}
-                    height={20}
+                    width={getSelectedChipIconSize(selectedGroup.id)}
+                    height={getSelectedChipIconSize(selectedGroup.id)}
                     className="rounded-full object-contain hidden dark:block"
                   />
                 </>
@@ -419,6 +419,7 @@ export const GroupSelector = ({
           </div>
           <span className="text-sm font-medium max-w-[100px] truncate">{selectedGroup.name}</span>
           <button
+            type="button"
             onClick={handleReset}
             className="ml-1 p-0.5 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
           >

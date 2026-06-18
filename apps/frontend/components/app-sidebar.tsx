@@ -4,7 +4,7 @@ import type { User } from "next-auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { SquarePen, ArrowLeft, PanelLeftClose, Sun, Moon, Monitor } from 'lucide-react';
+import { SquarePen, ArrowLeft, PanelLeftClose, Sun, Moon, Monitor, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from "@/lib/framer-motion"; // 1. Import framer-motion
 import { useTheme } from "next-themes";
 
@@ -55,6 +55,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const SunAny = Sun as any;
   const MoonAny = Moon as any;
   const MonitorAny = Monitor as any;
+  const BotAny = Bot as any;
 
   const handleNewChat = () => {
     // Close mobile sidebar and reset sidebar view
@@ -166,6 +167,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         <span className="text-sm font-medium">Search chats</span>
                       </ButtonAny>
                     )}
+
+
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 w-full">

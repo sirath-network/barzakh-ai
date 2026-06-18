@@ -84,7 +84,7 @@ export async function generateTitleFromUserMessage({
   }
 
   const { text: rawTitle } = await generateText({
-    model: myProvider.languageModel("model-router"),
+    model: myProvider.languageModel("openai-gpt-4o"),
     system: `\n
     - Generate a creative, concise, and intelligent title (3-6 words) for this chat based on the user's first message.
     - Focus on the core intent, topic, or question rather than just summarizing words.

@@ -80,7 +80,7 @@ function PureMessages({
           <ThinkingMessageAny messages={messages} />
         )}
 
-      <div className="shrink-0 h-8 w-full" />
+      <div className="shrink-0 h-28 md:h-10 w-full" />
     </div>
   );
 }

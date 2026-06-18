@@ -118,7 +118,7 @@ export const getSeiApiData = tool({
       const allPaths = await getAllPathDetails(openapidata);
 
       const { object: apiEndpointsArray } = await generateObject({
-        model: myProvider.languageModel("model-router"),
+        model: myProvider.languageModel("openai-gpt-4o"),
         output: "array",
         schema: z.string().describe("the full api path with query parameters"),
         system: `

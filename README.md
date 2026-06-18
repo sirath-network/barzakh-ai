@@ -297,21 +297,21 @@ sequenceDiagram
 
 ### Image Generation & Editing
 
-The `imagine` route now uses **Azure AI Foundry GPT-Image-2** directly through the OpenAI-compatible `/images/generations` and `/images/edits` endpoints. Legacy third-party image generation has been removed from the active image path.
+The `imagine` route now uses **OpenRouter GPT-Image-2** directly through the OpenAI-compatible `/images/generations` and `/images/edits` endpoints. Legacy third-party image generation has been removed from the active image path.
 
 | Model ID | Display Name | Provider | Description |
 |----------|--------------|----------|-------------|
-| `gpt-image-2` | **GPT-Image-2** | Azure AI Foundry | High-fidelity PNG image generation, multi-image batches, and image editing |
+| `gpt-image-2` | **GPT-Image-2** | OpenRouter | High-fidelity PNG image generation, multi-image batches, and image editing |
 
 | Capability | Implementation |
 |------------|----------------|
-| Prompt-to-image | `createImage` posts JSON to `${AZURE_FOUNDRY_ENDPOINT}/images/generations` |
+| Prompt-to-image | `createImage` posts JSON to `${OPENROUTER_ENDPOINT}/images/generations` |
 | Image editing | `input_images` are fetched/proxied, converted to multipart `image[]`, then sent to `/images/edits` |
 | Persistence | Base64/data URLs from Azure are uploaded through `/api/persist-image` into Cloudflare R2 |
 | Batch size | `numberOfImages` supports 1-10 images in a single Azure request |
 | Resolution | `size` supports GPT-Image-2-valid `WIDTHxHEIGHT` multiples of 16, default `1024x1024` |
-| Quality | `AZURE_FOUNDRY_IMAGE_QUALITY=low|medium|high` (default `low`) |
-| Streaming | Optional `AZURE_FOUNDRY_IMAGE_STREAM=true` with `AZURE_FOUNDRY_IMAGE_PARTIAL_IMAGES=0..3` |
+| Quality | `OPENROUTER_IMAGE_QUALITY=low|medium|high` (default `low`) |
+| Streaming | Optional `OPENROUTER_IMAGE_STREAM=true` with `OPENROUTER_IMAGE_PARTIAL_IMAGES=0..3` |
 
 
 ### Intent Classification & Routing
@@ -1195,17 +1195,17 @@ GOOGLE_CLIENT_ID=...                     # Google OAuth (optional)
 GOOGLE_CLIENT_SECRET=...
 
 # ── AI Providers (Required) ───────────────────────────────────────────
-AZURE_FOUNDRY_ENDPOINT=https://...services.ai.azure.com/openai/v1
-AZURE_FOUNDRY_API_KEY=...               # Azure AI Foundry API key or bearer token
-AZURE_FOUNDRY_CONNECT_ATTEMPT_TIMEOUT_MS=5000
+OPENROUTER_ENDPOINT=https://...services.ai.azure.com/openai/v1
+OPENROUTER_API_KEY=...               # OpenRouter API key or bearer token
+OPENROUTER_CONNECT_ATTEMPT_TIMEOUT_MS=5000
 
 # ── Azure GPT-Image-2 Imagine Tool ───────────────────────────────────
-AZURE_FOUNDRY_IMAGE_MODEL=gpt-image-2
-AZURE_FOUNDRY_IMAGE_QUALITY=low          # low | medium | high
-AZURE_FOUNDRY_IMAGE_SIZE=1024x1024       # any GPT-Image-2-valid WIDTHxHEIGHT
-AZURE_FOUNDRY_IMAGE_TIMEOUT_MS=600000
-AZURE_FOUNDRY_IMAGE_STREAM=false
-AZURE_FOUNDRY_IMAGE_PARTIAL_IMAGES=2
+OPENROUTER_IMAGE_MODEL=gpt-image-2
+OPENROUTER_IMAGE_QUALITY=low          # low | medium | high
+OPENROUTER_IMAGE_SIZE=1024x1024       # any GPT-Image-2-valid WIDTHxHEIGHT
+OPENROUTER_IMAGE_TIMEOUT_MS=600000
+OPENROUTER_IMAGE_STREAM=false
+OPENROUTER_IMAGE_PARTIAL_IMAGES=2
 
 # ── Blockchain / Relay Protocol ──────────────────────────────────────────
 # No API key needed for Relay Protocol — it's open and permissionless!

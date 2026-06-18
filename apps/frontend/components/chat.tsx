@@ -65,6 +65,7 @@ export function Chat({
   isArchived = false,
   user,
   isSharedChat = false,
+  initialGroup = "search",
 }: {
   id: string;
   initialMessages: Array<Message>;
@@ -74,6 +75,7 @@ export function Chat({
   isArchived?: boolean;
   user?: User;
   isSharedChat?: boolean;
+  initialGroup?: SearchGroupId;
 }) {
   const { mutate } = useSWRConfig();
   const { view, setView } = useView();
@@ -188,7 +190,7 @@ export function Chat({
     }
     return [];
   });
-  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>("search");
+  const [selectedGroup, setSelectedGroup] = useState<SearchGroupId>(initialGroup);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -452,7 +454,7 @@ export function Chat({
                   />
                 </div>
                 <div className="flex-shrink-0">
-                  <form className="mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
+                  <form className="mx-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 gap-2 w-full md:max-w-3xl">
                     {isCurrentlyArchived ? (
                       <div className="flex flex-col items-center justify-center py-4 px-6">
                         <p className="text-sm text-muted-foreground mb-3 text-center">

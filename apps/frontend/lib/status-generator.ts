@@ -288,7 +288,7 @@ export function generateStatusFromTool(
 
   // Fallback: Generate generic status based on tool name patterns
   if (toolName.includes("Portfolio") || toolName.includes("portfolio")) {
-    return "Aggregating comprehensive wallet portfolio data and asset holdings";
+    return "Aggregating comprehensive portfolio data";
   }
   if (toolName.includes("Token") || toolName.includes("token")) {
     return "Retrieving detailed token market metrics and price information";

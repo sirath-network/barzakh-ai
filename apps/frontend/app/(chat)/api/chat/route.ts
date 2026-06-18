@@ -2,7 +2,7 @@ import {
   type Message,
   type CoreMessage,
   createDataStreamResponse,
-  streamText,
+  streamText, generateText,
   tool
 } from "ai";
 import { after } from "next/server";
@@ -13,6 +13,14 @@ import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
+import { createGetSuiAgentWalletInfoTool, createExecuteSuiTransferTool } from "@/lib/ai/tools/sui-agent-tools";
+import { createPlanSuiDeFiAgentStrategyTool } from "@/lib/ai/tools/sui-defi-agent-tools";
+import {
+  createCompleteWormholeCctpTransferTool,
+  createGetWormholeBridgeStatusTool,
+  createPrepareSuiBridgeDepositTool,
+  createPrepareWormholeSuiBridgeTransferTool,
+} from "@/lib/ai/tools/sui-bridge-deepbook-tools";
 import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
 import { createAutonomousSubscriptionTool } from "@/lib/ai/tools/agent-subscription-tool";
 import {
@@ -249,7 +257,86 @@ function getSafeActiveTools(activeTools: any, selectedChatModel: string): any[] 
   return [...activeTools];
 }
 
-const FAST_CHAT_MODEL = process.env.FAST_CHAT_MODEL || "gpt-4o-mini";
+function uniqueToolNames(toolNames: string[]): string[] {
+  return Array.from(new Set(toolNames.filter((name): name is string => typeof name === "string" && name.length > 0)));
+}
+
+function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string): string[] {
+  const text = promptText.toLowerCase();
+  const hasWalrusIntent = /\b(walrus|store|upload|retrieve|blob|storage\s*price|save|archive)\b/i.test(text);
+  const hasBridgeIntent = /\b(bridge|wormhole|cctp|sepolia|base\s*sepolia|arbitrum\s*sepolia|optimism\s*sepolia|usdc\s+from|to\s+sui|from\s+sui|complete.*transfer|pending\s+claim)\b/i.test(text);
+  const hasPortfolioIntent = /\b(portfolio|holdings?|balance|wallet|address\s+activity|transactions?|tx|object|checkpoint|whale|arkham|entity|exchange|trace|monitor)\b/i.test(text) || /\b(0x|Ox)?[a-fA-F0-9]{40,64}\b/i.test(text);
+  const hasMcpIntent = /\b(mcp|agentic\s+web|waterx|beep|a402|kapa|memwal|walrus\s+memory)\b/i.test(text);
+
+  let allowed: string[];
+
+  if (hasWalrusIntent) {
+    allowed = [
+      "uploadToWalrus",
+      "getWalrusBlob",
+      "getWalrusStoragePrice",
+      "getSuiAgentWalletInfo",
+    ];
+  } else if (hasBridgeIntent) {
+    allowed = [
+      "getSuiAgentWalletInfo",
+      "getSuiNativeBridgeInfo",
+      "prepareWormholeSuiBridgeTransfer",
+      "completeWormholeCctpTransfer",
+      "getWormholeBridgeStatus",
+    ];
+  } else if (hasPortfolioIntent) {
+    allowed = [
+      "getSuiAgentWalletInfo",
+      "getSuiNetworkStatus",
+      "getSuiBalance",
+      "getSuiPortfolio",
+      "getSuiAddressActivity",
+      "getSuiObject",
+      "getSuiTransaction",
+      "searchSuiCheckpoints",
+      "trackSuiWhaleActivity",
+      "getSuiExchangeAndEntityIntelligence",
+    ];
+  } else if (hasMcpIntent) {
+    allowed = [
+      "webSearch",
+      "getSiteContent",
+      "getSuiMcpEcosystem",
+      "getSuiDefiEcosystem",
+    ];
+  } else {
+    allowed = [
+      "webSearch",
+      "getSiteContent",
+      "getSuiNetworkStatus",
+      "getSuiBalance",
+      "getSuiPortfolio",
+      "getSuiAgentWalletInfo",
+      "getSuiDefiEcosystem",
+      "uploadToWalrus",
+      "getWalrusBlob",
+      "getWalrusStoragePrice",
+      "getSuiMcpEcosystem",
+    ];
+  }
+
+  const allowedSet = new Set(allowed);
+  const narrowed = uniqueToolNames(toolNames).filter((name) => allowedSet.has(name));
+  return narrowed.length > 0 ? narrowed : uniqueToolNames(toolNames);
+}
+
+function pickActiveTools<T extends Record<string, unknown>>(toolRegistry: T, activeToolNames: string[]): Partial<T> {
+  const picked: Partial<T> = {};
+  for (const name of uniqueToolNames(activeToolNames)) {
+    if (Object.prototype.hasOwnProperty.call(toolRegistry, name)) {
+      picked[name as keyof T] = toolRegistry[name as keyof T];
+    }
+  }
+  return picked;
+}
+
+const FAST_CHAT_MODEL = process.env.FAST_CHAT_MODEL || "openai-gpt-4o";
 const FAST_SEARCH_MODEL = process.env.FAST_SEARCH_MODEL || FAST_CHAT_MODEL;
 
 function hasMultimodalContent(content: unknown): boolean {
@@ -287,6 +374,13 @@ function isFastRealtimeSearchMessage(text: string): boolean {
   // for current-info questions like "when tea mainnet?", "latest X", dates,
   // roadmaps, launches, TGE/mainnet/testnet/airdrop/news, etc.
   if (/\b(0x[a-f0-9]{40}|sei1[a-z0-9]{38,}|swap|bridge|buy|sell|trade|portfolio|wallet|balance|transaction|tx|nft|subscribe|upgrade|downgrade|cancel subscription)\b/i.test(text)) {
+    return false;
+  }
+
+  // Do not let protocol/tool inspection prompts fall into the web-search fast lane
+  // just because they contain words like "mainnet" or "live". These need the
+  // full intent router so Sui/DeepBook/portfolio tools can be selected.
+  if (/\b(inspect|analyze|query|check|show|get|fetch|lookup|pool|pools|order\s*book|deep\s*book|deepbook|sui[_\s-]?usdc|wal[_\s-]?sui|deep[_\s-]?sui|suiscan|walrus|arkham|whale|object|checkpoint)\b/i.test(text)) {
     return false;
   }
 
@@ -342,7 +436,7 @@ export async function POST(request: Request) {
   if (session?.user?.id) {
     activeUserId = session.user.id;
 
-    if (history_for_context_id && !isFastChat && !isFastRealtimeSearch) {
+    if (history_for_context_id && !isFastChat && !isFastRealtimeSearch && group !== "imagine") {
       try {
         const contextChat = await getChatById({ id: history_for_context_id });
         const canAccessContext = contextChat && (
@@ -564,7 +658,7 @@ export async function POST(request: Request) {
   const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
 
   // Chain-specific groups that support context persistence
-  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad'] as const;
+  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'sui', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad'] as const;
 
   // Extract chain context from chat history for follow-up message routing
   function extractChainContext(msgs: Array<Message>): string | null {
@@ -572,9 +666,10 @@ export async function POST(request: Request) {
     const chainPatterns: Record<string, RegExp[]> = {
       // Chain-specific keywords
       cronos: [/\bcronos\b/i, /\bcro\s+(token|coin|balance|wallet)/i, /\bvvs\s+(finance|swap)/i, /\bcrypto\.com\s+(chain|defi)/i],
-      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i, /\bshelby\b/i, /\b0x[a-fA-F0-9]{64}\b/], // 64-char hex = Aptos, or Shelby keyword
+      aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i, /\bshelby\b/i], // removed 64-char hex to prevent stealing context
       sei: [/\bsei\b(?!\s*$)/i, /\bseitrace\b/i, /\bsei1[a-z0-9]{38,}\b/], // sei1... = Sei native
       solana: [/\bsolana\b/i, /\bsol\s+(token|coin|balance)/i, /\bphantom\b/i, /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/], // Base58 = Solana
+      sui: [/\bsui\b/i, /\bwalrus\b/i, /\bmove\s+(object|package|module|call)\b/i], // removed 64-char hex to prevent stealing context
       zeta: [/\bzetachain\b/i, /\bzeta\s+(network|chain)/i],
       creditcoin: [/\bcreditcoin\b/i, /\bctc\s+token/i],
       vana: [/\bvana\b/i],
@@ -611,6 +706,19 @@ export async function POST(request: Request) {
         return 'on_chain';
       }
     }
+
+    // Second pass fallback: check for ambiguous 64-char hex addresses (default to sui)
+    for (const msg of [...recentMessages].reverse()) {
+      const content = typeof msg.content === 'string'
+        ? msg.content
+        : Array.isArray(msg.content)
+          ? (msg.content as Array<{ type: string; text?: string }>).map((c) => typeof c === 'string' ? c : c.text || '').join(' ')
+          : JSON.stringify(msg.content);
+      if (/\b0x[a-fA-F0-9]{64}\b/.test(content)) {
+        return 'sui';
+      }
+    }
+
     return null;
   }
 
@@ -660,7 +768,7 @@ export async function POST(request: Request) {
 
   const hasImageContext = (isFastChat || isFastRealtimeSearch) ? false : hasImageGenerationHistory(messages);
 
-  if (userMessageText && userMessageText.length > 0 && !isFastChat && !isFastRealtimeSearch) {
+  if (userMessageText && userMessageText.length > 0 && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
     try {
       classificationResult = await classifyIntent(userMessageText, {
         fallbackToLLM: true,
@@ -722,10 +830,11 @@ export async function POST(request: Request) {
     // Continue with empty tools and system prompt
   }
 
-  if (!isGuest && session?.user && !isFastChat && !isFastRealtimeSearch) {
-    let currentTier = session.user.tier || 'free';
-    let currentBillingCycle = session.user.billingCycle || 'monthly';
-    let username = session.user.username || session.user.email;
+  if (!isGuest && session?.user && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
+    const sessionUser = session.user as any;
+    let currentTier = sessionUser.tier || 'free';
+    let currentBillingCycle = sessionUser.billingCycle || 'monthly';
+    let username = sessionUser.username || sessionUser.email;
     let agentWalletText = "\n- **Agent Automation**: Disabled (User MUST authorize transactions manually)";
 
     try {
@@ -738,18 +847,20 @@ export async function POST(request: Request) {
 
       // Fetch Agent Wallet and Automation Status (Multi-Chain) — all in parallel
       const { hasDelegation, getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-      const [isEvmEnabled, isSolanaEnabled, evmWalletAddress, solanaWalletAddress] = await Promise.all([
-        hasDelegation(session.user.id, "evm"),
-        hasDelegation(session.user.id, "solana"),
-        getUserAgentWalletAddress(session.user.id, "evm"),
-        getUserAgentWalletAddress(session.user.id, "solana"),
+      const [isEvmEnabled, isSolanaEnabled, isSuiEnabled, evmWalletAddress, solanaWalletAddress, suiWalletAddress] = await Promise.all([
+        hasDelegation(activeUserId, "evm"),
+        hasDelegation(activeUserId, "solana"),
+        hasDelegation(activeUserId, "sui"),
+        getUserAgentWalletAddress(activeUserId, "evm"),
+        getUserAgentWalletAddress(activeUserId, "solana"),
+        getUserAgentWalletAddress(activeUserId, "sui"),
       ]);
-      const isAgentEnabled = isEvmEnabled || isSolanaEnabled;
+      const isAgentEnabled = isEvmEnabled || isSolanaEnabled || isSuiEnabled;
       // Use EVM wallet as primary for backward compatibility
       const agentWalletAddress = evmWalletAddress;
 
-      if (agentWalletAddress || solanaWalletAddress) {
-        let walletLines: string[] = [];
+      if (agentWalletAddress || solanaWalletAddress || suiWalletAddress) {
+        const walletLines: string[] = [];
 
         // EVM wallet status
         if (evmWalletAddress) {
@@ -769,9 +880,17 @@ export async function POST(request: Request) {
           }
         }
 
+        // Sui wallet status
+        if (suiWalletAddress) {
+          if (isSuiEnabled) {
+            walletLines.push(`- **Sui Agent Wallet**: ${suiWalletAddress} (ENABLED, default network: ${process.env.SUI_AGENT_NETWORK || "testnet"})`);
+          } else {
+            walletLines.push(`- **Sui Agent Wallet**: ${suiWalletAddress} (Disabled — user must enable in settings)`);
+          }
+        }
+
         if (isAgentEnabled) {
-          const primaryWallet = evmWalletAddress || solanaWalletAddress;
-          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access. When the user says "my wallet", "my funds", "swap my USDC", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally! NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?". If a chain is omitted, simply use \`getEvmOnchainDataUsingZerion\` to instantly scan all chains and discover where their tokens are located. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform a swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets. When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}, for Sui operations use ${suiWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform an EVM swap or bridge, use \`executeAgenticRelaySwap\`. To autonomously send native SUI, first call \`getSuiAgentWalletInfo\`, then use \`executeSuiTransfer\` on testnet/devnet by default. Mainnet Sui writes are disabled unless the server explicitly opts in. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
         } else {
           agentWalletText = `\n- **Agent Automation**: Disabled\n${walletLines.join("\n")}\n  (Wallet(s) exist but user has not delegated access. Instruct them to enable Automation in settings first.)`;
         }
@@ -801,7 +920,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const finalModel = isFastChat ? FAST_CHAT_MODEL : (isFastRealtimeSearch ? FAST_SEARCH_MODEL : (isGuest ? "model-router" : effectiveModel));
+  const finalModel = isFastChat ? FAST_CHAT_MODEL : (isFastRealtimeSearch ? FAST_SEARCH_MODEL : (isGuest ? "openai-gpt-4o" : effectiveModel));
 
   // For incognito/temporary chats, skip all DB persistence
   if (!isTemporary) {
@@ -866,7 +985,52 @@ export async function POST(request: Request) {
   // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI.
   // Fast text-only chat skips this extra async pass entirely.
   const resolvedMessages = (isFastChat || isFastRealtimeSearch) ? coreMessages : await resolveR2UrlsInMessages(coreMessages);
-  const modelMessages = isFastChat ? toCoreSafeMessages([userMessage]) : resolvedMessages;
+    const modelMessages = isFastChat ? toCoreSafeMessages([userMessage]) : resolvedMessages;
+
+    // === Smart Context Management with Summarization ===
+  async function manageLongContext(msgs: any[]): Promise<any[]> {
+    const MAX_FULL_MESSAGES = 28;      // More aggressive
+    const KEEP_RECENT = 18;            // Keep fewer recent messages
+
+    if (msgs.length <= MAX_FULL_MESSAGES) return msgs;
+
+    const systemMessage = msgs[0];
+    const recentMessages = msgs.slice(-KEEP_RECENT);
+    const oldMessages = msgs.slice(1, -KEEP_RECENT);
+
+    if (oldMessages.length < 6) {
+      return msgs;
+    }
+
+    try {
+      console.log(`[Context] Summarizing ${oldMessages.length} old messages (aggressive mode)...`);
+      
+      const summaryPrompt = `Summarize the conversation below concisely. Focus on user intent, key decisions, and important visual context. Keep under 500 tokens.
+
+${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.substring(0, 800) : "[complex content]"}`).join("\n\n")}`;
+
+      const { text: summary } = await generateText({
+        model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
+        prompt: summaryPrompt,
+        maxTokens: 600,
+      });
+
+      const summaryMessage = {
+        role: "system",
+        content: `[Conversation Summary]\n${summary}`,
+      };
+
+      return [systemMessage, summaryMessage, ...recentMessages];
+    } catch (err) {
+      console.warn("[Context] Summarization failed:", err);
+      const first = msgs[0];
+      const recent = msgs.slice(-KEEP_RECENT);
+      return [first, ...recent];
+    }
+  }
+
+  const managedMessages = await manageLongContext(modelMessages);
+
 
   // SOLUTION 2: Alternative - filter out incomplete tool calls entirely
   // const cleanedMessages = filterIncompleteToolCalls(messages);
@@ -876,15 +1040,20 @@ export async function POST(request: Request) {
 
   // Inject autonomous execution tools contextually if authenticated
   let isAgentEnabledLocally = false;
-  if (session?.user?.id && !isFastChat && !isFastRealtimeSearch) {
+  if (session?.user?.id && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
     const { hasDelegation } = await import("@/lib/agent/agent-wallet-store");
-    isAgentEnabledLocally = await hasDelegation(session.user.id);
+    isAgentEnabledLocally = await hasDelegation(activeUserId);
 
     // Always inject autonomous execution tools if authenticated to allow for manual approval flow
     safeActiveTools.push("executeFourMemeBuy");
     safeActiveTools.push("executeFourMemeSell");
     safeActiveTools.push("executeFourMemeLaunch");
     safeActiveTools.push("executeAgenticRelaySwap");
+    safeActiveTools.push("getSuiAgentWalletInfo");
+    safeActiveTools.push("executeSuiTransfer");
+    safeActiveTools.push("planSuiDeFiAgentStrategy");
+    safeActiveTools.push("prepareWormholeSuiBridgeTransfer");
+    safeActiveTools.push("getWormholeBridgeStatus");
     safeActiveTools.push("querySignalAgent");
 
     if (isAgentEnabledLocally) {
@@ -900,13 +1069,37 @@ export async function POST(request: Request) {
     }
   }
 
+  if (effectiveGroup === "sui" && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
+    safeActiveTools = narrowSuiActiveToolsForPrompt(safeActiveTools, userMessageText);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[SUI-TOOLS] narrowed active tools", {
+        prompt: userMessageText.slice(0, 120),
+        count: safeActiveTools.length,
+        tools: safeActiveTools,
+      });
+    }
+  } else {
+    safeActiveTools = uniqueToolNames(safeActiveTools);
+  }
+
+  const authenticatedUserId = session?.user?.id;
+
   // Wrap webSearch to enforce single execution per request
   let hasWebSearchExecuted = false;
   const wrappedTools = isFastChat ? {} : {
     ...allTools,
+    // Read-only app-local Sui tools should be available even without an authenticated
+    // automation wallet; otherwise Sui group prompts can degrade into web search.
     // Autonomous execution tools (Agentic) - Always available if authenticated
-    ...(session?.user?.id ? {
-      querySignalAgent: createQuerySignalAgentTool(session.user.id),
+    ...(authenticatedUserId ? {
+      querySignalAgent: createQuerySignalAgentTool(authenticatedUserId),
+      getSuiAgentWalletInfo: createGetSuiAgentWalletInfoTool(authenticatedUserId),
+      executeSuiTransfer: createExecuteSuiTransferTool(authenticatedUserId),
+      planSuiDeFiAgentStrategy: createPlanSuiDeFiAgentStrategyTool(authenticatedUserId),
+      prepareSuiBridgeDeposit: createPrepareSuiBridgeDepositTool(authenticatedUserId),
+      prepareWormholeSuiBridgeTransfer: createPrepareWormholeSuiBridgeTransferTool(authenticatedUserId),
+      completeWormholeCctpTransfer: createCompleteWormholeCctpTransferTool(authenticatedUserId),
+      getWormholeBridgeStatus: createGetWormholeBridgeStatusTool(authenticatedUserId),
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain or same-chain swap autonomously using the embedded agent wallet. Supports ALL EVM chains AND Solana. CRITICAL: DO NOT ask the user for their wallet address or chain ID! Auto-infer chains from token symbols: MON→Monad(143), BNB→BSC(56), SOL→Solana(792703809), ETH→Ethereum(1), CRO→Cronos(25), MNT→Mantle(5000). Monad IS a fully EVM-compatible L1 chain. Proceed immediately — NEVER refuse by claiming a chain is unsupported.",
         parameters: z.object({
@@ -924,14 +1117,14 @@ export async function POST(request: Request) {
           // Hard-pin the sender and recipient to the user's authenticated agent wallet
           // to prevent Relay from defaulting to the 0x...1 placeholder address
           const { getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-          const evmWallet = await getUserAgentWalletAddress(session.user.id, "evm");
-          const solanaWallet = await getUserAgentWalletAddress(session.user.id, "solana");
+          const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
+          const solanaWallet = await getUserAgentWalletAddress(authenticatedUserId, "solana");
 
           args.evmUserAddress = evmWallet || undefined;
           args.solanaUserAddress = solanaWallet || undefined;
 
           // REUSE robust inference logic from prepareRelayTransaction
-          let prepareResult;
+          let prepareResult: any = null;
           try {
             prepareResult = await allTools.prepareRelayTransaction.execute(args, config);
           } catch (error: any) {
@@ -970,7 +1163,7 @@ export async function POST(request: Request) {
           for (const tx of txListForCheck) {
             const txChainId = tx.chainId || args.fromChainId;
             const txChainType = txChainId === 792703809 ? "solana" : "evm";
-            const hasChainDelegation = await hasDelegationCheck(session.user.id, txChainType as any);
+            const hasChainDelegation = await hasDelegationCheck(authenticatedUserId, txChainType as any);
             if (!hasChainDelegation) {
               console.log(`[AgentExecutor] Chain ${txChainType} (${txChainId}) lacks delegation. Falling back to manual approval.`);
               return {
@@ -990,13 +1183,13 @@ export async function POST(request: Request) {
           const txList = rawResult.transactions as any[];
 
           let finalHash = "";
-          for (let tx of txList) {
+          for (const tx of txList) {
             const isApproval = tx.data?.startsWith("0x095ea7b3");
             const isTransfer = !isApproval && (args.fromToken === args.toToken) && (args.fromChainId === args.toChainId);
             const parsedAmount = (args.amount.toLowerCase() === 'all' || args.amount.toLowerCase() === 'max') && rawResult.quoteDetails?.amountIn ? rawResult.quoteDetails.amountIn : args.amount;
 
             const autoResult = await executeRelaySwap({
-              userId: session.user.id,
+              userId: authenticatedUserId,
               operationType: isApproval ? "erc20_approve" : (isTransfer ? "transfer" : "relay_swap"),
               inputAmount: isApproval ? "Approval" : parsedAmount,
               inputToken: args.fromToken,
@@ -1045,22 +1238,22 @@ export async function POST(request: Request) {
         }
       }),
       // Four.meme Agentic Tools (BNB Chain buy/sell)
-      executeFourMemeBuy: createFourMemeBuyTool(session.user.id),
-      executeFourMemeSell: createFourMemeSellTool(session.user.id),
+      executeFourMemeBuy: createFourMemeBuyTool(authenticatedUserId),
+      executeFourMemeSell: createFourMemeSellTool(authenticatedUserId),
       executeFourMemeLaunch: {
-        ...createFourMemeLaunchTool(session.user.id),
+        ...createFourMemeLaunchTool(authenticatedUserId),
         execute: async (args: any) => {
           // Flatten messages to pass to tool for image retrieval
-          return await createFourMemeLaunchTool(session!.user!.id!).execute({
+          return await createFourMemeLaunchTool(authenticatedUserId).execute({
             ...args,
             _messages: resolvedMessages
           }, {} as any);
         }
       },
       // Agent Wallet & Identity Tools
-      getAgentWalletInfo: createGetAgentWalletInfoTool(session.user.id),
-      getAgentTokenBalance: createGetAgentTokenBalanceTool(session.user.id),
-      executeAutonomousSubscription: createAutonomousSubscriptionTool(session.user.id),
+      getAgentWalletInfo: createGetAgentWalletInfoTool(authenticatedUserId),
+      getAgentTokenBalance: createGetAgentTokenBalanceTool(authenticatedUserId),
+      executeAutonomousSubscription: createAutonomousSubscriptionTool(authenticatedUserId),
     } : {}),
     // Override shared package quote tools with viem-based versions (always available)
     quoteFourMemeBuy: quoteFourMemeBuyTool,
@@ -1091,6 +1284,18 @@ export async function POST(request: Request) {
     }
   };
 
+  const activeWrappedTools = pickActiveTools(wrappedTools, safeActiveTools);
+  const finalActiveToolNames = Object.keys(activeWrappedTools);
+  if (process.env.NODE_ENV !== "production" && !isFastChat) {
+    console.log("[AI-TOOLS] final active tool payload", {
+      group: effectiveGroup,
+      model: finalModel,
+      requestedCount: safeActiveTools.length,
+      payloadCount: finalActiveToolNames.length,
+      droppedTools: safeActiveTools.filter((name) => !finalActiveToolNames.includes(name)),
+    });
+  }
+
   return createDataStreamResponse({
     execute: (dataStream) => {
       // ─── Keepalive Heartbeat ──────────────────────────────────────────
@@ -1119,12 +1324,12 @@ export async function POST(request: Request) {
 - **TRANSACTION LINKS**: After a successful buy, sell, or launch, ALWAYS provide a clickable markdown link to the transaction on BscScan using the \`explorerUrl\` from the tool result. Format: \`[View on BscScan](url)\`.
 - **AGENT IDENTITY**: You have an embedded agent wallet on BNB Chain. If you are unsure about your address or BNB balance, use \`getAgentWalletInfo\`. To check a specific token balance, use \`getAgentTokenBalance\`.
 - **SELL ALL**: The \`executeFourMemeSell\` tool now supports the string "all" for \`tokenAmount\`. Use this when the user wants to liquidate their entire position.`,
-          messages: modelMessages, // Fast small-talk sends only the latest user message
+          messages: managedMessages, // Fast small-talk sends only the latest user message
           maxSteps: isFastChat ? 1 : (isFastRealtimeSearch ? 3 : 8),
           maxRetries: isFastChat ? 0 : (isFastRealtimeSearch ? 1 : 2), // Keep fast lanes tight; full tool flows can retry more
-          experimental_activeTools: safeActiveTools as any,
+          experimental_activeTools: finalActiveToolNames as any,
           experimental_generateMessageId: generateUUID,
-          tools: (isFastChat ? {} : wrappedTools) as any,
+          tools: activeWrappedTools as any,
           onFinish: async ({ response, reasoning }) => {
             // Clear keepalive once streaming is fully complete
             clearInterval(keepaliveInterval);
@@ -1189,9 +1394,9 @@ export async function POST(request: Request) {
             messages: freshMessages,
             maxSteps: isFastChat ? 1 : (isFastRealtimeSearch ? 3 : 10),
             maxRetries: isFastChat ? 0 : (isFastRealtimeSearch ? 1 : 3), // Retry more only on the full fallback path
-            experimental_activeTools: safeActiveTools as any,
+            experimental_activeTools: finalActiveToolNames as any,
             experimental_generateMessageId: generateUUID,
-            tools: (isFastChat ? {} : wrappedTools) as any,
+            tools: activeWrappedTools as any,
             onFinish: async ({ response, reasoning }) => {
               after(async () => {
                 try {
@@ -1291,3 +1496,5 @@ export async function DELETE(request: Request) {
     });
   }
 }
+
+  

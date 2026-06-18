@@ -225,7 +225,7 @@ export const getEvmOnchainDataUsingEtherscan = tool({
         .join(', ');
 
       const aiAgentResponse = await generateText({
-        model: myProvider.languageModel("model-router"),
+        model: myProvider.languageModel("openai-gpt-4o"),
         system: `You are an intelligent API assistant for Etherscan API V2. Your job is to process user queries and provide the most relevant blockchain data in a user-friendly format.
 
               ## 🚨 ABSOLUTE RULES (MUST FOLLOW):

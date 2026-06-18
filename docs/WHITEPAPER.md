@@ -123,7 +123,7 @@ flowchart TB
         Anthropic["Azure Model Router"]
         xAI["Azure xAI Grok"]
         Zhipu["Kimi / DeepSeek"]
-        Azure["Azure AI Foundry"]
+        OpenRouter"]
     end
     
     subgraph Layer5["Layer 5: Blockchain Tools"]
@@ -259,9 +259,9 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
 const azureFoundry = createOpenAI({
-  baseURL: process.env.AZURE_FOUNDRY_ENDPOINT,
-  apiKey: process.env.AZURE_FOUNDRY_API_KEY,
-  fetch: sanitizeAzureFoundryFetch,
+  baseURL: process.env.OPENROUTER_ENDPOINT,
+  apiKey: process.env.OPENROUTER_API_KEY,
+  fetch: sanitizeOpenRouterFetch,
 });
 
 export const myProvider: any = customProvider({
@@ -285,14 +285,14 @@ export const myProvider: any = customProvider({
 
 | Model ID | Display Name | Provider | Strength | Use Case |
 |----------|--------------|----------|----------|----------|
-| `model-router` | **BZKH v1** | Azure AI Foundry | Auto-Selection | Optimal model routing |
-| `gpt-5.5` / `gpt-5.4-pro` | **GPT 5.x** | Azure AI Foundry | Flagship Intelligence | Ultra-complex reasoning |
-| `gpt-5.3-chat` / `gpt-5.3-codex` | **GPT 5.3** | Azure AI Foundry | Chat + coding | Productive general/coding workflows |
-| `gpt-4o` / `gpt-4.1` / `gpt-4o-mini` | **GPT 4.x** | Azure AI Foundry | Versatility | Everyday chat and multimodal reasoning |
-| `grok-4-20-*` / `grok-4.3` | **Grok** | Azure AI Foundry | Fast + reasoning variants | Real-time and extended-thinking responses |
-| `kimi-k2.5` / `kimi-k2.6` | **Kimi** | Azure AI Foundry | Long Context | Knowledge-heavy multi-turn workflows |
-| `deepseek-v3.2` / `deepseek-v4-flash` | **DeepSeek** | Azure AI Foundry | Throughput | Responsive reasoning and generation |
-| `gpt-image-2` | **GPT-Image-2** | Azure AI Foundry | Image generation/editing | Prompt-to-image, image edits, R2-persisted PNG outputs |
+| `model-router` | **BZKH v1** | OpenRouter | Auto-Selection | Optimal model routing |
+| `gpt-5.5` / `gpt-5.4-pro` | **GPT 5.x** | OpenRouter | Flagship Intelligence | Ultra-complex reasoning |
+| `gpt-5.3-chat` / `gpt-5.3-codex` | **GPT 5.3** | OpenRouter | Chat + coding | Productive general/coding workflows |
+| `gpt-4o` / `gpt-4.1` / `gpt-4o-mini` | **GPT 4.x** | OpenRouter | Versatility | Everyday chat and multimodal reasoning |
+| `grok-4-20-*` / `grok-4.3` | **Grok** | OpenRouter | Fast + reasoning variants | Real-time and extended-thinking responses |
+| `kimi-k2.5` / `kimi-k2.6` | **Kimi** | OpenRouter | Long Context | Knowledge-heavy multi-turn workflows |
+| `deepseek-v3.2` / `deepseek-v4-flash` | **DeepSeek** | OpenRouter | Throughput | Responsive reasoning and generation |
+| `gpt-image-2` | **GPT-Image-2** | OpenRouter | Image generation/editing | Prompt-to-image, image edits, R2-persisted PNG outputs |
 
 
 ### Intent Classification System

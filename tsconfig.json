@@ -2,10 +2,9 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "commonjs",
-    "baseUrl": ".",
     "paths": {
-      "@barzakh/shared": ["packages/shared/src/index.ts"],
-      "@barzakh/shared/*": ["packages/shared/src/*"]
+      "@barzakh/shared": ["./packages/shared/src/index.ts"],
+      "@barzakh/shared/*": ["./packages/shared/src/*"]
     },
     "strict": true,
     "esModuleInterop": true,

@@ -6,6 +6,61 @@ import { PromptRequestSchema, ChatCompletionStreaming } from "./type";
 import { z } from "zod";
 import { fetchImageAsBase64 } from "@barzakh/shared/lib/ai/utils/fetch-image-as-base64";
 
+function findLatestImageUrl(msgs: any[]): string | null {
+  // Iterate backwards through messages
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const msg = msgs[i];
+    
+    // 1. Check toolInvocations in assistant messages
+    if (msg.toolInvocations && Array.isArray(msg.toolInvocations)) {
+      for (let j = msg.toolInvocations.length - 1; j >= 0; j--) {
+        const inv = msg.toolInvocations[j];
+        if (inv.toolName === 'createImage' && inv.state === 'result' && inv.result) {
+          const result = inv.result;
+          if (result.imageUrls && Array.isArray(result.imageUrls) && result.imageUrls.length > 0) {
+            return result.imageUrls[result.imageUrls.length - 1];
+          }
+          if (result.imageUrl && typeof result.imageUrl === 'string') {
+            return result.imageUrl;
+          }
+        }
+      }
+    }
+    
+    // 2. Check message content for image parts
+    if (Array.isArray(msg.content)) {
+      for (let j = msg.content.length - 1; j >= 0; j--) {
+        const part = msg.content[j];
+        if (part && part.type === 'image' && typeof part.image === 'string') {
+          return part.image;
+        }
+      }
+    }
+    
+    // 3. Check message text for ORIGINAL_IMAGE_URLS_FOR_EDITING
+    let textContent = "";
+    if (typeof msg.content === 'string') {
+      textContent = msg.content;
+    } else if (Array.isArray(msg.content)) {
+      const textPart = msg.content.find((part: any) => part && part.type === 'text');
+      if (textPart && 'text' in textPart) {
+        textContent = textPart.text;
+      }
+    }
+    
+    if (textContent && textContent.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
+      const match = textContent.match(/\[ORIGINAL_IMAGE_URLS_FOR_EDITING:\s*([^\]]+)\]/);
+      if (match) {
+        const urls = match[1].split(', ').filter(url => url.trim());
+        if (urls.length > 0) {
+          return urls[urls.length - 1];
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
     const EXTERNALAPIKEY = process.env.SENTIENT_EXTERNAL_APIKEY;
@@ -98,16 +153,19 @@ export async function POST(request: Request) {
     }
 
     // Add image URL extraction hint for imagine group
-    if (groupId === "imagine" && hasImage) {
+    if (groupId === "imagine") {
       const lastMessage = messages[messages.length - 1];
+      let hasNewUpload = false;
+      let imageUrls: string[] = [];
+      let originalVercelUrls: string[] = [];
+
       if (lastMessage && lastMessage.role === "user" && Array.isArray(lastMessage.content)) {
-        const imageUrls = lastMessage.content
+        imageUrls = lastMessage.content
           .filter((part: any) => part.type === "image" && part.image)
           .map((part: any) => part.image);
 
         // Extract original storage URLs (R2 or Vercel Blob) from the message text
         const textParts = lastMessage.content.filter((part: any) => part.type === "text");
-        let originalVercelUrls: string[] = [];
 
         for (const textPart of textParts) {
           if (textPart.type === 'text' && textPart.text && textPart.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING:')) {
@@ -119,7 +177,12 @@ export async function POST(request: Request) {
             }
           }
         }
+        if (imageUrls.length > 0 || originalVercelUrls.length > 0) {
+          hasNewUpload = true;
+        }
+      }
 
+      if (hasNewUpload) {
         console.log("Image URLs received in API:", imageUrls);
         console.log("Image URL sources:", imageUrls.map(url => {
           if (url.includes('r2.barzakh.tech') || url.includes('.r2.cloudflarestorage.com')) return 'Cloudflare R2 Storage';
@@ -163,6 +226,14 @@ export async function POST(request: Request) {
             const imageHint = `Available images for editing: ${imageUrls.join(", ")}. Use these URLs in the input_images parameter when calling createImage.`;
             messages.push({ role: "system", content: imageHint });
           }
+        }
+      } else {
+        // Look back at the history to find the latest generated or uploaded image URL
+        const latestImageUrl = findLatestImageUrl(messages);
+        if (latestImageUrl) {
+          console.log("✅ Found latest image in history for iterative editing:", latestImageUrl);
+          const imageHint = `You are continuing an iterative editing session. The latest image generated or used in the conversation is: ${latestImageUrl}. If the user is asking to modify, edit, change, or add to this image, you MUST automatically use this URL in the input_images parameter when calling createImage. Do not ask the user for the image URL again.`;
+          messages.push({ role: "system", content: imageHint });
         }
       }
     }

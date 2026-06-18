@@ -5,7 +5,7 @@
  * POST /api/settings/agent — Create/delete wallets, enable/disable automation per chain
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
 import {
   hasDelegation,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/agent/agent-wallet-store";
 import type { WalletChain } from "@/lib/agent/agent-wallet-store";
 import { isDelegatedAccessEnabled } from "@/lib/agent/dynamic-agent-wallet";
+import { buildSuiVisionUrl } from "@/lib/agent/sui-agent-executor";
 import * as allChains from "viem/chains";
 
 export async function GET() {
@@ -29,11 +30,12 @@ export async function GET() {
     const userId = session.user.id;
 
     // Fetch per-chain status
-    const [evmEnabled, solanaEnabled] = await Promise.all([
+    const [evmEnabled, solanaEnabled, suiEnabled] = await Promise.all([
       hasDelegation(userId, "evm"),
       hasDelegation(userId, "solana"),
+      hasDelegation(userId, "sui"),
     ]);
-    const isEnabled = evmEnabled || solanaEnabled;
+    const isEnabled = evmEnabled || solanaEnabled || suiEnabled;
 
     // Get all wallets for the user
     const wallets = await getAllUserWallets(userId);
@@ -41,6 +43,7 @@ export async function GET() {
     // Legacy: single walletAddress field (EVM) for backward compatibility
     const evmWallet = wallets.find(w => w.chain === "evm");
     const solanaWallet = wallets.find(w => w.chain === "solana");
+    const suiWallet = wallets.find(w => w.chain === "sui");
 
     const recentTxs = await getRecentTransactions(userId, 10);
     const spent24h = await get24hSpend(userId);
@@ -49,9 +52,10 @@ export async function GET() {
       agentEnabled: isEnabled,
       evmEnabled,
       solanaEnabled,
+      suiEnabled,
       serverConfigured: isDelegatedAccessEnabled(),
       // Legacy single address (EVM first, then Solana)
-      walletAddress: evmWallet?.walletAddress || solanaWallet?.walletAddress || null,
+      walletAddress: evmWallet?.walletAddress || solanaWallet?.walletAddress || suiWallet?.walletAddress || null,
       // Multi-chain wallet data
       wallets: wallets.map(w => ({
         walletAddress: w.walletAddress,
@@ -60,6 +64,7 @@ export async function GET() {
       })),
       evmWalletAddress: evmWallet?.walletAddress || null,
       solanaWalletAddress: solanaWallet?.walletAddress || null,
+      suiWalletAddress: suiWallet?.walletAddress || null,
 
       spent24h,
       recentTransactions: recentTxs.map((tx) => {
@@ -67,8 +72,12 @@ export async function GET() {
         let chainName = "EVM";
         const chainId = (tx.metadata as any)?.chainId;
         const isSolana = (tx.metadata as any)?.chain === "solana";
+        const isSui = (tx.metadata as any)?.chain === "sui";
         
-        if (isSolana) {
+        if (isSui) {
+          const network = ((tx.metadata as any)?.network || "testnet") as "mainnet" | "testnet" | "devnet";
+          chainName = `Sui ${String(network).charAt(0).toUpperCase()}${String(network).slice(1)}`;
+        } else if (isSolana) {
           explorerBase = "https://solscan.io/tx";
           chainName = "Solana";
         } else if (chainId === 5042002) {
@@ -79,7 +88,7 @@ export async function GET() {
           if (matchedChain) {
             chainName = matchedChain.name;
             if (matchedChain.blockExplorers?.default?.url) {
-              explorerBase = matchedChain.blockExplorers.default.url + "/tx";
+              explorerBase = `${matchedChain.blockExplorers.default.url}/tx`;
             }
           }
         }
@@ -90,7 +99,13 @@ export async function GET() {
           amount: tx.amount,
           signature: tx.signature,
           metadata: tx.metadata,
-          explorerUrl: `${explorerBase}/${tx.signature}`,
+          explorerUrl: isSui
+            ? buildSuiVisionUrl({
+                kind: "txblock",
+                id: tx.signature,
+                network: (((tx.metadata as any)?.network || "testnet") as "mainnet" | "testnet" | "devnet"),
+              })
+            : `${explorerBase}/${tx.signature}`,
           chainName,
           createdAt: tx.createdAt.toISOString(),
         };
@@ -114,9 +129,9 @@ export async function POST(request: NextRequest) {
     const chain: WalletChain = body.chain || "evm";
 
     // Validate chain parameter
-    if (!["evm", "solana"].includes(chain)) {
+    if (!["evm", "solana", "sui"].includes(chain)) {
       return NextResponse.json(
-        { error: "Invalid chain. Must be 'evm' or 'solana'." },
+        { error: "Invalid chain. Must be 'evm', 'solana', or 'sui'." },
         { status: 400 }
       );
     }

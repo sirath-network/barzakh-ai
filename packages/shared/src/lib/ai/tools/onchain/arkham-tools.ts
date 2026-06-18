@@ -89,7 +89,7 @@ async function arkhamPut(
 const VALID_CHAINS = new Set([
   'ethereum', 'polygon', 'bsc', 'optimism', 'avalanche',
   'arbitrum_one', 'base', 'bitcoin', 'tron', 'flare',
-  'solana', 'ton', 'dogecoin', 'zcash', 'blast', 'linea',
+  'solana', 'sui', 'ton', 'dogecoin', 'zcash', 'blast', 'linea',
   'manta', 'mantle', 'sonic', 'fantom'
 ]);
 
@@ -105,6 +105,9 @@ const CHAIN_ALIASES: Record<string, string> = {
   'avax': 'avalanche',
   'matic': 'polygon',
   'bnb': 'bsc',
+  'sui-network': 'sui',
+  'sui network': 'sui',
+  'sui': 'sui',
   'ftm': 'fantom'
 };
 

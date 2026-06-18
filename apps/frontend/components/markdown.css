@@ -47,8 +47,69 @@
   }
 }
 
+/* Responsive table styling */
+.markdown-body .markdown-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+}
+
+.markdown-body .markdown-table-scroll:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.7);
+  outline-offset: 2px;
+}
+
+.markdown-body .markdown-table {
+  border-spacing: 0;
+  width: 100%;
+  min-width: 42rem;
+  table-layout: auto;
+  font-variant-numeric: tabular-nums;
+  border-collapse: separate;
+  background: hsl(var(--background) / 0.5);
+}
+
+.markdown-body .markdown-table th,
+.markdown-body .markdown-table td {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+}
+
+.markdown-body .markdown-table p,
+.markdown-body .markdown-table div {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  white-space: nowrap;
+}
+
+.markdown-body .markdown-table a {
+  display: inline-flex;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+@media (max-width: 640px) {
+  .markdown-body .markdown-table-scroll {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    width: calc(100% + 0.5rem);
+  }
+
+  .markdown-body .markdown-table {
+    min-width: 38rem;
+  }
+}
+
 /* Enhanced table styling */
-.markdown-body table {
+.markdown-body table:not(.markdown-table) {
   border-spacing: 0;
   width: 100%;
   font-variant-numeric: tabular-nums;
@@ -59,7 +120,7 @@
   overflow: hidden;
 }
 
-.markdown-body th {
+.markdown-body table:not(.markdown-table) th {
   font-weight: 600;
   white-space: nowrap;
   background: rgba(255,255,255,0.05);
@@ -70,19 +131,19 @@
   color: hsl(var(--foreground) / 0.7);
 }
 
-.markdown-body td {
+.markdown-body table:not(.markdown-table) td {
   vertical-align: top;
   padding: 0.75rem 1rem;
   border-top: 1px solid rgba(255,255,255,0.05);
 }
 
-.markdown-body tr:hover td {
+.markdown-body table:not(.markdown-table) tr:hover td {
   background: rgba(255,255,255,0.02);
 }
 
 /* Improve number alignment in tables */
-.markdown-body td:has(> *:first-child:last-child),
-.markdown-body th:has(> *:first-child:last-child) {
+.markdown-body table:not(.markdown-table) td:has(> *:first-child:last-child),
+.markdown-body table:not(.markdown-table) th:has(> *:first-child:last-child) {
   text-align: left;
 }
 

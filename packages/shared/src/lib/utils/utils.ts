@@ -203,7 +203,8 @@ export type SearchGroupId =
   | "imagine"
   | "aptos"
   | "cronos"
-  | "mantle";
+  | "mantle"
+  | "sui";
 
 // Explicit type for search groups to avoid portable type inference issues with LucideIcon
 interface SearchGroupItem {
@@ -262,6 +263,16 @@ export const searchGroups: readonly SearchGroupItem[] = [
     img: {
       light: "/images/icon/mantle/mantle-dark.png",
       dark: "/images/icon/mantle/mantle-light.png",
+    },
+  },
+  {
+    id: "sui",
+    name: "Sui",
+    description: "Everything Sui. Search, transactions and more",
+    icon: Network,
+    img: {
+      light: "/images/icon/sui/sui-dark.png",
+      dark: "/images/icon/sui/sui-light.png",
     },
   },
   {

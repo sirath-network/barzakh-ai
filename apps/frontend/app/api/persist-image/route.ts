@@ -4,7 +4,12 @@ import { persistImagesToBlob } from '@/lib/persist-image';
 import { z } from 'zod';
 
 const RequestSchema = z.object({
-  imageUrls: z.array(z.string().url()).min(1).max(10),
+  imageUrls: z.array(
+    z.string().refine(
+      (val) => val.startsWith("data:") || val.startsWith("http://") || val.startsWith("https://"),
+      { message: "Must be a valid URL or Data URI" }
+    )
+  ).min(1).max(10),
   internalRequest: z.boolean().optional(), // Flag for backend-to-backend calls
 });
 

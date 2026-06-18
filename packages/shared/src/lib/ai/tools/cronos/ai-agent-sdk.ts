@@ -32,11 +32,11 @@ let clientCache: Record<number, CdcAiAgentClient> = {};
  */
 function getClient(chainId: number): CdcAiAgentClient {
     if (!clientCache[chainId]) {
-        // Use Azure AI Foundry API key
-        const apiKey = process.env.AZURE_FOUNDRY_API_KEY;
+        // Use OpenRouter API key
+        const apiKey = process.env.OPENROUTER_API_KEY;
 
         if (!apiKey) {
-            throw new Error("Missing API Key: AZURE_FOUNDRY_API_KEY is required for Crypto.com AI Agent SDK");
+            throw new Error("Missing API Key: OPENROUTER_API_KEY is required for Crypto.com AI Agent SDK");
         }
 
         clientCache[chainId] = createClient({
