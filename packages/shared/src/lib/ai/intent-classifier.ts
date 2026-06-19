@@ -441,20 +441,7 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
-    // Wormhole
-    {
-        id: 'wormhole',
-        intent: 'wormhole',
-        patterns: [
-            /\bwormhole\b/i,
-            /\bwormhole\s*(bridge|portal|guardian|scan)\b/i,
-            /\bportal\s*bridge\b/i,
-        ],
-        keywords: ['wormhole', 'wormhole bridge', 'portal bridge', 'wormhole guardians'],
-        tokens: ['W'],
-        addressFormat: 'evm',
-        isEvm: true,
-    },
+
     // Generic EVM/Ethereum (routes to on_chain for Zerion/generic tools)
     // This allows users to explicitly switch from a chain-specific context to generic EVM
     {
@@ -758,20 +745,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
-    // Wormhole-specific
-    {
-        intent: "wormhole",
-        patterns: [
-            /\bwormhole\b/i,
-            /\bwormhole\s+(bridge|protocol|guardian|portal|scan)\b/i,
-            /\bportal\s+bridge\b/i,
-        ],
-        keywords: [
-            "wormhole", "wormhole bridge", "wormhole protocol", "wormhole guardian",
-            "wormhole portal", "wormholescan", "cross-chain messaging", "x-chain",
-        ],
-        priority: 95,
-    },
+
 
     // Monad-specific (high throughput L1)
     {
@@ -904,7 +878,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             // Cross-chain terminology
             /\b(cross[-\s]?chain|cross[-\s]?network|inter[-\s]?chain)\b/i,
             /\b(l1\s*to\s*l2|l2\s*to\s*l1|l2\s*to\s*l2)\b/i,
-            /\b(bridge|wormhole|layerzero|axelar|across|orbiter|relay)\b/i,
+            /\b(bridge|layerzero|axelar|across|orbiter|relay)\b/i,
         ],
         keywords: [
             "cross-chain swap", "cross-chain bridge", "bridge eth", "swap eth",
@@ -1162,7 +1136,6 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "creditcoin": Creditcoin specific queries
     - "vana": Vana network specific queries
     - "flow": Flow blockchain specific queries
-    - "wormhole": Wormhole bridge specific queries
     - "monad": Monad network specific queries
     - "mantle": Mantle Network L2 specific queries (MNT token, mantlescan)
     - "multimodal": Image analysis or file reading requests
@@ -1174,7 +1147,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
@@ -1193,7 +1166,7 @@ CRITICAL RULES:
    - Example: "bridge to Base" -> "on_chain"
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):
-- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, wormhole, sei): Accept "0x..." addresses (40 hex chars)
+- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei): Accept "0x..." addresses (40 hex chars)
 - Sui and Aptos both use 32-byte "0x..." addresses (64 hex chars); classify as "sui" only when Sui/SUI/Walrus/DeepBook/SuiScan context is present, otherwise Aptos context may apply.
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
@@ -1230,7 +1203,6 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                     "creditcoin",
                     "vana",
                     "flow",
-                    "wormhole",
                     "monad",
                     "mantle",
                     "multimodal",
@@ -1317,7 +1289,7 @@ JSON Response:`,
 
                 // If address format conflicts with context, override it
                 // EVM-compatible chains: these accept 0x addresses
-                const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+                const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
 
                 if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
                     console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
@@ -1420,7 +1392,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sui', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad', 'mantle', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sui', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1471,7 +1443,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei', 'aptos', 'sui', 'solana'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'sui', 'solana'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -1588,7 +1560,7 @@ export async function classifyIntent(
 
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'sei'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
 
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&

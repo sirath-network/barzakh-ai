@@ -407,7 +407,6 @@ components:
             - zeta
             - flow
             - monad
-            - wormhole
             - on_chain
             - coding
           default: search

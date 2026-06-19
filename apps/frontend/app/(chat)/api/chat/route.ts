@@ -16,10 +16,7 @@ import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/
 import { createGetSuiAgentWalletInfoTool, createExecuteSuiTransferTool } from "@/lib/ai/tools/sui-agent-tools";
 import { createPlanSuiDeFiAgentStrategyTool } from "@/lib/ai/tools/sui-defi-agent-tools";
 import {
-  createCompleteWormholeCctpTransferTool,
-  createGetWormholeBridgeStatusTool,
   createPrepareSuiBridgeDepositTool,
-  createPrepareWormholeSuiBridgeTransferTool,
 } from "@/lib/ai/tools/sui-bridge-deepbook-tools";
 import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
 import { createAutonomousSubscriptionTool } from "@/lib/ai/tools/agent-subscription-tool";
@@ -264,7 +261,7 @@ function uniqueToolNames(toolNames: string[]): string[] {
 function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string): string[] {
   const text = promptText.toLowerCase();
   const hasWalrusIntent = /\b(walrus|store|upload|retrieve|blob|storage\s*price|save|archive)\b/i.test(text);
-  const hasBridgeIntent = /\b(bridge|wormhole|cctp|sepolia|base\s*sepolia|arbitrum\s*sepolia|optimism\s*sepolia|usdc\s+from|to\s+sui|from\s+sui|complete.*transfer|pending\s+claim)\b/i.test(text);
+  const hasBridgeIntent = /\b(bridge|sepolia|base\s*sepolia|arbitrum\s*sepolia|optimism\s*sepolia|usdc\s+from|to\s+sui|from\s+sui)\b/i.test(text);
   const hasPortfolioIntent = /\b(portfolio|holdings?|balance|wallet|address\s+activity|transactions?|tx|object|checkpoint|whale|arkham|entity|exchange|trace|monitor)\b/i.test(text) || /\b(0x|Ox)?[a-fA-F0-9]{40,64}\b/i.test(text);
   const hasMcpIntent = /\b(mcp|agentic\s+web|waterx|beep|a402|kapa|memwal|walrus\s+memory)\b/i.test(text);
 
@@ -281,9 +278,7 @@ function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string):
     allowed = [
       "getSuiAgentWalletInfo",
       "getSuiNativeBridgeInfo",
-      "prepareWormholeSuiBridgeTransfer",
-      "completeWormholeCctpTransfer",
-      "getWormholeBridgeStatus",
+      "prepareSuiBridgeDeposit",
     ];
   } else if (hasPortfolioIntent) {
     allowed = [
@@ -658,7 +653,7 @@ export async function POST(request: Request) {
   const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
 
   // Chain-specific groups that support context persistence
-  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'sui', 'zeta', 'creditcoin', 'vana', 'flow', 'wormhole', 'monad'] as const;
+  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'sui', 'zeta', 'creditcoin', 'vana', 'flow', 'monad'] as const;
 
   // Extract chain context from chat history for follow-up message routing
   function extractChainContext(msgs: Array<Message>): string | null {
@@ -674,7 +669,6 @@ export async function POST(request: Request) {
       creditcoin: [/\bcreditcoin\b/i, /\bctc\s+token/i],
       vana: [/\bvana\b/i],
       flow: [/\bflow\s+(blockchain|network|chain)/i],
-      wormhole: [/\bwormhole\b/i],
       monad: [/\bmonad\b/i],
       mantle: [/\bmantle\b/i, /\bmnt\s+(token|balance)/i],
       // Generic EVM - 0x addresses (40 hex chars) indicate EVM chain
@@ -1052,8 +1046,7 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     safeActiveTools.push("getSuiAgentWalletInfo");
     safeActiveTools.push("executeSuiTransfer");
     safeActiveTools.push("planSuiDeFiAgentStrategy");
-    safeActiveTools.push("prepareWormholeSuiBridgeTransfer");
-    safeActiveTools.push("getWormholeBridgeStatus");
+    safeActiveTools.push("prepareSuiBridgeDeposit");
     safeActiveTools.push("querySignalAgent");
 
     if (isAgentEnabledLocally) {
@@ -1097,9 +1090,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
       executeSuiTransfer: createExecuteSuiTransferTool(authenticatedUserId),
       planSuiDeFiAgentStrategy: createPlanSuiDeFiAgentStrategyTool(authenticatedUserId),
       prepareSuiBridgeDeposit: createPrepareSuiBridgeDepositTool(authenticatedUserId),
-      prepareWormholeSuiBridgeTransfer: createPrepareWormholeSuiBridgeTransferTool(authenticatedUserId),
-      completeWormholeCctpTransfer: createCompleteWormholeCctpTransferTool(authenticatedUserId),
-      getWormholeBridgeStatus: createGetWormholeBridgeStatusTool(authenticatedUserId),
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain or same-chain swap autonomously using the embedded agent wallet. Supports ALL EVM chains AND Solana. CRITICAL: DO NOT ask the user for their wallet address or chain ID! Auto-infer chains from token symbols: MON→Monad(143), BNB→BSC(56), SOL→Solana(792703809), ETH→Ethereum(1), CRO→Cronos(25), MNT→Mantle(5000). Monad IS a fully EVM-compatible L1 chain. Proceed immediately — NEVER refuse by claiming a chain is unsupported.",
         parameters: z.object({

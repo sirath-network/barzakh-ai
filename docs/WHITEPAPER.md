@@ -1017,7 +1017,7 @@ quadrantChart
 ### Phase 2: Expansion (Q1 2026)
 
 - [ ] Additional DEX integrations (Uniswap, Jupiter)
-- [ ] Cross-chain swap execution (Wormhole)
+- [ ] Cross-chain swap execution
 - [ ] API access for Ultimate tier
 - [ ] Mobile-optimized PWA
 - [ ] Advanced analytics dashboard

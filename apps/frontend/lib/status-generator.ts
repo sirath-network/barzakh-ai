@@ -160,10 +160,6 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
     return name ? `Resolving Aptos handle ${name}` : "Resolving Aptos identity";
   },
 
-  // =========================================================
-  // WORMHOLE
-  // =========================================================
-  getWormholeApiData: () => "Checking Wormhole status",
 
   // =========================================================
   // ZETA CHAIN

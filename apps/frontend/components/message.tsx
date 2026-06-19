@@ -568,7 +568,6 @@ const PurePreviewMessage = ({
                       'getVanaApiData',
                       'getZetaApiData',
                       'getFlowApiData',
-                      'getWormholeApiData',
                       'getSeiApiData',
                       'translateTransactions',
                       // Note: getMonadDefiPositions, getMonadNFTs, getMonadTokenPositions excluded
@@ -649,7 +648,6 @@ const PurePreviewMessage = ({
                             getVanaApiData: <EvmTransactionHistoryAny result={result} />,
                             getZetaApiData: <EvmTransactionHistoryAny result={result} />,
                             getFlowApiData: <EvmTransactionHistoryAny result={result} />,
-                            getWormholeApiData: <EvmTransactionHistoryAny result={result} />,
                             getSeiApiData: <EvmTransactionHistoryAny result={result} />,
                             translateTransactions: <EvmTransactionHistoryAny result={result} />,
                             // Note: getMonadDefiPositions, getMonadNFTs, getMonadTokenPositions excluded
@@ -902,7 +900,6 @@ const PurePreviewMessage = ({
                               t.toolName === 'getVanaApiData' ||
                               t.toolName === 'getZetaApiData' ||
                               t.toolName === 'getFlowApiData' ||
-                              t.toolName === 'getWormholeApiData' ||
                               t.toolName === 'getSeiApiData' ||
                               t.toolName === 'getMonadPortfolio' ||
                               t.toolName === 'getMonadDefiPositions' ||

@@ -194,7 +194,6 @@ export type SearchGroupId =
   | "coding"
   | "creditcoin"
   | "vana"
-  | "wormhole"
   | "flow"
   | "zeta"
   | "sei"
@@ -295,17 +294,7 @@ export const searchGroups: readonly SearchGroupItem[] = [
       dark: "/images/icon/cronos/cronos-light.png",
     },
   },
-  {
-    id: "wormhole",
-    name: "Wormhole",
-    description:
-      "Everything Wormhole. Search, transactions and more",
-    icon: Network,
-    img: {
-      light: "/images/icon/wormhole/wormhole-dark.png",
-      dark: "/images/icon/wormhole/wormhole-light.png",
-    },
-  },
+
   {
     id: "creditcoin",
     name: "Creditcoin",

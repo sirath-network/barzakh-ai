@@ -6,13 +6,12 @@ const networkSchema = z.enum(["mainnet", "testnet", "devnet"]);
 
 const STRATEGIES = {
   bridge: {
-    title: "Wormhole Sui Bridge Agent",
-    currentAutonomy: "Plan Wormhole routes into/out of Sui, prefer CCTP for native USDC where supported, use WTT/TokenBridge or Connect otherwise, and track transfers in Wormholescan. Execution is planner-first while SDK/Connect signing is wired.",
+    title: "Sui Native Bridge Agent",
+    currentAutonomy: "Plan Ethereum -> Sui deposit routes using the official Sui Native Bridge. Execution is dry-run/prep first unless execute=true.",
     actions: [
-      "Validate source chain, destination chain, asset, amount, and recipient.",
-      "Choose CCTP for native USDC where supported; otherwise choose WTT/TokenBridge or Wormhole Connect.",
-      "Avoid Sui Native Bridge claim automation because verified-before-claim loops were observed.",
-      "Track source tx and relay status via Wormholescan / Executor status APIs.",
+      "Validate source chain (must be Ethereum/Sepolia), destination chain (must be Sui), asset (ETH, USDC, USDT), amount, and recipient.",
+      "Prepare or execute Ethereum -> Sui deposits using the embedded EVM wallet.",
+      "Do not claim/resume native bridge claims autonomously if state checks show verified-before-claim loops.",
     ],
   },
   lp: {
@@ -80,7 +79,7 @@ export const createPlanSuiDeFiAgentStrategyTool = (userId: string) =>
         canExecuteNow: blockers.length === 0,
         nextToolSuggestion:
           strategy === "bridge"
-            ? "Use prepareWormholeSuiBridgeTransfer for route planning and getWormholeBridgeStatus for tx tracking. Avoid native Sui Bridge claim loops."
+            ? "Use prepareSuiBridgeDeposit for Ethereum -> Sui native bridge deposits."
             : strategy === "lp"
               ? "Use getSuiDefiEcosystem with focus='lp' or 'lending', then choose one protocol SDK to allowlist."
               : "Use uploadToWalrus to upload agent memory JSON logs.",

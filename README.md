@@ -141,9 +141,9 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 │  │  │ Explorer │  │ Polygon  │  │  Names   │  │  NFTs    │  │  IBC Protocol    │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │  │
-│  │  │  Solana  │  │   Zeta   │  │  Monad   │  │ Wormhole │  │   Mantle L2      │   │  │
-│  │  │   RPC    │  │  ZetaVM  │  │ Mainnet  │  │  Bridge  │  │  MNT Balance     │   │  │
-│  │  │  DeFi    │  │  Testnet │  │ nad.fun  │  │  X-Chain │  │  Portfolio       │   │  │
+│  │  │  Solana  │  │   Zeta   │  │  Monad   │  │  Walrus  │  │   Mantle L2      │   │  │
+│  │  │   RPC    │  │  ZetaVM  │  │ Mainnet  │  │  Storage │  │  MNT Balance     │   │  │
+│  │  │  DeFi    │  │  Testnet │  │ nad.fun  │  │ Protocol │  │  Portfolio       │   │  │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘   │  │
 │  └─────────────────────────────────────────────────────────────────────────────────┘  │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
@@ -397,7 +397,6 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
 | **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
-| **Wormhole** | 2 | Cross-chain bridge, guardian verification |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
 
 ### Cronos zkEVM Direct Tools
@@ -1135,7 +1134,6 @@ barzakh-ai/
 │           │       ├── monad/        # Monad mainnet
 │           │       ├── mantle/       # Mantle L2 (12 tools)
 │           │       ├── creditcoin/   # Creditcoin (Blockscout)
-│           │       ├── wormhole/     # Cross-chain bridge
 │           │       └── relay/        # Relay Protocol cross-chain swaps
 │           ├── payments/
 │           │   └── x402-facilitator.ts  # x402 protocol implementation

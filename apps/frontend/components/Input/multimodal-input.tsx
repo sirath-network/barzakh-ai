@@ -295,9 +295,7 @@ function PureMultimodalInput({
     // Aptos
     "Explore Aptos Move modules",
     "Check APT validator performance",
-    // Wormhole
-    "Track cross-chain bridge flows",
-    "Compare Wormhole vs LayerZero",
+
     // Cronos & Cronos zkEVM
     "Analyze CRO DeFi ecosystem",
     "Monitor Cronos zkEVM TVL growth",

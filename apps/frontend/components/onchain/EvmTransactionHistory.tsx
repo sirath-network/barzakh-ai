@@ -57,11 +57,6 @@ const CHAIN_CONFIG: Record<string, { explorer: string; symbol: string; name: str
         symbol: "FLOW",
         name: "Flow",
     },
-    wormhole: {
-        explorer: "https://wormholescan.io",
-        symbol: "W",
-        name: "Wormhole",
-    },
     // Default fallback
     evm: {
         explorer: "https://etherscan.io",
@@ -403,9 +398,6 @@ const detectChain = (network: string): { explorer: string; symbol: string; name:
     }
     if (networkLower.includes("flow")) {
         return CHAIN_CONFIG.flow;
-    }
-    if (networkLower.includes("wormhole")) {
-        return CHAIN_CONFIG.wormhole;
     }
 
     return CHAIN_CONFIG.evm;

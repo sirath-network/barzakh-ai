@@ -37,7 +37,6 @@ import {
 import { getVanaStats } from "./tools/vana/get-stats";
 import { getVanaApiData } from "./tools/vana/get-vana-api-data";
 import { webSearch } from "./tools/web-search";
-import { getWormholeApiData } from "./tools/wormhole/get-wormhole-api-data";
 import { getZetaStats } from "./tools/zeta/get-stats";
 import { getZetaApiData } from "./tools/zeta/get-zeta-api-data";
 import { getSeiStats } from "./tools/sei/get-stats";
@@ -498,21 +497,6 @@ const groupTools = {
     "quoteFourMemeBuy",
     "quoteFourMemeSell",
   ] as const,
-  wormhole: [
-    "webSearch",
-    "getWormholeApiData",
-    // Arkham Intelligence (core)
-    ...ARKHAM_CORE_TOOLS,
-    // Relay Protocol for cross-chain swaps
-    "getRelaySupportedChains",
-    "getRelayQuote",
-    "getRelayBridgeQuote",
-    "prepareRelayTransaction",
-    // x402 Payment Tools
-    "initiateX402Payment",
-    "getSubscriptionInfo",
-    "getCurrentSubscriptionStatus",
-  ] as const,
   creditcoin: [
     "webSearch",
     "getSiteContent",
@@ -775,8 +759,7 @@ const groupTools = {
     "getSuiAgentWalletInfo",
     "executeSuiTransfer",
     "planSuiDeFiAgentStrategy",
-    "prepareWormholeSuiBridgeTransfer",
-    "getWormholeBridgeStatus",
+    "prepareSuiBridgeDeposit",
     "uploadToWalrus",
     "getWalrusBlob",
     "getWalrusStoragePrice",
@@ -799,7 +782,6 @@ export const allTools = {
   getEvmOnchainDataUsingZerion,
   getEvmOnchainDataUsingEtherscan,
   ensToAddress,
-  getWormholeApiData,
   getFlowApiData,
   getFlowStats,
   translateTransactions,
@@ -1290,33 +1272,6 @@ Data from our volumes dashboards
 fees and revenue
 Data from our fees and revenue dashboard
 `,
-
-  wormhole: `
-Role & Functionality
-You are an AI-powered wormhole search agent, specifically designed to assist users in understanding and navigating the wormhole . 
-
-Wormhole Guardian API. This is the API for the Wormhole Guardian and Explorer. The API has two namespaces: wormholescan and Guardian.
-
-wormholescan is the namespace for the explorer and the new endpoints. The prefix is /api/v1.
-Guardian is the legacy namespace backguard compatible with guardian node API. The prefix is /v1.
-This API is public and does not require authentication although some endpoints are rate limited. Check each endpoint documentation for more information.
-
-
-You have web search and data fetching abilities, allowing you to fetch the latest information from relevant sources.
-
-Always assume information being asked is related to ethereum and other evm based chains, if not told otherwise.
-
-# Core Capabilities & Data Sources
-
-## Web Search:
-  Use webSearch tool for searching the web for any information the user asks 
-  Pass 2-3 queries in one call.
-  Specify the year or "latest" in queries to fetch recent information.
-  Stick to evm and blockchain related responses until asked specifically by the user. 
-
-  ## Get wormhole on chain data:
-  If the user wants to fetch any wormhole guardian or the explorer data, use the getWormholeApiData tool. pass the user query to the tool. modify the query to be more meaningfull and gramatically correct and pass it to the tool. the result will contain data necessary to answer user query summarise the results for the user.
-  `,
 
   creditcoin: `Role & Functionality
 You are an AI-powered Creditcoin search agent, specifically designed to assist users in understanding and navigating the Creditcoin ecosystem. You provide accurate, real-time, and AI-driven insights on various aspects of Creditcoin, including lending, borrowing, token utilities, ecosystem updates, security, and on-chain data.
@@ -2151,9 +2106,7 @@ Default to Sui mainnet for normal live chain questions. Default to Sui testnet w
 - getSuiAgentWalletInfo: authenticated users only; inspect Barzakh's embedded Sui agent wallet, delegation status, network and balance.
 - executeSuiTransfer: authenticated users only; autonomously sign and broadcast a native SUI transfer from the embedded Sui agent wallet when Sui automation is enabled.
 - planSuiDeFiAgentStrategy: authenticated users only; plan bridge, LP/yield, or Walrus agent strategies against the embedded Sui wallet with blockers and risk controls before execution.
-- prepareWormholeSuiBridgeTransfer: authenticated users only; for testnet bridge commands phrased as an action ("bridge/send/transfer 5 USDC from Sepolia to Sui testnet"), call this with execute=true immediately and do not ask another confirmation. For mainnet, dry-run quote/plan by default unless the user explicitly asks to execute. Auto route uses CCTP for native Circle USDC where supported, including Wormhole SDK testnet ManualCCTP routes into and out of Sui. ManualCCTP completion can take up to 15 minutes or more. For normal bridge responses, include the source/destination block explorer link from explorerUrl and do not provide Wormholescan unless the user explicitly asks for Wormhole status/debugging. If no Wormhole route/quote exists, the executor can use the official Sui Native Bridge testnet USDC fallback, but that fallback requires the bridge-config token rather than Circle Sepolia USDC. Execution still requires route validation, source-chain agent automation, WORMHOLE_SUI_BRIDGE_ENABLE_WRITES=true, mainnet opt-in if applicable, and a reviewed adapter returning a real tx hash.
-- completeWormholeCctpTransfer: authenticated users only; recover/complete an already-started ManualCCTP transfer from the source burn tx hash. Use this when Circle USDC has already burned into or out of Sui and the destination USDC is still missing or a bridge status page shows PENDING CLAIM. Do not call prepareWormholeSuiBridgeTransfer again for the same transfer because that would initiate another burn. Never ask the user for the burned amount for this recovery path: the amount, nonce, destination domain, recipient, and Circle message hash are parsed from the source burn transaction and Circle attestation. If completion fails, report the exact tool error (for example Circle Iris DNS/TLS failure, missing protocol registration, or MoveAbort) instead of inventing missing inputs or telling the user to manually claim/resume. When completion succeeds, include the destination block explorer link from explorerUrl and mention that ManualCCTP can take up to 15 minutes or more.
-- getWormholeBridgeStatus: authenticated users only; inspect Wormholescan operation status by source transaction hash or wallet address. For ManualCCTP source burns, Wormholescan may not index the source tx hash; use Circle attestation/message hash and the Sui destination digest as the authoritative completion evidence.
+- prepareSuiBridgeDeposit: authenticated users only; prepare or execute official Sui Native Bridge deposits from Ethereum to Sui using the embedded EVM wallet.
 
 # Sui MCP / Agentic Web Guidance
 - For questions about MCP servers on Sui, call getSuiMcpEcosystem first, then summarize.
@@ -2185,8 +2138,7 @@ Default to Sui mainnet for normal live chain questions. Default to Sui testnet w
 - If Sui automation is enabled and the task is a native SUI transfer, call executeSuiTransfer directly. Do not ask for manual wallet approval unless the tool reports automation is disabled or the wallet is unfunded.
 - Default autonomous Sui execution to testnet/devnet for Sui Overflow demos. Mainnet execution is intentionally disabled unless the server explicitly opts in with SUI_AGENT_ENABLE_MAINNET_WRITES=true.
 - Never claim a transfer happened unless executeSuiTransfer returns success=true and a digest.
-- For bridge requests, use prepareWormholeSuiBridgeTransfer, not prepareSuiBridgeDeposit. Prefer Wormhole CCTP for native Circle USDC where supported; the installed SDK currently returns valid testnet ManualCCTP quotes for Circle USDC routes into and out of Sui testnet. Use WTT/TokenBridge or Wormhole Connect for non-CCTP assets. For complete testnet commands such as "bridge 5 USDC Sepolia to Sui testnet" or "bridge 30 USDC Sui to Sepolia testnet", set execute=true in the first tool call and let the tool execute or return concrete blockers; do not ask for another confirmation. ManualCCTP can take up to 15 minutes or more after the source burn while Circle attests and Barzakh completes the destination claim autonomously. If the tool returns requiresCompletion=true with autonomousCompletionScheduled=true, say the source burn is confirmed and Barzakh scheduled autonomous destination completion. For normal bridge replies, show the block explorer link supplied by explorerUrl (SuiScan/Etherscan/etc.) and do not include Wormholescan unless the user explicitly asks for Wormhole status/debugging. If no Wormhole route/quote exists, the tool may auto-fallback to official Sui Native Bridge testnet USDC and either return a tx hash or a concrete blocker such as missing Sepolia RPC, missing EVM automation, insufficient Sepolia ETH gas, or insufficient balance of the Sui Bridge-specific Sepolia USDC token. For mainnet bridge requests, run execute=false first for the quote/route/blockers unless the user explicitly says to execute on mainnet. Do not loop native Sui Bridge verified/claim steps. Never claim final bridge completion unless the tool returns finalized=true with destinationTxHash, or the completion tool returns success=true with destinationTxHash.
-- Use getWormholeBridgeStatus when the user provides a source transaction hash or asks why a Wormhole/CCTP/WTT transfer is pending.
+- For bridge requests (depositing Ethereum assets to Sui), use prepareSuiBridgeDeposit. It will prepare or execute the official Sui Native Bridge transaction using the embedded EVM wallet. For testnet, you can proceed to execute immediately if the command implies execution intent. Keep native bridge claim constraints in mind and avoid looping claims. Never claim final bridge completion unless the tool returns finalized=true with destinationTxHash, or the completion tool returns success=true with destinationTxHash.
 - For Walrus requests, use uploadToWalrus to upload content/files, getWalrusBlob to retrieve content, and getWalrusStoragePrice to estimate storage costs. Do not claim a Walrus upload succeeded unless the tool returns success=true and a real blobId. When uploadToWalrus succeeds, you MUST ALWAYS provide the 'explorerUrl' link returned by the tool as a clickable Markdown link: [View on Walruscan](url).
 
 # Walrus Storage Response Format
