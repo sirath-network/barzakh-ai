@@ -759,7 +759,6 @@ const groupTools = {
     "getSuiAgentWalletInfo",
     "executeSuiTransfer",
     "planSuiDeFiAgentStrategy",
-    "prepareSuiBridgeDeposit",
     "uploadToWalrus",
     "getWalrusBlob",
     "getWalrusStoragePrice",
@@ -2105,8 +2104,7 @@ Default to Sui mainnet for normal live chain questions. Default to Sui testnet w
 - getWalrusStoragePrice: Check estimated cost for storing data on Walrus Protocol.
 - getSuiAgentWalletInfo: authenticated users only; inspect Barzakh's embedded Sui agent wallet, delegation status, network and balance.
 - executeSuiTransfer: authenticated users only; autonomously sign and broadcast a native SUI transfer from the embedded Sui agent wallet when Sui automation is enabled.
-- planSuiDeFiAgentStrategy: authenticated users only; plan bridge, LP/yield, or Walrus agent strategies against the embedded Sui wallet with blockers and risk controls before execution.
-- prepareSuiBridgeDeposit: authenticated users only; prepare or execute official Sui Native Bridge deposits from Ethereum to Sui using the embedded EVM wallet.
+- planSuiDeFiAgentStrategy: authenticated users only; plan LP/yield or Walrus agent strategies against the embedded Sui wallet with blockers and risk controls before execution.
 
 # Sui MCP / Agentic Web Guidance
 - For questions about MCP servers on Sui, call getSuiMcpEcosystem first, then summarize.
@@ -2138,7 +2136,6 @@ Default to Sui mainnet for normal live chain questions. Default to Sui testnet w
 - If Sui automation is enabled and the task is a native SUI transfer, call executeSuiTransfer directly. Do not ask for manual wallet approval unless the tool reports automation is disabled or the wallet is unfunded.
 - Default autonomous Sui execution to testnet/devnet for Sui Overflow demos. Mainnet execution is intentionally disabled unless the server explicitly opts in with SUI_AGENT_ENABLE_MAINNET_WRITES=true.
 - Never claim a transfer happened unless executeSuiTransfer returns success=true and a digest.
-- For bridge requests (depositing Ethereum assets to Sui), use prepareSuiBridgeDeposit. It will prepare or execute the official Sui Native Bridge transaction using the embedded EVM wallet. For testnet, you can proceed to execute immediately if the command implies execution intent. Keep native bridge claim constraints in mind and avoid looping claims. Never claim final bridge completion unless the tool returns finalized=true with destinationTxHash, or the completion tool returns success=true with destinationTxHash.
 - For Walrus requests, use uploadToWalrus to upload content/files, getWalrusBlob to retrieve content, and getWalrusStoragePrice to estimate storage costs. Do not claim a Walrus upload succeeded unless the tool returns success=true and a real blobId. When uploadToWalrus succeeds, you MUST ALWAYS provide the 'explorerUrl' link returned by the tool as a clickable Markdown link: [View on Walruscan](url).
 
 # Walrus Storage Response Format

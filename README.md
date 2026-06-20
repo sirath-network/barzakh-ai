@@ -39,6 +39,7 @@
   - [BNB Chain](#-bnb-chain-integration)
   - [Monad Ecosystem](#monad-ecosystem-deep-integration)
   - [Shelby Protocol](#-shelby-protocol--decentralized-storage--nft-minting)
+  - [Sui & Walrus Ecosystem](#-sui--walrus-ecosystem--agentic-web--decentralized-storage)
 - [x402 Crypto Payment Protocol](#x402-crypto-payment-protocol)
 - [Security](#security)
 - [Project Structure](#project-structure)
@@ -63,9 +64,10 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
 | **Arkham Intelligence** | 43 tools for whale tracking, entity investigation, fund flow analysis across 20+ chains |
 | **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos Testnet) with optional NFT minting |
+| **Sui & Walrus** | 18 tools for SUI portfolio, whale activity, BlockVision, Walrus storage, agent wallets & DeFi strategies |
 | **Azure Multi-Model AI** | GPT-4o/4.1/5.x, Grok, Kimi, DeepSeek, and BZKH model-router deployments with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
-| **100+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
+| **115+ Blockchain Tools** | Chain-specific analyzers for Sui, Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 | **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
@@ -396,6 +398,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **SEI** | 4 | Cosmos queries, IBC transfers |
 | **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
 | **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
+| **Sui & Walrus** | 18 | RPC queries, BlockVision address activity, checkpoints, whale tracker, entity intelligence, DeFi & MCP directory, **Walrus decentralized storage (upload, retrieve, pricing)**, **embedded Sui agent wallet, transfers, DeFi strategy planner** |
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
 
@@ -439,6 +442,7 @@ const zkevmTools = {
 | **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
 | **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
 | **Monad** | `viem` + Zerion API | Mainnet (143) | Monad RPC | MON, portfolio, DeFi, NFTs, nad.fun |
+| **Sui & Walrus** | `@mysten/sui` + fetch | Mainnet + Testnet | Sui Fullnode RPC + Walrus APIs | RPC read, Walrus blob storage, embedded wallet, DeFi planning |
 | **Creditcoin** | Blockscout API | Mainnet | Blockscout RPC | CTC balance, tx, stats |
 
 ### Relay Protocol Cross-Chain Swaps
@@ -854,6 +858,111 @@ Store this PDF on Shelby Protocol
 _(attach any PDF to the chat)_
 ```
 How much does it cost to store 1MB on Shelby?
+```
+
+---
+
+### 💧 Sui & Walrus Ecosystem — Agentic Web & Decentralized Storage
+
+Barzakh AI features a deep integration with the **Sui Blockchain** and **Walrus Protocol** (Sui Overflow 2026). It offers **18 dedicated tools** covering RPC queries, whale tracking, exchange/entity intelligence, DeFi/MCP directories, decentralized storage (Walrus), and secure autonomous write operations using an embedded Sui agent wallet.
+
+#### Sui & Walrus Tool Suite
+
+| Category | Tool | Function |
+|----------|------|----------|
+| **Core RPC & Queries** | `getSuiNetworkStatus` | Returns live Sui network status, latest checkpoint, reference gas price, and protocol version. |
+| | `getSuiBalance` | Gets the native SUI balance (in SUI and MIST) for any wallet address. |
+| | `getSuiPortfolio` | Fetches the full wallet portfolio from live RPC: trusted coin balances, metadata, and filters out spam/scam airdrop tokens. |
+| | `getSuiAddressActivity` | Retrieves recent transaction activity (Send, Swap, Stake, Claim, etc.) with detailed coin/NFT changes, powered by BlockVision indexer. |
+| | `getSuiObject` | Inspects owner, content, and type of any Sui Object ID. |
+| | `getSuiTransaction` | Fetches full transaction details, execution effects, events, and balance changes for any transaction digest. |
+| | `searchSuiCheckpoints` | Searches and inspects recent checkpoint data. |
+| **Whale & Entity Intel** | `trackSuiWhaleActivity` | Scans checkpoint-sampled large SUI flows to alert on whale and exchange movements. |
+| | `getSuiExchangeAndEntityIntelligence` | Maps Sui network entities and exchanges, linking to Arkham intelligence profiles. |
+| **Ecosystem Directories**| `getSuiDefiEcosystem` | Maps major Sui DeFi protocols (Cetus, Navi, Suilend, Aftermath, Scallop, etc.) for LP & lending options. |
+| | `getSuiMcpEcosystem` | Directory of Sui Model Context Protocol (MCP) servers and Agentic Web integration plans. |
+| | `getSuiNativeBridgeInfo` | Documents official Sui Native Bridge parameters and safety constraints. |
+| **Walrus Storage** | `uploadToWalrus` | Uploads raw text, structured JSON, or downloadable file URLs to Walrus Protocol decentralized storage. |
+| | `getWalrusBlob` | Retrieves blob data from Walrus using a Blob ID. |
+| | `getWalrusStoragePrice` | Estimates storage costs (in SUI/MIST) on Walrus for a given size and duration in epochs. |
+| **Embedded Agent Wallet**| `getSuiAgentWalletInfo` | Inspects the user's embedded Sui agent wallet, delegation status, network, and SUI balance. |
+| | `executeSuiTransfer` | Signs and broadcasts a native SUI transfer autonomously from the embedded agent wallet (if automation is enabled). |
+| | `planSuiDeFiAgentStrategy` | Formulates LP or Walrus memory strategies, checking blockers, budget caps, and risk levels. |
+
+#### 📦 Walrus Storage Architecture
+
+```mermaid
+flowchart LR
+    A["User: 'Store this JSON on Walrus'"] --> B["AI Agent"]
+    B --> C{"Text or File URL?"}
+    C -->|Text| D["JSON/Raw Bytes"]
+    C -->|File URL| E["fetchImageAsBase64\n(Download helper)"]
+    D --> F["HTTP PUT /v1/blobs\n(Walrus Publisher)"]
+    E --> F
+    F --> G["Walrus Storage Node"]
+    G --> H["Return Blob ID &\nSui Certified Object ID"]
+```
+
+#### 🤖 Sui Agent DeFi Flow
+
+```mermaid
+flowchart TD
+    A["User request"] --> B["planSuiDeFiAgentStrategy"]
+    B --> C{"Are blockers present?\n(Wallet funded? Enabled? Network correct?)"}
+    C -->|Yes| D["Present blockers to user for resolution"]
+    C -->|No| E["Formulate plan & suggest next tool"]
+    E --> F{"Strategy Type?"}
+    F -->|LP/Yield| G["getSuiDefiEcosystem\n(Find candidate pools)"]
+    F -->|Transfer| H["executeSuiTransfer\n(Sui network transfer)"]
+    F -->|Memory/Logs| I["uploadToWalrus\n(Store state snapshot)"]
+```
+
+#### 🎯 Try It — Sui & Walrus Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+##### 🔍 Querying & Blockchain Exploration
+```
+What is the SUI balance of 0x76c2438fb6541f44dff91e472d3b01461e550e19081f959d805c8e42f900e7f7811?
+```
+```
+Show my recent transaction history on Sui testnet
+```
+```
+Check the network status of Sui mainnet
+```
+```
+Inspect the Sui object 0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7
+```
+
+##### 🐳 Whale Tracking & Intelligence
+```
+Are there any large SUI transactions in the latest checkpoints?
+```
+```
+Check Arkham intelligence for Binance entity on Sui
+```
+
+##### 📂 Walrus Protocol Decentralized Storage
+```
+Store the text "Barzakh AI + Walrus Protocol Integration" on Walrus
+```
+```
+Estimate the cost to store 5MB for 3 epochs on Walrus
+```
+```
+Download and retrieve the Walrus blob with ID 4Q_qjT...
+```
+
+##### 🤖 Embedded Agent Wallet & DeFi Strategy
+```
+What is my embedded Sui agent wallet address and SUI balance?
+```
+```
+Plan a balanced DeFi strategy for my Sui wallet with a budget of 10 SUI
+```
+```
+Transfer 0.1 SUI to 0x76c2438fb6541f44dff91e472d3b01461e550e19081f959d805c8e42f900e7f7811 on Sui testnet
 ```
 
 ---

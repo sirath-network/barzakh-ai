@@ -15,9 +15,7 @@ import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
 import { createGetSuiAgentWalletInfoTool, createExecuteSuiTransferTool } from "@/lib/ai/tools/sui-agent-tools";
 import { createPlanSuiDeFiAgentStrategyTool } from "@/lib/ai/tools/sui-defi-agent-tools";
-import {
-  createPrepareSuiBridgeDepositTool,
-} from "@/lib/ai/tools/sui-bridge-deepbook-tools";
+
 import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
 import { createAutonomousSubscriptionTool } from "@/lib/ai/tools/agent-subscription-tool";
 import {
@@ -278,7 +276,6 @@ function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string):
     allowed = [
       "getSuiAgentWalletInfo",
       "getSuiNativeBridgeInfo",
-      "prepareSuiBridgeDeposit",
     ];
   } else if (hasPortfolioIntent) {
     allowed = [
@@ -1046,7 +1043,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     safeActiveTools.push("getSuiAgentWalletInfo");
     safeActiveTools.push("executeSuiTransfer");
     safeActiveTools.push("planSuiDeFiAgentStrategy");
-    safeActiveTools.push("prepareSuiBridgeDeposit");
     safeActiveTools.push("querySignalAgent");
 
     if (isAgentEnabledLocally) {
@@ -1089,7 +1085,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
       getSuiAgentWalletInfo: createGetSuiAgentWalletInfoTool(authenticatedUserId),
       executeSuiTransfer: createExecuteSuiTransferTool(authenticatedUserId),
       planSuiDeFiAgentStrategy: createPlanSuiDeFiAgentStrategyTool(authenticatedUserId),
-      prepareSuiBridgeDeposit: createPrepareSuiBridgeDepositTool(authenticatedUserId),
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain or same-chain swap autonomously using the embedded agent wallet. Supports ALL EVM chains AND Solana. CRITICAL: DO NOT ask the user for their wallet address or chain ID! Auto-infer chains from token symbols: MON→Monad(143), BNB→BSC(56), SOL→Solana(792703809), ETH→Ethereum(1), CRO→Cronos(25), MNT→Mantle(5000). Monad IS a fully EVM-compatible L1 chain. Proceed immediately — NEVER refuse by claiming a chain is unsupported.",
         parameters: z.object({
