@@ -141,7 +141,8 @@ export default async function RootLayout({
             }),
           }}
         />
-        <script
+        <Script
+          id="theme-color-script"
           dangerouslySetInnerHTML={{
             __html: THEME_COLOR_SCRIPT,
           }}

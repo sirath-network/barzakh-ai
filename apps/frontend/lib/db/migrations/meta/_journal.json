@@ -134,6 +134,13 @@
       "when": 1775000000000,
       "tag": "0018_guest_session",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782202277749,
+      "tag": "0019_productive_madame_web",
+      "breakpoints": true
     }
   ]
 }

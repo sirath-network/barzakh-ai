@@ -36,6 +36,7 @@ export const user = pgTable("User", {
   tokenVersion: integer("tokenVersion").notNull().default(0),
   x402CancelAtPeriodEnd: boolean("x402CancelAtPeriodEnd").notNull().default(false),
   x402PeriodEnd: timestamp("x402PeriodEnd"), // When x402 subscription expires
+  walrusMemoryBlobId: text("walrusMemoryBlobId"),
 });
 
 export const customer = pgTable("Customer", {

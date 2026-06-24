@@ -1,3 +1,57 @@
+// Monkey patch fs to handle Next.js Turbopack virtual "/ROOT" paths for WebAssembly files
+if (typeof window === 'undefined') {
+  try {
+    const fs = require('fs');
+    const patchPath = (p: any) => {
+      if (typeof p === 'string' && p.startsWith('/ROOT/')) {
+        const workspaceRoot = process.cwd().includes('/apps/frontend')
+          ? process.cwd().replace('/apps/frontend', '')
+          : process.cwd().includes('/packages/shared')
+            ? process.cwd().replace('/packages/shared', '')
+            : process.cwd();
+        return p.replace('/ROOT', workspaceRoot);
+      }
+      return p;
+    };
+
+    if (fs && !fs.__patchedForTurbopack) {
+      fs.__patchedForTurbopack = true;
+
+      const originalReadFileSync = fs.readFileSync;
+      fs.readFileSync = function (path: any, options: any) {
+        return originalReadFileSync(patchPath(path), options);
+      };
+
+      const originalReadFile = fs.readFile;
+      fs.readFile = function (path: any, options: any, callback: any) {
+        if (typeof options === 'function') {
+          return originalReadFile(patchPath(path), options);
+        }
+        return originalReadFile(patchPath(path), options, callback);
+      };
+
+      if (fs.promises) {
+        const originalPromisesReadFile = fs.promises.readFile;
+        fs.promises.readFile = function (path: any, options: any) {
+          return originalPromisesReadFile(patchPath(path), options);
+        };
+      }
+      console.log("[Turbopack FS Patch] Successfully patched fs read methods to resolve virtual /ROOT paths");
+    }
+  } catch (e) {
+    console.error("[Turbopack FS Patch] Failed to patch fs:", e);
+  }
+}
+
+// Force IPv4 first in Node.js to resolve IPv6 connection timeouts to Sui/Walrus nodes
+if (typeof window === 'undefined') {
+  import('dns').then((dns) => {
+    if (dns.setDefaultResultOrder) {
+      dns.setDefaultResultOrder('ipv4first');
+    }
+  }).catch(() => {});
+}
+
 import { tool } from "ai";
 import { z } from "zod";
 import { fetchImageAsBase64 } from "../../utils/fetch-image-as-base64";
@@ -13,7 +67,9 @@ export const uploadToWalrus = tool({
     fileName: z.string().optional().describe("Optional name or identifier for the blob."),
     epochs: z.number().optional().default(1).describe("The duration of storage in epochs (1 epoch is approximately 14 days). Defaults to 1."),
   }),
-  execute: async ({ content, fileUrl, fileName, epochs }) => {
+  execute: async (args) => {
+    const { content, fileUrl, fileName, epochs } = args;
+    const _keypair = (args as any)._keypair;
     try {
       const publisherUrl = process.env.WALRUS_PUBLISHER_URL || "https://publisher.walrus-testnet.walrus.space";
       const aggregatorUrl = process.env.WALRUS_AGGREGATOR_URL || "https://aggregator.walrus-testnet.walrus.space";
@@ -36,6 +92,56 @@ export const uploadToWalrus = tool({
       }
 
       const epochsVal = epochs || 1;
+
+      // Direct write via SDK on Mainnet if keypair is provided
+      if (_keypair) {
+        try {
+          console.log(`[Walrus] Found signer keypair. Uploading directly using Walrus TS SDK via Relay...`);
+          const { SuiJsonRpcClient } = await import("@mysten/sui/jsonRpc");
+          const { walrus } = await import("@mysten/walrus");
+
+          const client = new SuiJsonRpcClient({
+            network: "mainnet",
+            url: "https://fullnode.mainnet.sui.io:443"
+          });
+
+          const walClient = client.$extend(walrus({
+            uploadRelay: {
+              host: "https://upload-relay.mainnet.walrus.space",
+              sendTip: { max: 1_000_000_000 } // Max 1 SUI/WAL tip
+            }
+          }));
+
+          const writeResult = await walClient.walrus.writeBlob({
+            blob: new Uint8Array(data),
+            deletable: false,
+            epochs: epochsVal,
+            signer: _keypair
+          });
+
+          console.log("[Walrus] SDK write response:", writeResult);
+
+          const blobId = writeResult.blobId;
+          const publicUrl = `${aggregatorUrl}/v1/blobs/${blobId}`;
+          const explorerUrl = `https://walruscan.com/mainnet/blob/${blobId}`;
+
+          return {
+            success: true,
+            message: "Successfully stored blob on Walrus Mainnet using user agent wallet.",
+            blobId,
+            suiCertifiedObjectId: writeResult.blobObject?.id || "",
+            endEpoch: writeResult.blobObject?.storage?.end_epoch || 0,
+            fileName: fileName || `walrus-blob-${Date.now()}`,
+            sizeInBytes: data.length,
+            mimeType,
+            publicUrl,
+            explorerUrl,
+          };
+        } catch (e: any) {
+          console.warn(`[Walrus] SDK direct write failed (${e.message}). Falling back to HTTP publisher...`);
+        }
+      }
+
       console.log(`Uploading ${data.length} bytes to Walrus publisher at ${publisherUrl}...`);
 
       const response = await fetch(`${publisherUrl}/v1/blobs?epochs=${epochsVal}`, {

@@ -156,19 +156,39 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
                     {/* Search chats button - only for logged-in users */}
                     {user && (
-                      <ButtonAny
-                        variant="ghost"
-                        className="w-full justify-start gap-3 px-3 py-2 h-auto text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-                        onClick={() => setIsSearchOpen(true)}
-                      >
-                        <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                        </svg>
-                        <span className="text-sm font-medium">Search chats</span>
-                      </ButtonAny>
+                      <>
+                        <ButtonAny
+                          variant="ghost"
+                          className="w-full justify-start gap-3 px-3 py-2 h-auto text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                          onClick={() => setIsSearchOpen(true)}
+                        >
+                          <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                          </svg>
+                          <span className="text-sm font-medium">Search chats</span>
+                        </ButtonAny>
+                        
+                        {/* World Cup dashboard link */}
+                        <ButtonAny
+                          variant="ghost"
+                          className="w-full justify-start gap-3 px-3 py-2 h-auto text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                          onClick={() => {
+                            setOpenMobile(false);
+                            router.push('/worldcup');
+                          }}
+                        >
+                          <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                            <path d="M4 22h16"/>
+                            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+                          </svg>
+                          <span className="text-sm font-medium">World Cup Oracle</span>
+                        </ButtonAny>
+                      </>
                     )}
-
-
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 w-full">

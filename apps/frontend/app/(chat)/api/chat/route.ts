@@ -15,9 +15,11 @@ import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
 import { createGetSuiAgentWalletInfoTool, createExecuteSuiTransferTool } from "@/lib/ai/tools/sui-agent-tools";
 import { createPlanSuiDeFiAgentStrategyTool } from "@/lib/ai/tools/sui-defi-agent-tools";
+import { withMemWal } from "@mysten-incubation/memwal/ai";
 
 import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
 import { createAutonomousSubscriptionTool } from "@/lib/ai/tools/agent-subscription-tool";
+import { createSaveWorldCupMemoryTool, createSimulatePredictionMarketBetTool, createClearWorldCupMemoryTool, createGetLiveWorldCupMatchesTool } from "@/lib/ai/tools/worldcup-tools";
 import {
   decrementRemainingMessageCount,
   decrementGuestMessageCount,
@@ -258,6 +260,7 @@ function uniqueToolNames(toolNames: string[]): string[] {
 
 function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string): string[] {
   const text = promptText.toLowerCase();
+  const hasWorldCupIntent = /\b(world\s*cup|fifa|predictions?|picks?|opinions?|roasts?|contradictions?|bets?|polymarket|france|spain|argentina|brazil|germany|england)\b/i.test(text);
   const hasWalrusIntent = /\b(walrus|store|upload|retrieve|blob|storage\s*price|save|archive)\b/i.test(text);
   const hasBridgeIntent = /\b(bridge|sepolia|base\s*sepolia|arbitrum\s*sepolia|optimism\s*sepolia|usdc\s+from|to\s+sui|from\s+sui)\b/i.test(text);
   const hasPortfolioIntent = /\b(portfolio|holdings?|balance|wallet|address\s+activity|transactions?|tx|object|checkpoint|whale|arkham|entity|exchange|trace|monitor)\b/i.test(text) || /\b(0x|Ox)?[a-fA-F0-9]{40,64}\b/i.test(text);
@@ -265,12 +268,29 @@ function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string):
 
   let allowed: string[];
 
-  if (hasWalrusIntent) {
+  if (hasWorldCupIntent) {
+    allowed = [
+      "saveWorldCupMemory",
+      "simulatePredictionMarketBet",
+      "clearWorldCupMemory",
+      "getLiveWorldCupMatches",
+      "uploadToWalrus",
+      "getWalrusBlob",
+      "getWalrusStoragePrice",
+      "getSuiAgentWalletInfo",
+      "webSearch",
+      "getSiteContent",
+    ];
+  } else if (hasWalrusIntent) {
     allowed = [
       "uploadToWalrus",
       "getWalrusBlob",
       "getWalrusStoragePrice",
       "getSuiAgentWalletInfo",
+      "saveWorldCupMemory",
+      "simulatePredictionMarketBet",
+      "clearWorldCupMemory",
+      "getLiveWorldCupMatches",
     ];
   } else if (hasBridgeIntent) {
     allowed = [
@@ -310,6 +330,10 @@ function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string):
       "getWalrusBlob",
       "getWalrusStoragePrice",
       "getSuiMcpEcosystem",
+      "saveWorldCupMemory",
+      "simulatePredictionMarketBet",
+      "clearWorldCupMemory",
+      "getLiveWorldCupMatches",
     ];
   }
 
@@ -893,7 +917,29 @@ export async function POST(request: Request) {
     }
 
     const userSubscriptionContext = `\n\n## Current User Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}${agentWalletText}\n\nCRITICAL SUBSCRIPTION RULES:\n1. If the user wants to upgrade, downgrade, or cancel their subscription AND Agent Automation is ENABLED with an EVM wallet, you MUST use \`executeAutonomousSubscription\`. Do not use \`initiateX402Payment\` as it will halt execution and ask the user to pay manually.\n2. If Agent Automation is NOT enabled, or the user does not have an EVM agent wallet, you MUST use \`initiateX402Payment\` for upgrades/downgrades.\n3. Always ask the user for confirmation (e.g. "Do you want me to automatically upgrade you to Ultimate for $X using your agent wallet?") BEFORE executing \`executeAutonomousSubscription\`, unless they explicitly authorized it in their message.\n\nWhen using \`initiateX402Payment\`, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
-    systemPrompt = systemPrompt + userSubscriptionContext;
+    
+    // Walrus Memory World Cup Oracle Context
+    let walrusMemoryContext = "";
+    if (user_info?.walrusMemoryBlobId) {
+      try {
+        console.log(`[WALRUS-MEMORY] Hydrating memory blob: ${user_info.walrusMemoryBlobId}`);
+        const { getWalrusBlob } = await import("@barzakh/shared/lib/ai/tools/sui/walrus-tools");
+        const result = await getWalrusBlob.execute({ blobId: user_info.walrusMemoryBlobId });
+        if (result.success && result.content) {
+          walrusMemoryContext = `\n\n## Persistent Walrus Memory (from previous sessions):\n${JSON.stringify(result.content, null, 2)}\n\nCRITICAL WORLD CUP MEMORY RULES:\n1. You MUST ALWAYS reference this memory when discussing World Cup predictions, opinions, or contradictions to demonstrate persistent memory across sessions.\n2. When the user makes or updates a prediction, you MUST FIRST call \`getLiveWorldCupMatches\` to check the real match status and score. If the match is finished, set the prediction \`status\` to \`"correct"\` or \`"incorrect"\` based on the actual score. If not finished, set it to \`"pending"\`.\n3. When the user updates their predictions, opinions, or places a bet, you MUST call \`saveWorldCupMemory\` with the updated full state (merging the new inputs with the existing memory above) so their updated profile is saved back to Walrus. Do not overwrite/lose their other predictions or opinions unless they explicitly change their mind.\n4. If the user explicitly asks to clear, reset, delete, or wipe their World Cup memory, history, or profile, you MUST call \`clearWorldCupMemory\` to reset it.`;
+        } else {
+          console.warn("[WALRUS-MEMORY] Failed to load content from Walrus for blob:", user_info.walrusMemoryBlobId, result.message);
+        }
+      } catch (err) {
+        console.error("[WALRUS-MEMORY] Failed to hydrate persistent memory:", err);
+      }
+    }
+
+    if (!walrusMemoryContext) {
+      walrusMemoryContext = `\n\n## Persistent Walrus Memory (from previous sessions):\nNo previous memory found. Day one state.\n\nCRITICAL WORLD CUP MEMORY RULES:\n1. If the user states a World Cup prediction or opinion, you MUST FIRST call \`getLiveWorldCupMatches\` to check if that match is finished. Set the prediction \`status\` to \`"correct"\`, \`"incorrect"\`, or \`"pending"\` based on real scores, then initialize their Walrus Memory profile by calling \`saveWorldCupMemory\` with the details so it's persisted for future sessions.\n2. If the user explicitly asks to clear, reset, delete, or wipe their World Cup memory, history, or profile, you MUST call \`clearWorldCupMemory\` to reset it.`;
+    }
+
+    systemPrompt = systemPrompt + userSubscriptionContext + walrusMemoryContext;
   }
 
   // Select appropriate model based on routed group
@@ -1077,6 +1123,24 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
   let hasWebSearchExecuted = false;
   const wrappedTools = isFastChat ? {} : {
     ...allTools,
+    uploadToWalrus: {
+      ...allTools.uploadToWalrus,
+      execute: async (args: any, context: any) => {
+        let keypair;
+        if (authenticatedUserId) {
+          try {
+            const { getSuiKeypair } = await import("@/lib/agent/sui-agent-executor");
+            keypair = await getSuiKeypair(authenticatedUserId);
+          } catch (e) {
+            console.warn("[Walrus] Failed to get user's Sui keypair for uploadToWalrus:", e);
+          }
+        }
+        return await allTools.uploadToWalrus.execute({
+          ...args,
+          _keypair: keypair
+        }, context);
+      }
+    },
     // Read-only app-local Sui tools should be available even without an authenticated
     // automation wallet; otherwise Sui group prompts can degrade into web search.
     // Autonomous execution tools (Agentic) - Always available if authenticated
@@ -1085,6 +1149,10 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
       getSuiAgentWalletInfo: createGetSuiAgentWalletInfoTool(authenticatedUserId),
       executeSuiTransfer: createExecuteSuiTransferTool(authenticatedUserId),
       planSuiDeFiAgentStrategy: createPlanSuiDeFiAgentStrategyTool(authenticatedUserId),
+      saveWorldCupMemory: createSaveWorldCupMemoryTool(authenticatedUserId),
+      simulatePredictionMarketBet: createSimulatePredictionMarketBetTool(authenticatedUserId),
+      clearWorldCupMemory: createClearWorldCupMemoryTool(authenticatedUserId),
+      getLiveWorldCupMatches: createGetLiveWorldCupMatchesTool(),
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain or same-chain swap autonomously using the embedded agent wallet. Supports ALL EVM chains AND Solana. CRITICAL: DO NOT ask the user for their wallet address or chain ID! Auto-infer chains from token symbols: MON→Monad(143), BNB→BSC(56), SOL→Solana(792703809), ETH→Ethereum(1), CRO→Cronos(25), MNT→Mantle(5000). Monad IS a fully EVM-compatible L1 chain. Proceed immediately — NEVER refuse by claiming a chain is unsupported.",
         parameters: z.object({
@@ -1298,9 +1366,22 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
         }
       }, 15_000);
 
+      const hasValidMemWal = 
+        process.env.MEMWAL_PRIVATE_KEY && 
+        process.env.MEMWAL_PRIVATE_KEY !== "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+
+      const baseModel = myProvider.languageModel(finalModel);
+      const wrappedModel = hasValidMemWal
+        ? withMemWal(baseModel, {
+            key: process.env.MEMWAL_PRIVATE_KEY!,
+            accountId: process.env.MEMWAL_ACCOUNT_ID ?? "0x5a1c52c088f649a2610196902f903cfda7dea25552266a0dc42a10faf7486523",
+            serverUrl: process.env.MEMWAL_SERVER_URL ?? "https://relayer.memory.walrus.xyz",
+          })
+        : baseModel;
+
       try {
         const result = streamText({
-          model: myProvider.languageModel(finalModel),
+          model: wrappedModel,
           system: (isFastChat || isFastRealtimeSearch) ? systemPrompt : `${systemPrompt}\n\n**FOUR.MEME PROTOCOL GUIDELINES:**
 - When a user asks to buy/sell a token from a list (e.g. "no. 2", "the first one"), ALWAYS use the \`address\` field from the tool's SEARCH or RANKING results.
 - NEVER use your own knowledge for addresses. Use the exact 0x... address provided by the tool.
@@ -1374,7 +1455,7 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
           const freshMessages = [userMessage];
 
           const result = streamText({
-            model: myProvider.languageModel(finalModel),
+            model: wrappedModel,
             system: systemPrompt,
             messages: freshMessages,
             maxSteps: isFastChat ? 1 : (isFastRealtimeSearch ? 3 : 10),

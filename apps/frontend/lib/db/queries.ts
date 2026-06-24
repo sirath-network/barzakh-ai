@@ -1165,3 +1165,13 @@ export async function deleteExpiredChats() {
     throw error;
   }
 }
+
+export async function updateUserWalrusMemoryBlobId(userId: string, blobId: string) {
+  try {
+    return await db.update(user).set({ walrusMemoryBlobId: blobId }).where(eq(user.id, userId));
+  } catch (error) {
+    console.error("Failed to update user walrusMemoryBlobId:", error);
+    throw error;
+  }
+}
+
