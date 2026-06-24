@@ -954,6 +954,22 @@ Estimate the cost to store 5MB for 3 epochs on Walrus
 Download and retrieve the Walrus blob with ID 4Q_qjT...
 ```
 
+##### 🧠 Persistent Walrus Memory (World Cup Oracle)
+Barzakh AI leverages Walrus Protocol as a decentralized state layer for AI memory. Specifically, in the World Cup Oracle use case, the agent records your match predictions as a JSON blob, uploads it directly to Walrus using the Walrus TS SDK (or HTTP Publisher fallback), and then saves the resulting `blobId` to your database profile. 
+
+When you start a new chat, the system uses the `blobId` to retrieve the memory from the Walrus Aggregator and dynamically hydrates the agent's context. This allows the AI to remember past interactions and user state permanently and transparently onchain!
+
+**Try these prompts to test the Walrus Memory integration:**
+```
+I predict Brazil will win against Scotland
+```
+```
+What are my stored World Cup predictions so far?
+```
+```
+Store a new prediction: Morocco will beat Haiti
+```
+
 ##### 🤖 Embedded Agent Wallet & DeFi Strategy
 ```
 What is my embedded Sui agent wallet address and SUI balance?
