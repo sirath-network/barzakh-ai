@@ -1104,6 +1104,31 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     }
   }
 
+  // Safety net: inject World Cup / Walrus Memory tools when the system prompt
+  // references them — ensures the model can call these tools even if the intent
+  // classifier routed to 'search' or another non-sui group. Without this, the
+  // model sees instructions to call saveWorldCupMemory but the tool isn't in
+  // experimental_activeTools, causing AI_NoSuchToolError.
+  if (session?.user?.id && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine" &&
+      (systemPrompt.includes('saveWorldCupMemory') || systemPrompt.includes('Walrus Memory'))) {
+    const worldCupTools = [
+      "saveWorldCupMemory",
+      "simulatePredictionMarketBet",
+      "clearWorldCupMemory",
+      "getLiveWorldCupMatches",
+      "uploadToWalrus",
+      "getWalrusBlob",
+      "getWalrusStoragePrice",
+      "getSuiAgentWalletInfo",
+      "webSearch",
+    ];
+    for (const toolName of worldCupTools) {
+      if (!safeActiveTools.includes(toolName)) {
+        safeActiveTools.push(toolName);
+      }
+    }
+  }
+
   if (effectiveGroup === "sui" && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
     safeActiveTools = narrowSuiActiveToolsForPrompt(safeActiveTools, userMessageText);
     if (process.env.NODE_ENV !== "production") {

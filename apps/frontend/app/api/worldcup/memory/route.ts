@@ -137,6 +137,53 @@ export async function GET(req: NextRequest) {
 
         if (updated) {
             memoryContent.predictions = resolvedPredictions;
+
+            // Regenerate the AI roast to reflect resolved prediction outcomes
+            try {
+              const { generateText } = await import("ai");
+              const { myProvider } = await import("@barzakh/shared/lib/ai/models");
+
+              const correctPicks = resolvedPredictions.filter((p: any) => p.status === "correct");
+              const incorrectPicks = resolvedPredictions.filter((p: any) => p.status === "incorrect");
+              const pendingPicks = resolvedPredictions.filter((p: any) => p.status === "pending" || !p.status);
+
+              const { text: newRoast } = await generateText({
+                model: myProvider.languageModel("google-gemini-2.5-flash-preview"),
+                prompt: `You are the Barzakh World Cup Oracle — a savage, aggressively rude AI that roasts users about their football predictions.
+
+Generate a highly creative, biting, and rude roast (2-4 sentences) based on these resolved prediction results:
+
+CORRECT predictions (${correctPicks.length}):
+${correctPicks.map((p: any) => `- ${p.match}: picked "${p.pick}" ✅`).join("\n") || "None yet"}
+
+INCORRECT predictions (${incorrectPicks.length}):
+${incorrectPicks.map((p: any) => `- ${p.match}: picked "${p.pick}" ❌`).join("\n") || "None yet"}
+
+PENDING predictions (${pendingPicks.length}):
+${pendingPicks.map((p: any) => `- ${p.match}: picked "${p.pick}" ⏳`).join("\n") || "None"}
+
+Contradictions: ${JSON.stringify(memoryContent.contradictions || [])}
+Opinions: ${JSON.stringify((memoryContent.opinions || []).slice(0, 5))}
+
+Rules:
+- Be highly creative, savage, and mockingly rude.
+- DO NOT list matches line-by-line using repetitive copy-paste templates (e.g. NEVER repeat phrases like "so your fate is still undecided" or "so the jury is still out").
+- Synthesize all predictions, opinions, and contradictions into a single cohesive, biting paragraph (2-4 sentences max).
+- If they got some right, grudgingly acknowledge it with a heavy dose of sarcasm.
+- If they got some wrong, mock their total lack of football knowledge and call them out on specific team picks.
+- If all are pending, mock their overconfidence or lack of resolve, calling out the matches collectively rather than repeating the same phrase for each match.
+- Keep it under 280 characters ideally (tweetable).`,
+                maxTokens: 200,
+              });
+
+              if (newRoast && newRoast.trim()) {
+                memoryContent.roast = newRoast.trim();
+              }
+            } catch (roastError) {
+              console.warn("[worldcup/memory] Failed to regenerate roast:", roastError);
+              // Keep existing roast on error
+            }
+
             memoryContent.lastUpdated = new Date().toISOString();
 
             // Persist resolved state back to Walrus so it stays resolved on future loads

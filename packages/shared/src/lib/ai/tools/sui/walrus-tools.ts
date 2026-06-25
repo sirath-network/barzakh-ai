@@ -71,8 +71,20 @@ export const uploadToWalrus = tool({
     const { content, fileUrl, fileName, epochs } = args;
     const _keypair = (args as any)._keypair;
     try {
-      const publisherUrl = process.env.WALRUS_PUBLISHER_URL || "https://publisher.walrus-testnet.walrus.space";
+      let publisherUrl = process.env.WALRUS_PUBLISHER_URL || "https://publisher.walrus-testnet.walrus.space";
       const aggregatorUrl = process.env.WALRUS_AGGREGATOR_URL || "https://aggregator.walrus-testnet.walrus.space";
+
+      // Self-heal: if publisherUrl is configured as an upload-relay by mistake, redirect to the correct public publisher
+      if (publisherUrl.includes("upload-relay")) {
+        console.warn(`[Walrus] WALRUS_PUBLISHER_URL is set to upload-relay (${publisherUrl}). Redirecting HTTP fallback to public publisher endpoint...`);
+        if (publisherUrl.includes("mainnet")) {
+          publisherUrl = "https://publisher.walrus-mainnet.walrus.space";
+        } else if (publisherUrl.includes("testnet")) {
+          publisherUrl = "https://publisher.walrus-testnet.walrus.space";
+        } else {
+          publisherUrl = publisherUrl.replace("upload-relay", "publisher.walrus-");
+        }
+      }
       
       let data: Buffer;
       let mimeType = "text/plain";

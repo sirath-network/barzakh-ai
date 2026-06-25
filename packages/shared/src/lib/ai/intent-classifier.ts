@@ -607,6 +607,28 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
+    // World Cup / Walrus Memory / Prediction Oracle (routes to sui)
+    // Catches prediction prompts like "Japan vs Sweden, I predict Japan wins"
+    // so they route to the sui group which has saveWorldCupMemory tools
+    {
+        intent: "sui",
+        patterns: [
+            /\b(world\s*cup|fifa|world\s*cup\s*2026)\b/i,
+            /\b(predict|prediction|predictions?)\b.*\b(win|winner|lose|loser|draw|score|match|game|vs|versus)\b/i,
+            /\b(japan|sweden|mexico|france|spain|argentina|brazil|germany|england|portugal|italy|netherlands|belgium|croatia|uruguay|colombia|usa|canada|morocco|senegal|qatar|saudi|korea|australia|iran|wales|serbia|switzerland|cameroon|ghana|ecuador|costa\s*rica|tunisia|poland|denmark|czech|scotland|norway|chile)\b.*\b(win|wins|beat|beats|defeat|defeats|vs|versus|against)\b/i,
+            /\b(walrus\s*memory|world\s*cup\s*memory|prediction\s*memory|my\s*predictions?)\b/i,
+            /\b(bet|bets|betting|polymarket|prediction\s*market)\b.*\b(world\s*cup|fifa|match|game|team)\b/i,
+            /\b(roast|contradiction|contradictions?)\b.*\b(prediction|bet|pick|opinion)\b/i,
+            /\bi\s+(predict|think|believe|bet)\b.*\b(win|wins|beat|beats|defeat|defeats|advance|qualify|champion)\b/i,
+        ],
+        keywords: [
+            "world cup", "world cup 2026", "fifa", "walrus memory", "prediction memory",
+            "my predictions", "prediction market", "polymarket bet", "world cup prediction",
+            "i predict", "i think wins", "world cup roast", "prediction contradiction",
+        ],
+        priority: 96,
+    },
+
     // Aptos-specific
     {
         intent: "aptos",
@@ -1128,7 +1150,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "on_chain": Blockchain / crypto queries (wallets, portfolios, tokens, transactions, DeFi, cross-chain swaps, bridges between L2s like Optimism/Arbitrum/Base/Polygon)
     - "aptos": Aptos blockchain specific queries
     - "sei": Sei network specific queries
-    - "sui": Sui blockchain specific queries (SUI, Walrus, DeepBook, Move objects, Sui portfolios, SuiScan, Sui MCP/Agentic Web, Sui whale/Arkham tracing)
+    - "sui": Sui blockchain specific queries (SUI, Walrus, DeepBook, Move objects, Sui portfolios, SuiScan, Sui MCP/Agentic Web, Sui whale/Arkham tracing, World Cup predictions/memory/oracle via Walrus Memory, sports prediction bets like "Japan vs Sweden I predict Japan wins")
     - "solana": Solana blockchain specific queries
     - "cronos": Cronos blockchain specific queries (CRO, VVS Finance, crypto.com chain)
     - "coding": Code writing, debugging, programming help

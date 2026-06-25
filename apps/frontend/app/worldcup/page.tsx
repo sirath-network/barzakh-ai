@@ -598,11 +598,40 @@ export default function WorldCupDashboard() {
               ) : liveMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {liveMatches.filter(m => {
-                    if (matchFilter === "all") return true;
+                    if (matchFilter === "all") return m.finished !== "TRUE";
                     if (matchFilter === "finished") return m.finished === "TRUE";
                     if (matchFilter === "scheduled") return m.time_elapsed === "notstarted" && m.finished !== "TRUE";
                     if (matchFilter === "live") return m.time_elapsed !== "notstarted" && m.finished !== "TRUE";
                     return true;
+                  }).sort((a: any, b: any) => {
+                    // Parse local_date "MM/DD/YYYY HH:mm" into comparable dates
+                    const parseMatchDate = (d: string) => {
+                      if (!d) return 0;
+                      const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
+                      if (m) return new Date(`${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:00`).getTime();
+                      return new Date(d).getTime() || 0;
+                    };
+                    const dateA = parseMatchDate(a.local_date);
+                    const dateB = parseMatchDate(b.local_date);
+
+                    const isLiveA = a.time_elapsed !== "notstarted" && a.finished !== "TRUE";
+                    const isLiveB = b.time_elapsed !== "notstarted" && b.finished !== "TRUE";
+                    const isFinishedA = a.finished === "TRUE";
+                    const isFinishedB = b.finished === "TRUE";
+
+                    // Live matches always first
+                    if (isLiveA && !isLiveB) return -1;
+                    if (!isLiveA && isLiveB) return 1;
+
+                    // Finished matches: latest played first (descending)
+                    if (isFinishedA && isFinishedB) return dateB - dateA;
+
+                    // Finished before scheduled
+                    if (isFinishedA && !isFinishedB) return -1;
+                    if (!isFinishedA && isFinishedB) return 1;
+
+                    // Scheduled matches: nearest upcoming first (ascending)
+                    return dateA - dateB;
                   }).map((m) => {
                     const homeTeamInfo = liveTeams.find((t) => String(t.id) === String(m.home_team_id));
                     const awayTeamInfo = liveTeams.find((t) => String(t.id) === String(m.away_team_id));
