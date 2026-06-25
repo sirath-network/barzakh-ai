@@ -57,6 +57,40 @@ import { z } from "zod";
 import { fetchImageAsBase64 } from "../../utils/fetch-image-as-base64";
 
 /**
+ * Helper to retry asynchronous operations with exponential backoff on transient errors.
+ */
+async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, delay = 1500): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      lastError = e;
+      const errMsg = e.message || "";
+      const isTransient = 
+        errMsg.includes("fetch failed") || 
+        errMsg.includes("ETIMEDOUT") || 
+        errMsg.includes("ECONNRESET") || 
+        errMsg.includes("timeout") ||
+        errMsg.includes("Rate limit") ||
+        errMsg.includes("status 429") ||
+        errMsg.includes("status 502") ||
+        errMsg.includes("status 503") ||
+        errMsg.includes("status 504");
+      
+      if (!isTransient || i === retries - 1) {
+        throw e;
+      }
+      
+      console.warn(`[Walrus Retry] Attempt ${i + 1} failed due to transient error: ${errMsg}. Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Exponential backoff
+    }
+  }
+  throw lastError;
+}
+
+/**
  * uploadToWalrus: Upload text, structured data, or a file URL to Walrus Protocol decentralized storage on Sui.
  */
 export const uploadToWalrus = tool({
@@ -108,9 +142,10 @@ export const uploadToWalrus = tool({
       // Direct write via SDK on Mainnet if keypair is provided
       if (_keypair) {
         try {
-          console.log(`[Walrus] Found signer keypair. Uploading directly using Walrus TS SDK via Relay...`);
+          console.log(`[Walrus] Found signer keypair. Registering, uploading and certifying via Relay...`);
           const { SuiJsonRpcClient } = await import("@mysten/sui/jsonRpc");
           const { walrus } = await import("@mysten/walrus");
+          const { Transaction } = await import("@mysten/sui/transactions");
 
           const client = new SuiJsonRpcClient({
             network: "mainnet",
@@ -124,25 +159,120 @@ export const uploadToWalrus = tool({
             }
           }));
 
-          const writeResult = await walClient.walrus.writeBlob({
-            blob: new Uint8Array(data),
-            deletable: false,
+          // 1. Compute metadata, nonce, and blob digest (wrap in retry)
+          const metadata = await retryWithBackoff(() => walClient.walrus.computeBlobMetadata({
+            bytes: new Uint8Array(data)
+          }));
+          const blobId = metadata.blobId;
+          const rootHash = metadata.rootHash;
+          const nonce = metadata.nonce;
+          const size = data.length;
+
+          // 2. Build registration transaction block
+          const tx = new Transaction();
+          tx.setSenderIfNotSet(_keypair.toSuiAddress());
+
+          // Add tip logic if configured (wrap in retry)
+          const addTipFn = walClient.walrus.sendUploadRelayTip({
+            size,
+            blobDigest: metadata.blobDigest,
+            nonce
+          });
+          await retryWithBackoff(() => addTipFn(tx));
+
+          // Register blob (wrap in retry)
+          const registerBlobFn = walClient.walrus.registerBlob({
+            size,
             epochs: epochsVal,
-            signer: _keypair
+            blobId,
+            rootHash,
+            deletable: false,
+            attributes: undefined
+          });
+          const blobObjectArg = await retryWithBackoff(() => registerBlobFn(tx));
+          tx.transferObjects([blobObjectArg], _keypair.toSuiAddress());
+
+          // 3. Sign and execute registration transaction (wrap in retry)
+          console.log("[Walrus] Executing registration transaction on Sui...");
+          const regTxResult = await retryWithBackoff<any>(() => _keypair.signAndExecuteTransaction({
+            transaction: tx,
+            client
+          }));
+
+          if (regTxResult.FailedTransaction) {
+            throw new Error(`Registration transaction failed: ${regTxResult.FailedTransaction.status.error?.message || "Unknown error"}`);
+          }
+
+          const regDigest = regTxResult.Transaction.digest;
+          console.log(`[Walrus] Registration transaction succeeded. Digest: ${regDigest}`);
+          await retryWithBackoff(() => client.core.waitForTransaction({ digest: regDigest }));
+
+          // 4. Retrieve created Blob object ID robustly from transaction effects (wrap in retry)
+          const txBlock = await retryWithBackoff(() => client.getTransactionBlock({
+            digest: regDigest,
+            options: {
+              showObjectChanges: true,
+              showEffects: true,
+            }
+          }));
+
+          const blobChange = txBlock.objectChanges?.find((c: any) => 
+            c.type === "created" && 
+            c.objectType?.includes("::blob::Blob")
+          );
+
+          if (!blobChange) {
+            throw new Error("Blob object not found in registration transaction effects");
+          }
+
+          const blobObjectId = (blobChange as any).objectId;
+          console.log(`[Walrus] Found created Blob object ID: ${blobObjectId}`);
+
+          // 5. Upload blob content to upload relay to get certification (wrap in retry)
+          console.log("[Walrus] Uploading content to upload relay...");
+          const uploadRelayResult = await retryWithBackoff(() => walClient.walrus.writeBlobToUploadRelay({
+            blobId,
+            blob: new Uint8Array(data),
+            nonce,
+            txDigest: regDigest,
+            blobObjectId,
+            deletable: false,
+            encodingType: metadata.metadata.encodingType
+          }));
+          const certificate = uploadRelayResult.certificate;
+          console.log("[Walrus] Upload relay success. Received certification certificate.");
+
+          // 6. Certify the blob on Sui
+          console.log("[Walrus] Certifying blob on Sui...");
+          const certifyTx = walClient.walrus.certifyBlobTransaction({
+            certificate,
+            blobId,
+            blobObjectId,
+            deletable: false
           });
 
-          console.log("[Walrus] SDK write response:", writeResult);
+          const certifyTxResult = await retryWithBackoff<any>(() => _keypair.signAndExecuteTransaction({
+            transaction: certifyTx,
+            client
+          }));
 
-          const blobId = writeResult.blobId;
+          if (certifyTxResult.FailedTransaction) {
+            throw new Error(`Certification transaction failed: ${certifyTxResult.FailedTransaction.status.error?.message || "Unknown error"}`);
+          }
+
+          const certifyDigest = certifyTxResult.Transaction.digest;
+          console.log(`[Walrus] Certification transaction succeeded. Digest: ${certifyDigest}`);
+          await retryWithBackoff(() => client.core.waitForTransaction({ digest: certifyDigest }));
+
           const publicUrl = `${aggregatorUrl}/v1/blobs/${blobId}`;
           const explorerUrl = `https://walruscan.com/mainnet/blob/${blobId}`;
 
           return {
             success: true,
-            message: "Successfully stored blob on Walrus Mainnet using user agent wallet.",
+            message: "Successfully stored blob on Walrus Mainnet and certified on-chain.",
             blobId,
-            suiCertifiedObjectId: writeResult.blobObject?.id || "",
-            endEpoch: writeResult.blobObject?.storage?.end_epoch || 0,
+            suiCertifiedObjectId: blobObjectId,
+            endEpoch: 0, // Not strictly required, placeholder for API compatibility
             fileName: fileName || `walrus-blob-${Date.now()}`,
             sizeInBytes: data.length,
             mimeType,
@@ -150,7 +280,12 @@ export const uploadToWalrus = tool({
             explorerUrl,
           };
         } catch (e: any) {
-          console.warn(`[Walrus] SDK direct write failed (${e.message}). Falling back to HTTP publisher...`);
+          console.error(`[Walrus] Direct write/upload flow failed: ${e.message}`, e);
+          return {
+            success: false,
+            message: `Failed to upload directly using user agent wallet: ${e.message}`,
+            error: e.message || "Unknown error"
+          };
         }
       }
 

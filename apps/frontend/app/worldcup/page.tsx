@@ -74,6 +74,44 @@ interface WorldCupMemory {
 
 const CLEAN_SCORERS_REGEX = /[\{\}\"]/g;
 
+const STADIUM_DETAILS: Record<string, { name: string; city: string; offset: string; timezone: string }> = {
+  "1": { name: "Estadio Azteca", city: "Mexico City", offset: "-06:00", timezone: "CST" },
+  "2": { name: "Estadio Akron", city: "Guadalajara", offset: "-06:00", timezone: "CST" },
+  "3": { name: "Estadio BBVA", city: "Monterrey", offset: "-06:00", timezone: "CST" },
+  "4": { name: "AT&T Stadium", city: "Dallas", offset: "-05:00", timezone: "CDT" },
+  "5": { name: "NRG Stadium", city: "Houston", offset: "-05:00", timezone: "CDT" },
+  "6": { name: "Arrowhead Stadium", city: "Kansas City", offset: "-05:00", timezone: "CDT" },
+  "7": { name: "Mercedes-Benz Stadium", city: "Atlanta", offset: "-04:00", timezone: "EDT" },
+  "8": { name: "Hard Rock Stadium", city: "Miami", offset: "-04:00", timezone: "EDT" },
+  "9": { name: "Gillette Stadium", city: "Boston", offset: "-04:00", timezone: "EDT" },
+  "10": { name: "Lincoln Financial Field", city: "Philadelphia", offset: "-04:00", timezone: "EDT" },
+  "11": { name: "MetLife Stadium", city: "New York/NJ", offset: "-04:00", timezone: "EDT" },
+  "12": { name: "BMO Field", city: "Toronto", offset: "-04:00", timezone: "EDT" },
+  "13": { name: "BC Place", city: "Vancouver", offset: "-07:00", timezone: "PDT" },
+  "14": { name: "Lumen Field", city: "Seattle", offset: "-07:00", timezone: "PDT" },
+  "15": { name: "Levi's Stadium", city: "San Francisco", offset: "-07:00", timezone: "PDT" },
+  "16": { name: "SoFi Stadium", city: "Los Angeles", offset: "-07:00", timezone: "PDT" },
+};
+
+function formatMatchTime(localDateStr: string, stadiumId: string): string {
+  if (!localDateStr) return "";
+  const match = localDateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
+  if (!match) return localDateStr;
+  const [_, month, day, year, hour, minute] = match;
+  const details = STADIUM_DETAILS[stadiumId];
+  const offset = details ? details.offset : "-05:00";
+  try {
+    const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00${offset}`);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const localFormatted = `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const zoneStr = details ? ` (${details.city} Time)` : "";
+    return `${localFormatted} (Your Time) / ${localDateStr}${zoneStr}`;
+  } catch {
+    return localDateStr;
+  }
+}
+
+
 export default function WorldCupDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -604,15 +642,18 @@ export default function WorldCupDashboard() {
                     if (matchFilter === "live") return m.time_elapsed !== "notstarted" && m.finished !== "TRUE";
                     return true;
                   }).sort((a: any, b: any) => {
-                    // Parse local_date "MM/DD/YYYY HH:mm" into comparable dates
-                    const parseMatchDate = (d: string) => {
+                    // Parse local_date "MM/DD/YYYY HH:mm" with stadium offset into comparable UTC dates
+                    const parseMatchDate = (d: string, stadiumId: string) => {
                       if (!d) return 0;
                       const m = d.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
-                      if (m) return new Date(`${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:00`).getTime();
+                      if (m) {
+                        const offset = STADIUM_DETAILS[stadiumId]?.offset || "-05:00";
+                        return new Date(`${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:00${offset}`).getTime();
+                      }
                       return new Date(d).getTime() || 0;
                     };
-                    const dateA = parseMatchDate(a.local_date);
-                    const dateB = parseMatchDate(b.local_date);
+                    const dateA = parseMatchDate(a.local_date, a.stadium_id);
+                    const dateB = parseMatchDate(b.local_date, b.stadium_id);
 
                     const isLiveA = a.time_elapsed !== "notstarted" && a.finished !== "TRUE";
                     const isLiveB = b.time_elapsed !== "notstarted" && b.finished !== "TRUE";
@@ -692,8 +733,8 @@ export default function WorldCupDashboard() {
                       )}
                       
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono pt-1">
-                        <span>Stadium #{m.stadium_id}</span>
-                        <span>{m.local_date} {m.local_time}</span>
+                        <span>{STADIUM_DETAILS[m.stadium_id]?.name || `Stadium #${m.stadium_id}`}</span>
+                        <span>{formatMatchTime(m.local_date, m.stadium_id)}</span>
                       </div>
                     </div>
                   );

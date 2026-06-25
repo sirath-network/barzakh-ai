@@ -50,6 +50,48 @@ export const createSaveWorldCupMemoryTool = (userId: string) => tool({
 
       const content = JSON.stringify(payload, null, 2);
       
+      // Check user's Sui agent wallet status
+      let walletAddress: string | null = null;
+      let walletBalanceMist = 0n;
+      let walletEnabled = false;
+      
+      try {
+        const { getSuiAgentWalletSnapshot } = await import("../../agent/sui-agent-executor");
+        const snapshot = await getSuiAgentWalletSnapshot(userId);
+        if (snapshot.configured) {
+          walletAddress = snapshot.address || null;
+          walletBalanceMist = BigInt(snapshot.mistBalance || "0");
+          walletEnabled = snapshot.enabled;
+        }
+      } catch (e) {
+        console.warn("[saveWorldCupMemory] Failed to check agent wallet snapshot:", e);
+      }
+
+      // Check if wallet is created
+      if (!walletAddress) {
+        return {
+          success: false,
+          message: "Failed to save World Cup memory to Walrus. No Sui Agent Wallet exists yet. Please go to Settings -> Wallet Settings to create a Sui Agent Wallet.",
+        };
+      }
+
+      // Check if delegation/automation is enabled
+      if (!walletEnabled) {
+        return {
+          success: false,
+          message: `Failed to save World Cup memory to Walrus. Your Sui Agent Wallet (${walletAddress}) is created but automation is disabled. Please go to Settings -> Wallet Settings and enable Automation for Sui.`,
+        };
+      }
+
+      // Check for sufficient SUI balance (0.02 SUI is a safe minimum to cover tipping and gas)
+      const MIN_SUI_REQUIRED_MIST = 20_000_000n; // 0.02 SUI
+      if (walletBalanceMist < MIN_SUI_REQUIRED_MIST) {
+        return {
+          success: false,
+          message: `Failed to save World Cup memory to Walrus. Your Sui Agent Wallet (${walletAddress}) has insufficient balance (${(Number(walletBalanceMist) / 1e9).toFixed(4)} SUI). Please deposit/fund your agent wallet with at least 0.05 SUI to execute on-chain Walrus writes.`,
+        };
+      }
+
       // Fetch user's Sui keypair for mainnet upload
       let keypair;
       try {
@@ -65,7 +107,7 @@ export const createSaveWorldCupMemoryTool = (userId: string) => tool({
         fileName: `worldcup-memory-${userId}.json`,
         epochs: 1, // 1 epoch is approx 14 days
         _keypair: keypair,
-      } as any);
+      } as any, {} as any);
 
       if (!result.success || !result.blobId) {
         throw new Error(result.message || "Failed to upload to Walrus");
@@ -139,8 +181,39 @@ export const createClearWorldCupMemoryTool = (userId: string) => tool({
   },
 });
 
+const STADIUM_DETAILS: Record<string, { name: string; city: string; offset: string; timezone: string }> = {
+  "1": { name: "Estadio Azteca", city: "Mexico City", offset: "-06:00", timezone: "CST (UTC-6)" },
+  "2": { name: "Estadio Akron", city: "Guadalajara", offset: "-06:00", timezone: "CST (UTC-6)" },
+  "3": { name: "Estadio BBVA", city: "Monterrey", offset: "-06:00", timezone: "CST (UTC-6)" },
+  "4": { name: "AT&T Stadium", city: "Dallas", offset: "-05:00", timezone: "CDT (UTC-5)" },
+  "5": { name: "NRG Stadium", city: "Houston", offset: "-05:00", timezone: "CDT (UTC-5)" },
+  "6": { name: "GEHA Field at Arrowhead Stadium", city: "Kansas City", offset: "-05:00", timezone: "CDT (UTC-5)" },
+  "7": { name: "Mercedes-Benz Stadium", city: "Atlanta", offset: "-04:00", timezone: "EDT (UTC-4)" },
+  "8": { name: "Hard Rock Stadium", city: "Miami", offset: "-04:00", timezone: "EDT (UTC-4)" },
+  "9": { name: "Gillette Stadium", city: "Boston", offset: "-04:00", timezone: "EDT (UTC-4)" },
+  "10": { name: "Lincoln Financial Field", city: "Philadelphia", offset: "-04:00", timezone: "EDT (UTC-4)" },
+  "11": { name: "MetLife Stadium", city: "New York/New Jersey", offset: "-04:00", timezone: "EDT (UTC-4)" },
+  "12": { name: "BMO Field", city: "Toronto", offset: "-04:00", timezone: "EDT (UTC-4)" },
+  "13": { name: "BC Place", city: "Vancouver", offset: "-07:00", timezone: "PDT (UTC-7)" },
+  "14": { name: "Lumen Field", city: "Seattle", offset: "-07:00", timezone: "PDT (UTC-7)" },
+  "15": { name: "Levi's Stadium", city: "San Francisco Bay Area", offset: "-07:00", timezone: "PDT (UTC-7)" },
+  "16": { name: "SoFi Stadium", city: "Los Angeles", offset: "-07:00", timezone: "PDT (UTC-7)" },
+};
+
+function getMatchUtcISOString(localDateStr: string, stadiumId: string): string {
+  if (!localDateStr) return new Date().toISOString();
+  const match = localDateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
+  if (match) {
+    const [_, month, day, year, hour, minute] = match;
+    const details = STADIUM_DETAILS[stadiumId];
+    const offset = details ? details.offset : "-05:00";
+    return `${year}-${month}-${day}T${hour}:${minute}:00${offset}`;
+  }
+  return new Date(localDateStr).toISOString();
+}
+
 export const createGetLiveWorldCupMatchesTool = () => tool({
-  description: "Query the actual FIFA World Cup 2026 matches, schedules, scores, and status (e.g. check if a match is finished, check the scoreline).",
+  description: "Query the actual FIFA World Cup 2026 matches, schedules, scores, and status (e.g. check if a match is finished, check the scoreline). Returns enriched kickoff times with UTC and stadium timezone information.",
   parameters: z.object({
     teamName: z.string().optional().describe("Optional team name to filter matches for, e.g. 'Mexico', 'France'"),
     finished: z.boolean().optional().describe("Optional filter to return only finished matches (true) or upcoming/live matches (false)"),
@@ -162,9 +235,31 @@ export const createGetLiveWorldCupMatchesTool = () => tool({
         matches = matches.filter(m => m.finished === finishedStr);
       }
       
+      const enrichedMatches = matches.map(m => {
+        const details = STADIUM_DETAILS[m.stadium_id];
+        let kickoffUtc = "";
+        try {
+          kickoffUtc = new Date(getMatchUtcISOString(m.local_date, m.stadium_id)).toISOString();
+        } catch {
+          // fallback
+          try {
+            kickoffUtc = new Date(m.local_date).toISOString();
+          } catch {
+            kickoffUtc = "";
+          }
+        }
+        return {
+          ...m,
+          kickoff_utc: kickoffUtc,
+          stadium_name: details?.name || `Stadium #${m.stadium_id}`,
+          city: details?.city || "Unknown City",
+          timezone: details?.timezone || "Unknown Timezone",
+        };
+      });
+      
       return {
         success: true,
-        matches: matches.slice(0, 15), // Limit to top 15 relevant matches
+        matches: enrichedMatches.slice(0, 15), // Limit to top 15 relevant matches
         total: matches.length,
       };
     } catch (error: any) {
