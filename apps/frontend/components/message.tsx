@@ -21,7 +21,11 @@ import PortfolioTable from "./birdeye/PortfolioTable";
 import TokenInfoTable from "./birdeye/TokenInfoTable";
 import TransactionHistory from "./solana/TransactionHistory";
 import EvmTransactionHistory from "./onchain/EvmTransactionHistory";
-import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History, Rocket } from "lucide-react";
+import { RenaissCardGrid } from "./renaiss/RenaissCardGrid";
+import { RenaissCardDetail } from "./renaiss/RenaissCardDetail";
+import { RenaissCollection } from "./renaiss/RenaissCollection";
+import { RenaissPacks } from "./renaiss/RenaissPacks";
+import { Check, Copy, Globe, BarChart3, Wallet, FileText, FileImage, CreditCard, ArrowRightLeft, History, Rocket, Gem } from "lucide-react";
 import Image from "next/image";
 import { useSmoothStreaming } from "@/hooks/use-smooth-streaming";
 
@@ -51,9 +55,14 @@ const CreditCardAny = CreditCard as any;
 const ArrowRightLeftAny = ArrowRightLeft as any;
 const HistoryAny = History as any;
 const RocketAny = Rocket as any;
+const GemAny = Gem as any;
 const TooltipAny = Tooltip as any;
 const TooltipTriggerAny = TooltipTrigger as any;
 const TooltipContentAny = TooltipContent as any;
+const RenaissCardGridAny = RenaissCardGrid as any;
+const RenaissCardDetailAny = RenaissCardDetail as any;
+const RenaissCollectionAny = RenaissCollection as any;
+const RenaissPacksAny = RenaissPacks as any;
 
 // HELPER: Map from tool name to corresponding icon
 const toolIcons: Record<string, React.ElementType> = {
@@ -101,6 +110,13 @@ const toolIcons: Record<string, React.ElementType> = {
   executeFourMemeBuy: ArrowRightLeftAny,
   executeFourMemeSell: ArrowRightLeftAny,
   executeFourMemeLaunch: RocketAny,
+  // Renaiss Tools
+  searchRenaissCards: GemAny,
+  getRenaissCardPrice: BarChart3Any,
+  getRenaissMarketTrends: BarChart3Any,
+  analyzeRenaissCollection: WalletAny,
+  getRenaissCardDetails: FileTextAny,
+  watchRenaissCard: FileTextAny,
 };
 
 // HELPER: Small component to render each tool icon
@@ -588,6 +604,12 @@ const PurePreviewMessage = ({
                       'executeFourMemeBuy',
                       'executeFourMemeSell',
                       'executeFourMemeLaunch',
+                      // Renaiss Tools
+                      'searchRenaissCards',
+                      'getRenaissCardPrice',
+                      'getRenaissMarketTrends',
+                      'analyzeRenaissCollection',
+                      'getRenaissCardDetails',
                     ];
 
                     // Filter to only tools that have renderable components
@@ -682,6 +704,14 @@ const PurePreviewMessage = ({
                             executeFourMemeBuy: <FourMemeApprovalAny result={result} />,
                             executeFourMemeSell: <FourMemeApprovalAny result={result} />,
                             executeFourMemeLaunch: <FourMemeApprovalAny result={result} />,
+                            // Renaiss Tools
+                            searchRenaissCards: <RenaissCardGridAny result={result} />,
+                            getRenaissCardPrice: <RenaissCardDetailAny result={result} />,
+                            getRenaissMarketTrends: <RenaissCardGridAny result={{ ...result, cards: result.trendingCards }} />,
+                            analyzeRenaissCollection: <RenaissCollectionAny result={result} />,
+                            getRenaissCardDetails: <RenaissCardDetailAny result={result} />,
+                            getRenaissPacks: <RenaissPacksAny result={result} />,
+                            getRenaissPackDetails: <RenaissPacksAny result={result} />,
                           };
 
                           return (

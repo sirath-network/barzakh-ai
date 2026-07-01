@@ -396,7 +396,7 @@ function isFastRealtimeSearchMessage(text: string): boolean {
   // Do not let protocol/tool inspection prompts fall into the web-search fast lane
   // just because they contain words like "mainnet" or "live". These need the
   // full intent router so Sui/DeepBook/portfolio tools can be selected.
-  if (/\b(inspect|analyze|query|check|show|get|fetch|lookup|pool|pools|order\s*book|deep\s*book|deepbook|sui[_\s-]?usdc|wal[_\s-]?sui|deep[_\s-]?sui|suiscan|walrus|arkham|whale|object|checkpoint)\b/i.test(text)) {
+  if (/\b(inspect|analyze|query|check|show|get|fetch|lookup|pool|pools|order\s*book|deep\s*book|deepbook|sui[_\s-]?usdc|wal[_\s-]?sui|deep[_\s-]?sui|suiscan|walrus|arkham|whale|object|checkpoint|renaiss|card|cards|pack|packs|gacha|eden|omega|renacrypt|psa|bgs|cgc)\b/i.test(text)) {
     return false;
   }
 
@@ -440,7 +440,7 @@ export async function POST(request: Request) {
   const userMessageText = extractTextFromMessage(userMessage.content);
   const hasMultimodal = hasMultimodalContent(userMessage.content);
   const isFastChat = isFastConversationalMessage(userMessageText) && !hasMultimodal;
-  const isFastRealtimeSearch = isFastRealtimeSearchMessage(userMessageText) && !hasMultimodal;
+  const isFastRealtimeSearch = isFastRealtimeSearchMessage(userMessageText) && !hasMultimodal && (!group || group === "search");
 
   // Authenticate first - BEFORE accessing any user data
   const session = await auth();

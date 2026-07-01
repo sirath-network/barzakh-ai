@@ -1087,7 +1087,7 @@ The platform stands at the intersection of AI advancement and blockchain innovat
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://sirath.network">Sirath Network</a></strong>
+  <strong>Built by <a href="https://www.sirath.network">Sirath Network</a></strong>
 </p>
 
 <p align="center">

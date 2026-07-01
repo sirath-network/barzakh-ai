@@ -179,7 +179,7 @@ export default function TermsPage() {
             <section>
                 <h2 id="termination">11. Termination</h2>
                 <p>
-                    <strong>By You:</strong> You may terminate your account at any time by contacting us at support@barzakh.tech or using the account deletion feature in your settings.
+                    <strong>By You:</strong> You may terminate your account at any time by contacting us at support@sirath.network or using the account deletion feature in your settings.
                 </p>
                 <p>
                     <strong>By Us:</strong> We may suspend or terminate your access to the Services immediately, without prior notice, if we believe you have violated these Terms, engaged in fraudulent activity, or for any other reason at our sole discretion.
@@ -218,8 +218,8 @@ export default function TermsPage() {
                     If you have any questions, concerns, or feedback about these Terms of Service, please contact us:
                 </p>
                 <ul>
-                    <li><strong>Email:</strong> <a href="mailto:support@barzakh.tech" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@barzakh.tech</a></li>
-                    <li><strong>Website:</strong> <a href="https://sirath.network/contact" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">sirath.network/contact</a></li>
+                    <li><strong>Email:</strong> <a href="mailto:support@sirath.network" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@sirath.network</a></li>
+                    <li><strong>Website:</strong> <a href="https://www.sirath.network/contact" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">sirath.network/contact</a></li>
                 </ul>
                 <p>
                     We aim to respond to all inquiries within 48 business hours.

@@ -177,7 +177,7 @@ export default function PrivacyPage() {
                     <li><strong>Objection:</strong> Object to processing based on legitimate interests</li>
                 </ul>
                 <p>
-                    To exercise these rights, please contact us at <a href="mailto:support@barzakh.tech" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@barzakh.tech</a>. We will respond to requests within 30 days.
+                    To exercise these rights, please contact us at <a href="mailto:support@sirath.network" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@sirath.network</a>. We will respond to requests within 30 days.
                 </p>
             </section>
 
@@ -243,8 +243,8 @@ export default function PrivacyPage() {
                     If you have questions, concerns, or requests regarding this Privacy Policy or our data practices, please contact us:
                 </p>
                 <ul>
-                    <li><strong>Email:</strong> <a href="mailto:support@barzakh.tech" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@barzakh.tech</a></li>
-                    <li><strong>Website:</strong> <a href="https://sirath.network/contact" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">sirath.network/contact</a></li>
+                    <li><strong>Email:</strong> <a href="mailto:support@sirath.network" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">support@sirath.network</a></li>
+                    <li><strong>Website:</strong> <a href="https://www.sirath.network/contact" className="text-primary hover:text-primary/80 transition-colors no-underline font-medium">sirath.network/contact</a></li>
                 </ul>
                 <p>
                     For privacy-related inquiries, please include "Privacy Request" in your subject line. We aim to respond to all inquiries within 30 days.

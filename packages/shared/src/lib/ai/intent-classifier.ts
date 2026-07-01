@@ -481,6 +481,33 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
+    // Renaiss Protocol Collectibles
+    {
+        id: 'renaiss',
+        intent: 'renaiss',
+        patterns: [
+            /\brenaiss\b/i,
+            /\b(pokemon|one\s*piece|charizard|pikachu|luffy|zoro|shanks|sabo|reiju|bonney|hancock|nami|ace|lugia|mewtwo|charizard|pikachu)\s*(card|cards|nft|nfts|vault|collectibles?|psa|cert|grading|price|pricing|fmv|valuation|history)\b/i,
+            /\b(onepiece|one\s*piece|pokemon)\b.*\b(card|cards|deck|pack|set|box|booster|slab|graded)\b/i,
+            /\b(psa\s*10|psa\s*9|raw\s*[a-g]|gem\s*mint|pristine\s*10|grade\s*10)\b/i,
+            /\b(psa|bgs|cgc|sgc)\s*\d{6,12}\b/i,
+            /\bcollectible\s*(card|cards|marketplace|vault|vaults)\b/i,
+            /\bcard\s*(vault|vaults|pricing|valuation|mcap|price|fmv|oracle)\b/i,
+            /\b(op07|op06|prb01|romance\s*dawn|wings\s*of\s*the\s*captain|500\s*years|two\s*legends|card\s*game)\b/i,
+            /\b(gacha|infinite\s*gacha|pack|packs|booster\s*pack|card\s*pack|eden\s*pack|renacrypt\s*pack|omega\s*pack)\b/i,
+        ],
+        keywords: [
+            'renaiss', 'renaiss protocol', 'collectible cards', 'pokemon cards', 'one piece cards',
+            'psa grade', 'psa certification', 'vaulted cards', 'card vault', 'card pricing', 'card valuation',
+            'fair market value', 'fmv', 'card marketplace', 'onepiece card', 'op07', 'op06', 'prb01', 'romance dawn',
+            'wings of the captain', '500 years in the future', 'two legends', 'psa 10', 'bgs 9.5', 'graded slab',
+            'charizard price', 'luffy price', 'zoro price', 'card grading', 'card slab',
+            'gacha', 'infinite gacha', 'card pack', 'booster pack', 'eden pack', 'omega pack', 'renacrypt pack',
+        ],
+        tokens: [],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
 ];
 
 /**
@@ -763,6 +790,30 @@ const INTENT_PATTERNS: IntentPattern[] = [
             "flow blockchain", "cadence", "flow network", "nba top shot",
             "flow wallet", "flow portfolio", "on flow", "dapper labs",
             "flow crescendo", "flow evm",
+        ],
+        priority: 95,
+    },
+    // Renaiss-specific
+    {
+        intent: "renaiss",
+        patterns: [
+            /\brenaiss\b/i,
+            /\b(pokemon|one\s*piece|charizard|pikachu|luffy|zoro|shanks|sabo|reiju|bonney|hancock|nami|ace|lugia|mewtwo|charizard|pikachu)\s*(card|cards|nft|nfts|vault|collectibles?|psa|cert|grading|price|pricing|fmv|valuation|history)\b/i,
+            /\b(onepiece|one\s*piece|pokemon)\b.*\b(card|cards|deck|pack|set|box|booster|slab|graded)\b/i,
+            /\b(psa\s*10|psa\s*9|raw\s*[a-g]|gem\s*mint|pristine\s*10|grade\s*10)\b/i,
+            /\b(psa|bgs|cgc|sgc)\s*\d{6,12}\b/i,
+            /\bcollectible\s*(card|cards|marketplace|vault|vaults)\b/i,
+            /\bcard\s*(vault|vaults|pricing|valuation|mcap|price|fmv|oracle)\b/i,
+            /\b(op07|op06|prb01|romance\s*dawn|wings\s*of\s*the\s*captain|500\s*years|two\s*legends|card\s*game)\b/i,
+            /\b(gacha|infinite\s*gacha|pack|packs|booster\s*pack|card\s*pack|eden\s*pack|renacrypt\s*pack|omega\s*pack)\b/i,
+        ],
+        keywords: [
+            "renaiss", "renaiss protocol", "collectible cards", "pokemon cards", "one piece cards",
+            "psa grade", "psa certification", "vaulted cards", "card vault", "card pricing", "card valuation",
+            "fair market value", "fmv", "card marketplace", "onepiece card", "op07", "op06", "prb01", "romance dawn",
+            "wings of the captain", "500 years in the future", "two legends", "psa 10", "bgs 9.5", "graded slab",
+            "charizard price", "luffy price", "zoro price", "card grading", "card slab",
+            "gacha", "infinite gacha", "card pack", "booster pack", "eden pack", "omega pack", "renacrypt pack",
         ],
         priority: 95,
     },
@@ -1160,6 +1211,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "flow": Flow blockchain specific queries
     - "monad": Monad network specific queries
     - "mantle": Mantle Network L2 specific queries (MNT token, mantlescan)
+    - "renaiss": Renaiss collectible cards platform (Pokemon/One Piece card queries, card marketplace, slab grading, cert number lookups, pricing/valuation/FMV oracle)
     - "multimodal": Image analysis or file reading requests
     - "search": General web search, questions, information lookup
     `;
@@ -1169,7 +1221,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
@@ -1188,7 +1240,7 @@ CRITICAL RULES:
    - Example: "bridge to Base" -> "on_chain"
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):
-- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei): Accept "0x..." addresses (40 hex chars)
+- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei, renaiss): Accept "0x..." addresses (40 hex chars)
 - Sui and Aptos both use 32-byte "0x..." addresses (64 hex chars); classify as "sui" only when Sui/SUI/Walrus/DeepBook/SuiScan context is present, otherwise Aptos context may apply.
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
@@ -1227,6 +1279,7 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                     "flow",
                     "monad",
                     "mantle",
+                    "renaiss",
                     "multimodal",
                     "search",
                 ]),
@@ -1477,18 +1530,18 @@ export async function classifyIntent(
             );
             // Don't return here - let it fall through to context logic (Step 2)
         } else {
-            // Before returning generic on_chain, check if message mentions chain-specific tokens
-            // e.g. "Trade 100 MON for Penguin" should route to 'monad' not 'on_chain'
-            if (patternResult.primaryIntent === 'on_chain') {
+            // Before returning generic search or on_chain, check if message mentions chain-specific tokens or keywords
+            // e.g. "Trade 100 MON for Penguin" should route to 'monad', "price of Eden pack" to 'renaiss'
+            if (patternResult.primaryIntent === 'on_chain' || patternResult.primaryIntent === 'search') {
                 const detectedChain = detectChainFromRegistry(message);
-                if (detectedChain && detectedChain.intent !== 'on_chain') {
+                if (detectedChain && detectedChain.intent !== patternResult.primaryIntent) {
                     console.log(
-                        `[INTENT] Swap/trade with chain-specific token detected: ${detectedChain.id} (overriding on_chain) in ${Date.now() - startTime} ms`
+                        `[INTENT] Specific chain/protocol detected: ${detectedChain.id} (overriding ${patternResult.primaryIntent}) in ${Date.now() - startTime} ms`
                     );
                     return {
                         ...patternResult,
                         primaryIntent: detectedChain.intent,
-                        indicators: [...patternResult.indicators, `chain_token_override:${detectedChain.id}`],
+                        indicators: [...patternResult.indicators, `chain_override:${detectedChain.id}`],
                     };
                 }
             }

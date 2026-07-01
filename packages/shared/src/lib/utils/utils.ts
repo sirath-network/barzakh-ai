@@ -8,7 +8,7 @@ import type {
 } from "ai";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Globe, Network, CodeXml, ImageIcon, type LucideIcon } from "lucide-react";
+import { Globe, Network, CodeXml, ImageIcon, Gem, type LucideIcon } from "lucide-react";
 import { PortfolioData, TokenItem } from "../../types/wallet-actions-response";
 import {
   BirdeyeTokenSearchResponse,
@@ -203,7 +203,8 @@ export type SearchGroupId =
   | "aptos"
   | "cronos"
   | "mantle"
-  | "sui";
+  | "sui"
+  | "renaiss";
 
 // Explicit type for search groups to avoid portable type inference issues with LucideIcon
 interface SearchGroupItem {
@@ -243,6 +244,16 @@ export const searchGroups: readonly SearchGroupItem[] = [
     description: "Write, debug, and optimize code with Barzakh",
     icon: CodeXml,
     img: "",
+  },
+  {
+    id: "renaiss",
+    name: "Renaiss",
+    description: "Verifiable collectible cards marketplace",
+    icon: Network,
+    img: {
+      light: "/images/icon/renaiss/renais-dark.png",
+      dark: "/images/icon/renaiss/renais-light.png",
+    },
   },
   {
     id: "monad",

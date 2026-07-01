@@ -151,6 +151,17 @@ import {
   getWalrusBlob,
   getWalrusStoragePrice,
 } from "./tools/sui/walrus-tools";
+// Renaiss Protocol Tools
+import {
+  searchRenaissCards,
+  getRenaissCardPrice,
+  getRenaissMarketTrends,
+  analyzeRenaissCollection,
+  getRenaissCardDetails,
+  watchRenaissCard,
+  getRenaissPacks,
+  getRenaissPackDetails,
+} from "./tools/renaiss/renaiss-tools";
 // Arkham Intelligence Tools (Cross-chain blockchain intelligence)
 import {
   arkhamSearch,
@@ -449,6 +460,9 @@ const groupTools = {
     "getEvmMultiChainWalletPortfolio",
     "searchEvmTokenMarketData",
     "ensToAddress",
+    // Renaiss tools (general search)
+    "searchRenaissCards",
+    "getRenaissCardPrice",
     // Arkham Intelligence (core)
     ...ARKHAM_CORE_TOOLS,
     // x402 Payment Tools (available in all contexts)
@@ -496,6 +510,13 @@ const groupTools = {
     "getFourMemeMarketData",
     "quoteFourMemeBuy",
     "quoteFourMemeSell",
+    // Renaiss tools (on-chain)
+    "searchRenaissCards",
+    "getRenaissCardPrice",
+    "getRenaissMarketTrends",
+    "analyzeRenaissCollection",
+    "getRenaissCardDetails",
+    "watchRenaissCard",
   ] as const,
   creditcoin: [
     "webSearch",
@@ -768,6 +789,26 @@ const groupTools = {
     "getLiveWorldCupMatches",
     "defiLlama",
   ] as const,
+  renaiss: [
+    "webSearch",
+    "getSiteContent",
+    "searchRenaissCards",
+    "getRenaissCardPrice",
+    "getRenaissMarketTrends",
+    "analyzeRenaissCollection",
+    "getRenaissCardDetails",
+    "watchRenaissCard",
+    "getRenaissPacks",
+    "getRenaissPackDetails",
+    "getEvmMultiChainWalletPortfolio",
+    "ensToAddress",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
+  ] as const,
 } as const;
 
 export const allTools = {
@@ -955,6 +996,15 @@ export const allTools = {
   arkhamTagInfo,
   arkhamUserEntities,
   arkhamUserLabels,
+  // Renaiss Protocol Tools
+  searchRenaissCards,
+  getRenaissCardPrice,
+  getRenaissMarketTrends,
+  analyzeRenaissCollection,
+  getRenaissCardDetails,
+  watchRenaissCard,
+  getRenaissPacks,
+  getRenaissPackDetails,
 };
 
 const groupPrompts = {
@@ -2170,6 +2220,36 @@ When an upload to Walrus succeeds (via uploadToWalrus), you MUST ALWAYS output t
 - If you output a full hex string, the upstream AI safety/sensitive-data filters will IMMEDIATELY block the connection and cut off your response mid-sentence. This is a hard technical restriction.
 - Always display them as shortened links or text (e.g., [0xa2a9...2f41d](https://suiscan.xyz/testnet/address/0xa2a9e5110a9f5ce2f41da9f5ce2f41d...)).
 `,
+  renaiss: `
+  You are Barzakh AI, specialized in the Renaiss Protocol collectible economy on BNB Chain (BSC). You help collectors search, check prices, analyze collections, track market indicators, and set price watches for physical cards tokenized as RWA NFTs.
+
+  ## CRITICAL TOOL SELECTION RULES (PRIORITIZE NATIVE API):
+  - **NEVER** use webSearch, google, or any other web search tool to look up card pricing, card details, gacha packs, pack details, or collection data.
+  - **YOU MUST** use the native Renaiss API tools (\`searchRenaissCards\`, \`getRenaissCardPrice\`, \`getRenaissPacks\`, \`getRenaissPackDetails\`) as the primary and only source of information for these queries.
+  - Web search is strictly forbidden for card/pack/gacha lookups and should only be used as a final fallback for non-collectible general queries.
+
+  ## Renaiss marketplace:
+  - Use searchRenaissCards to find cards by name, IP (Pokemon/OnePiece), grade, or maximum price.
+  - Use getRenaissCardDetails to view cert numbers, PSA grade, owner addresses, and physical vault locations.
+  
+  ## Price checking & valuation:
+  - Use getRenaissCardPrice to analyze Fair Market Value (FMV), discounts/premiums, and historical sales trends.
+  - Highlight undervalued items (listings where price < FMV) as hot buying opportunities.
+  - Use analyzeRenaissCollection to calculate the total market value and FMV of a collector's wallet based on their token holdings. Always perform the live contract query.
+
+  ## Market indicators & alerts:
+  - Use getRenaissMarketTrends to identify trading volume distribution (Pokemon vs. OnePiece) and top gainers/trending listings.
+  - Use watchRenaissCard to set up a target alert for price drops.
+
+  ## Gacha & Packs:
+  - Use getRenaissPacks to show all available infinite gacha card packs.
+  - Use getRenaissPackDetails to fetch the expected value, top card FMV, and recent pulls history for a pack (using its slug).
+  - Explain that packs use a zero-knowledge verifiable Merkle proof model to guarantee absolute transparency and fairness for all draws.
+  
+  ## Verification & RWA custody:
+  - Emphasize to the user that all assets on Renaiss are backed 1:1 by physical cards secured in institutional-grade vaults (e.g. Tokyo, Osaka, Singapore).
+  - Certifications (PSA cert numbers) can be verified on-chain, and ownership transfers can be executed gaslessly on BNB Chain without moving the physical cards.
+  `,
 };
 
 const addressSafetySuffix = `

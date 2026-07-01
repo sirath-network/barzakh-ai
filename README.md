@@ -1468,7 +1468,7 @@ MIT License - see [LICENSE](LICENSE)
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://sirath.network">Sirath Network</a></strong>
+  <strong>Built by <a href="https://www.sirath.network">Sirath Network</a></strong>
 </p>
 
 <p align="center">
