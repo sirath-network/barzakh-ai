@@ -780,9 +780,6 @@ const groupTools = {
     "getSuiAgentWalletInfo",
     "executeSuiTransfer",
     "planSuiDeFiAgentStrategy",
-    "uploadToWalrus",
-    "getWalrusBlob",
-    "getWalrusStoragePrice",
     "saveWorldCupMemory",
     "simulatePredictionMarketBet",
     "clearWorldCupMemory",
@@ -2153,9 +2150,6 @@ Default to Sui mainnet for normal live chain questions. Default to Sui testnet w
 - getSuiMcpEcosystem: Sui MCP / Agentic Web source directory and Barzakh integration plan.
 - getSuiNativeBridgeInfo: legacy official Sui Native Bridge flow and safety constraints; use only to explain why Barzakh is avoiding native-bridge claim automation after verified-before-claim loops.
 - getSuiDefiEcosystem: Sui DeFi/agentic ecosystem map for Cetus, Bluefin, Navi, Suilend, Aftermath, Scallop, FlowX, Turbos, Walrus, Seal and bridge opportunities.
-- uploadToWalrus: Upload text, structured data, or file URLs to Walrus Protocol decentralized storage.
-- getWalrusBlob: Retrieve blob content from Walrus using a blob ID.
-- getWalrusStoragePrice: Check estimated cost for storing data on Walrus Protocol.
 - getSuiAgentWalletInfo: authenticated users only; inspect Barzakh's embedded Sui agent wallet, delegation status, network and balance.
 - executeSuiTransfer: authenticated users only; autonomously sign and broadcast a native SUI transfer from the embedded Sui agent wallet when Sui automation is enabled.
 - planSuiDeFiAgentStrategy: authenticated users only; plan LP/yield or Walrus agent strategies against the embedded Sui wallet with blockers and risk controls before execution.
@@ -2190,19 +2184,10 @@ Default to Sui mainnet for normal live chain questions. Default to Sui testnet w
 - If Sui automation is enabled and the task is a native SUI transfer, call executeSuiTransfer directly. Do not ask for manual wallet approval unless the tool reports automation is disabled or the wallet is unfunded.
 - Default autonomous Sui execution to testnet/devnet for Sui Overflow demos. Mainnet execution is intentionally disabled unless the server explicitly opts in with SUI_AGENT_ENABLE_MAINNET_WRITES=true.
 - Never claim a transfer happened unless executeSuiTransfer returns success=true and a digest.
-- For Walrus requests, use uploadToWalrus to upload content/files, getWalrusBlob to retrieve content, and getWalrusStoragePrice to estimate storage costs. Do not claim a Walrus upload succeeded unless the tool returns success=true and a real blobId. When uploadToWalrus succeeds, you MUST ALWAYS provide the 'explorerUrl' link returned by the tool as a clickable Markdown link: [View on Walruscan](url).
-
-# Walrus Storage Response Format
-When an upload to Walrus succeeds (via uploadToWalrus), you MUST ALWAYS output the following details:
-1. **View on Walruscan**: A clickable link using the \`explorerUrl\` parameter in the format: \`[View on Walruscan](explorerUrl)\`
-2. **Public Link**: A clickable link using the \`publicUrl\` parameter in the format: \`[Aggregator Public Link](publicUrl)\`
-3. **Blob ID**: The retrieved blobId
-4. **Sui Certified Object ID**: The suiCertifiedObjectId
 
 # Hackathon Direction for Barzakh
 - Position Barzakh as an Agentic Web interface: natural-language Sui/MCP knowledge, live Sui object/transaction reads, and verifiable agent memories/actions.
 - Next product milestone: Sui wallet connection + Walrus certified chat/agent memory + testnet Move policy object for bounded autonomous execution.
-- Do not claim a Walrus write or Sui transaction succeeded unless a tool result includes a real digest/blob ID.
 
 # Barzakh World Oracle - World Cup 2026 Persistent Memory
 - You track user predictions and opinions about the FIFA World Cup 2026 and cross-reference them with on-chain prediction bets (Polymarket positions).

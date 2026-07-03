@@ -64,7 +64,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
 | **Arkham Intelligence** | 43 tools for whale tracking, entity investigation, fund flow analysis across 20+ chains |
 | **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos Testnet) with optional NFT minting |
-| **Sui & Walrus** | 18 tools for SUI portfolio, whale activity, BlockVision, Walrus storage, agent wallets & DeFi strategies |
+| **Sui & Walrus** | 15 tools for SUI portfolio, whale activity, BlockVision, agent wallets & DeFi strategies |
 | **Azure Multi-Model AI** | GPT-4o/4.1/5.x, Grok, Kimi, DeepSeek, and BZKH model-router deployments with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
 | **115+ Blockchain Tools** | Chain-specific analyzers for Sui, Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
@@ -398,7 +398,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **SEI** | 4 | Cosmos queries, IBC transfers |
 | **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
 | **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
-| **Sui & Walrus** | 18 | RPC queries, BlockVision address activity, checkpoints, whale tracker, entity intelligence, DeFi & MCP directory, **Walrus decentralized storage (upload, retrieve, pricing)**, **embedded Sui agent wallet, transfers, DeFi strategy planner** |
+| **Sui & Walrus** | 15 | RPC queries, BlockVision address activity, checkpoints, whale tracker, entity intelligence, DeFi & MCP directory, **embedded Sui agent wallet, transfers, DeFi strategy planner** |
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
 
@@ -442,7 +442,7 @@ const zkevmTools = {
 | **SEI** | `@sei-js/core` | Pacific-1 | SEI RPC | Cosmos SDK, IBC |
 | **Solana** | Native JSON-RPC | Mainnet | Helius/QuickNode | SPL tokens, DeFi |
 | **Monad** | `viem` + Zerion API | Mainnet (143) | Monad RPC | MON, portfolio, DeFi, NFTs, nad.fun |
-| **Sui & Walrus** | `@mysten/sui` + fetch | Mainnet + Testnet | Sui Fullnode RPC + Walrus APIs | RPC read, Walrus blob storage, embedded wallet, DeFi planning |
+| **Sui & Walrus** | `@mysten/sui` + fetch | Mainnet + Testnet | Sui Fullnode RPC + Walrus APIs | RPC read, embedded wallet, DeFi planning |
 | **Creditcoin** | Blockscout API | Mainnet | Blockscout RPC | CTC balance, tx, stats |
 
 ### Relay Protocol Cross-Chain Swaps
@@ -862,9 +862,9 @@ How much does it cost to store 1MB on Shelby?
 
 ---
 
-### 💧 Sui & Walrus Ecosystem — Agentic Web & Decentralized Storage
+### 💧 Sui & Walrus Ecosystem — Agentic Web & Persistent Memory
 
-Barzakh AI features a deep integration with the **Sui Blockchain** and **Walrus Protocol** (Sui Overflow 2026). It offers **18 dedicated tools** covering RPC queries, whale tracking, exchange/entity intelligence, DeFi/MCP directories, decentralized storage (Walrus), and secure autonomous write operations using an embedded Sui agent wallet.
+Barzakh AI features a deep integration with the **Sui Blockchain** and **Walrus Protocol** (Sui Overflow 2026). It offers **15 dedicated tools** covering RPC queries, whale tracking, exchange/entity intelligence, DeFi/MCP directories, and secure autonomous write operations using an embedded Sui agent wallet.
 
 #### Sui & Walrus Tool Suite
 
@@ -882,26 +882,10 @@ Barzakh AI features a deep integration with the **Sui Blockchain** and **Walrus 
 | **Ecosystem Directories**| `getSuiDefiEcosystem` | Maps major Sui DeFi protocols (Cetus, Navi, Suilend, Aftermath, Scallop, etc.) for LP & lending options. |
 | | `getSuiMcpEcosystem` | Directory of Sui Model Context Protocol (MCP) servers and Agentic Web integration plans. |
 | | `getSuiNativeBridgeInfo` | Documents official Sui Native Bridge parameters and safety constraints. |
-| **Walrus Storage** | `uploadToWalrus` | Uploads raw text, structured JSON, or downloadable file URLs to Walrus Protocol decentralized storage. |
-| | `getWalrusBlob` | Retrieves blob data from Walrus using a Blob ID. |
-| | `getWalrusStoragePrice` | Estimates storage costs (in SUI/MIST) on Walrus for a given size and duration in epochs. |
 | **Embedded Agent Wallet**| `getSuiAgentWalletInfo` | Inspects the user's embedded Sui agent wallet, delegation status, network, and SUI balance. |
 | | `executeSuiTransfer` | Signs and broadcasts a native SUI transfer autonomously from the embedded agent wallet (if automation is enabled). |
 | | `planSuiDeFiAgentStrategy` | Formulates LP or Walrus memory strategies, checking blockers, budget caps, and risk levels. |
 
-#### 📦 Walrus Storage Architecture
-
-```mermaid
-flowchart LR
-    A["User: 'Store this JSON on Walrus'"] --> B["AI Agent"]
-    B --> C{"Text or File URL?"}
-    C -->|Text| D["JSON/Raw Bytes"]
-    C -->|File URL| E["fetchImageAsBase64\n(Download helper)"]
-    D --> F["HTTP PUT /v1/blobs\n(Walrus Publisher)"]
-    E --> F
-    F --> G["Walrus Storage Node"]
-    G --> H["Return Blob ID &\nSui Certified Object ID"]
-```
 
 #### 🤖 Sui Agent DeFi Flow
 
@@ -914,7 +898,7 @@ flowchart TD
     E --> F{"Strategy Type?"}
     F -->|LP/Yield| G["getSuiDefiEcosystem\n(Find candidate pools)"]
     F -->|Transfer| H["executeSuiTransfer\n(Sui network transfer)"]
-    F -->|Memory/Logs| I["uploadToWalrus\n(Store state snapshot)"]
+    F -->|Memory/Logs| I["Store state snapshot on Walrus"]
 ```
 
 #### 🎯 Try It — Sui & Walrus Use Cases
@@ -943,16 +927,6 @@ Are there any large SUI transactions in the latest checkpoints?
 Check Arkham intelligence for Binance entity on Sui
 ```
 
-##### 📂 Walrus Protocol Decentralized Storage
-```
-Store the text "Barzakh AI + Walrus Protocol Integration" on Walrus
-```
-```
-Estimate the cost to store 5MB for 3 epochs on Walrus
-```
-```
-Download and retrieve the Walrus blob with ID 4Q_qjT...
-```
 
 ##### 🧠 Persistent Walrus Memory (World Cup Oracle)
 Barzakh AI leverages Walrus Protocol as a decentralized state layer for AI memory. Specifically, in the World Cup Oracle use case, the agent records your match predictions as a JSON blob, uploads it directly to Walrus using the Walrus TS SDK (or HTTP Publisher fallback), and then saves the resulting `blobId` to your database profile. 

@@ -61,16 +61,16 @@ export function getSuiNetwork(network?: SuiNetwork): SuiNetwork {
 export function getSuiClient(network?: SuiNetwork) {
   const selected = getSuiNetwork(network);
   const customRpc = selected === "mainnet"
-    ? process.env.SUI_MAINNET_RPC_URL
+    ? process.env.SUI_MAINNET_RPC_URL || ""
     : selected === "testnet"
-      ? process.env.SUI_TESTNET_RPC_URL
-      : process.env.SUI_DEVNET_RPC_URL;
+      ? process.env.SUI_TESTNET_RPC_URL || ""
+      : process.env.SUI_DEVNET_RPC_URL || getJsonRpcFullnodeUrl("devnet");
 
   return {
     network: selected,
     client: new SuiJsonRpcClient({
       network: selected,
-      url: customRpc || getJsonRpcFullnodeUrl(selected),
+      url: customRpc,
     }),
   };
 }

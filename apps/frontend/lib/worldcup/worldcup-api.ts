@@ -52,8 +52,10 @@ export interface GroupStanding {
 // Memory cache to prevent hitting rate limits
 let cachedTeams: Team[] | null = null;
 let cachedMatches: Match[] | null = null;
-let cachedGroups: any[] | null = null;
-let lastFetchTime = 0;
+let cachedGroups: GroupStanding[] | null = null;
+let lastFetchTeamsTime = 0;
+let lastFetchMatchesTime = 0;
+let lastFetchGroupsTime = 0;
 const CACHE_TTL = 30 * 1000; // 30 seconds cache TTL
 
 const MOCK_TEAMS: Team[] = [
@@ -107,22 +109,81 @@ const MOCK_STANDINGS: GroupStanding[] = [
   }
 ];
 
+async function fetchAndCacheStandings(now: number): Promise<{ groups: GroupStanding[]; teams: Team[] }> {
+  const res = await fetch("https://site.api.espn.com/apis/v2/sports/soccer/fifa.world/standings", { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+  const data = await res.json();
+  
+  if (!data || !Array.isArray(data.children)) {
+    throw new Error("Invalid standings format returned");
+  }
+
+  const groupsList: GroupStanding[] = [];
+  const teamsList: Team[] = [];
+
+  for (const group of data.children || []) {
+    const groupLetter = group.name?.replace("Group ", "") || "";
+    const mappedTeams = (group.standings?.entries || []).map((entry: any) => {
+      const t = entry.team || {};
+      
+      const findStat = (name: string) => {
+        const stat = (entry.stats || []).find((s: any) => s.name === name);
+        return stat ? Number(stat.value) : 0;
+      };
+
+      // Add to unique teams list if not present
+      if (t.id && !teamsList.some(item => item.id === t.id)) {
+        teamsList.push({
+          _id: t.id,
+          id: t.id,
+          name_en: t.displayName || t.name || "TBD",
+          name_fa: t.displayName || t.name || "TBD",
+          flag: t.logos?.[0]?.href || `https://a.espncdn.com/i/teamlogos/countries/500/${t.abbreviation?.toLowerCase()}.png`,
+          fifa_code: t.abbreviation || "",
+          iso2: t.abbreviation?.slice(0, 2) || "",
+          groups: groupLetter,
+        });
+      }
+
+      return {
+        team_id: t.id || "",
+        name_en: t.displayName || t.name || "TBD",
+        flag: t.logos?.[0]?.href || "",
+        mp: findStat("gamesPlayed"),
+        w: findStat("wins"),
+        d: findStat("ties"),
+        l: findStat("losses"),
+        gf: findStat("pointsFor"),
+        ga: findStat("pointsAgainst"),
+        gd: findStat("pointDifferential"),
+        pts: findStat("points"),
+      };
+    });
+
+    groupsList.push({
+      _id: group.id || groupLetter,
+      group: groupLetter,
+      teams: mappedTeams,
+    });
+  }
+
+  cachedGroups = groupsList;
+  cachedTeams = teamsList;
+  lastFetchGroupsTime = now;
+  lastFetchTeamsTime = now;
+
+  return { groups: groupsList, teams: teamsList };
+}
+
 export async function fetchLiveTeams(): Promise<Team[]> {
   const now = Date.now();
-  if (cachedTeams && now - lastFetchTime < CACHE_TTL) {
+  if (cachedTeams && now - lastFetchTeamsTime < CACHE_TTL) {
     return cachedTeams;
   }
 
   try {
-    const res = await fetch("https://worldcup26.ir/get/teams", { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-    const data = await res.json();
-    if (data && Array.isArray(data.teams)) {
-      cachedTeams = data.teams;
-      lastFetchTime = now;
-      return cachedTeams!;
-    }
-    throw new Error("Invalid teams format returned");
+    const { teams } = await fetchAndCacheStandings(now);
+    return teams;
   } catch (error) {
     console.warn("Failed to fetch live World Cup teams, using local mock fallback:", error);
     return MOCK_TEAMS;
@@ -131,20 +192,123 @@ export async function fetchLiveTeams(): Promise<Team[]> {
 
 export async function fetchLiveMatches(): Promise<Match[]> {
   const now = Date.now();
-  if (cachedMatches && now - lastFetchTime < CACHE_TTL) {
+  if (cachedMatches && now - lastFetchMatchesTime < CACHE_TTL) {
     return cachedMatches;
   }
 
   try {
-    const res = await fetch("https://worldcup26.ir/get/games", { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-    const data = await res.json();
-    if (data && Array.isArray(data.games)) {
-      cachedMatches = data.games;
-      lastFetchTime = now;
-      return cachedMatches!;
+    // Make sure standings are fetched/cached for teamId -> group mappings
+    if (!cachedGroups) {
+      try {
+        await fetchAndCacheStandings(now);
+      } catch (e) {
+        console.warn("Failed to pre-fetch standings for match group mapping:", e);
+      }
     }
-    throw new Error("Invalid games format returned");
+
+    const teamIdToGroup: Record<string, string> = {};
+    if (cachedGroups) {
+      for (const group of cachedGroups) {
+        for (const t of group.teams) {
+          teamIdToGroup[t.team_id] = group.group;
+        }
+      }
+    }
+
+    const urls = [
+      "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260710",
+      "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260711-20260719"
+    ];
+
+    const responses = await Promise.all(
+      urls.map(url => fetch(url, { signal: AbortSignal.timeout(5000) }).then(res => {
+        if (!res.ok) throw new Error(`HTTP Error ${res.status} on ${url}`);
+        return res.json();
+      }))
+    );
+
+    const matchData: Match[] = [];
+
+    for (const data of responses) {
+      if (!data || !Array.isArray(data.events)) continue;
+
+      for (const event of data.events) {
+        const comp = event.competitions?.[0];
+        if (!comp) continue;
+
+        const homeCompetitor = comp.competitors?.find((c: any) => c.homeAway === "home");
+        const awayCompetitor = comp.competitors?.find((c: any) => c.homeAway === "away");
+
+        if (!homeCompetitor || !awayCompetitor) continue;
+
+        const homeTeam = homeCompetitor.team || {};
+        const awayTeam = awayCompetitor.team || {};
+
+        const status = comp.status || {};
+        const statusType = status.type || {};
+
+        const state = statusType.state || "pre";
+        const finished = (state === "post" || statusType.completed) ? "TRUE" : "FALSE";
+        
+        let time_elapsed = "notstarted";
+        if (state === "post" || statusType.completed) {
+          time_elapsed = "finished";
+        } else if (state === "in") {
+          time_elapsed = status.displayClock || "live";
+        }
+
+        let localDateStr = event.date || "";
+        if (localDateStr) {
+          try {
+            const d = new Date(localDateStr);
+            const pad = (n: number) => String(n).padStart(2, "0");
+            localDateStr = `${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+          } catch {
+            // fallback
+          }
+        }
+
+        const group = teamIdToGroup[homeTeam.id] || teamIdToGroup[awayTeam.id] || "";
+        const isKnockout = event.season?.slug !== "group-stage";
+
+        matchData.push({
+          _id: event.id || "",
+          id: event.id || "",
+          home_team_id: homeTeam.id || "",
+          away_team_id: awayTeam.id || "",
+          home_score: homeCompetitor.score != null ? String(homeCompetitor.score) : "0",
+          away_score: awayCompetitor.score != null ? String(awayCompetitor.score) : "0",
+          home_scorers: "",
+          away_scorers: "",
+          group: group,
+          matchday: isKnockout ? "knockout" : "1",
+          local_date: localDateStr,
+          stadium_id: comp.venue?.id || "1",
+          finished: finished,
+          time_elapsed: time_elapsed,
+          type: isKnockout ? "knockout" : "group",
+          home_team_name_en: homeTeam.displayName || homeTeam.name || "TBD",
+          away_team_name_en: awayTeam.displayName || awayTeam.name || "TBD",
+        });
+      }
+    }
+
+    matchData.sort((a, b) => {
+      const getVal = (m: Match) => {
+        const parts = m.local_date.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
+        if (parts) {
+          const [_, month, day, year, hour, minute] = parts;
+          return new Date(`${year}-${month}-${day}T${hour}:${minute}:00Z`).getTime();
+        }
+        return new Date(m.local_date).getTime();
+      };
+      return getVal(a) - getVal(b);
+    });
+
+    cachedMatches = matchData;
+    lastFetchMatchesTime = now;
+    return cachedMatches;
+
   } catch (error) {
     console.warn("Failed to fetch live World Cup matches, using local mock fallback:", error);
     return MOCK_MATCHES;
@@ -153,20 +317,13 @@ export async function fetchLiveMatches(): Promise<Match[]> {
 
 export async function fetchLiveGroups(): Promise<GroupStanding[]> {
   const now = Date.now();
-  if (cachedGroups && now - lastFetchTime < CACHE_TTL) {
+  if (cachedGroups && now - lastFetchGroupsTime < CACHE_TTL) {
     return cachedGroups;
   }
 
   try {
-    const res = await fetch("https://worldcup26.ir/get/groups", { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-    const data = await res.json();
-    if (data && Array.isArray(data.groups)) {
-      cachedGroups = data.groups;
-      lastFetchTime = now;
-      return cachedGroups!;
-    }
-    throw new Error("Invalid groups format returned");
+    const { groups } = await fetchAndCacheStandings(now);
+    return groups;
   } catch (error) {
     console.warn("Failed to fetch live World Cup groups, using local mock fallback:", error);
     return MOCK_STANDINGS;

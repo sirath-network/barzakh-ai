@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const result = await getWalrusBlob.execute({ blobId });
+    const result = await getWalrusBlob.execute({ blobId }, {} as any);
     if (!result.success || !result.content) {
       console.warn(`[Walrus] Failed to retrieve memory blob ${blobId} (possibly due to testnet/mainnet migration):`, result.error || result.message);
       // Fallback gracefully to an empty initial state so the page doesn't crash on invalid/testnet blob IDs
@@ -200,7 +200,7 @@ Rules:
               fileName: `worldcup-memory-${userId}.json`,
               epochs: 1,
               _keypair: keypair,
-            } as any);
+            } as any, {} as any);
 
             if (uploadResult.success && uploadResult.blobId) {
               await updateUserWalrusMemoryBlobId(userId, uploadResult.blobId);
@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
 
     const blobId = dbUser.walrusMemoryBlobId;
     if (blobId) {
-      const getResult = await getWalrusBlob.execute({ blobId });
+      const getResult = await getWalrusBlob.execute({ blobId }, {} as any);
       if (getResult.success && getResult.content) {
         currentState = getResult.content;
       }
@@ -323,7 +323,7 @@ export async function POST(req: NextRequest) {
       fileName: `worldcup-memory-${userId}.json`,
       epochs: 1,
       _keypair: keypair,
-    } as any);
+    } as any, {} as any);
 
     if (!uploadResult.success || !uploadResult.blobId) {
       return NextResponse.json({ error: "Failed to upload updated memory to Walrus" }, { status: 502 });

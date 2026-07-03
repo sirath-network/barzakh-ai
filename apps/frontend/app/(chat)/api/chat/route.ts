@@ -274,18 +274,12 @@ function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string):
       "simulatePredictionMarketBet",
       "clearWorldCupMemory",
       "getLiveWorldCupMatches",
-      "uploadToWalrus",
-      "getWalrusBlob",
-      "getWalrusStoragePrice",
       "getSuiAgentWalletInfo",
       "webSearch",
       "getSiteContent",
     ];
   } else if (hasWalrusIntent) {
     allowed = [
-      "uploadToWalrus",
-      "getWalrusBlob",
-      "getWalrusStoragePrice",
       "getSuiAgentWalletInfo",
       "saveWorldCupMemory",
       "simulatePredictionMarketBet",
@@ -326,9 +320,6 @@ function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string):
       "getSuiPortfolio",
       "getSuiAgentWalletInfo",
       "getSuiDefiEcosystem",
-      "uploadToWalrus",
-      "getWalrusBlob",
-      "getWalrusStoragePrice",
       "getSuiMcpEcosystem",
       "saveWorldCupMemory",
       "simulatePredictionMarketBet",
@@ -924,7 +915,7 @@ export async function POST(request: Request) {
       try {
         console.log(`[WALRUS-MEMORY] Hydrating memory blob: ${user_info.walrusMemoryBlobId}`);
         const { getWalrusBlob } = await import("@barzakh/shared/lib/ai/tools/sui/walrus-tools");
-        const result = await getWalrusBlob.execute({ blobId: user_info.walrusMemoryBlobId });
+        const result = await getWalrusBlob.execute({ blobId: user_info.walrusMemoryBlobId }, {} as any);
         if (result.success && result.content) {
           walrusMemoryContext = `\n\n## Persistent Walrus Memory (from previous sessions):\n${JSON.stringify(result.content, null, 2)}\n\nCRITICAL WORLD CUP MEMORY RULES:\n1. You MUST ALWAYS reference this memory when discussing World Cup predictions, opinions, or contradictions to demonstrate persistent memory across sessions.\n2. When the user makes or updates a prediction, you MUST FIRST call \`getLiveWorldCupMatches\` to check the real match status and score. If the match is finished, set the prediction \`status\` to \`"correct"\` or \`"incorrect"\` based on the actual score. If not finished, set it to \`"pending"\`.\n3. When the user updates their predictions, opinions, or places a bet, you MUST call \`saveWorldCupMemory\` with the updated full state (merging the new inputs with the existing memory above) so their updated profile is saved back to Walrus. Do not overwrite/lose their other predictions or opinions unless they explicitly change their mind.\n4. If the user explicitly asks to clear, reset, delete, or wipe their World Cup memory, history, or profile, you MUST call \`clearWorldCupMemory\` to reset it.`;
         } else {
@@ -1116,9 +1107,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
       "simulatePredictionMarketBet",
       "clearWorldCupMemory",
       "getLiveWorldCupMatches",
-      "uploadToWalrus",
-      "getWalrusBlob",
-      "getWalrusStoragePrice",
       "getSuiAgentWalletInfo",
       "webSearch",
     ];

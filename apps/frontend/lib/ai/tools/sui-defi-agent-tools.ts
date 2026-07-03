@@ -20,7 +20,7 @@ const STRATEGIES = {
     actions: [
       "Summarize agent plan, tool calls, risk checks, and tx digests.",
       "Package into canonical JSON for Walrus blob storage.",
-      "Upload to Walrus using uploadToWalrus tool and retrieve later with getWalrusBlob.",
+      "Upload and persist memory logs to Walrus Protocol.",
     ],
   },
 } as const;
@@ -71,7 +71,7 @@ export const createPlanSuiDeFiAgentStrategyTool = (userId: string) =>
         nextToolSuggestion:
           strategy === "lp"
             ? "Use getSuiDefiEcosystem with focus='lp' or 'lending', then choose one protocol SDK to allowlist."
-            : "Use uploadToWalrus to upload agent memory JSON logs.",
+            : "Save agent memory to Walrus Protocol.",
       };
     },
   });
