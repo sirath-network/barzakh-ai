@@ -33,9 +33,10 @@ export const RenaissCardDetail: React.FC<CardDetailProps> = ({ result }) => {
   }
 
   const card = result.card;
-  const isUndervalued = card.isUndervalued ?? (card.priceUsd < card.fmvUsd);
-  const premiumOrDiscount = card.premiumOrDiscountPercent ?? 
-    Number((((card.priceUsd - card.fmvUsd) / card.fmvUsd) * 100).toFixed(2));
+  const isUndervalued = card.priceUsd > 0 && (card.isUndervalued ?? (card.priceUsd < card.fmvUsd));
+  const premiumOrDiscount = card.priceUsd > 0 
+    ? (card.premiumOrDiscountPercent ?? Number((((card.priceUsd - card.fmvUsd) / card.fmvUsd) * 100).toFixed(2)))
+    : 0;
   
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,7 +112,13 @@ export const RenaissCardDetail: React.FC<CardDetailProps> = ({ result }) => {
                 Listed Price
               </span>
               <span className="text-xl font-extrabold text-white">
-                ${card.priceUsd.toLocaleString()}
+                {card.priceUsd > 0 ? (
+                  `$${card.priceUsd.toLocaleString()}`
+                ) : (
+                  <span className="text-amber-500 font-semibold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-xs">
+                    Unlisted
+                  </span>
+                )}
               </span>
             </div>
             <div>
@@ -126,7 +133,11 @@ export const RenaissCardDetail: React.FC<CardDetailProps> = ({ result }) => {
             {/* Price evaluation badge */}
             <div className="col-span-2 border-t border-border/10 pt-2.5 flex items-center justify-between">
               <span className="text-[10px] font-medium text-zinc-500">Market Status</span>
-              {isUndervalued ? (
+              {card.priceUsd <= 0 ? (
+                <span className="text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                  Vaulted (Unlisted)
+                </span>
+              ) : isUndervalued ? (
                 <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                   <TrendingDown className="size-3.5" />
                   UNDERVALUED ({Math.abs(premiumOrDiscount)}% Discount)

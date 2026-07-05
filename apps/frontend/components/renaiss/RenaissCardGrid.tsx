@@ -54,7 +54,7 @@ export const RenaissCardGrid: React.FC<CardGridProps> = ({ result }) => {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {visibleCards.map((card) => {
-          const isUndervalued = card.priceUsd < card.fmvUsd;
+          const isUndervalued = card.priceUsd > 0 && card.priceUsd < card.fmvUsd;
           const discountPercent = isUndervalued
             ? Math.round(((card.fmvUsd - card.priceUsd) / card.fmvUsd) * 100)
             : 0;
@@ -113,7 +113,13 @@ export const RenaissCardGrid: React.FC<CardGridProps> = ({ result }) => {
                       Listed Price
                     </span>
                     <span className="text-sm sm:text-base font-extrabold text-white">
-                      ${card.priceUsd.toLocaleString()}
+                      {card.priceUsd > 0 ? (
+                        `$${card.priceUsd.toLocaleString()}`
+                      ) : (
+                        <span className="text-amber-500 font-semibold bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] sm:text-xs">
+                          Unlisted
+                        </span>
+                      )}
                     </span>
                   </div>
 

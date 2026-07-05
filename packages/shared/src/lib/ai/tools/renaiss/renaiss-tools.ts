@@ -8,6 +8,78 @@ const BSC_RPC_URL =
 // Renaiss ERC-721 Contract Address
 const RENAISS_NFT_ADDRESS = "0xF8646A3Ca093e97Bb404c3b25e675C0394DD5b30";
 
+let activeKeyIndex = 0;
+
+function getRenaissKeys(): { key: string; secret: string }[] {
+  const keysStr = process.env.RENAISS_X_API_KEY || "";
+  const secretsStr = process.env.RENAISS_X_API_SECRET || "";
+  
+  const keys = keysStr.split(",").map(k => k.trim()).filter(Boolean);
+  const secrets = secretsStr.split(",").map(s => s.trim()).filter(Boolean);
+  
+  const pairs: { key: string; secret: string }[] = [];
+  const maxLen = Math.max(keys.length, secrets.length);
+  for (let i = 0; i < maxLen; i++) {
+    pairs.push({
+      key: keys[i] || keys[0] || "",
+      secret: secrets[i] || secrets[0] || ""
+    });
+  }
+  return pairs;
+}
+
+function getRenaissIndexHeaders(): HeadersInit {
+  const pairs = getRenaissKeys();
+  if (pairs.length === 0) return {};
+  const pair = pairs[activeKeyIndex % pairs.length];
+  
+  const headers: Record<string, string> = {};
+  if (pair.key) headers["X-Api-Key"] = pair.key;
+  if (pair.secret) headers["X-Api-Secret"] = pair.secret;
+  return headers;
+}
+
+async function fetchRenaissIndex(url: string): Promise<Response> {
+  const pairs = getRenaissKeys();
+  const maxAttempts = Math.max(1, pairs.length);
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const headers = getRenaissIndexHeaders();
+    try {
+      const response = await fetch(url, { headers });
+      
+      if (response.status === 429) {
+        console.warn(`Renaiss Index API key at index ${activeKeyIndex % pairs.length} was rate limited (429). Rotating key.`);
+        activeKeyIndex++;
+        continue;
+      }
+      
+      if (response.ok && response.headers.get("content-type")?.includes("application/json")) {
+        const clone = response.clone();
+        try {
+          const json = await clone.json();
+          if (json && (json.error === "rate_limited" || json.detail?.includes("rate_limited"))) {
+            console.warn(`Renaiss Index API response returned rate_limited error. Rotating key.`);
+            activeKeyIndex++;
+            continue;
+          }
+        } catch (_e) {
+          // Ignore JSON parse errors
+        }
+      }
+      
+      return response;
+    } catch (err) {
+      console.error(`Request to ${url} failed:`, err);
+      if (attempt === maxAttempts - 1) {
+        throw err;
+      }
+    }
+  }
+  
+  return fetch(url, { headers: getRenaissIndexHeaders() });
+}
+
 // Curated Database of high-value cards on Renaiss Protocol for marketplace simulation
 export interface RenaissCard {
   id: string;
@@ -83,10 +155,10 @@ function indexResultToCard(item: any, overrides?: { tokenId?: string; owner?: st
       }))
     : [{ date: new Date().toISOString().split("T")[0], price: fmvUsd }];
 
-  const cardUrl = item.href
-    ? `https://index.renaissos.com${item.href}`
-    : overrides?.tokenId
-      ? `https://www.renaiss.xyz/card/${overrides.tokenId}`
+  const cardUrl = overrides?.tokenId
+    ? `https://www.renaiss.xyz/card/${overrides.tokenId}`
+    : item.href
+      ? `https://index.renaissos.com${item.href}`
       : "https://www.renaiss.xyz/marketplace";
 
   return {
@@ -187,7 +259,7 @@ async function fetchDynamicRenaissCards(
     // 1. Direct Cert Lookup (numeric cert number)
     if (keyword && /^[0-9]{6,12}$/.test(keyword.trim())) {
       try {
-        const certRes = await fetch(`https://api.renaissos.com/v1/graded/${keyword.trim()}`);
+        const certRes = await fetchRenaissIndex(`https://api.renaissos.com/v1/graded/${keyword.trim()}`);
         if (certRes.ok && certRes.headers.get("content-type")?.includes("application/json")) {
           const certData = await certRes.json();
           if (certData && certData.found && certData.card) {
@@ -218,7 +290,7 @@ async function fetchDynamicRenaissCards(
 
     if (searchQuery.trim().length >= 2) {
       try {
-        const searchRes = await fetch(
+        const searchRes = await fetchRenaissIndex(
           `https://api.renaissos.com/v1/search?q=${encodeURIComponent(searchQuery.trim())}&limit=30`
         );
         if (searchRes.ok) {
@@ -260,11 +332,21 @@ async function fetchDynamicRenaissCards(
       const mSet = (item.setName || "").toLowerCase();
       const fullMText = `${mName} ${mSet} ${mCardNum}`;
 
+      const getCardNumFromName = (name: string) => {
+        const m = name.match(/#([a-zA-Z0-9\-_]+)/);
+        return m ? m[1].replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
+      };
+
       // Check current run's merged cards
       for (const c of mergedCards) {
         if (!c.imageUrl) continue;
         const cName = c.name.toLowerCase();
         const cSet = c.set.toLowerCase();
+
+        const siblingNum = getCardNumFromName(c.name);
+        if (mCardNum && siblingNum && mCardNum !== siblingNum) {
+          continue;
+        }
 
         const fullSText = `${cName} ${cSet}`;
         if (hasSetCodeMismatch(fullMText, fullSText)) {
@@ -284,6 +366,11 @@ async function fetchDynamicRenaissCards(
         if (!c.imageUrl) continue;
         const cName = c.name.toLowerCase();
         const cSet = c.set.toLowerCase();
+
+        const siblingNum = getCardNumFromName(c.name);
+        if (mCardNum && siblingNum && mCardNum !== siblingNum) {
+          continue;
+        }
 
         const fullSText = `${cName} ${cSet}`;
         if (hasSetCodeMismatch(fullMText, fullSText)) {
@@ -310,7 +397,7 @@ async function fetchDynamicRenaissCards(
       // If no match, try a targeted search by pokemonName (limit search rate to prevent blocks)
       if (!match && item.pokemonName && item.pokemonName.length > 2 && indexResults.length < 5) {
         try {
-          const nameSearchRes = await fetch(
+          const nameSearchRes = await fetchRenaissIndex(
             `https://api.renaissos.com/v1/search?q=${encodeURIComponent(item.pokemonName)}&limit=10`
           );
           if (nameSearchRes.ok) {
@@ -326,7 +413,7 @@ async function fetchDynamicRenaissCards(
         const card = indexResultToCard(match, {
           tokenId: item.tokenId,
           owner: item.ownerAddress,
-          askPrice: askPrice || fmvFallback,
+          askPrice: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
           vaultLocation: item.vaultLocation,
         });
         card.certNumber = certNum;
@@ -347,14 +434,14 @@ async function fetchDynamicRenaissCards(
             grade: parseInt(item.grade) || 10,
             certNumber: certNum,
             imageUrl: sibling.imageUrl,
-            priceUsd: askPrice || fmvFallback,
-            fmvUsd: sibling.fmvUsd || fmvFallback,
+            priceUsd: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
+            fmvUsd: fmvFallback,
             owner: item.ownerAddress || "",
             vaultStatus: "Vaulted",
             vaultLocation: item.vaultLocation || "platform",
             ip: sibling.ip,
             priceHistory: sibling.priceHistory,
-            cardUrl: sibling.cardUrl,
+            cardUrl: `https://www.renaiss.xyz/card/${item.tokenId}`,
             grader: (item.gradingCompany as "PSA" | "BGS" | "CGC") || "PSA",
           };
           mergedCards.push(card);
@@ -367,14 +454,12 @@ async function fetchDynamicRenaissCards(
 
           if (serialAttr) {
             try {
-              const certRes = await fetch(`https://api.renaissos.com/v1/graded/${serialAttr.value}`);
+              const certRes = await fetchRenaissIndex(`https://api.renaissos.com/v1/graded/${serialAttr.value}`);
               if (certRes.ok && certRes.headers.get("content-type")?.includes("application/json")) {
                 const certData = await certRes.json();
                 if (certData?.found && certData.card) {
                   imageUrl = certData.card.imageUrl || certData.certImages?.item || certData.certImages?.front || "";
-                  if (certData.card.href) {
-                    cardUrl = `https://index.renaissos.com${certData.card.href}`;
-                  }
+                  // Always use marketplace URL for listed cards, not the Index page
                   spark = certData.card.spark || [];
                 }
               }
@@ -403,7 +488,7 @@ async function fetchDynamicRenaissCards(
             grade: parseInt(item.grade) || 10,
             certNumber: certNum,
             imageUrl,
-            priceUsd: askPrice || fmvFallback,
+            priceUsd: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
             fmvUsd: fmvFallback,
             owner: item.ownerAddress || "",
             vaultStatus: "Vaulted",
@@ -419,15 +504,9 @@ async function fetchDynamicRenaissCards(
       }
     }
 
-    // 5. Add Index-only results that weren't matched to a marketplace listing
-    for (const idxItem of indexResults) {
-      if (idxItem.href && !usedIndexHrefs.has(idxItem.href)) {
-        const card = indexResultToCard(idxItem);
-        if (!mergedCards.some((c) => c.cardUrl === card.cardUrl)) {
-          mergedCards.push(card);
-        }
-      }
-    }
+    // 5. Index-only results are intentionally NOT added here.
+    // We only show cards with active marketplace listings (real ask prices).
+    // Index data is used only for images and FMV, not to populate results.
 
     // 6. Post-process sibling matching to fill in any remaining empty images
     for (const card of mergedCards) {
@@ -454,7 +533,7 @@ async function fetchDynamicRenaissCards(
 // 1. Search Renaiss Cards
 export const searchRenaissCards = tool({
   description:
-    "Search the Renaiss marketplace for vaulted collectible cards. Supports filtering by keyword, IP (Pokemon, OnePiece), minimum PSA grade, maximum price, and sorting. Returns card names, sets, prices, rarity, image URLs, and certification numbers.",
+    "Search the Renaiss marketplace for collectible cards (listed and unlisted). Only returns cards that exist on the marketplace — cards found only on the Index are excluded. Supports filtering by keyword, IP (Pokemon, OnePiece), minimum PSA grade, maximum price, and sorting. Returns card names, sets, listing prices, FMV, rarity, image URLs, and certification numbers.",
   parameters: z.object({
     keyword: z
       .string()
@@ -577,7 +656,7 @@ export const getRenaissMarketTrends = tool({
     // Fetch featured movers from the Index API
     let topGaining: { name: string; deltaPct: number | null; href: string }[] = [];
     try {
-      const featuredRes = await fetch("https://api.renaissos.com/v1/cards/featured?limit=6");
+      const featuredRes = await fetchRenaissIndex("https://api.renaissos.com/v1/cards/featured?limit=6");
       if (featuredRes.ok) {
         const featuredData = await featuredRes.json();
         const cards = featuredData.cards || [];
