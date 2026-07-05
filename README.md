@@ -39,7 +39,8 @@
   - [BNB Chain](#-bnb-chain-integration)
   - [Monad Ecosystem](#monad-ecosystem-deep-integration)
   - [Shelby Protocol](#-shelby-protocol--decentralized-storage--nft-minting)
-  - [Sui & Walrus Ecosystem](#-sui--walrus-ecosystem--agentic-web--decentralized-storage)
+  - [Sui & Walrus Ecosystem](#-sui--walrus-ecosystem--agentic-web--persistent-memory)
+  - [Renaiss Protocol](#-renaiss-protocol--collectibles-marketplace--zero-knowledge-gacha)
 - [x402 Crypto Payment Protocol](#x402-crypto-payment-protocol)
 - [Security](#security)
 - [Project Structure](#project-structure)
@@ -400,6 +401,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
 | **Sui & Walrus** | 15 | RPC queries, BlockVision address activity, checkpoints, whale tracker, entity intelligence, DeFi & MCP directory, **embedded Sui agent wallet, transfers, DeFi strategy planner** |
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
+| **Renaiss Protocol** | 8 | Search collectible cards (listed & unlisted), card price history & Fair Market Value (FMV), PSA/CGC/BGS cert lookup, volume trends, target alert watchlists, zero-knowledge gacha packs & draws |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
 
 ### Cronos zkEVM Direct Tools
@@ -953,6 +955,74 @@ Plan a balanced DeFi strategy for my Sui wallet with a budget of 10 SUI
 ```
 ```
 Transfer 0.1 SUI to 0x76c2438fb6541f44dff91e472d3b01461e550e19081f959d805c8e42f900e7f7811 on Sui testnet
+```
+
+---
+
+### 💎 Renaiss Protocol — Collectibles Marketplace & Zero-Knowledge Gacha
+
+Barzakh AI features deep integration with the **Renaiss Protocol** (on BNB Chain), allowing users to explore vaulted collectible cards (Pokémon and One Piece), trace certified slab valuations, manage watchlist drop alerts, and interact with zero-knowledge verifiable card gacha packs.
+
+#### 🛠️ Available Renaiss Tools
+
+| Tool | Parameters | Function |
+|------|------------|----------|
+| `searchRenaissCards` | `keyword`, `ip`, `minGrade`, `maxPrice`, `sortBy` | Search the Renaiss marketplace for collectible cards (listed & unlisted). Excludes index-only records to guarantee marketplace existence. |
+| `getRenaissCardPrice` | `cardId` | Check current listing price, Fair Market Value (FMV), and discrepancy premium/discount indicators. |
+| `getRenaissCardDetails` | `cardId` | Fetch verified PSA/CGC/BGS cert details, scan images, and historical sales chart metrics. |
+| `getRenaissMarketTrends` | `ip` | Fetch 24h trading volume overview, top gainers, and trending marketplace listings. |
+| `analyzeRenaissCollection` | `address` | Run a real-time `balanceOf` scan on the BNB Chain contract to evaluate a wallet's vault collection value. |
+| `watchRenaissCard` | `cardId`, `targetPrice` | Setup drops alerts or buy-triggers for a specific card. |
+| `getRenaissPacks` | None | List active card booster packs available for gacha draws. |
+| `getRenaissPackDetails` | `packSlug` | Fetch expected value (EV), top card drop rates, recent pulls, and zero-knowledge fairness metrics. |
+
+#### 🔑 Environment Configurations & API Key Rotation
+
+To avoid getting hit by the anonymous `10 requests/day per IP` rate limit in production, configure partner-tier API credentials in your `.env` file. Barzakh AI supports **automatic API key rotation** across multiple key pairs:
+
+```env
+# Comma-separated API credentials for rotation (10k requests/day per key)
+RENAISS_X_API_KEY=key_1, key_2, key_3
+RENAISS_X_API_SECRET=secret_1, secret_2, secret_3
+```
+
+- **Failover & Rotation**: The AI agent automatically monitors responses. If a key hits a `429 Too Many Requests` or JSON `"rate_limited"` error, it rotates to the next key pair in the list and retries the request transparently.
+- **Listed & Unlisted Separation**: Listed items display their current ask price, while unlisted/vaulted cards are clearly labeled as **"Unlisted"** or **"Vaulted (Unlisted)"** on the frontend, using their FMV index value for reference only.
+
+#### 🎯 Try It — Renaiss Use Cases
+
+> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+
+##### 🔍 Marketplace Search & Pricing
+```
+Search the Renaiss marketplace for Luffy cards with a minimum grade of 9
+```
+```
+What is the price and FMV of the OP07 Boa Hancock card?
+```
+```
+Show me Pokémon cards listed under $200
+```
+
+##### 📈 Market Trends & Whale Intelligence
+```
+What are the trending cards and market overview on Renaiss?
+```
+```
+Explain the top gainers on the One Piece card market today
+```
+
+##### 🎲 Zero-Knowledge Booster Packs & Gacha
+```
+What gacha card packs are available on Renaiss?
+```
+```
+Show details and expected value for the Eden pack
+```
+
+##### 📊 Wallet Collections
+```
+Analyze my collections for wallet 0x39ba5db37996cba53d12275cd66b05fce14b8765 on BNB Chain
 ```
 
 ---
