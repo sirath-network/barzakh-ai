@@ -20,7 +20,7 @@ export interface DelegationCredentials {
   walletApiKey: string;
   keyShare?: unknown;
   walletAddress: string;
-  chain: "evm" | "svm" | "solana" | "sui";
+  chain: "evm" | "svm" | "solana";
   userId: string;
   delegatedAt: Date;
   revokedAt?: Date;

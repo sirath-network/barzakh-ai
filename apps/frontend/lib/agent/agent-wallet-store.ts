@@ -27,7 +27,7 @@ import type { DelegationCredentials } from "./dynamic-agent-wallet";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type WalletChain = "evm" | "solana" | "sui";
+export type WalletChain = "evm" | "solana";
 
 export interface AgentTransaction {
   id: string;
@@ -82,13 +82,6 @@ export async function createAgentWallet(
     walletAddress = keypair.publicKey.toBase58();
     // Store the full 64-byte secret key as base64
     privateKey = Buffer.from(keypair.secretKey).toString("base64");
-  } else if (chain === "sui") {
-    // Generate Sui Ed25519 keypair using the official Mysten SDK.
-    // Store the SDK's bech32 secret key string (suiprivkey...) encrypted.
-    const { Ed25519Keypair } = await import("@mysten/sui/keypairs/ed25519");
-    const keypair = Ed25519Keypair.generate();
-    walletAddress = keypair.getPublicKey().toSuiAddress();
-    privateKey = keypair.getSecretKey();
   } else {
     // Generate EVM keypair using viem
     const { generatePrivateKey, privateKeyToAccount } = await import("viem/accounts");

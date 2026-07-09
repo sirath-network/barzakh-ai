@@ -25,7 +25,7 @@ export default async function Page({
     searchParams ?? Promise.resolve<{ group?: string }>({}),
   ]);
   const modelIdFromCookie = cookieStore.get("chat-model");
-  const initialGroup: SearchGroupId = params?.group === "sui" ? "sui" : "search";
+  const initialGroup: SearchGroupId = "search";
 
   if (!modelIdFromCookie) {
     return (

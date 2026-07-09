@@ -67,8 +67,12 @@ function sleep(ms: number): Promise<void> {
 }
 
 function formatAggregateErrorForLog(err: unknown): string {
+  // ponytail: recursively unwrap cause and format AggregateError errors
   if (err instanceof AggregateError && Array.isArray(err.errors)) {
-    return err.errors.map((e) => (e instanceof Error ? e.message : String(e))).join("; ");
+    return err.errors.map((e) => formatAggregateErrorForLog(e)).join("; ");
+  }
+  if (err && typeof err === "object" && "cause" in err && (err as { cause?: unknown }).cause) {
+    return formatAggregateErrorForLog((err as { cause: unknown }).cause);
   }
   return err instanceof Error ? err.message : String(err);
 }
@@ -426,12 +430,7 @@ export const webSearch = tool({
               transientAttempt < MAX_TRANSIENT_RETRIES
             ) {
               transientAttempt++;
-              const detail =
-                error instanceof AggregateError
-                  ? formatAggregateErrorForLog(error)
-                  : error instanceof Error
-                    ? error.message
-                    : String(error);
+              const detail = formatAggregateErrorForLog(error);
               console.warn(
                 `[WEB-SEARCH] Transient Tavily error (${topic}), retry ${transientAttempt}/${MAX_TRANSIENT_RETRIES}: ${detail}`
               );
@@ -453,7 +452,7 @@ export const webSearch = tool({
               const c = (error as { cause: unknown }).cause;
               console.error(
                 `[WEB-SEARCH] Tavily failed (${query} / ${topic}) cause:`,
-                c instanceof Error ? c.message : c
+                formatAggregateErrorForLog(c)
               );
             }
 
@@ -539,12 +538,7 @@ export const webSearch = tool({
           allSearchResults.push(settled.value);
         } else {
           const reason = settled.reason;
-          const detail =
-            reason instanceof AggregateError
-              ? formatAggregateErrorForLog(reason)
-              : reason instanceof Error
-                ? reason.message
-                : String(reason);
+          const detail = formatAggregateErrorForLog(reason);
           const msg = `Tavily search failed for query "${combo?.query}" topic "${combo?.topic}": ${detail}`;
           console.error(`[WEB-SEARCH] ${msg}`);
           tavilyFailureDetails.push(msg);

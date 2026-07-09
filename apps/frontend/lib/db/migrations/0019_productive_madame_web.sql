@@ -43,7 +43,6 @@ CREATE TABLE "GuestSession" (
 ALTER TABLE "RelaySwapTracking" DROP CONSTRAINT "RelaySwapTracking_swapRequestId_unique";--> statement-breakpoint
 ALTER TABLE "Chat" ADD COLUMN "isTemporary" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "Chat" ADD COLUMN "expiresAt" timestamp;--> statement-breakpoint
-ALTER TABLE "User" ADD COLUMN "walrusMemoryBlobId" text;--> statement-breakpoint
 ALTER TABLE "AgentDelegation" ADD CONSTRAINT "AgentDelegation_userId_User_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "AgentTransaction" ADD CONSTRAINT "AgentTransaction_userId_User_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "AgentWallet" ADD CONSTRAINT "AgentWallet_userId_User_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

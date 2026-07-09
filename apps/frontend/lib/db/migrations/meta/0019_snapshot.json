@@ -1188,12 +1188,6 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
-        },
-        "walrusMemoryBlobId": {
-          "name": "walrusMemoryBlobId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},

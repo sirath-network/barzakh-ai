@@ -193,7 +193,7 @@ interface ChainInfo {
     patterns: RegExp[];
     keywords: string[];
     tokens: string[]; // Native or major tokens
-    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos' | 'sui' | 'bitcoin' | 'tron' | 'ton' | 'dogecoin';
+    addressFormat: 'evm' | 'base58' | 'sei' | 'aptos' | 'bitcoin' | 'tron' | 'ton' | 'dogecoin';
     isEvm: boolean;
 }
 
@@ -326,30 +326,7 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'base58',
         isEvm: false,
     },
-    // Sui (non-EVM, 32-byte 0x Move addresses; explicit Sui wording required to avoid Aptos ambiguity)
-    {
-        id: 'sui',
-        intent: 'sui',
-        patterns: [
-            /\bsui\b/i,
-            /\bsui\s+(network|chain|blockchain|wallet|portfolio|balance|holdings|address|object|objects|move|walrus|deepbook|bridge|mcp|agent|agents?|agentic|overflow)\b/i,
-            /\b(sui|suiwallet|slush|suiet)\s*wallet\b/i,
-            /\b(walrus|deepbook|mysten|suins|suiscan|sui\s*explorer)\b/i,
-            /\b(move\s+objects?|move\s+package|programmable\s+transaction|ptb)\b.*\bsui\b/i,
-            /\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer)\b.*\bsui\b/i,
-            /\bsui\b.*\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer|whale|arkham)\b/i,
-            /\barkham\b.*\bsui\b/i,
-            /\bsui\b.*\barkham\b/i,
-            /\b(whale|whales|large\s+(address|holder|holders)|top\s+holders?)\b.*\bsui\b/i,
-        ],
-        keywords: ['sui', 'sui network', 'sui chain', 'sui blockchain', 'sui wallet', 'sui portfolio',
-            'sui balance', 'sui holdings', 'sui address', 'sui object', 'move objects', 'walrus',
-            'deepbook', 'mysten', 'suiscan', 'sui explorer', 'suins', 'slush wallet', 'sui overflow',
-            'agentic web', 'sui mcp', 'waterx', 'beep a402', 'sui whale', 'arkham sui'],
-        tokens: ['SUI', 'WAL', 'DEEP'],
-        addressFormat: 'sui',
-        isEvm: false,
-    },
+
     // Aptos (non-EVM, 64-char hex)
     {
         id: 'aptos',
@@ -609,52 +586,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
     // These must be checked BEFORE generic on_chain to prevent misrouting
     // =========================================================================
 
-    // Sui-specific
-    {
-        intent: "sui",
-        patterns: [
-            /\bsui\b/i,
-            /\bsui\s+(network|chain|blockchain|wallet|portfolio|balance|holdings|address|object|objects|move|walrus|deepbook|bridge|mcp|agent|agents?|agentic|overflow|price|chart)\b/i,
-            /\b(sui|suiwallet|slush|suiet)\s*wallet\b/i,
-            /\b(walrus|deepbook|mysten|suins|suiscan|sui\s*explorer)\b/i,
-            /\b(move\s+objects?|move\s+package|programmable\s+transaction|ptb)\b.*\bsui\b/i,
-            /\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer)\b.*\bsui\b/i,
-            /\bsui\b.*\b(portfolio|wallet|balance|holdings|track|show|view|analyze|trace|monitor|bridge|send|transfer|whale|arkham)\b/i,
-            /\barkham\b.*\bsui\b/i,
-            /\bsui\b.*\barkham\b/i,
-            /\b(whale|whales|large\s+(address|holder|holders)|top\s+holders?)\b.*\bsui\b/i,
-            /\bsui\b.*\b(whale|whales|large\s+(address|holder|holders)|top\s+holders?)\b/i,
-        ],
-        keywords: [
-            "sui", "sui network", "sui chain", "sui blockchain", "sui wallet", "sui portfolio",
-            "sui balance", "sui holdings", "sui address", "sui object", "move objects",
-            "walrus", "deepbook", "mysten", "suiscan", "sui explorer", "suins", "slush wallet",
-            "sui overflow", "sui mcp", "waterx", "beep a402", "sui whale", "arkham sui",
-        ],
-        priority: 95,
-    },
 
-    // World Cup / Walrus Memory / Prediction Oracle (routes to sui)
-    // Catches prediction prompts like "Japan vs Sweden, I predict Japan wins"
-    // so they route to the sui group which has saveWorldCupMemory tools
-    {
-        intent: "sui",
-        patterns: [
-            /\b(world\s*cup|fifa|world\s*cup\s*2026)\b/i,
-            /\b(predict|prediction|predictions?)\b.*\b(win|winner|lose|loser|draw|score|match|game|vs|versus)\b/i,
-            /\b(japan|sweden|mexico|france|spain|argentina|brazil|germany|england|portugal|italy|netherlands|belgium|croatia|uruguay|colombia|usa|canada|morocco|senegal|qatar|saudi|korea|australia|iran|wales|serbia|switzerland|cameroon|ghana|ecuador|costa\s*rica|tunisia|poland|denmark|czech|scotland|norway|chile)\b.*\b(win|wins|beat|beats|defeat|defeats|vs|versus|against)\b/i,
-            /\b(walrus\s*memory|world\s*cup\s*memory|prediction\s*memory|my\s*predictions?)\b/i,
-            /\b(bet|bets|betting|polymarket|prediction\s*market)\b.*\b(world\s*cup|fifa|match|game|team)\b/i,
-            /\b(roast|contradiction|contradictions?)\b.*\b(prediction|bet|pick|opinion)\b/i,
-            /\bi\s+(predict|think|believe|bet)\b.*\b(win|wins|beat|beats|defeat|defeats|advance|qualify|champion)\b/i,
-        ],
-        keywords: [
-            "world cup", "world cup 2026", "fifa", "walrus memory", "prediction memory",
-            "my predictions", "prediction market", "polymarket bet", "world cup prediction",
-            "i predict", "i think wins", "world cup roast", "prediction contradiction",
-        ],
-        priority: 96,
-    },
 
     // Aptos-specific
     {
@@ -946,7 +878,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             /\b(swap|bridge|transfer|send|move|convert)\b.*\b([a-z0-9]+)\b.*\b(to|into|for)\b.*\b([a-z0-9]+)\b/i,
 
             // Token specific swaps
-            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|sui|wal|deep|btc|trx|cro|mnt|zeta|mon)\b/i,
+            /\b(swap|bridge)\b.*\b(eth|usdc|usdt|weth|wbtc|cbbtc|dai|sol|btc|trx|cro|mnt|zeta|mon)\b/i,
 
             // Cross-chain terminology
             /\b(cross[-\s]?chain|cross[-\s]?network|inter[-\s]?chain)\b/i,
@@ -956,8 +888,8 @@ const INTENT_PATTERNS: IntentPattern[] = [
         keywords: [
             "cross-chain swap", "cross-chain bridge", "bridge eth", "swap eth",
             "bridge usdc", "swap usdc", "bridge sol", "swap sol", "swap mon",
-            "from optimism", "from arbitrum", "from base", "from ethereum", "from solana", "from sui", "from monad",
-            "to optimism", "to arbitrum", "to base", "to ethereum", "to solana", "to sui", "to monad",
+            "from optimism", "from arbitrum", "from base", "from ethereum", "from solana", "from monad",
+            "to optimism", "to arbitrum", "to base", "to ethereum", "to solana", "to monad",
             "relay swap", "relay bridge", "gasless swap",
         ],
         priority: 97,
@@ -987,7 +919,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
             // Chain references (Generic List)
             /\b(ethereum|eth|evm|mainnet)\b/i,
             /\b(optimism|arbitrum|base|polygon|linea|scroll|zksync|blast|manta|mode|avalanche|bsc|bnb|fantom|gnosis|celo|aurora|metis)\b/i,
-            /\b(bitcoin|btc|tron|trx|solana|sol|sui|walrus|deepbook|ton|dogecoin|doge|zcash|flare|sonic|blast|linea|manta|mantle|abstract|berachain|unichain)\b/i,
+            /\b(bitcoin|btc|tron|trx|solana|sol|ton|dogecoin|doge|zcash|flare|sonic|blast|linea|manta|mantle|abstract|berachain|unichain)\b/i,
         ],
         keywords: [
             "portfolio", "wallet balance", "token balance", "check wallet",
@@ -1201,7 +1133,6 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "on_chain": Blockchain / crypto queries (wallets, portfolios, tokens, transactions, DeFi, cross-chain swaps, bridges between L2s like Optimism/Arbitrum/Base/Polygon)
     - "aptos": Aptos blockchain specific queries
     - "sei": Sei network specific queries
-    - "sui": Sui blockchain specific queries (SUI, Walrus, DeepBook, Move objects, Sui portfolios, SuiScan, Sui MCP/Agentic Web, Sui whale/Arkham tracing, World Cup predictions/memory/oracle via Walrus Memory, sports prediction bets like "Japan vs Sweden I predict Japan wins")
     - "solana": Solana blockchain specific queries
     - "cronos": Cronos blockchain specific queries (CRO, VVS Finance, crypto.com chain)
     - "coding": Code writing, debugging, programming help
@@ -1241,7 +1172,7 @@ CRITICAL RULES:
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):
 - EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei, renaiss): Accept "0x..." addresses (40 hex chars)
-- Sui and Aptos both use 32-byte "0x..." addresses (64 hex chars); classify as "sui" only when Sui/SUI/Walrus/DeepBook/SuiScan context is present, otherwise Aptos context may apply.
+- Aptos uses 32-byte "0x..." addresses (64 hex chars); classify 64-char addresses as "aptos".
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
     - A Base58 address (32-44 alphanumeric chars): Classify as "solana"
@@ -1269,7 +1200,6 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                     "on_chain",
                     "aptos",
                     "sei",
-                    "sui",
                     "solana",
                     "cronos",
                     "coding",
@@ -1358,8 +1288,7 @@ JSON Response:`,
                 const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
                 const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
                 const hasMoveAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
-                const hasAptosAddress = hasMoveAddress && !/\b(sui|walrus|deepbook|suiscan|mysten|slush)\b/i.test(message);
-                const hasSuiAddress = hasMoveAddress && /\b(sui|walrus|deepbook|suiscan|mysten|slush)\b/i.test(message);
+                const hasAptosAddress = hasMoveAddress;
                 const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
 
                 // If address format conflicts with context, override it
@@ -1396,17 +1325,7 @@ JSON Response:`,
                         classificationMethod: "fallback",
                     };
                 }
-                if (chatContext !== 'sui' && hasSuiAddress) {
-                    console.log("[INTENT] LLM fallback: Sui address/context detected, using sui");
-                    return {
-                        primaryIntent: 'sui',
-                        confidence: 0.7,
-                        indicators: ['fallback:sui_address_detected'],
-                        requiresMultiTool: false,
-                        classificationMethod: "fallback",
-                    };
-                }
-                if (chatContext !== 'aptos' && chatContext !== 'sui' && hasAptosAddress) {
+                if (chatContext !== 'aptos' && hasAptosAddress) {
                     console.log("[INTENT] LLM fallback: Aptos address detected, using aptos");
                     return {
                         primaryIntent: 'aptos',
@@ -1467,7 +1386,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sui', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1518,7 +1437,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'sui', 'solana'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -1629,8 +1548,7 @@ export async function classifyIntent(
         const hasEvmAddress = /\b0x[a-fA-F0-9]{40}\b/.test(message);
         const hasSolanaAddress = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/.test(message);
         const hasMoveAddress = /\b0x[a-fA-F0-9]{64}\b/.test(message);
-        const hasSuiAddress = hasMoveAddress && /\b(sui|walrus|deepbook|suiscan|mysten|slush)\b/i.test(message);
-        const hasAptosAddress = hasMoveAddress && !hasSuiAddress;
+        const hasAptosAddress = hasMoveAddress;
         const hasSeiAddress = /\bsei1[a-z0-9]{38,}\b/.test(message);
 
         // Define which chains support EVM addresses (0x format)
@@ -1650,16 +1568,12 @@ export async function classifyIntent(
         const addressMismatchesContext = (
             // User has Solana context but provided EVM address (not a Solana address)
             (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) ||
-            // User has Sui context but provided 40-char EVM address (Sui uses 64-char 0x addresses)
-            (chatContext === 'sui' && hasEvmAddress && !hasSuiAddress) ||
             // User has Aptos context but provided 40-char EVM address (Aptos uses 64-char)
             (chatContext === 'aptos' && hasEvmAddress && !hasAptosAddress) ||
             // User has EVM-compatible context but provided Solana address (and no EVM address)
             (EVM_COMPATIBLE_CHAINS.includes(chatContext) && hasSolanaAddress && !hasEvmAddress) ||
-            // User has non-Sui context but provided Sui-marked 64-char Move address
-            (chatContext !== 'sui' && hasSuiAddress) ||
-            // User has non-Aptos/Sui context but provided unqualified 64-char Move address (default legacy behavior: Aptos)
-            (chatContext !== 'aptos' && chatContext !== 'sui' && hasAptosAddress) ||
+            // User has non-Aptos context but provided unqualified 64-char Move address (default legacy behavior: Aptos)
+            (chatContext !== 'aptos' && hasAptosAddress) ||
             // User has non-Sei context but provided native Sei address (sei1...)
             // Note: If user provides 0x address, they might still want Sei EVM, so only switch for sei1...
             (!EVM_COMPATIBLE_CHAINS.includes(chatContext) && chatContext !== 'sei' && hasSeiAddress)
@@ -1683,19 +1597,6 @@ export async function classifyIntent(
                     primaryIntent: 'sei',
                     confidence: 0.8,
                     indicators: ['address_mismatch:sei_address_detected'],
-                    requiresMultiTool: false,
-                    classificationMethod: 'pattern',
-                };
-            }
-            // Sui-marked 64-char Move address/context
-            if (hasSuiAddress) {
-                console.log(
-                    `[INTENT] Sui address/context detected in ${chatContext} context - switching to sui in ${Date.now() - startTime} ms`
-                );
-                return {
-                    primaryIntent: 'sui',
-                    confidence: 0.8,
-                    indicators: ['address_mismatch:sui_address_detected'],
                     requiresMultiTool: false,
                     classificationMethod: 'pattern',
                 };
@@ -1792,7 +1693,7 @@ export function hasBlockchainIndicators(message: string): boolean {
     const blockchainPatterns = [
         /\b0x[a-fA-F0-9]{40}\b/, // EVM address
         /\b[a-zA-Z0-9_-]+\.eth\b/i, // ENS
-        /\b(wallet|portfolio|balance|token|nft|defi|blockchain|crypto|sui|walrus|deepbook|suiscan)\b/i,
+        /\b(wallet|portfolio|balance|token|nft|defi|blockchain|crypto)\b/i,
     ];
 
     return blockchainPatterns.some((p) => p.test(message));
@@ -1805,12 +1706,10 @@ export function extractWalletAddresses(message: string): {
     evm: string[];
     ens: string[];
     solana: string[];
-    sui: string[];
 } {
     const evmPattern = /\b(0x[a-fA-F0-9]{40})\b/g;
     const ensPattern = /\b([a-zA-Z0-9_-]+\.eth)\b/gi;
     const solanaPattern = /\b([1-9A-HJ-NP-Za-km-z]{32,44})\b/g;
-    const suiPattern = /\b(0x[a-fA-F0-9]{64})\b/g;
 
     return {
         evm: [...message.matchAll(evmPattern)].map((m) => m[1]),
@@ -1818,6 +1717,5 @@ export function extractWalletAddresses(message: string): {
         solana: [...message.matchAll(solanaPattern)]
             .map((m) => m[1])
             .filter((addr) => !addr.match(/^0x/)), // Exclude EVM-like strings
-        sui: [...message.matchAll(suiPattern)].map((m) => m[1]),
     };
 }

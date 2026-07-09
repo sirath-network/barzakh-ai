@@ -89,7 +89,6 @@ const getChainLogo = (chain: string, iconUrl?: string): string => {
     zksync: "https://chain-icons.s3.amazonaws.com/chainlist/324",
     zora: "https://chain-icons.s3.amazonaws.com/zora",
     solana: "https://chain-icons.s3.amazonaws.com/solana.png",
-    sui: "https://chain-icons.s3.amazonaws.com/sui.png",
   };
 
   return zerionChainIcons[chain.toLowerCase()] || "https://chain-icons.s3.amazonaws.com/ethereum.png";

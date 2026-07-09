@@ -42,8 +42,8 @@ interface GroupOptionListProps extends GroupSelectorProps {
 }
 
 const TAILWIND_MD_BREAKPOINT = 768;
-const getGroupListIconSize = (groupId: string) => groupId === "sui" ? 20 : 28;
-const getSelectedChipIconSize = (groupId: string) => groupId === "sui" ? 14 : 20;
+const getGroupListIconSize = (groupId: string) => 28;
+const getSelectedChipIconSize = (groupId: string) => 20;
 
 // --- Search functionality ---
 const useGroupSearch = (groups: SearchGroup[], query: string) => {

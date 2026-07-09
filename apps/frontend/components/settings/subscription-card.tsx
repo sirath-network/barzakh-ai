@@ -353,7 +353,7 @@ export function SubscriptionCard({
                         }}
                       >
                         <div
-                          className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-red-900/60 bg-white dark:bg-black/90 p-6 shadow-2xl ring-1 ring-gray-900/5 dark:ring-red-500/10"
+                          className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-zinc-800/50 bg-white dark:bg-zinc-900 p-6 shadow-2xl ring-1 ring-gray-900/5 dark:ring-zinc-800/10"
                           onClick={(event) => event.stopPropagation()}
                         >
                           <div className="space-y-4">
@@ -369,11 +369,11 @@ export function SubscriptionCard({
                             <div className="space-y-3">
                               {showImmediateCancelConfirm ? (
                                 <>
-                                  <div className="rounded-xl border border-gray-300 dark:border-red-800 bg-gray-50 dark:bg-red-950/30 px-4 py-4 text-sm text-gray-700 dark:text-red-200">
-                                    <p className="font-semibold text-gray-900 dark:text-red-200">
+                                  <div className="rounded-xl border border-gray-300 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/30 px-4 py-4 text-sm text-gray-700 dark:text-zinc-200">
+                                    <p className="font-semibold text-gray-900 dark:text-zinc-200">
                                       Cancel immediately?
                                     </p>
-                                    <p className="mt-2 text-xs text-gray-600 dark:text-red-300 leading-relaxed">
+                                    <p className="mt-2 text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
                                       This will end your Ultimate access right away and any remaining time in the current billing cycle will be forfeited. This action cannot be undone.
                                     </p>
                                   </div>
@@ -381,7 +381,7 @@ export function SubscriptionCard({
                                     <button
                                       type="button"
                                       onClick={() => setShowImmediateCancelConfirm(false)}
-                                      className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-red-900/40 text-sm font-semibold text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-red-900/30 transition-colors"
+                                      className="w-full sm:w-auto px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-800 text-sm font-semibold text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
                                     >
                                       Go back
                                     </button>
@@ -392,7 +392,7 @@ export function SubscriptionCard({
                                         await handleCancelSubscriptionImmediately();
                                       }}
                                       disabled={isUpdatingSubscription}
-                                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-red-600 text-white font-semibold text-sm transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold text-sm transition-colors hover:bg-zinc-800 dark:hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     >
                                       Yes, cancel now
                                     </button>
@@ -406,7 +406,7 @@ export function SubscriptionCard({
                                       await handleCancelSubscriptionAtPeriodEnd();
                                     }}
                                     disabled={isUpdatingSubscription}
-                                    className="w-full rounded-xl border border-gray-200 dark:border-red-900/40 bg-gray-50/80 dark:bg-red-950/20 px-4 py-4 text-left transition-all hover:border-gray-300 hover:bg-white dark:hover:border-red-700/60 dark:hover:bg-red-900/40 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50 px-4 py-4 text-left transition-all hover:border-gray-300 hover:bg-white dark:hover:border-zinc-700 dark:hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
                                   >
                                     <span className="block text-sm font-semibold text-gray-900 dark:text-white">
                                       Cancel at end of period
@@ -419,13 +419,12 @@ export function SubscriptionCard({
                                   <button
                                     onClick={() => setShowImmediateCancelConfirm(true)}
                                     disabled={isUpdatingSubscription}
-                                    className="group relative w-full rounded-xl border-2 border-red-300 dark:border-red-700 bg-gradient-to-br from-red-50 to-white dark:from-red-950/60 dark:to-red-900/30 px-4 py-4 text-left transition-all hover:border-red-400 hover:shadow-lg hover:shadow-red-200/50 dark:hover:border-red-600 dark:hover:shadow-red-900/30 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
+                                    className="w-full rounded-xl border border-red-500 dark:border-red-600 px-4 py-4 text-left transition-all hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-60 disabled:cursor-not-allowed"
                                   >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-100/50 to-transparent dark:via-red-500/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                                    <span className="relative block text-sm font-semibold text-red-700 dark:text-red-200">
+                                    <span className="block text-sm font-semibold text-red-600 dark:text-red-300">
                                       Cancel immediately
                                     </span>
-                                    <span className="relative mt-2 block text-xs text-red-500 dark:text-red-300">
+                                    <span className="mt-2 block text-xs text-red-500 dark:text-red-400/80">
                                       End access right away and stop billing.
                                     </span>
                                   </button>

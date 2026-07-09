@@ -13,13 +13,8 @@ import { allTools, getGroupConfig } from "@barzakh/shared/lib/ai/prompts";
 import { classifyIntent, type IntentClassification, FORCED_MODEL_BY_GROUP } from "@barzakh/shared/lib/ai/intent-classifier";
 import { createFourMemeBuyTool, createFourMemeSellTool, createFourMemeLaunchTool, quoteFourMemeBuyTool, quoteFourMemeSellTool } from "@/lib/ai/tools/fourmeme-executor";
 import { createGetAgentWalletInfoTool, createGetAgentTokenBalanceTool } from "@/lib/ai/tools/agent-tools";
-import { createGetSuiAgentWalletInfoTool, createExecuteSuiTransferTool } from "@/lib/ai/tools/sui-agent-tools";
-import { createPlanSuiDeFiAgentStrategyTool } from "@/lib/ai/tools/sui-defi-agent-tools";
-import { withMemWal } from "@mysten-incubation/memwal/ai";
-
 import { createQuerySignalAgentTool } from "@/lib/ai/tools/agent-signal-tool";
 import { createAutonomousSubscriptionTool } from "@/lib/ai/tools/agent-subscription-tool";
-import { createSaveWorldCupMemoryTool, createSimulatePredictionMarketBetTool, createClearWorldCupMemoryTool, createGetLiveWorldCupMatchesTool } from "@/lib/ai/tools/worldcup-tools";
 import {
   decrementRemainingMessageCount,
   decrementGuestMessageCount,
@@ -258,80 +253,7 @@ function uniqueToolNames(toolNames: string[]): string[] {
   return Array.from(new Set(toolNames.filter((name): name is string => typeof name === "string" && name.length > 0)));
 }
 
-function narrowSuiActiveToolsForPrompt(toolNames: string[], promptText: string): string[] {
-  const text = promptText.toLowerCase();
-  const hasWorldCupIntent = /\b(world\s*cup|fifa|predictions?|picks?|opinions?|roasts?|contradictions?|bets?|polymarket|france|spain|argentina|brazil|germany|england)\b/i.test(text);
-  const hasWalrusIntent = /\b(walrus|store|upload|retrieve|blob|storage\s*price|save|archive)\b/i.test(text);
-  const hasBridgeIntent = /\b(bridge|sepolia|base\s*sepolia|arbitrum\s*sepolia|optimism\s*sepolia|usdc\s+from|to\s+sui|from\s+sui)\b/i.test(text);
-  const hasPortfolioIntent = /\b(portfolio|holdings?|balance|wallet|address\s+activity|transactions?|tx|object|checkpoint|whale|arkham|entity|exchange|trace|monitor)\b/i.test(text) || /\b(0x|Ox)?[a-fA-F0-9]{40,64}\b/i.test(text);
-  const hasMcpIntent = /\b(mcp|agentic\s+web|waterx|beep|a402|kapa|memwal|walrus\s+memory)\b/i.test(text);
 
-  let allowed: string[];
-
-  if (hasWorldCupIntent) {
-    allowed = [
-      "saveWorldCupMemory",
-      "simulatePredictionMarketBet",
-      "clearWorldCupMemory",
-      "getLiveWorldCupMatches",
-      "getSuiAgentWalletInfo",
-      "webSearch",
-      "getSiteContent",
-    ];
-  } else if (hasWalrusIntent) {
-    allowed = [
-      "getSuiAgentWalletInfo",
-      "saveWorldCupMemory",
-      "simulatePredictionMarketBet",
-      "clearWorldCupMemory",
-      "getLiveWorldCupMatches",
-    ];
-  } else if (hasBridgeIntent) {
-    allowed = [
-      "getSuiAgentWalletInfo",
-      "getSuiNativeBridgeInfo",
-    ];
-  } else if (hasPortfolioIntent) {
-    allowed = [
-      "getSuiAgentWalletInfo",
-      "getSuiNetworkStatus",
-      "getSuiBalance",
-      "getSuiPortfolio",
-      "getSuiAddressActivity",
-      "getSuiObject",
-      "getSuiTransaction",
-      "searchSuiCheckpoints",
-      "trackSuiWhaleActivity",
-      "getSuiExchangeAndEntityIntelligence",
-    ];
-  } else if (hasMcpIntent) {
-    allowed = [
-      "webSearch",
-      "getSiteContent",
-      "getSuiMcpEcosystem",
-      "getSuiDefiEcosystem",
-    ];
-  } else {
-    allowed = [
-      "webSearch",
-      "getSiteContent",
-      "getSuiNetworkStatus",
-      "getSuiBalance",
-      "getSuiPortfolio",
-      "getSuiAgentWalletInfo",
-      "getSuiDefiEcosystem",
-      "getSuiMcpEcosystem",
-      "saveWorldCupMemory",
-      "simulatePredictionMarketBet",
-      "clearWorldCupMemory",
-      "getLiveWorldCupMatches",
-    ];
-  }
-
-  const allowedSet = new Set(allowed);
-  const narrowed = uniqueToolNames(toolNames).filter((name) => allowedSet.has(name));
-  return narrowed.length > 0 ? narrowed : uniqueToolNames(toolNames);
-}
 
 function pickActiveTools<T extends Record<string, unknown>>(toolRegistry: T, activeToolNames: string[]): Partial<T> {
   const picked: Partial<T> = {};
@@ -386,8 +308,8 @@ function isFastRealtimeSearchMessage(text: string): boolean {
 
   // Do not let protocol/tool inspection prompts fall into the web-search fast lane
   // just because they contain words like "mainnet" or "live". These need the
-  // full intent router so Sui/DeepBook/portfolio tools can be selected.
-  if (/\b(inspect|analyze|query|check|show|get|fetch|lookup|pool|pools|order\s*book|deep\s*book|deepbook|sui[_\s-]?usdc|wal[_\s-]?sui|deep[_\s-]?sui|suiscan|walrus|arkham|whale|object|checkpoint|renaiss|card|cards|pack|packs|gacha|eden|omega|renacrypt|psa|bgs|cgc)\b/i.test(text)) {
+  // full intent router so portfolio tools can be selected.
+  if (/\b(inspect|analyze|query|check|show|get|fetch|lookup|pool|pools|arkham|whale|object|checkpoint|renaiss|card|cards|pack|packs|gacha|eden|omega|renacrypt|psa|bgs|cgc)\b/i.test(text)) {
     return false;
   }
 
@@ -665,7 +587,7 @@ export async function POST(request: Request) {
   const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
 
   // Chain-specific groups that support context persistence
-  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'sui', 'zeta', 'creditcoin', 'vana', 'flow', 'monad'] as const;
+  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad'] as const;
 
   // Extract chain context from chat history for follow-up message routing
   function extractChainContext(msgs: Array<Message>): string | null {
@@ -676,7 +598,6 @@ export async function POST(request: Request) {
       aptos: [/\baptos\b/i, /\bapt\s+(token|coin|balance)/i, /\bshelby\b/i], // removed 64-char hex to prevent stealing context
       sei: [/\bsei\b(?!\s*$)/i, /\bseitrace\b/i, /\bsei1[a-z0-9]{38,}\b/], // sei1... = Sei native
       solana: [/\bsolana\b/i, /\bsol\s+(token|coin|balance)/i, /\bphantom\b/i, /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/], // Base58 = Solana
-      sui: [/\bsui\b/i, /\bwalrus\b/i, /\bmove\s+(object|package|module|call)\b/i], // removed 64-char hex to prevent stealing context
       zeta: [/\bzetachain\b/i, /\bzeta\s+(network|chain)/i],
       creditcoin: [/\bcreditcoin\b/i, /\bctc\s+token/i],
       vana: [/\bvana\b/i],
@@ -710,18 +631,6 @@ export async function POST(request: Request) {
       // Then check for generic EVM (on_chain)
       if (chainPatterns.on_chain.some(p => p.test(content))) {
         return 'on_chain';
-      }
-    }
-
-    // Second pass fallback: check for ambiguous 64-char hex addresses (default to sui)
-    for (const msg of [...recentMessages].reverse()) {
-      const content = typeof msg.content === 'string'
-        ? msg.content
-        : Array.isArray(msg.content)
-          ? (msg.content as Array<{ type: string; text?: string }>).map((c) => typeof c === 'string' ? c : c.text || '').join(' ')
-          : JSON.stringify(msg.content);
-      if (/\b0x[a-fA-F0-9]{64}\b/.test(content)) {
-        return 'sui';
       }
     }
 
@@ -853,19 +762,17 @@ export async function POST(request: Request) {
 
       // Fetch Agent Wallet and Automation Status (Multi-Chain) — all in parallel
       const { hasDelegation, getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-      const [isEvmEnabled, isSolanaEnabled, isSuiEnabled, evmWalletAddress, solanaWalletAddress, suiWalletAddress] = await Promise.all([
+      const [isEvmEnabled, isSolanaEnabled, evmWalletAddress, solanaWalletAddress] = await Promise.all([
         hasDelegation(activeUserId, "evm"),
         hasDelegation(activeUserId, "solana"),
-        hasDelegation(activeUserId, "sui"),
         getUserAgentWalletAddress(activeUserId, "evm"),
         getUserAgentWalletAddress(activeUserId, "solana"),
-        getUserAgentWalletAddress(activeUserId, "sui"),
       ]);
-      const isAgentEnabled = isEvmEnabled || isSolanaEnabled || isSuiEnabled;
+      const isAgentEnabled = isEvmEnabled || isSolanaEnabled;
       // Use EVM wallet as primary for backward compatibility
       const agentWalletAddress = evmWalletAddress;
 
-      if (agentWalletAddress || solanaWalletAddress || suiWalletAddress) {
+      if (agentWalletAddress || solanaWalletAddress) {
         const walletLines: string[] = [];
 
         // EVM wallet status
@@ -886,17 +793,8 @@ export async function POST(request: Request) {
           }
         }
 
-        // Sui wallet status
-        if (suiWalletAddress) {
-          if (isSuiEnabled) {
-            walletLines.push(`- **Sui Agent Wallet**: ${suiWalletAddress} (ENABLED, default network: ${process.env.SUI_AGENT_NETWORK || "testnet"})`);
-          } else {
-            walletLines.push(`- **Sui Agent Wallet**: ${suiWalletAddress} (Disabled — user must enable in settings)`);
-          }
-        }
-
         if (isAgentEnabled) {
-          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets. When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}, for Sui operations use ${suiWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform an EVM swap or bridge, use \`executeAgenticRelaySwap\`. To autonomously send native SUI, first call \`getSuiAgentWalletInfo\`, then use \`executeSuiTransfer\` on testnet/devnet by default. Mainnet Sui writes are disabled unless the server explicitly opts in. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets. When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform an EVM swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
         } else {
           agentWalletText = `\n- **Agent Automation**: Disabled\n${walletLines.join("\n")}\n  (Wallet(s) exist but user has not delegated access. Instruct them to enable Automation in settings first.)`;
         }
@@ -908,29 +806,8 @@ export async function POST(request: Request) {
     }
 
     const userSubscriptionContext = `\n\n## Current User Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}${agentWalletText}\n\nCRITICAL SUBSCRIPTION RULES:\n1. If the user wants to upgrade, downgrade, or cancel their subscription AND Agent Automation is ENABLED with an EVM wallet, you MUST use \`executeAutonomousSubscription\`. Do not use \`initiateX402Payment\` as it will halt execution and ask the user to pay manually.\n2. If Agent Automation is NOT enabled, or the user does not have an EVM agent wallet, you MUST use \`initiateX402Payment\` for upgrades/downgrades.\n3. Always ask the user for confirmation (e.g. "Do you want me to automatically upgrade you to Ultimate for $X using your agent wallet?") BEFORE executing \`executeAutonomousSubscription\`, unless they explicitly authorized it in their message.\n\nWhen using \`initiateX402Payment\`, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
-    
-    // Walrus Memory World Cup Oracle Context
-    let walrusMemoryContext = "";
-    if (user_info?.walrusMemoryBlobId) {
-      try {
-        console.log(`[WALRUS-MEMORY] Hydrating memory blob: ${user_info.walrusMemoryBlobId}`);
-        const { getWalrusBlob } = await import("@barzakh/shared/lib/ai/tools/sui/walrus-tools");
-        const result = await getWalrusBlob.execute({ blobId: user_info.walrusMemoryBlobId }, {} as any);
-        if (result.success && result.content) {
-          walrusMemoryContext = `\n\n## Persistent Walrus Memory (from previous sessions):\n${JSON.stringify(result.content, null, 2)}\n\nCRITICAL WORLD CUP MEMORY RULES:\n1. You MUST ALWAYS reference this memory when discussing World Cup predictions, opinions, or contradictions to demonstrate persistent memory across sessions.\n2. When the user makes or updates a prediction, you MUST FIRST call \`getLiveWorldCupMatches\` to check the real match status and score. If the match is finished, set the prediction \`status\` to \`"correct"\` or \`"incorrect"\` based on the actual score. If not finished, set it to \`"pending"\`.\n3. When the user updates their predictions, opinions, or places a bet, you MUST call \`saveWorldCupMemory\` with the updated full state (merging the new inputs with the existing memory above) so their updated profile is saved back to Walrus. Do not overwrite/lose their other predictions or opinions unless they explicitly change their mind.\n4. If the user explicitly asks to clear, reset, delete, or wipe their World Cup memory, history, or profile, you MUST call \`clearWorldCupMemory\` to reset it.`;
-        } else {
-          console.warn("[WALRUS-MEMORY] Failed to load content from Walrus for blob:", user_info.walrusMemoryBlobId, result.message);
-        }
-      } catch (err) {
-        console.error("[WALRUS-MEMORY] Failed to hydrate persistent memory:", err);
-      }
-    }
 
-    if (!walrusMemoryContext) {
-      walrusMemoryContext = `\n\n## Persistent Walrus Memory (from previous sessions):\nNo previous memory found. Day one state.\n\nCRITICAL WORLD CUP MEMORY RULES:\n1. If the user states a World Cup prediction or opinion, you MUST FIRST call \`getLiveWorldCupMatches\` to check if that match is finished. Set the prediction \`status\` to \`"correct"\`, \`"incorrect"\`, or \`"pending"\` based on real scores, then initialize their Walrus Memory profile by calling \`saveWorldCupMemory\` with the details so it's persisted for future sessions.\n2. If the user explicitly asks to clear, reset, delete, or wipe their World Cup memory, history, or profile, you MUST call \`clearWorldCupMemory\` to reset it.`;
-    }
-
-    systemPrompt = systemPrompt + userSubscriptionContext + walrusMemoryContext;
+    systemPrompt = systemPrompt + userSubscriptionContext;
   }
 
   // Select appropriate model based on routed group
@@ -1077,9 +954,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     safeActiveTools.push("executeFourMemeSell");
     safeActiveTools.push("executeFourMemeLaunch");
     safeActiveTools.push("executeAgenticRelaySwap");
-    safeActiveTools.push("getSuiAgentWalletInfo");
-    safeActiveTools.push("executeSuiTransfer");
-    safeActiveTools.push("planSuiDeFiAgentStrategy");
     safeActiveTools.push("querySignalAgent");
 
     if (isAgentEnabledLocally) {
@@ -1095,40 +969,7 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     }
   }
 
-  // Safety net: inject World Cup / Walrus Memory tools when the system prompt
-  // references them — ensures the model can call these tools even if the intent
-  // classifier routed to 'search' or another non-sui group. Without this, the
-  // model sees instructions to call saveWorldCupMemory but the tool isn't in
-  // experimental_activeTools, causing AI_NoSuchToolError.
-  if (session?.user?.id && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine" &&
-      (systemPrompt.includes('saveWorldCupMemory') || systemPrompt.includes('Walrus Memory'))) {
-    const worldCupTools = [
-      "saveWorldCupMemory",
-      "simulatePredictionMarketBet",
-      "clearWorldCupMemory",
-      "getLiveWorldCupMatches",
-      "getSuiAgentWalletInfo",
-      "webSearch",
-    ];
-    for (const toolName of worldCupTools) {
-      if (!safeActiveTools.includes(toolName)) {
-        safeActiveTools.push(toolName);
-      }
-    }
-  }
-
-  if (effectiveGroup === "sui" && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
-    safeActiveTools = narrowSuiActiveToolsForPrompt(safeActiveTools, userMessageText);
-    if (process.env.NODE_ENV !== "production") {
-      console.log("[SUI-TOOLS] narrowed active tools", {
-        prompt: userMessageText.slice(0, 120),
-        count: safeActiveTools.length,
-        tools: safeActiveTools,
-      });
-    }
-  } else {
-    safeActiveTools = uniqueToolNames(safeActiveTools);
-  }
+  safeActiveTools = uniqueToolNames(safeActiveTools);
 
   const authenticatedUserId = session?.user?.id;
 
@@ -1136,36 +977,9 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
   let hasWebSearchExecuted = false;
   const wrappedTools = isFastChat ? {} : {
     ...allTools,
-    uploadToWalrus: {
-      ...allTools.uploadToWalrus,
-      execute: async (args: any, context: any) => {
-        let keypair;
-        if (authenticatedUserId) {
-          try {
-            const { getSuiKeypair } = await import("@/lib/agent/sui-agent-executor");
-            keypair = await getSuiKeypair(authenticatedUserId);
-          } catch (e) {
-            console.warn("[Walrus] Failed to get user's Sui keypair for uploadToWalrus:", e);
-          }
-        }
-        return await allTools.uploadToWalrus.execute({
-          ...args,
-          _keypair: keypair
-        }, context);
-      }
-    },
-    // Read-only app-local Sui tools should be available even without an authenticated
-    // automation wallet; otherwise Sui group prompts can degrade into web search.
     // Autonomous execution tools (Agentic) - Always available if authenticated
     ...(authenticatedUserId ? {
       querySignalAgent: createQuerySignalAgentTool(authenticatedUserId),
-      getSuiAgentWalletInfo: createGetSuiAgentWalletInfoTool(authenticatedUserId),
-      executeSuiTransfer: createExecuteSuiTransferTool(authenticatedUserId),
-      planSuiDeFiAgentStrategy: createPlanSuiDeFiAgentStrategyTool(authenticatedUserId),
-      saveWorldCupMemory: createSaveWorldCupMemoryTool(authenticatedUserId),
-      simulatePredictionMarketBet: createSimulatePredictionMarketBetTool(authenticatedUserId),
-      clearWorldCupMemory: createClearWorldCupMemoryTool(authenticatedUserId),
-      getLiveWorldCupMatches: createGetLiveWorldCupMatchesTool(),
       executeAgenticRelaySwap: tool({
         description: "Execute a Relay cross-chain or same-chain swap autonomously using the embedded agent wallet. Supports ALL EVM chains AND Solana. CRITICAL: DO NOT ask the user for their wallet address or chain ID! Auto-infer chains from token symbols: MON→Monad(143), BNB→BSC(56), SOL→Solana(792703809), ETH→Ethereum(1), CRO→Cronos(25), MNT→Mantle(5000). Monad IS a fully EVM-compatible L1 chain. Proceed immediately — NEVER refuse by claiming a chain is unsupported.",
         parameters: z.object({
@@ -1379,18 +1193,8 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
         }
       }, 15_000);
 
-      const hasValidMemWal = 
-        process.env.MEMWAL_PRIVATE_KEY && 
-        process.env.MEMWAL_PRIVATE_KEY !== "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-
       const baseModel = myProvider.languageModel(finalModel);
-      const wrappedModel = hasValidMemWal
-        ? withMemWal(baseModel, {
-            key: process.env.MEMWAL_PRIVATE_KEY!,
-            accountId: process.env.MEMWAL_ACCOUNT_ID ?? "0x5a1c52c088f649a2610196902f903cfda7dea25552266a0dc42a10faf7486523",
-            serverUrl: process.env.MEMWAL_SERVER_URL ?? "https://relayer.memory.walrus.xyz",
-          })
-        : baseModel;
+      const wrappedModel = baseModel;
 
       try {
         const result = streamText({

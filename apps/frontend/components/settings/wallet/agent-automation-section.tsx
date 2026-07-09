@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
-type WalletChain = "evm" | "solana" | "sui";
+type WalletChain = "evm" | "solana";
 
 interface WalletInfo {
   walletAddress: string;
@@ -39,13 +39,11 @@ interface AgentStatus {
   agentEnabled: boolean;
   evmEnabled: boolean;
   solanaEnabled: boolean;
-  suiEnabled: boolean;
   serverConfigured: boolean;
   walletAddress: string | null;
   wallets: WalletInfo[];
   evmWalletAddress: string | null;
   solanaWalletAddress: string | null;
-  suiWalletAddress: string | null;
 
   spent24h: number;
   recentTransactions: Array<{
@@ -83,22 +81,10 @@ const CHAIN_CONFIG = {
     tag: "SOL",
     explorerPrefix: "https://solscan.io/account/",
   },
-  sui: {
-    label: "Sui",
-    sublabel: "SUI, Move objects, Walrus, etc.",
-    iconDark: "/images/icon/sui/sui-light.png",
-    iconLight: "/images/icon/sui/sui-dark.png",
-    color: "text-cyan-500",
-    bgColor: "bg-cyan-500/10",
-    borderColor: "border-cyan-500/20",
-    tag: "SUI",
-    explorerPrefix: "https://suiscan.xyz/mainnet/address/",
-  },
 } as const;
 
 const getChainBadgeColor = (chainName: string) => {
   const name = chainName.toLowerCase();
-  if (name.includes("sui")) return "bg-cyan-500/10 text-cyan-500";
   if (name.includes("solana")) return "bg-purple-500/10 text-purple-500";
   if (name.includes("arc")) return "bg-blue-500/10 text-blue-500";
   if (name.includes("bnb") || name.includes("binance")) return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400";
@@ -277,8 +263,7 @@ export function AgentAutomationSection() {
   const isChainEnabled = (chain: WalletChain) => {
     if (!status) return false;
     if (chain === "evm") return status.evmEnabled;
-    if (chain === "solana") return status.solanaEnabled;
-    return status.suiEnabled;
+    return status.solanaEnabled;
   };
 
   // Helper: get wallet address for a chain
@@ -305,13 +290,13 @@ export function AgentAutomationSection() {
     const explorerUrl = walletAddress ? `${config.explorerPrefix}${walletAddress}` : null;
 
     return (
-      <div key={chain} className={`flex h-full min-w-0 flex-col rounded-xl border border-border bg-muted/50 p-4 sm:p-5 ${chain === "sui" ? "sm:col-span-2 sm:w-full xl:col-span-1 xl:w-auto" : ""}`}>
+      <div key={chain} className="flex h-full min-w-0 flex-col rounded-xl border border-border bg-muted/50 p-4 sm:p-5">
         {/* Chain header */}
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3 text-sm font-medium text-foreground">
             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${config.borderColor} ${config.bgColor}`}>
-              <img src={config.iconLight} alt="" className={`${chain === "sui" ? "h-3.5 w-3.5" : "h-5 w-5"} mx-auto block object-contain dark:hidden`} />
-              <img src={config.iconDark} alt="" className={`${chain === "sui" ? "h-3.5 w-3.5" : "h-5 w-5"} mx-auto hidden object-contain dark:block`} />
+              <img src={config.iconLight} alt="" className="h-5 w-5 mx-auto block object-contain dark:hidden" />
+              <img src={config.iconDark} alt="" className="h-5 w-5 mx-auto hidden object-contain dark:block" />
             </div>
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2">
@@ -451,7 +436,7 @@ export function AgentAutomationSection() {
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-foreground leading-tight">Agent Automation</h2>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                AI-driven autonomous transactions — EVM, Solana & Sui
+                AI-driven autonomous transactions — EVM and Solana
               </p>
             </div>
           </div>
@@ -467,10 +452,9 @@ export function AgentAutomationSection() {
       <div className="p-5 sm:p-6 md:p-8 space-y-6">
 
         {/* ── Multi-chain wallet cards ── */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {renderWalletCard("evm")}
           {renderWalletCard("solana")}
-          {renderWalletCard("sui")}
         </div>
 
         {/* Spend Summary — only if any automation is enabled */}
@@ -489,7 +473,7 @@ export function AgentAutomationSection() {
         )}
 
         {/* How it works — shown when no wallets exist */}
-        {(!getWalletForChain("evm") && !getWalletForChain("solana") && !getWalletForChain("sui")) && (
+        {(!getWalletForChain("evm") && !getWalletForChain("solana")) && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">How it works</h3>
             <div className="space-y-2.5">
@@ -497,12 +481,12 @@ export function AgentAutomationSection() {
                 {
                   icon: Wallet,
                   title: "Create agent wallets",
-                  desc: "Generate EVM, Solana and Sui wallets for autonomous AI operations.",
+                  desc: "Generate EVM and Solana wallets for autonomous AI operations.",
                 },
                 {
                   icon: Shield,
                   title: "Enable automation per chain",
-                  desc: "Enable automation independently for EVM, Solana and Sui chains.",
+                  desc: "Enable automation independently for EVM and Solana chains.",
                 },
                 {
                   icon: Zap,
