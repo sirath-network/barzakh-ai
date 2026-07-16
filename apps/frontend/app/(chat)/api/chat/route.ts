@@ -858,7 +858,7 @@ export async function POST(request: Request) {
             await updateChatTitleById({ chatId: id, title });
           } catch (err) {
             console.error("Failed to generate chat title (chat already saved with fallback):", err);
-            // Chat already exists with "New Chat" title — no data loss
+            // Chat already exists with fallback title — no data loss
           }
         });
       }
