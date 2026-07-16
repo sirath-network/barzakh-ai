@@ -10,6 +10,13 @@ const RENAISS_NFT_ADDRESS = "0xF8646A3Ca093e97Bb404c3b25e675C0394DD5b30";
 
 let activeKeyIndex = 0;
 
+// ponytail: Cache and Promise.all to bypass rate limits and parallelize sequential network fetches
+const indexResponseCache = new Map<string, { response: Response; timestamp: number }>();
+const INDEX_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+const marketplaceCache = new Map<string, { data: any; timestamp: number }>();
+const MARKETPLACE_CACHE_TTL = 30 * 1000; // 30 seconds cache
+
 function getRenaissKeys(): { key: string; secret: string }[] {
   const keysStr = process.env.RENAISS_X_API_KEY || "";
   const secretsStr = process.env.RENAISS_X_API_SECRET || "";
@@ -40,6 +47,12 @@ function getRenaissIndexHeaders(): HeadersInit {
 }
 
 async function fetchRenaissIndex(url: string): Promise<Response> {
+  const now = Date.now();
+  const cached = indexResponseCache.get(url);
+  if (cached && now - cached.timestamp < INDEX_CACHE_TTL) {
+    return cached.response.clone();
+  }
+
   const pairs = getRenaissKeys();
   const maxAttempts = Math.max(1, pairs.length);
   
@@ -68,6 +81,9 @@ async function fetchRenaissIndex(url: string): Promise<Response> {
         }
       }
       
+      if (response.ok) {
+        indexResponseCache.set(url, { response: response.clone(), timestamp: now });
+      }
       return response;
     } catch (err) {
       console.error(`Request to ${url} failed:`, err);
@@ -77,7 +93,11 @@ async function fetchRenaissIndex(url: string): Promise<Response> {
     }
   }
   
-  return fetch(url, { headers: getRenaissIndexHeaders() });
+  const fallback = await fetch(url, { headers: getRenaissIndexHeaders() });
+  if (fallback.ok) {
+    indexResponseCache.set(url, { response: fallback.clone(), timestamp: Date.now() });
+  }
+  return fallback;
 }
 
 // Curated Database of high-value cards on Renaiss Protocol for marketplace simulation
@@ -312,13 +332,21 @@ async function fetchDynamicRenaissCards(
     }
     params.append("limit", "20");
 
+    const marketplaceUrl = `https://api.renaiss.xyz/v0/marketplace?${params.toString()}`;
     let marketplaceItems: any[] = [];
-    try {
-      const response = await fetch(`https://api.renaiss.xyz/v0/marketplace?${params.toString()}`);
-      const json = await response.json();
-      marketplaceItems = json?.collection || [];
-    } catch (err) {
-      console.error("Marketplace fetch failed:", err);
+    const now = Date.now();
+    const cachedMarketplace = marketplaceCache.get(marketplaceUrl);
+    if (cachedMarketplace && now - cachedMarketplace.timestamp < MARKETPLACE_CACHE_TTL) {
+      marketplaceItems = cachedMarketplace.data;
+    } else {
+      try {
+        const response = await fetch(marketplaceUrl);
+        const json = await response.json();
+        marketplaceItems = json?.collection || [];
+        marketplaceCache.set(marketplaceUrl, { data: marketplaceItems, timestamp: now });
+      } catch (err) {
+        console.error("Marketplace fetch failed:", err);
+      }
     }
 
     // 4. Merge marketplace items with Index data for correct images & links
@@ -385,124 +413,146 @@ async function fetchDynamicRenaissCards(
       return null;
     };
 
-    for (const item of marketplaceItems) {
-      const serialAttr = item.attributes?.find((a: any) => a.trait === "Serial");
-      const certNum = serialAttr ? serialAttr.value.replace(/^(PSA|BGS|CGC)/i, "") : "";
-      const askPrice = Number(item.askPriceInUSDT) / 1e18;
-      const fmvFallback = Number(item.fmvPriceInUSD) / 100;
+    // ponytail: parallelize marketplace merging/fetching to avoid large waterfall delays
+    let fallbackCount = 0;
+    const MAX_FALLBACKS = 3;
 
-      // Try to match against Index results
-      let match = findIndexMatch(item, indexResults);
+    await Promise.all(
+      marketplaceItems.map(async (item) => {
+        const serialAttr = item.attributes?.find((a: any) => a.trait === "Serial");
+        const certNum = serialAttr ? serialAttr.value.replace(/^(PSA|BGS|CGC)/i, "") : "";
+        const askPrice = Number(item.askPriceInUSDT) / 1e18;
+        const fmvFallback = Number(item.fmvPriceInUSD) / 100;
 
-      // If no match, try a targeted search by pokemonName (limit search rate to prevent blocks)
-      if (!match && item.pokemonName && item.pokemonName.length > 2 && indexResults.length < 5) {
-        try {
-          const nameSearchRes = await fetchRenaissIndex(
-            `https://api.renaissos.com/v1/search?q=${encodeURIComponent(item.pokemonName)}&limit=10`
-          );
-          if (nameSearchRes.ok) {
-            const nameSearchData = await nameSearchRes.json();
-            match = findIndexMatch(item, nameSearchData.results || []);
+        // Try to match against Index results
+        let match = findIndexMatch(item, indexResults);
+
+        // If no match, try a targeted search by pokemonName (limit search rate to prevent blocks)
+        let shouldSearchFallback = false;
+        if (!match && item.pokemonName && item.pokemonName.length > 2 && indexResults.length < 5) {
+          if (fallbackCount < MAX_FALLBACKS) {
+            fallbackCount++;
+            shouldSearchFallback = true;
           }
-        } catch (_e) {
-          // Silently skip
         }
-      }
 
-      if (match) {
-        const card = indexResultToCard(match, {
-          tokenId: item.tokenId,
-          owner: item.ownerAddress,
-          askPrice: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
-          vaultLocation: item.vaultLocation,
-        });
-        card.certNumber = certNum;
-        card.name = item.name || card.name;
-        if (match.href) usedIndexHrefs.add(match.href);
-        mergedCards.push(card);
-        cardCache.set(card.tokenId, card);
-      } else {
-        // Check if we already have a similar card's image to completely bypass 429 rate limit
-        const sibling = getSimilarImage(item);
-        if (sibling) {
-          const card: RenaissCard = {
-            id: item.tokenId,
+        if (shouldSearchFallback) {
+          try {
+            const nameSearchRes = await fetchRenaissIndex(
+              `https://api.renaissos.com/v1/search?q=${encodeURIComponent(item.pokemonName)}&limit=10`
+            );
+            if (nameSearchRes.ok) {
+              const nameSearchData = await nameSearchRes.json();
+              match = findIndexMatch(item, nameSearchData.results || []);
+            }
+          } catch (_e) {
+            // Silently skip
+          }
+        }
+
+        if (match) {
+          const card = indexResultToCard(match, {
             tokenId: item.tokenId,
-            name: item.name || "Unknown Card",
-            set: item.setName || "Unknown Set",
-            rarity: "Ultra Rare",
-            grade: parseInt(item.grade) || 10,
-            certNumber: certNum,
-            imageUrl: sibling.imageUrl,
-            priceUsd: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
-            fmvUsd: fmvFallback,
-            owner: item.ownerAddress || "",
-            vaultStatus: "Vaulted",
-            vaultLocation: item.vaultLocation || "platform",
-            ip: sibling.ip,
-            priceHistory: sibling.priceHistory,
-            cardUrl: `https://www.renaiss.xyz/card/${item.tokenId}`,
-            grader: (item.gradingCompany as "PSA" | "BGS" | "CGC") || "PSA",
-          };
+            owner: item.ownerAddress,
+            askPrice: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
+            vaultLocation: item.vaultLocation,
+          });
+          card.certNumber = certNum;
+          card.name = item.name || card.name;
+          if (match.href) usedIndexHrefs.add(match.href);
           mergedCards.push(card);
           cardCache.set(card.tokenId, card);
         } else {
-          // No match, no sibling -> fallback to cert lookup
-          let imageUrl = "";
-          let cardUrl = `https://www.renaiss.xyz/card/${item.tokenId}`;
-          let spark: number[] = [];
+          // Check if we already have a similar card's image to completely bypass 429 rate limit
+          const sibling = getSimilarImage(item);
+          if (sibling) {
+            const card: RenaissCard = {
+              id: item.tokenId,
+              tokenId: item.tokenId,
+              name: item.name || "Unknown Card",
+              set: item.setName || "Unknown Set",
+              rarity: "Ultra Rare",
+              grade: parseInt(item.grade) || 10,
+              certNumber: certNum,
+              imageUrl: sibling.imageUrl,
+              priceUsd: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
+              fmvUsd: fmvFallback,
+              owner: item.ownerAddress || "",
+              vaultStatus: "Vaulted",
+              vaultLocation: item.vaultLocation || "platform",
+              ip: sibling.ip,
+              priceHistory: sibling.priceHistory,
+              cardUrl: `https://www.renaiss.xyz/card/${item.tokenId}`,
+              grader: (item.gradingCompany as "PSA" | "BGS" | "CGC") || "PSA",
+            };
+            mergedCards.push(card);
+            cardCache.set(card.tokenId, card);
+          } else {
+            // No match, no sibling -> fallback to cert lookup
+            let imageUrl = "";
+            let cardUrl = `https://www.renaiss.xyz/card/${item.tokenId}`;
+            let spark: number[] = [];
 
-          if (serialAttr) {
-            try {
-              const certRes = await fetchRenaissIndex(`https://api.renaissos.com/v1/graded/${serialAttr.value}`);
-              if (certRes.ok && certRes.headers.get("content-type")?.includes("application/json")) {
-                const certData = await certRes.json();
-                if (certData?.found && certData.card) {
-                  imageUrl = certData.card.imageUrl || certData.certImages?.item || certData.certImages?.front || "";
-                  // Always use marketplace URL for listed cards, not the Index page
-                  spark = certData.card.spark || [];
-                }
+            let shouldCertFallback = false;
+            if (serialAttr) {
+              if (fallbackCount < MAX_FALLBACKS) {
+                fallbackCount++;
+                shouldCertFallback = true;
               }
-            } catch (_e) {
-              // Silently skip
             }
+
+            if (shouldCertFallback) {
+              try {
+                const certRes = await fetchRenaissIndex(`https://api.renaissos.com/v1/graded/${serialAttr.value}`);
+                if (certRes.ok && certRes.headers.get("content-type")?.includes("application/json")) {
+                  const certData = await certRes.json();
+                  if (certData?.found && certData.card) {
+                    imageUrl = certData.card.imageUrl || certData.certImages?.item || certData.certImages?.front || "";
+                    // Always use marketplace URL for listed cards, not the Index page
+                    spark = certData.card.spark || [];
+                  }
+                }
+              } catch (_e) {
+                // Silently skip
+              }
+            }
+
+            const isOnePiece =
+              item.name?.toLowerCase().includes("one piece") ||
+              (item.setName || "").toLowerCase().includes("one piece");
+
+            const priceHistory = spark.length > 0
+              ? spark.map((val: number, i: number) => ({
+                  date: new Date(Date.now() - (spark.length - 1 - i) * 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                  price: val / 100,
+                }))
+              : [{ date: new Date().toISOString().split("T")[0], price: fmvFallback }];
+
+            const card: RenaissCard = {
+              id: item.tokenId,
+              tokenId: item.tokenId,
+              name: item.name || "Unknown Card",
+              set: item.setName || "Unknown Set",
+              rarity: "Ultra Rare",
+              grade: parseInt(item.grade) || 10,
+              certNumber: certNum,
+              imageUrl,
+              priceUsd: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
+              fmvUsd: fmvFallback,
+              owner: item.ownerAddress || "",
+              vaultStatus: "Vaulted",
+              vaultLocation: item.vaultLocation || "platform",
+              ip: isOnePiece ? "OnePiece" : "Pokemon",
+              priceHistory,
+              cardUrl,
+              grader: (item.gradingCompany as "PSA" | "BGS" | "CGC") || "PSA",
+            };
+            mergedCards.push(card);
+            cardCache.set(card.tokenId, card);
           }
-
-          const isOnePiece =
-            item.name?.toLowerCase().includes("one piece") ||
-            (item.setName || "").toLowerCase().includes("one piece");
-
-          const priceHistory = spark.length > 0
-            ? spark.map((val: number, i: number) => ({
-                date: new Date(Date.now() - (spark.length - 1 - i) * 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-                price: val / 100,
-              }))
-            : [{ date: new Date().toISOString().split("T")[0], price: fmvFallback }];
-
-          const card: RenaissCard = {
-            id: item.tokenId,
-            tokenId: item.tokenId,
-            name: item.name || "Unknown Card",
-            set: item.setName || "Unknown Set",
-            rarity: "Ultra Rare",
-            grade: parseInt(item.grade) || 10,
-            certNumber: certNum,
-            imageUrl,
-            priceUsd: (askPrice !== undefined && !isNaN(askPrice)) ? askPrice : 0,
-            fmvUsd: fmvFallback,
-            owner: item.ownerAddress || "",
-            vaultStatus: "Vaulted",
-            vaultLocation: item.vaultLocation || "platform",
-            ip: isOnePiece ? "OnePiece" : "Pokemon",
-            priceHistory,
-            cardUrl,
-            grader: (item.gradingCompany as "PSA" | "BGS" | "CGC") || "PSA",
-          };
-          mergedCards.push(card);
-          cardCache.set(card.tokenId, card);
         }
-      }
-    }
+      })
+    );
 
     // 5. Index-only results are intentionally NOT added here.
     // We only show cards with active marketplace listings (real ask prices).

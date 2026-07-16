@@ -204,13 +204,33 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   getMonadTokenPositions: () => "Fetching Monad tokens",
   getMonadStats: () => "Checking Monad blockchain stats",
 
-  // =========================================================
-  // DEFI & MISC
-  // =========================================================
   defiLlama: () => "Consulting DefiLlama protocol data",
   queryCryptoComAI: () => "Asking Crypto.com AI Agent",
   analyzeWalletWithAI: () => "Running AI wallet diagnostics",
   getSiteContent: () => "Reading website content",
+
+  // ponytail: custom status messages for Renaiss tools to prevent confusing search fallback
+  // =========================================================
+  // RENAISS PROTOCOL
+  // =========================================================
+  searchRenaissCards: (params) => {
+    const keyword = params?.keyword;
+    return keyword ? `Searching Renaiss for "${keyword}"` : "Searching Renaiss marketplace";
+  },
+  getRenaissCardPrice: (params) => {
+    const cardId = params?.cardId;
+    return cardId ? `Checking valuation history for ${cardId}` : "Analyzing Fair Market Value (FMV)";
+  },
+  getRenaissMarketTrends: () => "Analyzing Renaiss collectible market trends",
+  analyzeRenaissCollection: (params) => {
+    const address = params?.address;
+    const suffix = address ? `(${address.slice(0, 6)}..)` : "";
+    return `Valuing vault collection ${suffix}`;
+  },
+  getRenaissCardDetails: () => "Retrieving physical vault custody certificate",
+  watchRenaissCard: () => "Registering price alert threshold",
+  getRenaissPacks: () => "Loading gacha card packs",
+  getRenaissPackDetails: () => "Calculating pack EV and pull statistics",
 };
 
 /**
