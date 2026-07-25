@@ -95,7 +95,7 @@
     "mime-types": "^3.0.1",
     "nanoid": "^5.0.8",
     "next": "16.2.11",
-    "next-auth": "5.0.0-beta.30",
+    "next-auth": "5.0.0-beta.32",
     "next-intl": "^4.9.2",
     "next-themes": "^0.3.0",
     "nodemailer": "^9.0.1",
