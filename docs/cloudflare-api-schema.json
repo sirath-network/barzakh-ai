@@ -6,12 +6,12 @@
     "description": "API schema for Barzakh AI platform.\nThis schema is used by Cloudflare API Shield to validate incoming requests.\n",
     "contact": {
       "name": "Barzakh Support",
-      "url": "https://barzakh.tech/contact"
+      "url": "https://sirath.network/contact"
     }
   },
   "servers": [
     {
-      "url": "https://chat.barzakh.tech",
+      "url": "https://app.sirath.network",
       "description": "Frontend (Main Application)"
     }
   ],
@@ -2521,7 +2521,7 @@
         "description": "Creates a chat completion with AI security protection.\n\n**Security Protection:**\n- Prompt injection detection (direct attacks in user messages)\n- Sponge attack detection (token bombing, nested structures, expensive computation)\n- Model extraction/inversion attempt detection\n- Adversarial input detection (homoglyphs, invisible characters, RTL override)\n- Risk score calculation (blocked if >= 50)\n\n**External Content Protection:**\n- Web search results are sanitized for indirect injection\n- Scraped content is scanned for LLM manipulation tokens\n- Hidden instructions in HTML comments/metadata are removed\n",
         "servers": [
           {
-            "url": "https://staging.barzakh.tech"
+            "url": "https://staging.sirath.network"
           }
         ],
         "security": [
@@ -2580,7 +2580,7 @@
         "summary": "Create completion (legacy)",
         "servers": [
           {
-            "url": "https://staging.barzakh.tech"
+            "url": "https://staging.sirath.network"
           }
         ],
         "security": [

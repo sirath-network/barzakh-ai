@@ -154,7 +154,7 @@ export function isR2Url(url: string): boolean {
   // Check for public URL env var
   if (R2_PUBLIC_URL && url.startsWith(R2_PUBLIC_URL)) return true;
   // Check for legacy R2 custom domain (backward compatibility)
-  if (url.includes('r2.barzakh.tech')) return true;
+  if (url.includes('r2.sirath.network')) return true;
   return false;
 }
 
@@ -254,7 +254,7 @@ export function extractR2Key(urlOrKey: string): string | null {
     return urlOrKey.slice(publicUrlBase.length + 1); // Remove base URL + slash
   }
 
-  // Handle legacy r2.barzakh.tech URLs (backward compatibility)
+  // Handle legacy r2.sirath.network URLs (backward compatibility)
   const r2Match = urlOrKey.match(/https?:\/\/r2\.barzakh\.tech\/(.+)/);
   if (r2Match) {
     return r2Match[1];

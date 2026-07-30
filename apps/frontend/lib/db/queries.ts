@@ -223,7 +223,7 @@ export async function createUser(
  * - Must start with a letter
  * - Lowercase letters and numbers only
  * - No spaces or special characters
- * - Cannot be a reserved username (unless @barzakh.tech email)
+ * - Cannot be a reserved username (unless @sirath.network email)
  * - Skip reserved words in names (e.g., "Admin Smith" → "smith" not "adminsmith")
  */
 async function generateUsernameFromName(name?: string | null, email?: string | null): Promise<string> {

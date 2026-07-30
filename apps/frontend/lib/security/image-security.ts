@@ -35,7 +35,7 @@ export const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'a
 /** Trusted image CDN domains */
 export const TRUSTED_IMAGE_DOMAINS = [
   // Cloudflare R2 Storage (primary)
-  'r2.barzakh.tech', // Legacy custom domain (backward compatibility)
+  'r2.sirath.network', // Legacy custom domain (backward compatibility)
   'r2.cloudflarestorage.com', // New R2 endpoint
   'cloudflarestorage.com', // For signed URLs
   // Common trusted domains

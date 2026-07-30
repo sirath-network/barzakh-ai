@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Security: Only allow certain domains or protocols
     const allowedDomains = [
       // Cloudflare R2 Storage (primary storage)
-      'r2.barzakh.tech',
+      'r2.sirath.network',
       'r2.cloudflarestorage.com',
       'cloudflarestorage.com', // For signed URLs
       'pub-', // R2 public bucket subdomain pattern
@@ -176,11 +176,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ============================================
-    // HANDLE LEGACY r2.barzakh.tech URLs
+    // HANDLE LEGACY r2.sirath.network URLs
     // This domain no longer exists, redirect to signed URL API
     // ============================================
-    if (url.hostname === 'r2.barzakh.tech') {
-      console.log('[proxy-image] Legacy r2.barzakh.tech URL detected, using signed URL...');
+    if (url.hostname === 'r2.sirath.network') {
+      console.log('[proxy-image] Legacy r2.sirath.network URL detected, using signed URL...');
 
       // Extract the key from the legacy URL
       const legacyKey = url.pathname.slice(1); // Remove leading slash

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://chat.barzakh.tech"><img src="https://img.shields.io/badge/🚀_Live_-chat.barzakh.tech-ede8e8?style=for-the-badge" alt="Live"></a>&nbsp;
+  <a href="https://app.sirath.network"><img src="https://img.shields.io/badge/🚀_Live_-app.sirath.network-ede8e8?style=for-the-badge" alt="Live"></a>&nbsp;
   <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-ede8e8?style=for-the-badge" alt="Whitepaper"></a>
 </p>
 
@@ -533,7 +533,7 @@ Barzakh AI provides **native BNB Chain (BSC) support**:
 
 #### 🎯 Try It — BNB Chain Use Cases
 
-> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+> **Live at [app.sirath.network](https://app.sirath.network)** — paste any prompt below to test.
 
 ```
 Trade 100 USDC on Base for BNB
@@ -610,7 +610,7 @@ flowchart LR
 
 ### 🎯 Try It — Monad Use Cases
 
-> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+> **Live at [app.sirath.network](https://app.sirath.network)** — paste any prompt below to test.
 
 #### 💰 Portfolio & Balances
 ```
@@ -691,7 +691,7 @@ mantle · sonic · flare · zcash
 
 #### 🎯 Try It — Arkham Intelligence Use Cases
 
-> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+> **Live at [app.sirath.network](https://app.sirath.network)** — paste any prompt below to test.
 
 ##### 🐳 Whale Tracking
 ```
@@ -762,7 +762,7 @@ Barzakh AI provides **12 dedicated Mantle tools** for comprehensive interaction 
 
 #### 🎯 Try It — Mantle Use Cases
 
-> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+> **Live at [app.sirath.network](https://app.sirath.network)** — paste any prompt below to test.
 
 ```
 What is the MNT balance of 0x1234...?
@@ -841,7 +841,7 @@ flowchart LR
 
 #### 🎯 Try It — Shelby Use Cases
 
-> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+> **Live at [app.sirath.network](https://app.sirath.network)** — paste any prompt below to test.
 
 ```
 Store "Hello World" on Shelby Protocol
@@ -894,7 +894,7 @@ RENAISS_X_API_SECRET=secret_1, secret_2, secret_3
 
 #### 🎯 Try It — Renaiss Use Cases
 
-> **Live at [chat.barzakh.tech](https://chat.barzakh.tech)** — paste any prompt below to test.
+> **Live at [app.sirath.network](https://app.sirath.network)** — paste any prompt below to test.
 
 ##### 🔍 Marketplace Search & Pricing
 ```
@@ -1386,8 +1386,8 @@ vercel --prod
 
 | Environment | URL | Branch |
 |-------------|-----|--------|
-| Production | chat.barzakh.tech | main |
-| API | staging.barzakh.tech | main |
+| Production | app.sirath.network | main |
+| API | staging.sirath.network | main |
 
 ---
 

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Security: Only allow certain domains
     const allowedDomains = [
       // Cloudflare R2 Storage (primary)
-      'r2.barzakh.tech', // Legacy custom domain
+      'r2.sirath.network', // Legacy custom domain
       'r2.cloudflarestorage.com', // New R2 endpoint
       'cloudflarestorage.com', // For signed URLs
       // Development
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle legacy r2.barzakh.tech URLs via signed URL resolution
-    if (url.hostname === 'r2.barzakh.tech') {
+    // Handle legacy r2.sirath.network URLs via signed URL resolution
+    if (url.hostname === 'r2.sirath.network') {
       const legacyKey = url.pathname.slice(1); // Remove leading slash
       const internalSecret = process.env.INTERNAL_API_SECRET || 'dev-internal-secret';
       const signedUrlResponse = await fetch(

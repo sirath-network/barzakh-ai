@@ -123,7 +123,7 @@ export const uploadToShelby = tool({
               creator: account,
               description: "Automated Decentralized Storage Uploads from Barzakh AI using Shelby Protocol.",
               name: collectionName,
-              uri: "https://barzakh.tech/logo.png",
+              uri: "https://sirath.network/logo.png",
             });
             const commitedTx = await aptos.signAndSubmitTransaction({ signer: account, transaction: createCollectionTxn });
             await aptos.waitForTransaction({ transactionHash: commitedTx.hash, options: { checkSuccess: true } });

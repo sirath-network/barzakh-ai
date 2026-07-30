@@ -1,4 +1,4 @@
-// Reserved usernames - only @barzakh.tech emails can use these
+// Reserved usernames - only @sirath.network emails can use these
 export const RESERVED_USERNAMES = [
     // Founder/Core Team
     'dev', 'developer', 'developers', 'barzakhdev', 'kafir', 'zomboy', 'sirath',
@@ -27,7 +27,7 @@ export const RESERVED_USERNAMES = [
  * Returns true if username is reserved (or contains reserved words) and user should not use it.
  * 
  * @param username - The username to check
- * @param userEmail - The user's email (optional) - @barzakh.tech emails are allowed to use reserved names
+ * @param userEmail - The user's email (optional) - @sirath.network emails are allowed to use reserved names
  * @returns true if username is reserved and user is NOT allowed to use it
  */
 export function isReservedUsername(username: string, userEmail?: string | null): boolean {
@@ -37,8 +37,8 @@ export function isReservedUsername(username: string, userEmail?: string | null):
 
     if (!isReserved) return false;
 
-    // Allow if user has @barzakh.tech email
-    if (userEmail && userEmail.toLowerCase().endsWith('@barzakh.tech')) {
+    // Allow if user has @sirath.network email
+    if (userEmail && userEmail.toLowerCase().endsWith('@sirath.network')) {
         return false; // Not restricted for core team
     }
 

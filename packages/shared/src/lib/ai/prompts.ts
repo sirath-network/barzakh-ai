@@ -1511,7 +1511,7 @@ Always assume user queries are related to the Sei Network unless explicitly stat
 
 ## CRITICAL: Handling Attached Images & Files for Shelby Upload
 When a user attaches an image, video, document, or any file to their message AND asks you to store it on Shelby or mint it as an NFT:
-- The attached file's URL is ALREADY available in the message content as an image URL (e.g. https://r2.barzakh.tech/uploads/...).
+- The attached file's URL is ALREADY available in the message content as an image URL (e.g. https://r2.sirath.network/uploads/...).
 - You MUST pass that URL directly as the 'fileUrl' parameter to the 'uploadToShelby' tool.
 - **NEVER ask the user to "provide the URL"** — the image is already attached and its URL is in the message.
 - If the user says "store this image" or "mint this as NFT" and has an image attached, immediately call uploadToShelby with the image URL as fileUrl.

@@ -1082,7 +1082,7 @@ See [cloudflare-api-schema.yaml](./cloudflare-api-schema.yaml) for the complete 
 
 The platform stands at the intersection of AI advancement and blockchain innovation, creating a new category of **AI-Native Blockchain Intelligence** that serves retail traders, DeFi power users, and enterprise clients alike.
 
-> **Experience Barzakh AI live at [chat.barzakh.tech](https://chat.barzakh.tech)**
+> **Experience Barzakh AI live at [app.sirath.network](https://app.sirath.network)**
 
 ---
 

@@ -4,7 +4,7 @@ import { getSignedR2Url, isR2Url, extractR2Key } from '@/lib/r2-storage';
 import { type Message } from 'ai';
 
 /**
- * Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI
+ * Resolve legacy R2 URLs (r2.sirath.network) to signed URLs before sending to AI
  * This is needed because the old custom domain no longer exists
  */
 export async function resolveR2UrlsInMessages(messages: any[]): Promise<any[]> {
@@ -33,7 +33,7 @@ export async function resolveR2UrlsInMessages(messages: any[]): Promise<any[]> {
                 }
 
                 // Check if it's a legacy R2 URL that needs resolution
-                if (imageUrl && (imageUrl.includes('r2.barzakh.tech') || isR2Url(imageUrl))) {
+                if (imageUrl && (imageUrl.includes('r2.sirath.network') || isR2Url(imageUrl))) {
                     try {
                         const key = extractR2Key(imageUrl);
                         if (key) {

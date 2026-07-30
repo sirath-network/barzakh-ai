@@ -7,7 +7,7 @@ const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   // OpenRouter recommends identifying your app
   headers: {
-    "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://chat.barzakh.tech",
+    "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://app.sirath.network",
     "X-Title": process.env.OPENROUTER_APP_TITLE || "Barzakh AI",
   },
 });

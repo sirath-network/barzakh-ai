@@ -82,7 +82,7 @@ function validateAndCleanMessages(messages: Array<Message>): Array<Message> {
 // Security Allowlists for Multimodal Content
 const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_IMAGE_DOMAINS = [
-  'r2.barzakh.tech',
+  'r2.sirath.network',
   'pub-fba11d080c984950a31623838ae058f9.r2.dev', // R2 Public bucket
   'imagedelivery.net', // Cloudflare Images
   'lh3.googleusercontent.com', // Google User Content
@@ -667,7 +667,7 @@ export async function POST(request: Request) {
           }
           // Check for text references to generated images
           if (part.type === 'text' && typeof part.text === 'string') {
-            if (part.text.includes('[Generated image:') || part.text.includes('r2.barzakh.tech/ai-images') || part.text.includes('.r2.cloudflarestorage.com')) {
+            if (part.text.includes('[Generated image:') || part.text.includes('r2.sirath.network/ai-images') || part.text.includes('.r2.cloudflarestorage.com')) {
               return true;
             }
           }
@@ -887,7 +887,7 @@ export async function POST(request: Request) {
   // and any UI-format fields that streamText's Zod schema rejects.
   const coreMessages = toCoreSafeMessages(cleanedMessages);
 
-  // Resolve legacy R2 URLs (r2.barzakh.tech) to signed URLs before sending to AI.
+  // Resolve legacy R2 URLs (r2.sirath.network) to signed URLs before sending to AI.
   // Fast text-only chat skips this extra async pass entirely.
   const resolvedMessages = (isFastChat || isFastRealtimeSearch) ? coreMessages : await resolveR2UrlsInMessages(coreMessages);
     const modelMessages = isFastChat ? toCoreSafeMessages([userMessage]) : resolvedMessages;

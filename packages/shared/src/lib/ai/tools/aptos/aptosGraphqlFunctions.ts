@@ -27,7 +27,7 @@ async function fetchGraphQL(
           "Content-Type": "application/json",
           "Authorization": `Bearer ${apiKey}`,
           "Origin": process.env.NODE_ENV === 'production'
-            ? "https://chat.barzakh.tech"
+            ? "https://app.sirath.network"
             : "http://localhost:3000",
         },
         body: JSON.stringify({ query, variables }),

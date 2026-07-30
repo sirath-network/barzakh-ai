@@ -21,8 +21,8 @@ Barzakh AI has two deployment targets:
 
 | Application | Domain | Purpose |
 |-------------|--------|---------|
-| **Frontend** | `chat.barzakh.tech` | Main web app + internal API routes |
-| **Backend** | `staging.barzakh.tech` | External OpenAI-compatible API |
+| **Frontend** | `app.sirath.network` | Main web app + internal API routes |
+| **Backend** | `staging.sirath.network` | External OpenAI-compatible API |
 
 ---
 
@@ -308,7 +308,7 @@ Verified Human: Allow
 
 ## API Shield Schema
 
-### OpenAPI Schema for Backend (`staging.barzakh.tech`)
+### OpenAPI Schema for Backend (`staging.sirath.network`)
 
 ```yaml
 openapi: "3.0.0"
@@ -318,7 +318,7 @@ info:
   description: OpenAI-compatible chat completions API
 
 servers:
-  - url: https://staging.barzakh.tech
+  - url: https://staging.sirath.network
 
 security:
   - BearerAuth: []

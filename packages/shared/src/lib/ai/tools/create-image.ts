@@ -25,7 +25,7 @@ async function persistGeneratedImages(imageUrls: string[]): Promise<string[]> {
   const results: string[] = [];
 
   for (const url of imageUrls) {
-    if (url.startsWith("https://r2.barzakh.tech") || url.includes(".r2.cloudflarestorage.com")) {
+    if (url.startsWith("https://r2.sirath.network") || url.includes(".r2.cloudflarestorage.com")) {
       results.push(url);
       continue;
     }
@@ -113,7 +113,7 @@ async function generateOpenRouterImage(
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://chat.barzakh.tech",
+      "HTTP-Referer": process.env.OPENROUTER_REFERER || "https://app.sirath.network",
       "X-Title": process.env.OPENROUTER_APP_TITLE || "Barzakh AI",
     },
     body: JSON.stringify(body),

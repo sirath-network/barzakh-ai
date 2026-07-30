@@ -7,10 +7,10 @@ info:
     This schema is used by Cloudflare API Shield to validate incoming requests.
   contact:
     name: Barzakh Support
-    url: https://barzakh.tech/contact
+    url: https://sirath.network/contact
 
 servers:
-  - url: https://chat.barzakh.tech
+  - url: https://app.sirath.network
     description: Frontend (Main Application)
 
 tags:
@@ -1974,7 +1974,7 @@ paths:
         - Scraped content is scanned for LLM manipulation tokens
         - Hidden instructions in HTML comments/metadata are removed
       servers:
-        - url: https://staging.barzakh.tech
+        - url: https://staging.sirath.network
       security:
         - BearerAuth: []
       requestBody:
@@ -2009,7 +2009,7 @@ paths:
       operationId: createCompletion
       summary: Create completion (legacy)
       servers:
-        - url: https://staging.barzakh.tech
+        - url: https://staging.sirath.network
       security:
         - BearerAuth: []
       requestBody:

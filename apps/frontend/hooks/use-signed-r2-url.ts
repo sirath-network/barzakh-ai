@@ -68,7 +68,7 @@ function isR2UrlOrKey(urlOrKey: string): boolean {
     if (urlOrKey.includes('.r2.cloudflarestorage.com')) return true;
 
     // Check for legacy R2 custom domain (backward compatibility)
-    if (urlOrKey.includes('r2.barzakh.tech')) return true;
+    if (urlOrKey.includes('r2.sirath.network')) return true;
 
     return false;
 }
@@ -89,7 +89,7 @@ function extractKey(urlOrKey: string): string {
         return cloudflareMatch[1];
     }
 
-    // Handle legacy r2.barzakh.tech URLs (backward compatibility)
+    // Handle legacy r2.sirath.network URLs (backward compatibility)
     const legacyMatch = urlOrKey.match(/https?:\/\/r2\.barzakh\.tech\/(.+)/);
     if (legacyMatch) {
         return legacyMatch[1];

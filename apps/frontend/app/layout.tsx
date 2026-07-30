@@ -8,7 +8,7 @@ import { SessionProvider } from "next-auth/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
-const baseUrl = "https://chat.barzakh.tech";
+const baseUrl = "https://app.sirath.network";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),

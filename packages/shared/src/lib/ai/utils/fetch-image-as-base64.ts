@@ -59,9 +59,9 @@ export async function fetchImageAsBase64(
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-  // Check if this is a legacy R2 URL (r2.barzakh.tech domain no longer exists)
+  // Check if this is a legacy R2 URL (r2.sirath.network domain no longer exists)
   // Skip direct fetch and go straight to proxy for these URLs
-  const isLegacyR2Url = url.includes('r2.barzakh.tech');
+  const isLegacyR2Url = url.includes('r2.sirath.network');
 
   if (!isLegacyR2Url) {
     try {
