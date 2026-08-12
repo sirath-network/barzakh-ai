@@ -1,4 +1,4 @@
-# 🔥 BARZAKH × FLARE: "The Oracle Agent"
+# BARZAKH × FLARE: "The Oracle Agent"
 ### AI-Powered Cross-Chain Intelligence & Confidential Strategy Execution on Flare Network
 
 > **Tagline:** *The first onchain AI agent that sees across blockchains via FTSO & FDC, protects user alpha via Confidential Compute, and unlocks DeFi for FXRP.*
@@ -9,8 +9,8 @@
 
 - **Project Name:** Barzakh AI × Flare: The Oracle Agent
 - **Selected Bounties:**
-  - 🏆 **Bounty 1 — Interoperable Asset Products** ($6,000 Prize Pool)
-  - 🏆 **Bounty 2 — Confidential Compute Apps** ($6,000 Prize Pool)
+  - 🏆 **Bounty 1 — Interoperable Asset Products**
+  - 🏆 **Bounty 2 — Confidential Compute Apps**
 - **Live Platform:** [app.sirath.network](https://app.sirath.network)
 - **Target Network Deployments:** Flare Mainnet (Chain ID 14) & Coston2 Testnet (Chain ID 114)
 - **GitHub Repository:** [Barzakh AI Monorepo](https://github.com/sirath-network/barzakh-ai)
@@ -19,7 +19,7 @@
 
 ## 💡 What is Barzakh AI × Flare?
 
-Barzakh AI is a production-grade onchain AI agent platform operating across 85+ blockchains, powered by a multi-model routing engine (GPT-4o, Claude 3.5/Opus, Grok, DeepSeek).
+Barzakh AI is a production-grade onchain AI agent platform operating across 85+ blockchains, powered by a multi-model routing engine (Open AI, Claude Haiku & Opus, Grok, DeepSeek, etc).
 
 For the **Flare Summer Signal Hackathon**, we have transformed Barzakh AI into Flare's flagship **Oracle Agent** by natively integrating Flare's entire suite of enshrined protocols and hardware-attested confidential compute:
 
