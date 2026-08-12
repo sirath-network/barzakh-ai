@@ -291,6 +291,31 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
+    // Flare Network (L1 with enshrined oracles)
+    {
+        id: 'flare',
+        intent: 'flare',
+        patterns: [
+            /\bflare\s*(network|chain|mainnet|evm|wallet|portfolio|oracle|ftso|fasset|fdc)\b/i,
+            /\bflr\s+(token|coin|balance|wallet|portfolio|price|staking)\b/i,
+            /\bftso\b/i,
+            /\bfasset[s]?\b/i,
+            /\bfxrp\b/i,
+            /\bcoston2?\b/i,
+            /\bsongbird\b/i,
+            /\bsgb\b/i,
+            /\bflarescan\b/i,
+            /\bflare\s*confidential\b/i,
+            /\bflare\s*data\s*connector\b/i,
+        ],
+        keywords: ['flare', 'flr token', 'flare network', 'flare mainnet', 'flare wallet',
+            'ftso', 'ftso oracle', 'fassets', 'fxrp', 'songbird', 'sgb', 'coston2',
+            'flarescan', 'flare oracle', 'flare data connector', 'fdc',
+            'flare confidential', 'wflr', 'wrapped flr'],
+        tokens: ['FLR', 'WFLR', 'SGB', 'FXRP'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
     // Cronos (includes zkEVM)
     {
         id: 'cronos',
@@ -826,6 +851,35 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 95,
     },
 
+    // Flare Network specific (enshrined oracles, FAssets, confidential compute)
+    {
+        intent: "flare",
+        patterns: [
+            /\bflare\b/i,
+            /\bflr\s+(token|coin|balance|wallet|portfolio|price)\b/i,
+            /\bflare\s*(network|chain|mainnet|evm|wallet|portfolio|oracle)\b/i,
+            /\bftso\b/i,
+            /\bfasset[s]?\b/i,
+            /\bfxrp\b/i,
+            /\bcoston2?\b/i,
+            /\bsongbird\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\bflare\b/i,
+            /\bflare\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\bflare\s*(confidential|tee|private)\b/i,
+            /\bflare\s*data\s*connector\b/i,
+        ],
+        keywords: [
+            "flare", "flr token", "flare network", "flare chain",
+            "flare wallet", "flare portfolio", "on flare",
+            "ftso", "ftso oracle", "ftso price", "flare oracle",
+            "fassets", "fxrp", "fbtc", "fdoge",
+            "songbird", "sgb", "coston2", "flarescan",
+            "flare data connector", "fdc", "flare confidential",
+            "wflr", "wrapped flr",
+        ],
+        priority: 96,
+    },
+
     // BNB Chain / Four.meme specific (routes to on_chain)
     {
         intent: "on_chain",
@@ -1142,6 +1196,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "flow": Flow blockchain specific queries
     - "monad": Monad network specific queries
     - "mantle": Mantle Network L2 specific queries (MNT token, mantlescan)
+    - "flare": Flare Network specific queries (FLR token, FTSO oracle, FAssets/FXRP, FDC, confidential compute)
     - "renaiss": Renaiss collectible cards platform (Pokemon/One Piece card queries, card marketplace, slab grading, cert number lookups, pricing/valuation/FMV oracle)
     - "multimodal": Image analysis or file reading requests
     - "search": General web search, questions, information lookup
@@ -1152,7 +1207,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
@@ -1293,7 +1348,7 @@ JSON Response:`,
 
                 // If address format conflicts with context, override it
                 // EVM-compatible chains: these accept 0x addresses
-                const evmChains = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
+                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
 
                 if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
                     console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
@@ -1386,7 +1441,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1437,7 +1492,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -1553,7 +1608,7 @@ export async function classifyIntent(
 
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
 
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&

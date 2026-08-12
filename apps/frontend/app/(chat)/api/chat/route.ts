@@ -587,7 +587,7 @@ export async function POST(request: Request) {
   const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
 
   // Chain-specific groups that support context persistence
-  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad'] as const;
+  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare'] as const;
 
   // Extract chain context from chat history for follow-up message routing
   function extractChainContext(msgs: Array<Message>): string | null {
@@ -604,6 +604,7 @@ export async function POST(request: Request) {
       flow: [/\bflow\s+(blockchain|network|chain)/i],
       monad: [/\bmonad\b/i],
       mantle: [/\bmantle\b/i, /\bmnt\s+(token|balance)/i],
+      flare: [/\bflare\b/i, /\bflr\s+(token|coin|balance|price)/i, /\bftso\b/i, /\bfasset[s]?\b/i, /\bfxrp\b/i, /\bcoston2?\b/i, /\bsongbird\b/i],
       // Generic EVM - 0x addresses (40 hex chars) indicate EVM chain
       // This should be checked LAST since specific chains like Cronos also use 0x
       on_chain: [/\b0x[a-fA-F0-9]{40}\b/, /\betherscan\b/i, /\bethereum\b/i, /\b(optimism|arbitrum|base|polygon)\b/i],

@@ -1,0 +1,18 @@
+{
+  "network": "Coston2 Testnet",
+  "chainId": 114,
+  "deployer": "0xa36ab3DB5f908e66B1Bcc4f7b0dFb42237027aD7",
+  "timestamp": "2026-08-12T05:54:18.605Z",
+  "contracts": {
+    "FlarePriceConsumer": {
+      "address": "0x5c3742143057ad31adb50ec8149864d4e72cb6d6",
+      "explorer": "https://coston2-explorer.flare.network/address/0x5c3742143057ad31adb50ec8149864d4e72cb6d6",
+      "txHash": "0xcaba2ae4799e58365f298fddf4707f293dd1ea5d4c15c74720d71a6444b1e0fa"
+    },
+    "FlareConfidentialStrategy": {
+      "address": "0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7",
+      "explorer": "https://coston2-explorer.flare.network/address/0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7",
+      "txHash": "0xa44b8bdac1338f101831c3bb76325e98fd7b3773d3c56e608a2600a082e450ce"
+    }
+  }
+}

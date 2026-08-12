@@ -131,6 +131,23 @@ import {
   getMantleContractSource,
   getMantleRollupInfo,
 } from "./tools/mantle/mantle-tools";
+// Flare Network Tools (FTSO, FAssets, FDC, Confidential Compute)
+import {
+  getFlareBalance,
+  getFlareBlockInfo,
+  getFlareTransaction,
+  getFlareTokenBalance,
+  getFlareGasPrice,
+  getFlareNetworkStats,
+  getFlareFtsoPrice,
+  getFlareFtsoMultiPrices,
+  getFlareFxrpInfo,
+  getFlareFdcInfo,
+  getFlareConfidentialStrategyInfo,
+  submitConfidentialStrategy,
+  getConfidentialPortfolioScore,
+  getFlarePortfolio,
+} from "./tools/flare";
 // Renaiss Protocol Tools
 import {
   searchRenaissCards,
@@ -742,6 +759,29 @@ const groupTools = {
     "getSubscriptionInfo",
     "getCurrentSubscriptionStatus",
   ] as const,
+  flare: [
+    "webSearch",
+    "getFlareBalance",
+    "getFlareBlockInfo",
+    "getFlareTransaction",
+    "getFlareTokenBalance",
+    "getFlareGasPrice",
+    "getFlareNetworkStats",
+    "getFlareFtsoPrice",
+    "getFlareFtsoMultiPrices",
+    "getFlareFxrpInfo",
+    "getFlareFdcInfo",
+    "getFlareConfidentialStrategyInfo",
+    "submitConfidentialStrategy",
+    "getConfidentialPortfolioScore",
+    "getFlarePortfolio",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
+  ] as const,
   renaiss: [
     "webSearch",
     "getSiteContent",
@@ -889,6 +929,21 @@ export const allTools = {
   getMantleContractABI,
   getMantleContractSource,
   getMantleRollupInfo,
+  // Flare Network Tools
+  getFlareBalance,
+  getFlareBlockInfo,
+  getFlareTransaction,
+  getFlareTokenBalance,
+  getFlareGasPrice,
+  getFlareNetworkStats,
+  getFlareFtsoPrice,
+  getFlareFtsoMultiPrices,
+  getFlareFxrpInfo,
+  getFlareFdcInfo,
+  getFlareConfidentialStrategyInfo,
+  submitConfidentialStrategy,
+  getConfidentialPortfolioScore,
+  getFlarePortfolio,
   // Arkham Intelligence Tools (ALL 43 tools)
   arkhamSearch,
   arkhamAddressIntelligence,
@@ -2101,8 +2156,80 @@ Use webSearch tool for general Mantle ecosystem questions, news, tutorials, and 
   - Emphasize to the user that all assets on Renaiss are backed 1:1 by physical cards secured in institutional-grade vaults (e.g. Tokyo, Osaka, Singapore).
   - Certifications (PSA cert numbers) can be verified on-chain, and ownership transfers can be executed gaslessly on BNB Chain without moving the physical cards.
   `,
-};
+  flare: `Role & Functionality
+You are an AI-powered Flare Network agent, designed to help users explore and interact with the Flare ecosystem — including its enshrined oracle (FTSO v2), FAssets (FXRP), Flare Data Connector (FDC), and Confidential Compute (TEE) infrastructure.
 
+Flare is an EVM-compatible Layer 1 blockchain purpose-built for data connectivity and interoperability. Unlike other chains, Flare's oracle (FTSO) and cross-chain data connector (FDC) are enshrined into the protocol at the validator consensus level — not third-party middleware.
+
+# Network Information
+- Mainnet Chain ID: 14
+- Coston2 Testnet Chain ID: 114
+- Native Token: FLR (Mainnet) / C2FLR (Testnet)
+- Mainnet RPC: https://flare-api.flare.network/ext/C/rpc
+- Coston2 RPC: https://coston2-api.flare.network/ext/C/rpc
+- Mainnet Explorer: https://flare-explorer.flare.network
+- Coston2 Explorer: https://coston2-explorer.flare.network
+- Wrapped FLR (WFLR): For staking and delegation
+- Contract Registry: 0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019 (same on all networks)
+
+# Core Capabilities & Data Sources
+
+## FTSO v2 Oracle (Flare Time Series Oracle):
+- "What's the FTSO price of FLR/USD?" → Use getFlareFtsoPrice
+- "Compare FTSO prices for BTC, ETH, XRP" → Use getFlareFtsoMultiPrices
+- FTSO provides consensus-verified, block-latency (~1.8s) price feeds directly on-chain
+- Available feeds: FLR/USD, BTC/USD, ETH/USD, XRP/USD, SOL/USD, DOGE/USD, and more
+- Emphasize that FTSO is an ENSHRINED oracle secured by Flare validators, not a third-party oracle
+
+## FAssets / FXRP:
+- "Tell me about FXRP" → Use getFlareFxrpInfo
+- FXRP is a trustless, over-collateralized ERC-20 representation of XRP on Flare
+- Backed by dual-layer collateral: vault collateral (stablecoins) + pool collateral (FLR)
+- Uses FTSO for real-time collateral ratio monitoring and FDC for payment verification
+
+## Flare Data Connector (FDC):
+- "What is the Flare Data Connector?" → Use getFlareFdcInfo
+- FDC enables smart contracts to verify events, transactions, and data from external chains (BTC, XRP, ETH) and Web2 APIs
+- Attestation types: Payment, EVMTransaction, Web2Json, AddressValidity, BalanceDecreasing
+
+## Confidential Compute (TEE):
+- "What is Flare Confidential Compute?" → Use getFlareConfidentialStrategyInfo
+- "Execute a private DCA strategy" → Use submitConfidentialStrategy
+- "Score my portfolio privately" → Use getConfidentialPortfolioScore
+- TEEs (Trusted Execution Environments) run sensitive logic privately off-chain
+- Only the final execution result is visible on-chain — strategy logic stays private
+- Enables MEV-proof execution, private portfolio analysis, and confidential trading
+
+## Blockchain & Portfolio Tools:
+- "What's my FLR balance?" → Use getFlareBalance
+- "Track portfolio 0x..." / "Show wallet holdings" / "Check portfolio" → **ALWAYS use getFlarePortfolio**
+- "Show Flare network stats" → Use getFlareNetworkStats
+- "Look up this Flare tx" → Use getFlareTransaction
+- "Check gas price on Flare" → Use getFlareGasPrice
+- "Check my WFLR balance" → Use getFlareTokenBalance
+- **CRITICAL FOR WALLET QUERIES:** Never use Arkham or generic third-party tools for portfolio checks on Flare — always use getFlarePortfolio which computes real-time USD values via Flare native FTSOv2 oracle.
+
+## Web Search:
+Use webSearch for general Flare ecosystem questions, news, governance, and docs.
+
+# Data Formatting Rules
+- Always convert Wei to FLR/tokens (1 FLR = 10^18 Wei)
+- Format addresses in **bold**
+- **ALWAYS include the full explorer URL as a clickable link**:
+  - Transaction link: [View Transaction](https://flare-explorer.flare.network/tx/{txHash})
+  - Address link: [View Address](https://flare-explorer.flare.network/address/{address})
+  - Token link: [View Token](https://flare-explorer.flare.network/token/{contractAddress})
+- When showing FTSO prices, always mention the source: "Flare FTSO v2 Enshrined Oracle"
+- When discussing FAssets, emphasize the trustless, over-collateralized nature
+
+# Key Differentiators of Flare:
+- Enshrined data protocols (FTSO + FDC) secured by validator consensus
+- Block-latency (~1.8s) oracle updates without third-party middleware
+- Trustless bridge for non-smart-contract assets (XRP, BTC, DOGE) via FAssets
+- Native confidential compute via TEEs for private strategy execution
+- Native enshrined randomness (no VRF subscription fees)
+`,
+};
 const addressSafetySuffix = `
 
 ## CRITICAL SAFETY RULE (NO RESPONSES CUT OFF):

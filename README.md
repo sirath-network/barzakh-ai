@@ -14,7 +14,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8" alt="Relay Protocol">
+  <img src="https://img.shields.io/badge/Flare_Network-FTSOv2_&_Confidential_Compute-ede8e8?style=for-the-badge" alt="Flare Network">&nbsp;
+  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8?style=for-the-badge" alt="Relay Protocol">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/TypeScript-5.6-ede8e8?logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Next.js-16.2-ede8e8?logo=next.js" alt="Next.js">
   <img src="https://img.shields.io/badge/React-19.2-ede8e8?logo=react&logoColor=black" alt="React">
@@ -29,10 +33,12 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Flare Summer Signal Hackathon — Official Submission](#-flare-summer-signal-hackathon--official-submission)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [AI Models & Orchestration](#ai-models--orchestration)
 - [Blockchain Tools](#blockchain-tools)
+  - [Flare Network (The Oracle Agent & Confidential Compute)](#flare-network--the-oracle-agent--confidential-compute)
   - [Arkham Intelligence](#%EF%B8%8F-arkham-intelligence--blockchain-investigation--whale-tracking)
   - [Mantle Network](#%EF%B8%8F-mantle-network--l2-blockchain-tools)
   - [Creditcoin](#-creditcoin--blockchain-data-tools)
@@ -59,6 +65,8 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | Feature | Description |
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
+| **Flare Oracle Agent** | Enshrined FTSOv2 price feeds (~1.8s block latency), FXRP supply tracking, and FDC state verification |
+| **Flare Confidential Compute** | Hardware-enforced TEE enclave for private DCA/limit order execution and zero-knowledge portfolio health scoring |
 | **Autonomous Token Launches** | 4-step end-to-end launch on Four.meme with automated logo resolution and tax config |
 | **Scheduled Agent Workflows** | Background monitoring for subscriptions and automated task execution via `api/cron` |
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
@@ -66,10 +74,121 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos Testnet) with optional NFT minting |
 | **Azure Multi-Model AI** | GPT-4o/4.1/5.x, Grok, Kimi, DeepSeek, and BZKH model-router deployments with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
-| **100+ Blockchain Tools** | Chain-specific analyzers for Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
+| **100+ Blockchain Tools** | Chain-specific analyzers for Flare, Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 | **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
+
+---
+
+## 🏆 Flare Summer Signal Hackathon — Official Submission
+
+> **Tagline:** *The first onchain AI agent that sees across blockchains via FTSO & FDC, protects user alpha via Confidential Compute, and unlocks DeFi for FXRP.*
+
+### 📋 Submission Summary
+
+- **Project Name:** Barzakh AI × Flare: "The Oracle Agent"
+- **Selected Bounties:**
+  - 🥇 **Bounty 1: Interoperable Asset Products**
+  - 🥇 **Bounty 2: Confidential Compute Apps**
+- **Short Product Description:** A production-ready conversational AI agent providing real-time data intelligence and private execution on Flare Network — querying enshrined FTSOv2 price feeds (~1.8s latency), monitoring FAssets (FXRP dynamic supply & collateral), verifying cross-chain state via Flare Data Connector (FDC), and executing MEV-proof private strategies via Trusted Execution Environments (TEE).
+- **Target User:** DeFi traders, XRP/FXRP liquidity providers, algorithmic strategists seeking front-running protection, and web3 users wanting natural language access to Flare's enshrined data protocols.
+- **Working Demo App:** [app.sirath.network](https://app.sirath.network)
+- **Technical Materials:** [Detailed Hackathon Technical Guide](docs/FLARE_INTEGRATION_SUBMISSION.md) | [Smart Contracts](contracts/flare/) | [TEE Enclave Code](tee/) | [Flare AI Tools Suite](packages/shared/src/lib/ai/tools/flare/)
+
+---
+
+### 🌐 Network Deployments & Live Smart Contracts
+
+| Contract / Resource | Network | Address / Explorer | Deployment Transaction |
+| :--- | :--- | :--- | :--- |
+| **`FlarePriceConsumer.sol`** | Coston2 Testnet (114) | [`0x5c3742143057ad31adb50ec8149864d4e72cb6d6`](https://coston2-explorer.flare.network/address/0x5c3742143057ad31adb50ec8149864d4e72cb6d6) | [`0xcaba2ae4...`](https://coston2-explorer.flare.network/tx/0xcaba2ae4799e58365f298fddf4707f293dd1ea5d4c15c74720d71a6444b1e0fa) |
+| **`FlareConfidentialStrategy.sol`** | Coston2 Testnet (114) | [`0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7`](https://coston2-explorer.flare.network/address/0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7) | [`0xa44b8bda...`](https://coston2-explorer.flare.network/tx/0xa44b8bdac1338f101831c3bb76325e98fd7b3773d3c56e608a2600a082e450ce) |
+| **Flare Contract Registry** | Mainnet (14) & Coston2 (114) | `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019` | Enshrined Protocol Registry |
+| **Live RPC Feeds (Read)** | Flare Mainnet (14) | Direct on-chain zero-gas calls via Multi-RPC failover pool | Real-time FTSOv2 & FXRP |
+
+- **Deployer / Initial TEE Signer Wallet:** `0xa36ab3DB5f908e66B1Bcc4f7b0dFb42237027aD7`
+
+---
+
+### 🧩 How Barzakh AI Uses Flare
+
+```
+ ┌──────────────────────────────────────────────────────────────────────────────────┐
+ │                            BARZAKH AI NATURAL LANGUAGE CONVERSATION              │
+ └────────────────────────┬───────────────────────────────────┬─────────────────────┘
+                          │                                   │
+             ┌────────────▼────────────────┐       ┌────────────▼──────────────┐
+             │ 🏆 BOUNTY 1: INTEROP ASSETS│        │ 🏆 BOUNTY 2: CONFIDENTIAL│
+             └────────────┬────────────────┘       └────────────┬──────────────┘
+                          │                                   │
+         ┌────────────────┼────────────────┐                  │
+         ▼                ▼                ▼                  ▼
+   ┌───────────┐    ┌───────────┐    ┌───────────┐     ┌─────────────────────┐
+   │  FTSO v2  │    │  FAssets  │    │    FDC    │     │ Flare TEE Enclave   │
+   │  Oracle   │    │  (FXRP)   │    │   (Hub)   │     │ (Intel TDX / dstack)│
+   └─────┬─────┘    └─────┬─────┘    └─────┬─────┘     └──────────┬──────────┘
+         │                │                │                      │
+         │  Block-latency │  $149M+ FXRP   │  Cross-Chain Proofs  │  Hardware Encrypted
+         │  Feed Pricing  │  Collateral    │  (XRPL/BTC/Web2)     │  Strategy Execution
+         │                │                │                      │
+         └────────────────┴────────────────┴──────────────────────┘
+                                  │
+                                  ▼
+   ┌────────────────────────────────────────────────────────────────────────────────┐
+   │         FLARE MAINNET (Chain ID 14) & COSTON2 TESTNET (Chain ID 114)           │
+   │   • Contract Registry: 0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019              │
+   │   • FtsoV2 / TestFtsoV2 Contract Resolution & 3-Tier Multi-RPC Failover Pool   │
+   └────────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Enshrined FTSOv2 Oracle (Bounty 1):**
+   - Direct smart contract queries to `FtsoV2` via dynamic `IFlareContractRegistry` resolution (`0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019`).
+   - Consensus-verified prices for `FLR/USD`, `BTC/USD`, `ETH/USD`, `XRP/USD`, `SOL/USD`, `DOGE/USD` updated with block-latency (~1.8s).
+   - Zero reliance on centralized third-party APIs (CoinGecko, CoinMarketCap).
+
+2. **FAssets & FXRP Integration (Bounty 1):**
+   - Dynamic resolution of `AssetManagerFXRP` and FXRP ERC-20 token (`0xAd552A648C74D49E10027AB8a618A3ad4901c5bE` on Mainnet).
+   - Real-time monitoring of circulating FXRP supply (149.5M+ FXRP on Flare Mainnet) and dual-layer collateral health (FLR pool collateral + stablecoin vault collateral).
+
+3. **Flare Data Connector (FDC) Attestation (Bounty 1):**
+   - Resolves `FdcHub` (`0xc25c749DC27Efb1864Cb3DADa8845B7687eB2d44` on Mainnet) to inspect supported cross-chain attestation types (`Payment`, `AddressValidity`, `BalanceDecreasingTransaction`, `EVMTransaction`, `Web2Json`).
+
+4. **Flare Confidential Compute & TEE Enclave (Bounty 2):**
+   - Hardware-enforced isolation (Intel TDX / SGX container architecture) protecting user trading alpha against front-running and MEV.
+   - **Private Strategy Execution:** Submits client-side encrypted envelopes (`0x...`) for automated DCAs and limit orders evaluated inside the enclave.
+   - **Zero-Knowledge Portfolio Health Scoring:** Private portfolio diagnostics where balances and trading history enter the enclave, but only aggregated health scores (0-100) and anonymized recommendations exit.
+   - **Onchain Settlement Contract:** [`FlareConfidentialStrategy.sol`](https://coston2-explorer.flare.network/address/0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7) verifies TEE hardware-signed execution proofs and FTSOv2 price boundaries on Coston2 testnet.
+
+5. **3-Tier Resilient RPC Pool:**
+   - Automated failover across `flare-api.flare.network`, `flare.public-rpc.com` (~298ms latency), and `rpc.ankr.com` with 8s timeouts, eliminating RPC drops.
+
+---
+
+### 📊 Separation of Work: Existing vs. Hackathon Additions
+
+To provide complete transparency for hackathon evaluation:
+
+| Component / Feature | Status Before Program | Built / Ported / Improved During Program |
+| :--- | :--- | :--- |
+| **Core Monorepo & AI Router** | Pre-existing | Enhanced system prompts and intent patterns for Flare |
+| **Flare Chain Configuration** | ❌ None | ✅ Added Flare Mainnet (14) & Coston2 (114) to Wagmi, Viem, Intent Classifier |
+| **FTSOv2 Oracle AI Tools** | ❌ None | ✅ Built `getFlareFtsoPrice` & `getFlareFtsoMultiPrices` via on-chain contract queries |
+| **FAssets / FXRP AI Tools** | ❌ None | ✅ Built `getFlareFxrpInfo` with dynamic `AssetManagerFXRP` & supply tracking |
+| **FDC Data Connector Tools** | ❌ None | ✅ Built `getFlareFdcInfo` resolving `FdcHub` and attestation types |
+| **Flare Native Portfolio Tracker** | ❌ None | ✅ Built `getFlarePortfolio` querying live balances, ERC-20s, and FTSOv2 USD values |
+| **Flare Blockchain Utilities** | ❌ None | ✅ Built `getFlareBalance`, `getFlareBlockInfo`, `getFlareTransaction`, `getFlareGasPrice`, `getFlareNetworkStats` |
+| **Confidential Compute (TEE) Layer** | ❌ None | ✅ Built `flare-confidential.ts`, TEE strategy container (`tee/`), Dockerfile |
+| **Solidity Smart Contracts** | ❌ None | ✅ Built & deployed `FlarePriceConsumer.sol` and `FlareConfidentialStrategy.sol` on Coston2 |
+| **Multi-RPC Failover Pool** | ❌ None | ✅ Implemented 3-tier fallback pool (`flare-api`, `public-rpc`, `ankr`) |
+
+---
+
+### 🔮 Roadmap & Next Steps
+
+1. **Phala dstack Live Hardware Enclave:** Deploy the [`tee/Dockerfile`](tee/Dockerfile) container onto a bare-metal Phala Cloud instance with active remote hardware attestation (MRENCLAVE).
+2. **Autonomous FAsset Natural Language Minting:** Enable users to trigger XRPL transactions and generate FDC payment attestations directly from chat (e.g. *"Mint 250 FXRP from my XRPL wallet"*).
+3. **Institutional MEV-Proof Fund Rebalancer:** Commercialize confidential strategy execution for DAOs and treasury managers holding large FLR and FXRP positions.
 
 ---
 
@@ -386,6 +505,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 
 | Chain | Tools | Key Capabilities |
 |-------|-------|------------------|
+| **Flare Network** | 13 | Enshrined FTSOv2 price feeds (~1.8s block latency), FAssets (FXRP dynamic supply & collateral), Flare Data Connector (FDC) cross-chain attestations, native portfolio tracker, TEE confidential compute strategy execution & zero-knowledge portfolio health scoring |
 | **Arkham Intelligence** | 43 | Whale tracking, entity investigation, fund flow analysis, portfolio, transfers, DEX swaps, token data, market metrics, address labels — across 20+ chains (Ethereum, Bitcoin, Solana, BSC, Tron, TON, Dogecoin, etc.) |
 | **Cronos EVM** | 12 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info, internal tx, logs |
 | **Cronos zkEVM** | 11 | zkCRO balance, tx history, token transfers, internal tx, contract ABI/source, token supply, block info |
@@ -400,6 +520,65 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
 | **Renaiss Protocol** | 8 | Search collectible cards (listed & unlisted), card price history & Fair Market Value (FMV), PSA/CGC/BGS cert lookup, volume trends, target alert watchlists, zero-knowledge gacha packs & draws |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
+
+---
+
+### Flare Network — The Oracle Agent & Confidential Compute
+
+Barzakh AI provides **13 dedicated Flare tools** integrating Flare's enshrined oracle (FTSOv2), FAssets (FXRP), Flare Data Connector (FDC), and hardware-isolated Confidential Compute (TEE):
+
+#### 🛠️ Flare AI Tool Suite
+
+| Tool | Category | Description |
+| :--- | :--- | :--- |
+| `getFlareFtsoPrice` | 🔮 Oracle (FTSOv2) | Consensus-verified price feed for FLR, BTC, ETH, XRP, SOL, DOGE directly from `FtsoV2` contract |
+| `getFlareFtsoMultiPrices` | 🔮 Oracle (FTSOv2) | Batch queries comparing multi-asset market prices in a single conversational turn |
+| `getFlareFxrpInfo` | 🪙 FAssets / FXRP | Dynamic `AssetManagerFXRP` resolution, circulating FXRP supply (149.5M+), and dual-collateral health |
+| `getFlareFdcInfo` | 🌐 FDC Attestation | Flare Data Connector hub details and supported attestation types (`Payment`, `EVMTransaction`, `Web2Json`) |
+| `getFlarePortfolio` | 💼 Wallet / Portfolio | Full on-chain portfolio: native FLR, ERC-20 token holdings, and live FTSOv2 USD valuation |
+| `getFlareBalance` | ⛓️ Blockchain | Native FLR (Mainnet) or C2FLR (Coston2 Testnet) balance |
+| `getFlareTokenBalance` | ⛓️ Blockchain | ERC-20 token balance (WFLR, FXRP, etc.) |
+| `getFlareTransaction` | ⛓️ Blockchain | Transaction status, confirmations, and gas used |
+| `getFlareBlockInfo` | ⛓️ Blockchain | Latest block number, timestamp, and gas stats |
+| `getFlareGasPrice` | ⛓️ Blockchain | Current gas price with transfer and swap cost estimations |
+| `getFlareNetworkStats` | ⛓️ Blockchain | Network overview, chain ID, and explorer links |
+| `getFlareConfidentialStrategyInfo` | 🔒 Confidential Compute | Interactive educational breakdown of TEE trust models and hardware privacy |
+| `submitConfidentialStrategy` | 🔒 Confidential Compute | Client-side encrypted DCA/limit order strategy submission to isolated TEE enclave |
+| `getConfidentialPortfolioScore` | 🔒 Confidential Compute | Zero-knowledge portfolio risk, diversification, and yield scoring with attestation hash |
+
+#### 🎯 Try It — Flare Natural Language Prompts
+
+> **Live at [app.sirath.network](https://app.sirath.network)** — test these prompts in the chat:
+
+```text
+What is the live FTSO price of FLR, BTC, and XRP?
+```
+```text
+Show FXRP circulating supply and collateral health on Flare
+```
+```text
+Track portfolio 0xA485582EEd34126fbB5387b35757e1F71dfc4cE8 on Flare
+```
+```text
+What attestation types does the Flare Data Connector support?
+```
+```text
+Execute a private DCA strategy to buy FXRP whenever FTSO volatility is under 2%
+```
+```text
+Privately score my portfolio health without exposing my token balances on-chain
+```
+```text
+Check the latest block and gas price on Flare Mainnet
+```
+
+#### 🛡️ Resilient 3-Tier Multi-RPC Pool
+All Flare queries automatically utilize an intelligent failover pool with 8-second request timeouts to guarantee zero downtime and eliminate timeout errors:
+- **Primary:** `https://flare-api.flare.network/ext/C/rpc` (Official RPC)
+- **Backup 1:** `https://flare.public-rpc.com` (High-speed community RPC ~298ms)
+- **Backup 2:** `https://rpc.ankr.com/flare` (Ankr Global Infrastructure)
+
+---
 
 ### Cronos zkEVM Direct Tools
 

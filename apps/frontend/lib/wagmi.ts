@@ -50,6 +50,8 @@ import {
   monad,
   hyperEvm,
   cronoszkEVM,
+  flare,
+  flareTestnet,
 } from 'viem/chains';
 
 export const supportedChains = [
@@ -103,6 +105,8 @@ export const supportedChains = [
   unichain,
   monad,
   hyperEvm,
+  flare,
+  flareTestnet,
 ] as const;
 
 // WalletConnect projectId - Dynamic SDK uses this internally via dashboard config

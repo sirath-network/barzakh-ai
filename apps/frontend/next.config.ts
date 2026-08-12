@@ -3,7 +3,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@barzakh/shared", "@shelby-protocol/sdk"],
-  allowedDevOrigins: ["dev.sirath.network"],
+  allowedDevOrigins: [
+    "dev.sirath.network",
+    "localhost",
+    "127.0.0.1",
+    "172.27.58.103",
+    "10.255.255.254",
+  ],
   // Dynamic Node SDK has native CJS/WASM binaries that can't be bundled by Turbopack
   serverExternalPackages: [
     "@evervault/wasm-attestation-bindings",

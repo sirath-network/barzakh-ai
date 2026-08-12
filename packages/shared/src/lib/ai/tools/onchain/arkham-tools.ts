@@ -482,8 +482,9 @@ export const arkhamGetPortfolio = tool({
     chains: z.string().optional().describe("Comma-separated chains."),
   }),
   execute: wrapExecute(async ({ address, entity, time, chains }) => {
-    if (address) return arkhamGet(`/portfolio/address/${encodeURIComponent(address)}`, { time, chains });
-    if (entity) return arkhamGet(`/portfolio/entity/${encodeURIComponent(entity)}`, { time, chains });
+    const timestamp = time ? String(time) : String(Date.now());
+    if (address) return arkhamGet(`/portfolio/address/${encodeURIComponent(address)}`, { time: timestamp, chains });
+    if (entity) return arkhamGet(`/portfolio/entity/${encodeURIComponent(entity)}`, { time: timestamp, chains });
     throw new Error("Provide either 'address' or 'entity'.");
   }),
 });
