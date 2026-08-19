@@ -1,4 +1,5 @@
 import { http, createConfig, createStorage, cookieStorage } from 'wagmi';
+import { defineChain } from 'viem';
 import {
   mainnet,
   optimism,
@@ -54,6 +55,20 @@ import {
   flareTestnet,
 } from 'viem/chains';
 
+// GOAT Network Mainnet (Bitcoin-secured L2, Chain ID 2345)
+export const goatNetwork = defineChain({
+  id: 2345,
+  name: 'GOAT Network',
+  nativeCurrency: { name: 'Bitcoin', symbol: 'BTC', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://rpc.goat.network'] },
+    public: { http: ['https://rpc.goat.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'GOAT Explorer', url: 'https://explorer.goat.network' },
+  },
+});
+
 export const supportedChains = [
   mainnet,
   optimism,
@@ -107,6 +122,7 @@ export const supportedChains = [
   hyperEvm,
   flare,
   flareTestnet,
+  goatNetwork,
 ] as const;
 
 // WalletConnect projectId - Dynamic SDK uses this internally via dashboard config

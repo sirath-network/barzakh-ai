@@ -204,6 +204,52 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   getMonadTokenPositions: () => "Fetching Monad tokens",
   getMonadStats: () => "Checking Monad blockchain stats",
 
+  // =========================================================
+  // GOAT NETWORK (Bitcoin-secured L2, GNS, ERC-8004)
+  // =========================================================
+  getGoatBalance: (params) => {
+    const address = params?.address;
+    return address ? `Checking BTC balance for ${address.slice(0, 6)}...` : "Checking GOAT Network BTC balance";
+  },
+  getGoatTransaction: (params) => {
+    const tx = params?.txHash;
+    return tx ? `Verifying GOAT transaction ${tx.slice(0, 8)}...` : "Checking GOAT transaction";
+  },
+  getGoatBlockInfo: () => "Querying latest GOAT block",
+  getGoatGasPrice: () => "Checking GOAT Network gas fees",
+  getGoatNetworkStats: () => "Fetching GOAT Network metrics",
+  getGoatTokenBalance: (params) => {
+    const token = params?.tokenAddress;
+    return token ? `Checking token balance for ${token.slice(0, 6)}...` : "Checking GOAT token balance";
+  },
+  getGoatPortfolio: (params) => {
+    const address = params?.address;
+    return address ? `Scanning GOAT portfolio for ${address.slice(0, 6)}...` : "Scanning GOAT Network portfolio";
+  },
+  getGoatTransactionHistory: () => "Fetching GOAT transaction history",
+  getGoatOraclePrice: (params) => {
+    const feed = params?.feedId;
+    return feed ? `Querying GOAT oracle for ${feed}` : "Querying GOAT oracle price feed";
+  },
+  getGoatBridgeStatus: () => "Checking BitVM2 bridge status",
+  gnsToAddress: (params) => {
+    const name = params?.gnsName;
+    return name ? `Resolving GNS domain ${name}` : "Resolving .goat domain";
+  },
+  gnsCheckAvailability: (params) => {
+    const name = params?.name;
+    return name ? `Checking availability of ${name}` : "Checking .goat domain availability";
+  },
+  gnsReverseLookupTool: () => "Performing reverse GNS lookup",
+  getGoatAgentCard: (params) => {
+    const id = params?.agentId;
+    return id ? `Fetching ERC-8004 agent card #${id}` : "Querying ERC-8004 agent identity";
+  },
+  getGoatAgentReputation: (params) => {
+    const id = params?.agentId;
+    return id ? `Checking ERC-8004 reputation for agent #${id}` : "Querying agent reputation score";
+  },
+
   defiLlama: () => "Consulting DefiLlama protocol data",
   queryCryptoComAI: () => "Asking Crypto.com AI Agent",
   analyzeWalletWithAI: () => "Running AI wallet diagnostics",
@@ -240,10 +286,12 @@ function extractEntitiesFromPrompt(prompt: string): {
   addresses?: string[];
   tokenNames?: string[];
   ensNames?: string[];
+  gnsNames?: string[];
 } {
   const addresses: string[] = [];
   const tokenNames: string[] = [];
   const ensNames: string[] = [];
+  const gnsNames: string[] = [];
 
   // Extract Ethereum addresses (0x followed by 40 hex characters)
   const ethAddressPattern = /0x[a-fA-F0-9]{40}/g;
@@ -259,6 +307,13 @@ function extractEntitiesFromPrompt(prompt: string): {
     ensNames.push(...ensMatches);
   }
 
+  // Extract GNS names (ends with .goat)
+  const gnsPattern = /[\w-]+\.goat/g;
+  const gnsMatches = prompt.match(gnsPattern);
+  if (gnsMatches) {
+    gnsNames.push(...gnsMatches);
+  }
+
   // Extract potential token names (capitalized words, common crypto patterns)
   const tokenPattern = /\b[A-Z][A-Z0-9]{2,}\b/g;
   const tokenMatches = prompt.match(tokenPattern);
@@ -266,7 +321,7 @@ function extractEntitiesFromPrompt(prompt: string): {
     tokenNames.push(...tokenMatches.filter(name => name.length <= 10));
   }
 
-  return { addresses, tokenNames, ensNames };
+  return { addresses, tokenNames, ensNames, gnsNames };
 }
 
 /**

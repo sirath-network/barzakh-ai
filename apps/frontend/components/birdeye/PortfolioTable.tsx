@@ -94,6 +94,114 @@ const getChainLogo = (chain: string, iconUrl?: string): string => {
   return zerionChainIcons[chain.toLowerCase()] || "https://chain-icons.s3.amazonaws.com/ethereum.png";
 };
 
+// Themed chain logos for light & dark modes
+const THEMED_CHAIN_LOGOS: Record<string, { light: string; dark: string }> = {
+  goat: {
+    light: "/images/icon/goat/goat-dark.png",
+    dark: "/images/icon/goat/goat-light.png",
+  },
+  "goat-network": {
+    light: "/images/icon/goat/goat-dark.png",
+    dark: "/images/icon/goat/goat-light.png",
+  },
+  flare: {
+    light: "/images/icon/flare/flare-dark.png",
+    dark: "/images/icon/flare/flare-light.png",
+  },
+  "flare-network": {
+    light: "/images/icon/flare/flare-dark.png",
+    dark: "/images/icon/flare/flare-light.png",
+  },
+  aptos: {
+    light: "/images/icon/aptos/aptos-dark.png",
+    dark: "/images/icon/aptos/aptos-light.png",
+  },
+};
+
+// Robust Token Logo with graceful error fallback
+const TokenLogo: React.FC<{ icon?: string; symbol: string; size?: number }> = ({ icon, symbol, size = 24 }) => {
+  const [error, setError] = useState(false);
+
+  if (!icon || error) {
+    return (
+      <div
+        className="rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-300 flex-shrink-0"
+        style={{ width: size, height: size }}
+      >
+        {symbol.charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={icon}
+      alt={symbol}
+      width={size}
+      height={size}
+      className="rounded-full flex-shrink-0 object-contain"
+      onError={() => setError(true)}
+      unoptimized
+    />
+  );
+};
+
+// Robust Chain Logo with graceful error fallback and theme support
+const ChainLogo: React.FC<{ chain: string; iconUrl?: string }> = ({ chain, iconUrl }) => {
+  const [error, setError] = useState(false);
+  const chainKey = chain.toLowerCase();
+  const themed = THEMED_CHAIN_LOGOS[chainKey];
+
+  if (themed) {
+    return (
+      <div className="w-full h-full relative flex items-center justify-center">
+        {/* Light mode: dark logo on light background */}
+        <Image
+          src={themed.light}
+          alt={chain}
+          width={24}
+          height={24}
+          className="w-full h-full object-contain dark:hidden block"
+          onError={() => setError(true)}
+          unoptimized
+        />
+        {/* Dark mode: light logo on dark background */}
+        <Image
+          src={themed.dark}
+          alt={chain}
+          width={24}
+          height={24}
+          className="w-full h-full object-contain hidden dark:block"
+          onError={() => setError(true)}
+          unoptimized
+        />
+      </div>
+    );
+  }
+
+  const logoSrc = getChainLogo(chain, iconUrl);
+
+  if (error || !logoSrc) {
+    return (
+      <div className="w-full h-full rounded-lg bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-300">
+        {chain.charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={logoSrc}
+      alt={chain}
+      width={24}
+      height={24}
+      className="w-full h-full object-contain"
+      onError={() => setError(true)}
+      unoptimized
+    />
+  );
+};
+
 // Check if address is a Solana address (Base58 format, 32-44 chars, not starting with 0x)
 const isSolanaAddress = (address: string): boolean => {
   if (!address || address.startsWith('0x')) return false;
@@ -173,10 +281,65 @@ interface NftCollection {
   chain: string;
 }
 
-const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
+const PortfolioTable: React.FC<PortfolioProps> = ({ result: initialResult }) => {
+  // Normalize result if it comes from custom chain tools without full Zerion shape
+  const result = React.useMemo(() => {
+    if (!initialResult) return null;
+    if (initialResult.attributes) return initialResult;
+
+    // Check if result has custom portfolio structure (e.g. from GOAT, Flare, or custom tools)
+    const p = (initialResult as any).portfolio || initialResult;
+    if (p.tokens || p.nativeToken || (initialResult as any).tokens) {
+      const chainTokensList: ChainTokenDetail[] = [];
+      if (p.nativeToken) {
+        const rawBal = parseFloat(p.nativeToken.balance || "0");
+        const rawVal = typeof p.nativeToken.valueUsd === "number" ? p.nativeToken.valueUsd : parseFloat(String(p.nativeToken.valueUsd || "0").replace(/[^0-9.]/g, '')) || 0;
+        const rawPrice = typeof p.nativeToken.priceUsd === "number" ? p.nativeToken.priceUsd : parseFloat(String(p.nativeToken.priceUsd || "0").replace(/[^0-9.]/g, '')) || 0;
+        chainTokensList.push({
+          symbol: p.nativeToken.symbol || "BTC",
+          name: `${p.nativeToken.symbol || "Bitcoin"} (Native)`,
+          balance: rawBal,
+          value: rawVal,
+          price: rawPrice,
+          icon: "https://chain-icons.s3.amazonaws.com/bitcoin.png",
+        });
+      }
+      const rawTokens = Array.isArray(p.tokens) ? p.tokens : Array.isArray((initialResult as any).tokens) ? (initialResult as any).tokens : [];
+      rawTokens.forEach((t: any) => {
+        const rawBal = parseFloat(t.balance || "0");
+        const rawVal = typeof t.valueUsd === "number" ? t.valueUsd : parseFloat(String(t.valueUsd || "0").replace(/[^0-9.]/g, '')) || 0;
+        const rawPrice = typeof t.priceUsd === "number" ? t.priceUsd : parseFloat(String(t.priceUsd || "0").replace(/[^0-9.]/g, '')) || 0;
+        chainTokensList.push({
+          symbol: t.symbol || "UNKNOWN",
+          name: t.name || t.symbol || "Token",
+          balance: rawBal,
+          value: rawVal,
+          price: rawPrice,
+          icon: t.icon,
+        });
+      });
+      const totalVal = chainTokensList.reduce((acc, t) => acc + (t.value || 0), 0);
+      const chainKey = String((initialResult as any).network || "").toLowerCase().includes("goat") ? "goat" : "goat";
+      return {
+        id: (initialResult as any).id || (initialResult as any).address || "0x",
+        type: "wallets",
+        attributes: {
+          total: { positions: totalVal },
+          changes: { percent_1d: 0 },
+          positions_distribution_by_chain: { [chainKey]: totalVal },
+        },
+        currency: "usd",
+        chainTokens: { [chainKey]: chainTokensList },
+      } as any;
+    }
+    return initialResult;
+  }, [initialResult]);
+
   // Force re-render to clear stale state
   const [expandedChains, setExpandedChains] = useState<Record<string, boolean>>({});
-  const [chainTokens, setChainTokens] = useState<Record<string, ChainTokenDetail[]>>({});
+  const [chainTokens, setChainTokens] = useState<Record<string, ChainTokenDetail[]>>(
+    (result as any)?.chainTokens || (initialResult as any)?.chainTokens || {}
+  );
   const [loadingChains, setLoadingChains] = useState<Record<string, boolean>>({});
   const [chainIcons, setChainIcons] = useState<Record<string, string>>({});
   const [showProtocols, setShowProtocols] = useState(false);
@@ -215,7 +378,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
   const totalPositions = attributes.total?.positions;
   const percentChange = attributes.changes?.percent_1d;
   const chains = attributes.positions_distribution_by_chain
-    ? Object.entries(attributes.positions_distribution_by_chain).sort((a, b) => (b[1] || 0) - (a[1] || 0))
+    ? Object.entries(attributes.positions_distribution_by_chain).sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
     : [];
 
   const isPositiveChange = percentChange && percentChange >= 0;
@@ -466,6 +629,10 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
     setExpandedChains(prev => ({ ...prev, [chain]: isExpanding }));
 
     if (isExpanding && !chainTokens[chain]) {
+      if ((result as any)?.chainTokens?.[chain]) {
+        setChainTokens(prev => ({ ...prev, [chain]: (result as any).chainTokens[chain] }));
+        return;
+      }
       setLoadingChains(prev => ({ ...prev, [chain]: true }));
       try {
         const walletAddress = result.id;
@@ -684,20 +851,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                           {position.tokens.filter(t => t.value >= 1).map((token, tIdx) => (
                             <div key={tIdx} className="flex justify-between items-start">
                               <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-3">
-                                {token.icon ? (
-                                  <ImageAny
-                                    src={token.icon}
-                                    alt={token.symbol}
-                                    width={20}
-                                    height={20}
-                                    className="rounded-full flex-shrink-0"
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
-                                    {token.symbol.charAt(0)}
-                                  </div>
-                                )}
+                                <TokenLogo icon={token.icon} symbol={token.symbol} size={20} />
                                 <div className="flex flex-col min-w-0">
                                   <span className="text-sm font-medium text-zinc-900 dark:text-zinc-200 truncate leading-none mb-1">
                                     {token.symbol}
@@ -738,7 +892,8 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
           {/* Expandable chain list for all chains */}
           {chains.map(([chain, value], index) => {
-            const percentage = totalPositions && totalPositions > 0 ? ((value || 0) / totalPositions) * 100 : 0;
+            const numericVal = Number(value) || 0;
+            const percentage = totalPositions && totalPositions > 0 ? (numericVal / totalPositions) * 100 : 0;
             const isExpanded = expandedChains[chain];
             const tokens = chainTokens[chain];
             const isLoading = loadingChains[chain];
@@ -757,14 +912,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                 >
                   <div className="flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
                     <div className="relative w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-900 p-1.5 sm:p-2 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
-                      <ImageAny
-                        src={getChainLogo(chain, chainIcons[chain])}
-                        alt={chain}
-                        width={24}
-                        height={24}
-                        className="w-full h-full object-contain"
-                        unoptimized
-                      />
+                      <ChainLogo chain={chain} iconUrl={chainIcons[chain]} />
                     </div>
                     <div className="text-left min-w-0 truncate">
                       <div className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white capitalize truncate">{chain.replace(/-/g, ' ')}</div>
@@ -774,7 +922,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
 
                   <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0 ml-2">
                     <div className="text-right">
-                      <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${value ? formatLargeValue(value) : "0.00"}</div>
+                      <div className="font-bold text-sm sm:text-base text-zinc-900 dark:text-white tabular-nums">${numericVal ? formatLargeValue(numericVal) : "0.00"}</div>
                     </div>
                     <ChevronRightAny className={`w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                   </div>
@@ -810,20 +958,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result }) => {
                               className="grid grid-cols-12 gap-2 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 transition-colors items-center group/row cursor-default"
                             >
                               <div className="col-span-6 sm:col-span-5 flex items-center gap-2 sm:gap-3">
-                                {token.icon ? (
-                                  <ImageAny
-                                    src={token.icon}
-                                    alt={token.symbol}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full"
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
-                                    {token.symbol.charAt(0)}
-                                  </div>
-                                )}
+                                <TokenLogo icon={token.icon} symbol={token.symbol} size={24} />
                                 <div className="flex flex-col">
                                   <span className="font-medium text-sm text-zinc-900 dark:text-white">{token.symbol}</span>
                                   <span className="text-xs text-zinc-500">{formatCrypto(token.balance)}</span>

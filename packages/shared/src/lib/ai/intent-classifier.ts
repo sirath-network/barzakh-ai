@@ -296,9 +296,10 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         id: 'flare',
         intent: 'flare',
         patterns: [
-            /\bflare\s*(network|chain|mainnet|evm|wallet|portfolio|oracle|ftso|fasset|fdc)\b/i,
-            /\bflr\s+(token|coin|balance|wallet|portfolio|price|staking)\b/i,
-            /\bftso\b/i,
+            /\bflare\s*(network|chain|mainnet|testnet|evm|wallet|portfolio|oracle|ftso|fasset|fdc)?\b/i,
+            /\b(on\s+flare|on\s+flr|on\s+songbird|on\s+sgb|on\s+coston2?)\b/i,
+            /\bflr\s+(token|coin|balance|wallet|portfolio|price|staking|transfer)\b/i,
+            /\bftso(v2)?\b/i,
             /\bfasset[s]?\b/i,
             /\bfxrp\b/i,
             /\bcoston2?\b/i,
@@ -307,12 +308,41 @@ const CHAIN_REGISTRY: ChainInfo[] = [
             /\bflarescan\b/i,
             /\bflare\s*confidential\b/i,
             /\bflare\s*data\s*connector\b/i,
+            /\b(wflr|wrapped\s*flr)\b/i,
         ],
-        keywords: ['flare', 'flr token', 'flare network', 'flare mainnet', 'flare wallet',
-            'ftso', 'ftso oracle', 'fassets', 'fxrp', 'songbird', 'sgb', 'coston2',
-            'flarescan', 'flare oracle', 'flare data connector', 'fdc',
+        keywords: ['flare', 'flr token', 'flare network', 'flare mainnet', 'flare wallet', 'flare chain', 'on flare',
+            'ftso', 'ftsov2', 'ftso oracle', 'ftso price', 'fassets', 'fasset', 'fxrp', 'fbtc', 'fdoge',
+            'songbird', 'sgb', 'coston', 'coston2', 'flarescan', 'flare oracle', 'flare data connector', 'fdc',
             'flare confidential', 'wflr', 'wrapped flr'],
-        tokens: ['FLR', 'WFLR', 'SGB', 'FXRP'],
+        tokens: ['FLR', 'WFLR', 'SGB', 'FXRP', 'FBTC', 'FDOGE', 'C2FLR'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
+    // GOAT Network (Bitcoin-secured L2)
+    {
+        id: 'goat',
+        intent: 'goat',
+        patterns: [
+            /\bgoat\s*(network|chain|mainnet|testnet|wallet|portfolio|bridge|agent|oracle)?\b/i,
+            /\b(on\s+goat|on\s+goat\s*network|on\s+goat\s*chain|on\s+goat\s*mainnet)\b/i,
+            /\bbtc\s+on\s+goat\b/i,
+            /\bgns\b/i,
+            /\.goat\b/i,
+            /\b[a-zA-Z0-9_-]+\.goat\b/i,
+            /\bgoat\s*name\s*service\b/i,
+            /\berc[- ]?8004\b/i,
+            /\bagent\s*(card|identity|reputation|spec|trust)\b/i,
+            /\bwgbtc\b/i,
+            /\bgoated\b/i,
+            /\bartgoat(ed)?\b/i,
+            /\bartbtc\b/i,
+            /\bbitvm2?\b/i,
+            /\bgoatscan\b/i,
+        ],
+        keywords: ['goat', 'goat network', 'goat chain', 'goat mainnet', 'on goat', 'gns', '.goat', 'goat name service',
+            'erc-8004', 'erc8004', 'agent card', 'agent reputation', 'wgbtc', 'wrapped goat btc',
+            'goated', 'artgoat', 'artgoated', 'artbtc', 'artdogeb', 'artbtcb', 'bitvm', 'bitvm2', 'goatscan', 'goat bridge', 'goat oracle'],
+        tokens: ['BTC', 'WGBTC', 'GOATED', 'ARTGOATED', 'ARTBTC', 'ARTDOGEB', 'BTCB'],
         addressFormat: 'evm',
         isEvm: true,
     },
@@ -856,26 +886,63 @@ const INTENT_PATTERNS: IntentPattern[] = [
         intent: "flare",
         patterns: [
             /\bflare\b/i,
-            /\bflr\s+(token|coin|balance|wallet|portfolio|price)\b/i,
-            /\bflare\s*(network|chain|mainnet|evm|wallet|portfolio|oracle)\b/i,
-            /\bftso\b/i,
+            /\b(on\s+flare|on\s+flr|on\s+songbird|on\s+sgb|on\s+coston2?)\b/i,
+            /\bflr\s+(token|coin|balance|wallet|portfolio|price|staking|transfer)\b/i,
+            /\bflare\s*(network|chain|mainnet|testnet|evm|wallet|portfolio|oracle)\b/i,
+            /\bftso(v2)?\b/i,
             /\bfasset[s]?\b/i,
             /\bfxrp\b/i,
             /\bcoston2?\b/i,
             /\bsongbird\b/i,
-            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\bflare\b/i,
-            /\bflare\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\bsgb\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\b(flare|flr|songbird|sgb|coston2?|ftso|fassets?)\b/i,
+            /\b(flare|flr|songbird|sgb|coston2?|ftso|fassets?)\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
             /\bflare\s*(confidential|tee|private)\b/i,
             /\bflare\s*data\s*connector\b/i,
+            /\bflarescan\b/i,
+            /\bwflr\b/i,
         ],
         keywords: [
-            "flare", "flr token", "flare network", "flare chain",
+            "flare", "flr token", "flare network", "flare chain", "flare mainnet",
             "flare wallet", "flare portfolio", "on flare",
-            "ftso", "ftso oracle", "ftso price", "flare oracle",
-            "fassets", "fxrp", "fbtc", "fdoge",
-            "songbird", "sgb", "coston2", "flarescan",
+            "ftso", "ftsov2", "ftso oracle", "ftso price", "flare oracle",
+            "fassets", "fasset", "fxrp", "fbtc", "fdoge",
+            "songbird", "sgb", "coston", "coston2", "flarescan",
             "flare data connector", "fdc", "flare confidential",
             "wflr", "wrapped flr",
+        ],
+        priority: 96,
+    },
+
+    // GOAT Network specific (Bitcoin-secured L2, GNS, ERC-8004 agent identity)
+    {
+        intent: "goat",
+        patterns: [
+            /\bgoat\b/i,
+            /\.goat\b/i,
+            /\b[a-zA-Z0-9_-]+\.goat\b/i,
+            /\bgns\b/i,
+            /\berc[- ]?8004\b/i,
+            /\berc8004\b/i,
+            /\b(on\s+goat|on\s+goat\s*network|on\s+goat\s*chain|on\s+goat\s*mainnet)\b/i,
+            /\bgoat\s*(network|chain|mainnet|testnet|wallet|portfolio|bridge|agent|oracle|scan)\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\b(goat|gns|\.goat|goated|artgoat|wgbtc)\b/i,
+            /\b(goat|gns|\.goat|goated|artgoat|wgbtc)\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\b(agent\s*card|agent\s*identity|agent\s*reputation|agent\s*spec)\b/i,
+            /\bwgbtc\b/i,
+            /\bgoated\b/i,
+            /\bartgoat(ed)?\b/i,
+            /\bartbtc\b/i,
+            /\bbitvm2?\b/i,
+            /\bgoatscan\b/i,
+        ],
+        keywords: [
+            "goat", "goat network", "goat chain", "goat mainnet",
+            "goat wallet", "goat portfolio", "on goat",
+            "gns", ".goat", "goat name service",
+            "erc-8004", "erc8004", "agent card", "agent reputation", "agent identity",
+            "wgbtc", "wrapped goat btc", "goated", "artgoat", "artgoated", "artbtc",
+            "bitvm", "bitvm2", "goatscan", "goat bridge", "goat oracle",
         ],
         priority: 96,
     },
@@ -1197,6 +1264,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "monad": Monad network specific queries
     - "mantle": Mantle Network L2 specific queries (MNT token, mantlescan)
     - "flare": Flare Network specific queries (FLR token, FTSO oracle, FAssets/FXRP, FDC, confidential compute)
+    - "goat": GOAT Network Bitcoin-secured L2 specific queries (BTC as gas, GNS .goat domain resolution, ERC-8004 agent cards/reputation, WGBTC, BitVM bridge)
     - "renaiss": Renaiss collectible cards platform (Pokemon/One Piece card queries, card marketplace, slab grading, cert number lookups, pricing/valuation/FMV oracle)
     - "multimodal": Image analysis or file reading requests
     - "search": General web search, questions, information lookup
@@ -1207,7 +1275,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss', 'goat'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
@@ -1226,7 +1294,7 @@ CRITICAL RULES:
    - Example: "bridge to Base" -> "on_chain"
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):
-- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei, renaiss): Accept "0x..." addresses (40 hex chars)
+- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei, renaiss, goat): Accept "0x..." addresses (40 hex chars)
 - Aptos uses 32-byte "0x..." addresses (64 hex chars); classify 64-char addresses as "aptos".
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
@@ -1264,6 +1332,8 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                     "flow",
                     "monad",
                     "mantle",
+                    "flare",
+                    "goat",
                     "renaiss",
                     "multimodal",
                     "search",
@@ -1348,7 +1418,7 @@ JSON Response:`,
 
                 // If address format conflicts with context, override it
                 // EVM-compatible chains: these accept 0x addresses
-                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
+                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat'];
 
                 if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
                     console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
@@ -1441,7 +1511,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1492,7 +1562,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana', 'goat'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -1608,7 +1678,7 @@ export async function classifyIntent(
 
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat'];
 
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&

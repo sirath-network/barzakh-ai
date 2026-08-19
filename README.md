@@ -517,6 +517,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **SEI** | 4 | Cosmos queries, IBC transfers |
 | **Zeta** | 3 | ZetaVM testnet, cross-chain messaging |
 | **Monad** | 10 | MON balance, tx details, gas, portfolio, DeFi positions, NFTs, token positions, stats, nad.fun search |
+| **GOAT Network** | 14 | Bitcoin-secured L2, BTC balance/gas, GNS (.goat name service) resolver & availability, ERC-8004 agent card & reputation, portfolio tracker, BitVM2 bridge status, oracle feeds |
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
 | **Renaiss Protocol** | 8 | Search collectible cards (listed & unlisted), card price history & Fair Market Value (FMV), PSA/CGC/BGS cert lookup, volume trends, target alert watchlists, zero-knowledge gacha packs & draws |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |

@@ -7,6 +7,7 @@ import {
 import { filterAndLimitPortfolio, getZerionApiKey } from "../../../utils/utils";
 import { SUPPORTED_CURRENCY } from "../../../constants";
 import { multichainEnsLookup } from "../../../utils/multichain-ens-lookup";
+import { gnsLookup } from "../../../utils/gns-lookup";
 
 export const getEvmMultiChainWalletPortfolio = tool({
   description:
@@ -15,7 +16,7 @@ export const getEvmMultiChainWalletPortfolio = tool({
     wallet_address: z
       .string()
       .min(1, "Wallet address is required")
-      .describe("EVM wallet address of user starting with '0x' or an ENS name ending with '.eth'"),
+      .describe("EVM wallet address of user starting with '0x', an ENS name ending with '.eth', or a GNS name ending with '.goat'"),
     currency: z
       .enum(SUPPORTED_CURRENCY)
       .default("usd")
@@ -30,7 +31,7 @@ export const getEvmMultiChainWalletPortfolio = tool({
   }): Promise<PortfolioData | string> => {
     const apiKey = getZerionApiKey();
 
-    // Resolve ENS name to address if needed
+    // Resolve ENS or GNS name to address if needed
     let resolvedAddress = wallet_address;
     if (wallet_address.toLowerCase().endsWith('.eth')) {
       console.log("Resolving ENS name:", wallet_address);
@@ -40,6 +41,14 @@ export const getEvmMultiChainWalletPortfolio = tool({
       }
       resolvedAddress = address;
       console.log("Resolved ENS to address:", resolvedAddress);
+    } else if (wallet_address.toLowerCase().endsWith('.goat')) {
+      console.log("Resolving GNS name:", wallet_address);
+      const address = await gnsLookup(wallet_address);
+      if (!address || address === "not found" || address.startsWith("error")) {
+        return `Failed to resolve GNS (.goat) name: ${wallet_address}. Please provide a valid .goat domain name or wallet address.`;
+      }
+      resolvedAddress = address;
+      console.log("Resolved GNS to address:", resolvedAddress);
     }
 
     const options = {

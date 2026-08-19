@@ -570,6 +570,7 @@ const PurePreviewMessage = ({
                       'getEvmMultiChainWalletPortfolio',
                       'getMantlePortfolio',
                       'getMonadPortfolio', // Monad portfolio (primary)
+                      'getGoatPortfolio', // GOAT Network portfolio
                       'getTokenBalances',
                       'getSolanaWalletTransactions',
                       // EVM chain transaction history tools
@@ -654,6 +655,7 @@ const PurePreviewMessage = ({
                             getEvmMultiChainWalletPortfolio: <PortfolioTableAny result={result} />,
                             getMantlePortfolio: <PortfolioTableAny result={result} />,
                             getMonadPortfolio: <PortfolioTableAny result={result} />,
+                            getGoatPortfolio: <PortfolioTableAny result={result} />,
                             getTokenBalances: <PortfolioTableAny result={result} />,
                             getSolanaWalletTransactions: <TransactionHistoryAny result={result} />,
                             // EVM chain transaction history & General API Data
@@ -932,6 +934,7 @@ const PurePreviewMessage = ({
                               t.toolName === 'getFlowApiData' ||
                               t.toolName === 'getSeiApiData' ||
                               t.toolName === 'getMonadPortfolio' ||
+                              t.toolName === 'getGoatPortfolio' ||
                               t.toolName === 'getMonadDefiPositions' ||
                               t.toolName === 'getMonadNFTs' ||
                               t.toolName === 'getMonadTokenPositions'

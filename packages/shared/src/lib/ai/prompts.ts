@@ -148,6 +148,21 @@ import {
   getConfidentialPortfolioScore,
   getFlarePortfolio,
 } from "./tools/flare";
+// GOAT Network Tools (Bitcoin-secured L2, GNS, ERC-8004)
+import {
+  getGoatBalance,
+  getGoatTransaction,
+  getGoatBlockInfo,
+  getGoatGasPrice,
+  getGoatNetworkStats,
+  getGoatTokenBalance,
+  getGoatPortfolio,
+  getGoatTransactionHistory,
+  getGoatOraclePrice,
+  getGoatBridgeStatus,
+} from "./tools/goat/goat-tools";
+import { gnsToAddress, gnsCheckAvailability, gnsReverseLookupTool } from "./tools/goat/gns-tools";
+import { getGoatAgentCard, getGoatAgentReputation } from "./tools/goat/erc8004-tools";
 // Renaiss Protocol Tools
 import {
   searchRenaissCards,
@@ -802,6 +817,43 @@ const groupTools = {
     "getSubscriptionInfo",
     "getCurrentSubscriptionStatus",
   ] as const,
+  goat: [
+    "webSearch",
+    "getSiteContent",
+    // Core blockchain tools
+    "getGoatBalance",
+    "getGoatTransaction",
+    "getGoatBlockInfo",
+    "getGoatGasPrice",
+    "getGoatNetworkStats",
+    "getGoatTokenBalance",
+    "getGoatPortfolio",
+    "getGoatTransactionHistory",
+    // Oracle & Bridge
+    "getGoatOraclePrice",
+    "getGoatBridgeStatus",
+    // GNS (.goat name service)
+    "gnsToAddress",
+    "gnsCheckAvailability",
+    "gnsReverseLookupTool",
+    // ERC-8004 Agent Identity & Reputation
+    "getGoatAgentCard",
+    "getGoatAgentReputation",
+    // Cross-chain & Utilities
+    "ensToAddress",
+    "translateTransactions",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
+  ] as const,
 } as const;
 
 export const allTools = {
@@ -997,6 +1049,22 @@ export const allTools = {
   watchRenaissCard,
   getRenaissPacks,
   getRenaissPackDetails,
+  // GOAT Network Tools
+  getGoatBalance,
+  getGoatTransaction,
+  getGoatBlockInfo,
+  getGoatGasPrice,
+  getGoatNetworkStats,
+  getGoatTokenBalance,
+  getGoatPortfolio,
+  getGoatTransactionHistory,
+  getGoatOraclePrice,
+  getGoatBridgeStatus,
+  gnsToAddress,
+  gnsCheckAvailability,
+  gnsReverseLookupTool,
+  getGoatAgentCard,
+  getGoatAgentReputation,
 };
 
 const groupPrompts = {
@@ -2228,6 +2296,53 @@ Use webSearch for general Flare ecosystem questions, news, governance, and docs.
 - Trustless bridge for non-smart-contract assets (XRP, BTC, DOGE) via FAssets
 - Native confidential compute via TEEs for private strategy execution
 - Native enshrined randomness (no VRF subscription fees)
+`,
+  goat: `Role & Functionality:
+You are Barzakh AI — an AI-powered GOAT Network agent with deep knowledge of the GOAT ecosystem. GOAT Network is a Bitcoin-secured Layer 2 (L2) with EVM compatibility, built specifically for the Agentic Economy.
+
+# Network Overview:
+- Network Name: GOAT Network Mainnet
+- Chain ID: 2345
+- Native Currency / Gas Token: BTC (18 decimals — 1 BTC = 10^18 Wei)
+- RPC Endpoint: https://rpc.goat.network
+- Explorer: https://explorer.goat.network
+- Bridge / Security: BitVM2-based trust-minimized optimistic computation and decentralized sequencing anchored to Bitcoin L1.
+
+# Core Capabilities:
+1. **Wallet & Portfolio Analysis**:
+   - For native BTC balance: Use getGoatBalance
+   - For token holdings (WGBTC, USDC, etc.): Use getGoatTokenBalance
+   - For complete portfolio (native BTC + all ERC-20s): **ALWAYS use getGoatPortfolio**
+   - For recent wallet transactions: Use getGoatTransactionHistory
+
+2. **GOAT Name Service (GNS / .goat Domains)**:
+   - Resolve .goat domain names to EVM addresses: **gnsToAddress** (e.g. "jesus.goat" → 0x1234...)
+   - Check if a .goat name is available: **gnsCheckAvailability**
+   - Reverse lookup (address → primary .goat name): **gnsReverseLookupTool**
+   - **GNS AUTO-RESOLUTION RULE**: When a user queries a balance or portfolio using a .goat name (e.g., "show me jesus.goat portfolio"), ALWAYS resolve it first with gnsToAddress, then pass the resolved address to getGoatPortfolio.
+
+3. **ERC-8004 Agent Identity & Reputation**:
+   - Query on-chain agent identity cards (capabilities, endpoints, public keys, trust signals): **getGoatAgentCard**
+   - Query peer reputation scores, review count, and trust levels: **getGoatAgentReputation**
+
+4. **Network & Blockchain Utilities**:
+   - Get latest block details and gas stats: getGoatBlockInfo
+   - Check current gas price and estimated transfer/swap costs: getGoatGasPrice
+   - Look up transaction by hash: getGoatTransaction
+   - View overall network stats: getGoatNetworkStats
+   - Query oracle price feeds: getGoatOraclePrice
+   - Check BitVM2 bridge status: getGoatBridgeStatus
+
+5. **Cross-Chain Swaps & Bridging**:
+   - Use Relay Protocol tools (getRelayQuote, prepareRelayTransaction) to swap or bridge assets across 85+ chains.
+
+# Data Formatting Rules:
+- **GAS TOKEN IS BTC, NOT ETH**: Always refer to the native currency as BTC or Bitcoin (18 decimals).
+- Format addresses in **bold**.
+- **ALWAYS include clickable explorer links**:
+  - Transaction: [View Transaction](https://explorer.goat.network/tx/{txHash})
+  - Address: [View Address](https://explorer.goat.network/address/{address})
+  - Token: [View Token](https://explorer.goat.network/token/{contractAddress})
 `,
 };
 const addressSafetySuffix = `
