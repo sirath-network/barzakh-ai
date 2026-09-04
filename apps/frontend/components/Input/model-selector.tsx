@@ -1,27 +1,21 @@
-"use client";
+'use client';
 
-import {
-  useMemo,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
-import Image from "next/image";
-import { useTheme } from "next-themes";
-import { useWindowSize } from "usehooks-ts";
-import { CheckCircleFillIcon, ChevronDownIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { useWindowSize } from 'usehooks-ts';
+import { CheckCircleFillIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import BottomSheet from "../bottom-sheet";
-import { chatModels } from "@barzakh/shared/lib/ai/models";
-import { cn } from "@barzakh/shared/lib/utils/utils";
-import { Search, SearchX } from "lucide-react";
+} from '@/components/ui/dropdown-menu';
+import BottomSheet from '../bottom-sheet';
+import { chatModels } from '@barzakh/shared/lib/ai/models';
+import { cn } from '@barzakh/shared/lib/utils/utils';
+import { Search, SearchX } from 'lucide-react';
 
 // --- Konstanta ---
 const TAILWIND_MD_BREAKPOINT = 768;
@@ -53,7 +47,7 @@ const useModelSearch = (models: ChatModel[], query: string) => {
     return models.filter(
       (model) =>
         model.name.toLowerCase().includes(lowercaseQuery) ||
-        model.description.toLowerCase().includes(lowercaseQuery)
+        model.description.toLowerCase().includes(lowercaseQuery),
     );
   }, [models, query]);
 };
@@ -61,17 +55,16 @@ const useModelSearch = (models: ChatModel[], query: string) => {
 const getModelIconBaseName = (model?: ChatModel | null): string | null => {
   if (!model) return null;
 
-  const source = (model.name || model.id || "").toLowerCase();
+  const source = (model.name || model.id || '').toLowerCase();
 
-  if (source.includes("claude")) return "Claude";
-  if (source.includes("gpt") || source.includes("openai")) return "GPT";
-  if (source.includes("deepseek")) return "Deepseek";
-  if (source.includes("grok")) return "Grok";
-  if (source.includes("glm")) return "GLM";
-  if (source.includes("gemini") || source.includes("gemma")) return "Gemini";
-  if (source.includes("kimi")) return "Kimi";
-  if (source.includes("qwen")) return "Qwen";
-
+  if (source.includes('claude') || source.includes('anthropic') || source.includes('fable')) return 'Claude';
+  if (source.includes('gpt') || source.includes('openai')) return 'GPT';
+  if (source.includes('deepseek')) return 'Deepseek';
+  if (source.includes('grok')) return 'Grok';
+  if (source.includes('glm') || source.includes('zai')) return 'GLM';
+  if (source.includes('gemini') || source.includes('gemma')) return 'Gemini';
+  if (source.includes('kimi')) return 'Kimi';
+  if (source.includes('qwen')) return 'Qwen';
 
   return null;
 };
@@ -79,17 +72,17 @@ const getModelIconBaseName = (model?: ChatModel | null): string | null => {
 const ModelOptionList = ({
   selectedModelId,
   onSelect,
-  searchQuery = "",
+  searchQuery = '',
   isDropdown = false,
   allowedModels,
 }: ModelOptionListProps) => {
   // First filter by allowed models if specified, then by search query
   const baseModels = allowedModels
-    ? chatModels.filter(m => allowedModels.includes(m.id))
+    ? chatModels.filter((m) => allowedModels.includes(m.id))
     : chatModels;
   const filteredModels = useModelSearch(baseModels, searchQuery);
   const { resolvedTheme } = useTheme();
-  const isDarkTheme = resolvedTheme === "dark";
+  const isDarkTheme = resolvedTheme === 'dark';
 
   if (filteredModels.length === 0) {
     return (
@@ -106,18 +99,18 @@ const ModelOptionList = ({
       {filteredModels.map((model) => {
         const isSelected = selectedModelId === model.id;
         const baseName = getModelIconBaseName(model);
-        const themeSuffix = resolvedTheme === "dark" ? "Dark" : "Light";
+        const themeSuffix = resolvedTheme === 'dark' ? 'Dark' : 'Light';
         const iconSrc = baseName
           ? `/images/models-icon/${baseName}-${themeSuffix}.png`
           : null;
 
         const commonClasses = cn(
-          "flex items-center gap-4 cursor-pointer rounded-xl border border-transparent",
-          "transition-all duration-150",
+          'flex items-center gap-4 cursor-pointer rounded-xl border border-transparent',
+          'transition-all duration-150',
           isDarkTheme
-            ? "text-neutral-100/90 hover:bg-neutral-800/80 focus:bg-neutral-800/80"
-            : "text-neutral-900 hover:bg-neutral-50 focus:bg-neutral-50",
-          isSelected && "bg-accent/60 ring-1 ring-primary/30"
+            ? 'text-neutral-100/90 hover:bg-neutral-800/80 focus:bg-neutral-800/80'
+            : 'text-neutral-900 hover:bg-neutral-50 focus:bg-neutral-50',
+          isSelected && 'bg-accent/60 ring-1 ring-primary/30',
         );
 
         const content = (
@@ -152,7 +145,7 @@ const ModelOptionList = ({
                 e.preventDefault(); // Prevent default dropdown behavior
                 onSelect(model);
               }}
-              className={cn(commonClasses, "px-3 py-3.5 rounded-xl")}
+              className={cn(commonClasses, 'px-3 py-3.5 rounded-xl')}
             >
               {content}
             </DropdownMenuItemAny>
@@ -167,11 +160,11 @@ const ModelOptionList = ({
               e.stopPropagation();
               onSelect(model);
             }}
-            className={cn(commonClasses, "px-4 py-3.5 rounded-xl")}
+            className={cn(commonClasses, 'px-4 py-3.5 rounded-xl')}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
+              if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 onSelect(model);
               }
@@ -201,10 +194,10 @@ const MobileSearchHeader = ({
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         className={cn(
-          "w-full pl-10 pr-4 py-2.5 text-base rounded-xl border-2",
-          "bg-background text-foreground placeholder:text-muted-foreground",
-          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
-          "transition-colors duration-150"
+          'w-full pl-10 pr-4 py-2.5 text-base rounded-xl border-2',
+          'bg-background text-foreground placeholder:text-muted-foreground',
+          'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
+          'transition-colors duration-150',
         )}
       />
     </div>
@@ -220,12 +213,12 @@ export function ModelSelector({
   ...buttonProps
 }: ModelSelectorProps & React.ComponentProps<any>) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const { width } = useWindowSize();
   const timeoutRef = useRef<NodeJS.Timeout>(null);
   const { resolvedTheme } = useTheme();
-  const isDarkTheme = resolvedTheme === "dark";
+  const isDarkTheme = resolvedTheme === 'dark';
 
   // Client-side hydration fix
   const [isClient, setIsClient] = useState(false);
@@ -237,87 +230,94 @@ export function ModelSelector({
 
   const selectedChatModel = useMemo(
     () => chatModels.find((model) => model.id === selectedModelId),
-    [selectedModelId]
+    [selectedModelId],
   );
 
   const selectedModelIconSrc = useMemo(() => {
     const baseName = getModelIconBaseName(selectedChatModel);
     if (!baseName) return null;
 
-    const themeSuffix =
-      resolvedTheme === "dark" ? "Dark" : "Light";
+    const themeSuffix = resolvedTheme === 'dark' ? 'Dark' : 'Light';
 
     return `/images/models-icon/${baseName}-${themeSuffix}.png`;
   }, [selectedChatModel, resolvedTheme]);
 
   // Optimized select handler dengan debouncing dan error handling
-  const handleSelect = useCallback(async (model: ChatModel) => {
-    if (disabled || isUpdating || model.id === selectedModelId) return;
+  const handleSelect = useCallback(
+    async (model: ChatModel) => {
+      if (disabled || isUpdating || model.id === selectedModelId) return;
 
-    try {
-      setIsUpdating(true);
+      try {
+        setIsUpdating(true);
 
-      // Close UI immediately for better UX
-      setIsExpanded(false);
+        // Close UI immediately for better UX
+        setIsExpanded(false);
 
-      // Clear search with delay
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+        // Clear search with delay
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
+          setSearchQuery('');
+        }, 100);
+
+        // Call parent callback first (if exists) for immediate UI update
+        if (onModelSelect) {
+          onModelSelect(model.id);
+        }
+
+        // Save to cookie asynchronously via API route to avoid page refresh/flicker
+        await fetch('/api/set-model-cookie', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ model: model.id }),
+        });
+      } catch (error) {
+        console.error('Failed to save model selection:', error);
+        // Optionally show error toast here
+      } finally {
+        setIsUpdating(false);
       }
-      timeoutRef.current = setTimeout(() => {
-        setSearchQuery("");
-      }, 100);
-
-      // Call parent callback first (if exists) for immediate UI update
-      if (onModelSelect) {
-        onModelSelect(model.id);
-      }
-
-      // Save to cookie asynchronously via API route to avoid page refresh/flicker
-      await fetch("/api/set-model-cookie", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ model: model.id }),
-      });
-
-    } catch (error) {
-      console.error("Failed to save model selection:", error);
-      // Optionally show error toast here
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [disabled, selectedModelId, isUpdating, onModelSelect]);
+    },
+    [disabled, selectedModelId, isUpdating, onModelSelect],
+  );
 
   // Handle dropdown state changes - separated for desktop/mobile
-  const handleDropdownOpenChange = useCallback((open: boolean) => {
-    if (!isDesktop || disabled) return;
-    setIsExpanded(open);
+  const handleDropdownOpenChange = useCallback(
+    (open: boolean) => {
+      if (!isDesktop || disabled) return;
+      setIsExpanded(open);
 
-    if (!open) {
-      // Clear search when closing
-      setTimeout(() => setSearchQuery(""), 150);
-    }
-  }, [isDesktop, disabled]);
+      if (!open) {
+        // Clear search when closing
+        setTimeout(() => setSearchQuery(''), 150);
+      }
+    },
+    [isDesktop, disabled],
+  );
 
   // Fixed mobile button handler - prevent conflicts with dropdown trigger
-  const handleMobileToggle = useCallback((e: React.MouseEvent) => {
-    if (disabled || buttonProps.disabled || isUpdating) return;
+  const handleMobileToggle = useCallback(
+    (e: React.MouseEvent) => {
+      if (disabled || buttonProps.disabled || isUpdating) return;
 
-    e.preventDefault();
-    e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
 
-    // Only handle mobile interactions
-    if (!isClient || isDesktop) return;
+      // Only handle mobile interactions
+      if (!isClient || isDesktop) return;
 
-    setIsExpanded(prev => !prev);
-  }, [disabled, isClient, isDesktop, isUpdating]);
+      setIsExpanded((prev) => !prev);
+    },
+    [disabled, isClient, isDesktop, isUpdating],
+  );
 
   // Clean up search query when closing
   useEffect(() => {
     if (!isExpanded) {
-      const timer = setTimeout(() => setSearchQuery(""), 150);
+      const timer = setTimeout(() => setSearchQuery(''), 150);
       return () => clearTimeout(timer);
     }
   }, [isExpanded]);
@@ -335,7 +335,7 @@ export function ModelSelector({
   if (!isClient) {
     const ButtonAny = Button as any;
     return (
-      <div className={cn("relative", className)}>
+      <div className={cn('relative', className)}>
         <ButtonAny
           variant="outline"
           disabled
@@ -354,7 +354,7 @@ export function ModelSelector({
   const BottomSheetAny = BottomSheet as any;
 
   return (
-    <div className={cn("relative mr-0 sm:mr-1", className)}>
+    <div className={cn('relative mr-0 sm:mr-1', className)}>
       <DropdownMenuAny
         open={isDesktop && isExpanded}
         onOpenChange={handleDropdownOpenChange}
@@ -366,12 +366,12 @@ export function ModelSelector({
             onClick={handleMobileToggle}
             disabled={disabled || isUpdating}
             className={cn(
-              "h-9 w-9 p-0 rounded-full transition-all duration-200",
-              "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-              "data-[state=open]:bg-muted/50 data-[state=open]:text-foreground",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "!outline-none !ring-0 !ring-offset-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0",
-              className
+              'h-9 w-9 p-0 rounded-full transition-all duration-200',
+              'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              'data-[state=open]:bg-muted/50 data-[state=open]:text-foreground',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+              '!outline-none !ring-0 !ring-offset-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0',
+              className,
             )}
             title={selectedChatModel?.name}
           >
@@ -379,7 +379,7 @@ export function ModelSelector({
               {selectedModelIconSrc ? (
                 <Image
                   src={selectedModelIconSrc}
-                  alt={selectedChatModel?.name || "Model icon"}
+                  alt={selectedChatModel?.name || 'Model icon'}
                   width={20}
                   height={20}
                   className="rounded-md"
@@ -397,10 +397,10 @@ export function ModelSelector({
         <DropdownMenuContentAny
           align="end"
           className={cn(
-            "w-[360px] p-0",
-            "bg-background",
-            "border-2 shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+            'w-[360px] p-0',
+            'bg-background',
+            'border-2 shadow-xl rounded-xl animate-in fade-in-0 zoom-in-95',
+            'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
           )}
           sideOffset={8}
         >
@@ -413,8 +413,8 @@ export function ModelSelector({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
-                  "w-full pl-9 pr-3 py-2 text-sm rounded-md border-0",
-                  "bg-transparent focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  'w-full pl-9 pr-3 py-2 text-sm rounded-md border-0',
+                  'bg-transparent focus:outline-none focus:ring-1 focus:ring-primary/30',
                 )}
                 disabled={isUpdating}
               />

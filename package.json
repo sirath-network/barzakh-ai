@@ -24,6 +24,10 @@
   },
   "pnpm": {
     "overrides": {
+      "wagmi": "2.19.5",
+      "@wagmi/core": "2.22.1",
+      "react": "19.2.0",
+      "react-dom": "19.2.0",
       "@tanstack/react-query": "5.90.11",
       "glob": "10.5.0",
       "axios": ">=1.18.0",
@@ -80,6 +84,10 @@
     }
   },
   "resolutions": {
+    "wagmi": "2.19.5",
+    "@wagmi/core": "2.22.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "@tanstack/react-query": "5.90.11",
     "glob": "10.5.0",
     "axios": ">=1.18.0",

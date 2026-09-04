@@ -1,6 +1,11 @@
-"use client";
-import type { Attachment, ChatRequestOptions, CreateMessage, Message } from "ai";
-import type React from "react";
+'use client';
+import type {
+  Attachment,
+  ChatRequestOptions,
+  CreateMessage,
+  Message,
+} from 'ai';
+import type React from 'react';
 import {
   useRef,
   useEffect,
@@ -12,57 +17,57 @@ import {
   type SetStateAction,
   type ChangeEvent,
   memo,
-} from "react";
-import { toast } from "sonner";
-import { useLocalStorage, useWindowSize } from "usehooks-ts";
-import { sanitizeUIMessages } from "@barzakh/shared/lib/utils/utils";
-import { getModelsForTier, type SubscriptionTier } from "@barzakh/shared/lib/ai/models";
-import { PreviewAttachment } from "../preview-attachment";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
-import type { User } from "next-auth";
-import { cn, type SearchGroup, type SearchGroupId } from "@barzakh/shared/lib/utils/utils";
-import { motion, AnimatePresence } from "@/lib/framer-motion";
-import { ModelSelector } from "./model-selector";
-import { GroupSelector } from "./GroupSelector";
+} from 'react';
+import { toast } from 'sonner';
+import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { sanitizeUIMessages } from '@barzakh/shared/lib/utils/utils';
 import {
-  ArrowDown,
-  Plus,
-  SendHorizontal,
-  Square,
-  Ghost,
-} from "lucide-react";
-import type { Chat as ChatHistory } from "@/lib/db/schema";
+  getModelsForTier,
+  type SubscriptionTier,
+} from '@barzakh/shared/lib/ai/models';
+import { PreviewAttachment } from '../preview-attachment';
+import { Button } from '../ui/button';
+import { Textarea } from '../ui/textarea';
+import type { User } from 'next-auth';
+import {
+  cn,
+  type SearchGroup,
+  type SearchGroupId,
+} from '@barzakh/shared/lib/utils/utils';
+import { motion, AnimatePresence } from '@/lib/framer-motion';
+import { ModelSelector } from './model-selector';
+import { GroupSelector } from './GroupSelector';
+import { ArrowDown, Plus, SendHorizontal, Square } from 'lucide-react';
+import type { Chat as ChatHistory } from '@/lib/db/schema';
 
-const FORCED_MODEL_BY_GROUP: Partial<Record<SearchGroupId | "multimodal", string>> = {
+const FORCED_MODEL_BY_GROUP: Partial<
+  Record<SearchGroupId | 'multimodal', string>
+> = {
   // coding allows all models (no restriction)
-  imagine: "openai-gpt-4.1",
+  imagine: 'openai-gpt-4.1',
   // multimodal requires a vision-capable model for image analysis
-  multimodal: "openai-gpt-4.1",
+  multimodal: 'openai-gpt-4.1',
 };
 
-
 // Lock model selector for groups with forced models (imagine and multimodal)
-const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId | "multimodal"> = new Set([
-  "imagine",
-  "multimodal",
-] as const);
+const MODEL_SELECTOR_LOCKED_GROUPS: ReadonlySet<SearchGroupId | 'multimodal'> =
+  new Set(['imagine', 'multimodal'] as const);
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
-  let binary = "";
+  let binary = '';
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize);
     binary += String.fromCharCode.apply(null, chunk as any);
   }
 
-  if (typeof window !== "undefined" && typeof window.btoa === "function") {
+  if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
     return window.btoa(binary);
   }
 
-  throw new Error("Base64 conversion is not supported in this environment.");
+  throw new Error('Base64 conversion is not supported in this environment.');
 };
 
 function PureAttachmentsButton({
@@ -75,11 +80,11 @@ function PureAttachmentsButton({
   return (
     <Button
       className={cn(
-        "rounded-full p-2 h-9 w-9 transition-all duration-200",
-        "text-neutral-500 dark:text-neutral-400",
-        "hover:text-neutral-800 dark:hover:text-neutral-100",
-        "hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50",
-        "disabled:opacity-50"
+        'rounded-full p-2 h-9 w-9 transition-all duration-200',
+        'text-neutral-500 dark:text-neutral-400',
+        'hover:text-neutral-800 dark:hover:text-neutral-100',
+        'hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50',
+        'disabled:opacity-50',
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -105,9 +110,9 @@ function PureStopButton({
   return (
     <Button
       className={cn(
-        "rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200",
-        "bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800",
-        "text-red-500 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400"
+        'rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200',
+        'bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800',
+        'text-red-500 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400',
       )}
       onClick={(event) => {
         event.preventDefault();
@@ -133,7 +138,8 @@ function PureSendButton({
   uploadQueue: Array<string>;
   hasAttachments: boolean;
 }) {
-  const isDisabled = (input.length === 0 && !hasAttachments) || uploadQueue.length > 0;
+  const isDisabled =
+    (input.length === 0 && !hasAttachments) || uploadQueue.length > 0;
   const isUploading = uploadQueue.length > 0;
 
   return (
@@ -146,18 +152,26 @@ function PureSendButton({
     >
       <Button
         className={cn(
-          "rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200",
-          "bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800",
-          "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100",
-          "disabled:opacity-50 disabled:cursor-not-allowed"
+          'rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200',
+          'bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800',
+          'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100',
+          'disabled:opacity-50 disabled:cursor-not-allowed',
         )}
         onClick={(event) => {
           event.preventDefault();
           submitForm();
         }}
         disabled={isDisabled}
-        title={isUploading ? "Please wait for file uploads to complete" : "Send Message"}
-        aria-label={isUploading ? "Please wait for file uploads to complete" : "Send Message"}
+        title={
+          isUploading
+            ? 'Please wait for file uploads to complete'
+            : 'Send Message'
+        }
+        aria-label={
+          isUploading
+            ? 'Please wait for file uploads to complete'
+            : 'Send Message'
+        }
       >
         <SendHorizontal size={16} strokeWidth={2.5} className="ml-0.5" />
       </Button>
@@ -205,13 +219,13 @@ function PureMultimodalInput({
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   handleSubmit: (
     event?: {
       preventDefault?: () => void;
     },
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => void;
   className?: string;
   user?: User;
@@ -260,77 +274,83 @@ function PureMultimodalInput({
       : 188
     : 300;
   const [isFocused, setIsFocused] = useState(false);
-  const [previousModel, setPreviousModel] = useLocalStorage<string | null>("previousModel", null);
+  const [previousModel, setPreviousModel] = useLocalStorage<string | null>(
+    'previousModel',
+    null,
+  );
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
-    "input",
-    ""
+    'input',
+    '',
   );
   const [localStorageChatMode, setLocalStorageChatMode] =
-    useLocalStorage<SearchGroupId>("chatMode", "search");
+    useLocalStorage<SearchGroupId>('chatMode', 'search');
 
   // Derive allowed models based on user tier
   const allowedModels = useMemo(() => {
-    const tier = (user?.tier as SubscriptionTier) || "free";
+    const tier = (user?.tier as SubscriptionTier) || 'free';
     return getModelsForTier(tier);
   }, [user?.tier]);
 
   // Dynamic rotating placeholders with typewriter effect
-  const placeholders = useMemo(() => [
-    // Web Search
-    "Find alpha on upcoming token unlocks",
-    "Research MEV strategies on Ethereum",
-    // Imagine (AI Image Generation)
-    "Generate cyberpunk wallet interface",
-    "Design tokenomics infographic",
-    // On-Chain Analytics
-    "Trace smart money accumulation patterns",
-    "Analyze whale wallet movements",
-    // Coding & Smart Contracts
-    "Audit this flash loan contract",
-    "Optimize gas in my ERC-4337 code",
-    // Mantle
-    "Analyze Mantle L2 gas efficiency",
-    "Track MNT staking yields",
-    // Aptos
-    "Explore Aptos Move modules",
-    "Check APT validator performance",
+  const placeholders = useMemo(
+    () => [
+      // Web Search
+      'Find alpha on upcoming token unlocks',
+      'Research MEV strategies on Ethereum',
+      // Imagine (AI Image Generation)
+      'Generate cyberpunk wallet interface',
+      'Design tokenomics infographic',
+      // On-Chain Analytics
+      'Trace smart money accumulation patterns',
+      'Analyze whale wallet movements',
+      // Coding & Smart Contracts
+      'Audit this flash loan contract',
+      'Optimize gas in my ERC-4337 code',
+      // Mantle
+      'Analyze Mantle L2 gas efficiency',
+      'Track MNT staking yields',
+      // Aptos
+      'Explore Aptos Move modules',
+      'Check APT validator performance',
 
-    // Cronos & Cronos zkEVM
-    "Analyze CRO DeFi ecosystem",
-    "Monitor Cronos zkEVM TVL growth",
-    // Credit Coin
-    "Explore CTC lending protocols",
-    "Track Credit Coin RWA metrics",
-    // Vana
-    "Analyze Vana data marketplace",
-    "Check VANA token distribution",
-    // Zeta
-    "Monitor ZetaChain omnichain dApps",
-    "Track ZETA cross-chain volume",
-    // Flow
-    "Analyze Flow NFT marketplace",
-    "Check FLOW staking rewards",
-    // Sei
-    "Analyze Sei parallel execution",
-    "Track SEI DEX order flow",
-    // Solana
-    "Trace Solana MEV opportunities",
-    "Analyze SOL validator performance",
-    // Monad
-    "Explore Monad parallel EVM",
-    "Track Monad metrics",
-  ], []);
+      // Cronos & Cronos zkEVM
+      'Analyze CRO DeFi ecosystem',
+      'Monitor Cronos zkEVM TVL growth',
+      // Credit Coin
+      'Explore CTC lending protocols',
+      'Track Credit Coin RWA metrics',
+      // Vana
+      'Analyze Vana data marketplace',
+      'Check VANA token distribution',
+      // Zeta
+      'Monitor ZetaChain omnichain dApps',
+      'Track ZETA cross-chain volume',
+      // Flow
+      'Analyze Flow NFT marketplace',
+      'Check FLOW staking rewards',
+      // Sei
+      'Analyze Sei parallel execution',
+      'Track SEI DEX order flow',
+      // Solana
+      'Trace Solana MEV opportunities',
+      'Analyze SOL validator performance',
+      // Monad
+      'Explore Monad parallel EVM',
+      'Track Monad metrics',
+    ],
+    [],
+  );
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [displayedText, setDisplayedText] = useState("");
+  const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
     // Only animate when there are no messages, input is empty, and not focused
     if (messages.length > 0 || input || isFocused) {
       if (messages.length > 0) {
-        setDisplayedText("Reply Barzakh");
+        setDisplayedText('Reply Barzakh');
       }
       return;
     }
@@ -364,59 +384,65 @@ function PureMultimodalInput({
     }
 
     return () => clearTimeout(timeout);
-  }, [messages.length, input, isFocused, placeholders, placeholderIndex, displayedText, isTyping]);
+  }, [
+    messages.length,
+    input,
+    isFocused,
+    placeholders,
+    placeholderIndex,
+    displayedText,
+    isTyping,
+  ]);
 
-  const currentPlaceholder = messages.length > 0
-    ? "Reply Barzakh"
-    : displayedText || placeholders[0].charAt(0);
+  const currentPlaceholder =
+    messages.length > 0
+      ? 'Reply Barzakh'
+      : displayedText || placeholders[0].charAt(0);
 
   const imageInlineCacheRef = useRef<Record<string, string>>({});
   const imageInlinePromisesRef = useRef<
     Record<string, Promise<string | null> | undefined>
   >({});
 
-  const convertToDataUri = useCallback(
-    async (attachment: Attachment) => {
-      try {
-        const response = await fetch("/api/proxy-image", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imageUrl: attachment.url,
-            forceDownload: true,
-          }),
-        });
+  const convertToDataUri = useCallback(async (attachment: Attachment) => {
+    try {
+      const response = await fetch('/api/proxy-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: attachment.url,
+          forceDownload: true,
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status} ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        const base64String = arrayBufferToBase64(arrayBuffer);
-        const mimeType =
-          response.headers.get("content-type") ||
-          attachment.contentType ||
-          blob.type ||
-          "image/jpeg";
-
-        return `data:${mimeType};base64,${base64String}`;
-      } catch (error) {
-        console.error(
-          `Failed to inline image attachment ${attachment.name}:`,
-          error
-        );
-        return null;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
       }
-    },
-    []
-  );
+
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64String = arrayBufferToBase64(arrayBuffer);
+      const mimeType =
+        response.headers.get('content-type') ||
+        attachment.contentType ||
+        blob.type ||
+        'image/jpeg';
+
+      return `data:${mimeType};base64,${base64String}`;
+    } catch (error) {
+      console.error(
+        `Failed to inline image attachment ${attachment.name}:`,
+        error,
+      );
+      return null;
+    }
+  }, []);
 
   const ensureInlineImage = useCallback(
     (attachment: Attachment) => {
-      if (!attachment?.contentType?.startsWith("image/")) {
+      if (!attachment?.contentType?.startsWith('image/')) {
         return Promise.resolve<string | null>(null);
       }
 
@@ -445,7 +471,7 @@ function PureMultimodalInput({
           return dataUri;
         })
         .catch((error) => {
-          console.error("Inline image preparation failed:", error);
+          console.error('Inline image preparation failed:', error);
           return null;
         });
 
@@ -456,31 +482,28 @@ function PureMultimodalInput({
       imageInlinePromisesRef.current[key] = trackedPromise;
       return trackedPromise;
     },
-    [convertToDataUri]
+    [convertToDataUri],
   );
 
   useEffect(() => {
     if (attachments.length === 0) return;
 
     attachments.forEach((attachment) => {
-      if (!attachment?.contentType?.startsWith("image/")) return;
+      if (!attachment?.contentType?.startsWith('image/')) return;
       ensureInlineImage(attachment);
     });
   }, [attachments, ensureInlineImage]);
 
   const adjustHeight = () => {
     if (textareaRef.current && ghostRef.current) {
-      const height = Math.min(
-        ghostRef.current.scrollHeight,
-        MAX_HEIGHT
-      );
+      const height = Math.min(ghostRef.current.scrollHeight, MAX_HEIGHT);
       textareaRef.current.style.height = `${height}px`;
     }
   };
 
   const resetHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = 'auto';
     }
   };
 
@@ -493,7 +516,7 @@ function PureMultimodalInput({
   useEffect(() => {
     if (textareaRef.current) {
       const domValue = textareaRef.current.value;
-      const finalValue = domValue || localStorageInput || "";
+      const finalValue = domValue || localStorageInput || '';
       setInput(finalValue);
       adjustHeight();
     }
@@ -548,9 +571,9 @@ function PureMultimodalInput({
         if (forcedModelValues.includes(selectedModelId)) {
           onModelChange?.(previousModel);
           // Also update the cookie to persist the restoration
-          fetch("/api/set-model-cookie", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+          fetch('/api/set-model-cookie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: previousModel }),
           });
         }
@@ -567,24 +590,24 @@ function PureMultimodalInput({
 
   const submitForm = useCallback(async () => {
     if (isLoading) {
-      toast.error("Please wait for the previous response to complete.");
+      toast.error('Please wait for the previous response to complete.');
       return;
     }
     if (uploadQueue.length > 0) {
-      toast.info("Please wait for file uploads to complete before sending.");
+      toast.info('Please wait for file uploads to complete before sending.');
       return;
     }
 
     // Don't update URL for incognito chats - they should vanish on refresh
     if (user?.id && !isIncognito && chatId) {
-      window.history.replaceState({}, "", `/c/${chatId}`);
+      window.history.replaceState({}, '', `/c/${chatId}`);
     }
 
     const imageAttachments = attachments.filter((att) =>
-      att.contentType?.startsWith("image/")
+      att.contentType?.startsWith('image/'),
     );
     const otherAttachments = attachments.filter(
-      (att) => !att.contentType?.startsWith("image/")
+      (att) => !att.contentType?.startsWith('image/'),
     );
 
     let messageContent: any = input;
@@ -612,7 +635,7 @@ function PureMultimodalInput({
 
       if (pendingAttachments.length > 0) {
         const prepared = await Promise.all(
-          pendingAttachments.map((attachment) => ensureInlineImage(attachment))
+          pendingAttachments.map((attachment) => ensureInlineImage(attachment)),
         );
 
         const failedAttachments: Attachment[] = [];
@@ -635,11 +658,11 @@ function PureMultimodalInput({
           const failedNames = failedAttachments
             .map((attachment) => attachment.name || attachment.url)
             .filter(Boolean)
-            .join(", ");
+            .join(', ');
 
           toast.error(
             `Failed to process ${failedNames}. Please try re-uploading the image.`,
-            { position: "bottom-center" }
+            { position: 'bottom-center' },
           );
         }
       }
@@ -648,15 +671,15 @@ function PureMultimodalInput({
 
       if (successfulImages.length === 0) {
         toast.error(
-          "Unable to inline any of the attached images. Please try again.",
-          { position: "bottom-center" }
+          'Unable to inline any of the attached images. Please try again.',
+          { position: 'bottom-center' },
         );
         return;
       }
 
-      const content = [{ type: "text", text: input }];
+      const content = [{ type: 'text', text: input }];
       const imageParts = successfulImages.map(({ dataUri }) => ({
-        type: "image",
+        type: 'image',
         image: dataUri,
       }));
 
@@ -666,9 +689,9 @@ function PureMultimodalInput({
       const originalUrls = successfulImages.map((item) => item.originalUrl);
 
       content.push({
-        type: "text",
+        type: 'text',
         text: `\n\n[ORIGINAL_IMAGE_URLS_FOR_EDITING: ${originalUrls.join(
-          ", "
+          ', ',
         )}]`,
       });
     }
@@ -680,7 +703,10 @@ function PureMultimodalInput({
         const attachmentName = attachment.name || 'file';
         try {
           // For text-based files, try to read the content
-          const isTextFile = /\.(txt|csv|json|md|html|xml|yaml|yml|toml|ini|cfg|log|sql|sh|bat|ps1|py|js|ts|jsx|tsx|css|scss|less|go|rs|rb|java|c|cpp|h|hpp)$/i.test(attachmentName);
+          const isTextFile =
+            /\.(txt|csv|json|md|html|xml|yaml|yml|toml|ini|cfg|log|sql|sh|bat|ps1|py|js|ts|jsx|tsx|css|scss|less|go|rs|rb|java|c|cpp|h|hpp)$/i.test(
+              attachmentName,
+            );
 
           if (isTextFile) {
             // Try proxy-file for text files
@@ -709,14 +735,14 @@ function PureMultimodalInput({
 
       if (Array.isArray(messageContent)) {
         // Add file contents to the text part
-        const textPart = messageContent.find(part => part.type === 'text');
+        const textPart = messageContent.find((part) => part.type === 'text');
         if (textPart) {
           textPart.text += fileContents.join('');
         }
       } else {
         // Convert string message to array format and add file contents
         messageContent = [
-          { type: "text", text: input + fileContents.join('') }
+          { type: 'text', text: input + fileContents.join('') },
         ];
       }
     }
@@ -724,10 +750,10 @@ function PureMultimodalInput({
     if (Array.isArray(messageContent)) {
       append(
         {
-          role: "user",
+          role: 'user',
           content: messageContent as any,
         },
-        chatRequestOptions
+        chatRequestOptions,
       );
     } else {
       handleSubmit(undefined, chatRequestOptions);
@@ -736,9 +762,9 @@ function PureMultimodalInput({
     // Scroll to bottom when message is sent
     onSubmitMessage?.();
 
-    setInput("");
+    setInput('');
     setAttachments([]);
-    setLocalStorageInput("");
+    setLocalStorageInput('');
 
     // Clear attachments from localStorage after successful send
     if (typeof window !== 'undefined') {
@@ -750,7 +776,7 @@ function PureMultimodalInput({
     }
 
     if (textareaRef.current) {
-      textareaRef.current.value = "";
+      textareaRef.current.value = '';
       resetHeight();
     }
 
@@ -775,20 +801,21 @@ function PureMultimodalInput({
   ]);
 
   const uploadFile = async (file: File) => {
-
     // Client-side size validation (25MB limit for Cloudflare R2)
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
     if (file.size > MAX_FILE_SIZE) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      toast.error(`File "${file.name}" is too large (${sizeMB}MB). Maximum size is 25MB.`);
+      toast.error(
+        `File "${file.name}" is too large (${sizeMB}MB). Maximum size is 25MB.`,
+      );
       return null;
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
     try {
-      const response = await fetch("/api/files/upload", {
-        method: "POST",
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
         body: formData,
       });
       if (response.ok) {
@@ -801,12 +828,12 @@ function PureMultimodalInput({
         return attachment;
       }
       const { error } = await response.json();
-      console.error("Upload failed:", error);
+      console.error('Upload failed:', error);
       toast.error(error);
       return null;
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload file. Please try again.");
+      console.error('Upload error:', error);
+      toast.error('Failed to upload file. Please try again.');
       return null;
     }
   };
@@ -820,28 +847,29 @@ function PureMultimodalInput({
       try {
         const uploadedAttachments = await Promise.all(files.map(uploadFile));
         const successfulUploads = uploadedAttachments.filter(
-          Boolean
+          Boolean,
         ) as Attachment[];
         setAttachments((prev) => {
           const newAttachments = [...prev, ...successfulUploads];
           return newAttachments;
         });
       } catch (error) {
-        console.error("Error uploading files:", error);
-        toast.error("An error occurred during file upload.");
+        console.error('Error uploading files:', error);
+        toast.error('An error occurred during file upload.');
       } finally {
         setUploadQueue([]);
         if (fileInputRef.current) {
-          fileInputRef.current.value = "";
+          fileInputRef.current.value = '';
         }
       }
     },
-    [setAttachments]
+    [setAttachments],
   );
 
   const handleGroupSelect = useCallback(
     async (group: SearchGroup) => {
-      const currentForcedModel = FORCED_MODEL_BY_GROUP[selectedGroup as SearchGroupId];
+      const currentForcedModel =
+        FORCED_MODEL_BY_GROUP[selectedGroup as SearchGroupId];
       const nextForcedModel = FORCED_MODEL_BY_GROUP[group.id as SearchGroupId];
 
       const updateGroupState = () => {
@@ -858,9 +886,9 @@ function PureMultimodalInput({
         updateGroupState();
 
         if (selectedModelId !== nextForcedModel) {
-          await fetch("/api/set-model-cookie", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+          await fetch('/api/set-model-cookie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: nextForcedModel }),
           });
           onModelChange?.(nextForcedModel);
@@ -875,9 +903,9 @@ function PureMultimodalInput({
 
         if (previousModel) {
           if (previousModel !== selectedModelId) {
-            await fetch("/api/set-model-cookie", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
+            await fetch('/api/set-model-cookie', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ model: previousModel }),
             });
             onModelChange?.(previousModel);
@@ -898,22 +926,22 @@ function PureMultimodalInput({
       setLocalStorageChatMode,
       setPreviousModel,
       setSelectedGroup,
-    ]
+    ],
   );
 
   const scrollMessagesToBottom = (e: React.MouseEvent) => {
     e.preventDefault();
-    const el = document.getElementById("chat-scroll");
-    el?.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    const el = document.getElementById('chat-scroll');
+    el?.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   };
 
   const removeAttachment = useCallback(
     (indexToRemove: number) => {
       setAttachments((prev) =>
-        prev.filter((_, index) => index !== indexToRemove)
+        prev.filter((_, index) => index !== indexToRemove),
       );
     },
-    [setAttachments]
+    [setAttachments],
   );
 
   // Handle paste events for files and images
@@ -939,32 +967,32 @@ function PureMultimodalInput({
         try {
           const uploadedAttachments = await Promise.all(files.map(uploadFile));
           const successfulUploads = uploadedAttachments.filter(
-            Boolean
+            Boolean,
           ) as Attachment[];
           setAttachments((prev) => [...prev, ...successfulUploads]);
         } catch (error) {
-          console.error("Paste upload failed:", error);
-          toast.error("Failed to upload pasted files. Please try again.");
+          console.error('Paste upload failed:', error);
+          toast.error('Failed to upload pasted files. Please try again.');
         } finally {
           setUploadQueue([]);
         }
       }
     },
-    [uploadFile, setUploadQueue, setAttachments]
+    [uploadFile, setUploadQueue, setAttachments],
   );
 
   const handleModelSelect = useCallback(
     (modelId: string) => {
       onModelChange?.(modelId);
     },
-    [onModelChange]
+    [onModelChange],
   );
 
   return (
     <motion.div
       className={cn(
-        "relative w-full flex flex-col gap-2 transition-all duration-300 !font-sans",
-        className
+        'relative w-full flex flex-col gap-2 transition-all duration-300 !font-sans',
+        className,
       )}
     >
       <AnimatePresence>
@@ -974,7 +1002,7 @@ function PureMultimodalInput({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{
-              type: "spring",
+              type: 'spring',
               stiffness: 500,
               damping: 30,
               bounce: 0.25,
@@ -985,20 +1013,23 @@ function PureMultimodalInput({
               type="button"
               onClick={scrollMessagesToBottom}
               className={cn(
-                "group relative flex items-center justify-center", // Added flex centering
-                "w-10 h-10 rounded-full",
-                "bg-background/80 dark:bg-neutral-800/80", // Flat solid background with slight transparency
-                "backdrop-blur-sm", // Keep subtle blur for modern feel but flat
-                "border border-border/50", // Simple border
-                "text-neutral-700 dark:text-neutral-200",
-                "shadow-sm hover:shadow-md", // Subtle shadow
-                "hover:bg-accent hover:text-accent-foreground", // Standard hover state
-                "transition-all duration-200" // Simple transition
+                'group relative flex items-center justify-center', // Added flex centering
+                'w-10 h-10 rounded-full',
+                'bg-background/80 dark:bg-neutral-800/80', // Flat solid background with slight transparency
+                'backdrop-blur-sm', // Keep subtle blur for modern feel but flat
+                'border border-border/50', // Simple border
+                'text-neutral-700 dark:text-neutral-200',
+                'shadow-sm hover:shadow-md', // Subtle shadow
+                'hover:bg-accent hover:text-accent-foreground', // Standard hover state
+                'transition-all duration-200', // Simple transition
               )}
               aria-label="Scroll to bottom"
             >
               <span className="relative z-10 flex items-center justify-center">
-                {createElement(ArrowDown as any, { className: "h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110" })}
+                {createElement(ArrowDown as any, {
+                  className:
+                    'h-4 w-4 opacity-70 group-hover:opacity-100 transition-all duration-300 group-hover:scale-110',
+                })}
               </span>
             </button>
           </motion.div>
@@ -1009,69 +1040,72 @@ function PureMultimodalInput({
         role="group"
         aria-label="Message composer"
         className={cn(
-          "relative w-full flex flex-col rounded-3xl transition-all duration-300",
-          "bg-zinc-100 dark:bg-zinc-800",
-          "overflow-hidden md:max-h-none max-h-[calc(100dvh-7rem)]",
-          isIncognito && "ring-2 ring-violet-500/60 shadow-[0_0_15px_rgba(139,92,246,0.3),0_0_30px_rgba(139,92,246,0.1)]"
+          'relative w-full flex flex-col rounded-3xl transition-all duration-300',
+          'bg-zinc-100 dark:bg-zinc-800',
+          'overflow-hidden md:max-h-none max-h-[calc(100dvh-7rem)]',
+          isIncognito &&
+            'ring-1.5 ring-neutral-400/80 dark:ring-white/40 shadow-[0_0_15px_rgba(0,0,0,0.08),0_4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_0_20px_rgba(255,255,255,0.18),0_0_40px_rgba(255,255,255,0.06)]',
         )}
-        style={isIncognito ? {
-          animation: 'incognito-glow 3s ease-in-out infinite',
-        } : undefined}
+        style={
+          isIncognito
+            ? {
+                animation: 'incognito-glow 3s ease-in-out infinite',
+              }
+            : undefined
+        }
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       >
         <AnimatePresence mode="popLayout">
           {(() => {
-            return (attachments.length > 0 || uploadQueue.length > 0);
+            return attachments.length > 0 || uploadQueue.length > 0;
           })() && (
-              <motion.div
-                key="attachment-container"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="flex flex-wrap gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30 overflow-y-auto overscroll-contain max-h-28 md:max-h-none"
-              >
-                {attachments.map((attachment, index) => (
-                  <motion.div
-                    key={`att-${attachment.url}-${index}`}
-                    layout
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  >
-                    <PreviewAttachment
-                      attachment={attachment}
-                      onRemove={() => removeAttachment(index)}
-                      size={isMounted && width < 640 ? "small" : "default"}
-                    />
-                  </motion.div>
-                ))}
+            <motion.div
+              key="attachment-container"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              className="flex flex-wrap gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4 border-b border-neutral-200/50 dark:border-neutral-800/50 bg-neutral-50/30 dark:bg-neutral-950/30 overflow-y-auto overscroll-contain max-h-28 md:max-h-none"
+            >
+              {attachments.map((attachment, index) => (
+                <motion.div
+                  key={`att-${attachment.url}-${index}`}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
+                  <PreviewAttachment
+                    attachment={attachment}
+                    onRemove={() => removeAttachment(index)}
+                    size={isMounted && width < 640 ? 'small' : 'default'}
+                  />
+                </motion.div>
+              ))}
 
-                {uploadQueue.map((filename) => (
-                  <motion.div
-                    key={`up-${filename}`}
-                    layout
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  >
-                    <PreviewAttachment
-                      attachment={{ url: "", name: filename, contentType: "" }}
-                      isUploading={true}
-                      size={isMounted && width < 640 ? "small" : "default"}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
+              {uploadQueue.map((filename) => (
+                <motion.div
+                  key={`up-${filename}`}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
+                  <PreviewAttachment
+                    attachment={{ url: '', name: filename, contentType: '' }}
+                    isUploading={true}
+                    size={isMounted && width < 640 ? 'small' : 'default'}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <div className="relative flex items-end w-full min-h-0 px-2 pt-1.5 md:pt-2 pb-1.5 md:pb-2">
-
-
           {/* Custom animated placeholder - only when not focused */}
           {!input && messages.length === 0 && !isFocused && (
             <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center text-neutral-500 dark:text-neutral-500 text-base">
@@ -1088,29 +1122,40 @@ function PureMultimodalInput({
           </div>
           <Textarea
             ref={textareaRef}
-            placeholder={messages.length > 0 ? "Reply Barzakh" : (isFocused ? "Ask Barzakh" : "")}
+            placeholder={
+              messages.length > 0
+                ? 'Reply Barzakh'
+                : isFocused
+                  ? 'Ask Barzakh'
+                  : ''
+            }
             value={input}
             onChange={handleInput}
             className={cn(
-              "pl-4 pr-4 py-2.5 md:py-3.5 text-base",
-              "!bg-transparent border-0 focus:ring-0 focus-visible:ring-0",
-              "placeholder:text-neutral-500 dark:placeholder:text-neutral-500",
-              "resize-none transition-[height] duration-200 ease-out overflow-y-auto overscroll-contain"
+              'pl-4 pr-4 py-2.5 md:py-3.5 text-base',
+              '!bg-transparent border-0 focus:ring-0 focus-visible:ring-0',
+              'placeholder:text-neutral-500 dark:placeholder:text-neutral-500',
+              'resize-none transition-[height] duration-200 ease-out overflow-y-auto overscroll-contain',
             )}
-            style={{ maxHeight: `${MAX_HEIGHT}px`, backgroundColor: 'transparent' }}
+            style={{
+              maxHeight: `${MAX_HEIGHT}px`,
+              backgroundColor: 'transparent',
+            }}
             rows={1}
             onKeyDown={(event) => {
               // On mobile/tablet (width < 768), Enter adds a new line
               // On desktop, Enter sends the message (Shift+Enter for new line)
               const isDesktop = width && width >= 768;
 
-              if (event.key === "Enter" && !event.shiftKey && isDesktop) {
+              if (event.key === 'Enter' && !event.shiftKey && isDesktop) {
                 event.preventDefault();
                 // Only allow sending if no files are uploading
                 if (uploadQueue.length === 0) {
                   submitForm();
                 } else {
-                  toast.info("Please wait for file uploads to complete before sending.");
+                  toast.info(
+                    'Please wait for file uploads to complete before sending.',
+                  );
                 }
               }
             }}
@@ -1129,10 +1174,13 @@ function PureMultimodalInput({
         />
 
         <AnimatePresence>
-          {((isMounted && width < 768) || messages.length > 0 || input.length > 0 || attachments.length > 0) && (
+          {((isMounted && width < 768) ||
+            messages.length > 0 ||
+            input.length > 0 ||
+            attachments.length > 0) && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
+              animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
               className="overflow-hidden relative z-20 flex-none"
@@ -1154,7 +1202,9 @@ function PureMultimodalInput({
                     <ModelSelector
                       selectedModelId={selectedModelId}
                       onModelSelect={handleModelSelect}
-                      disabled={MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup) || !user}
+                      disabled={
+                        MODEL_SELECTOR_LOCKED_GROUPS.has(selectedGroup) || !user
+                      }
                       allowedModels={allowedModels}
                     />
                   )}
@@ -1180,14 +1230,13 @@ function PureMultimodalInput({
             </motion.div>
           )}
         </AnimatePresence>
-
-
       </div>
 
       {isIncognito && (
         <div className="flex items-start justify-center py-1.5 px-4">
-          <p className="text-center text-[10px] md:text-xs text-violet-400/80 leading-tight">
-            This chat won&apos;t appear in your history and will not be used to train models.
+          <p className="text-center text-[10px] md:text-xs text-neutral-600 dark:text-neutral-300/90 leading-tight">
+            This chat won&apos;t appear in your history and will not be used to
+            train models.
           </p>
         </div>
       )}
@@ -1196,24 +1245,28 @@ function PureMultimodalInput({
         Barzakh can make mistakes, so double-check it
       </p>
 
-      {
-        messages.length === 0 && input.length === 0 && (
-          <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
-            <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
-              <span>By sending a message to Barzakh, you agree to our </span>
-              <a href="/terms-of-service" className="underline hover:text-accent-foreground transition-colors">
-                Terms of Service
-              </a>
-              <span> and have read our </span>
-              <a href="/privacy-policy" className="underline hover:text-accent-foreground transition-colors">
-                Privacy Policy
-              </a>
-              .
-            </div>
+      {messages.length === 0 && input.length === 0 && (
+        <div className="relative w-full flex justify-center items-center px-4 py-2 md:fixed md:bottom-4 md:left-0 md:py-0 md:pointer-events-none md:z-0">
+          <div className="text-[10px] md:text-xs text-center text-neutral-500 dark:text-neutral-500 max-w-3xl leading-tight md:pointer-events-auto">
+            <span>By sending a message to Barzakh, you agree to our </span>
+            <a
+              href="/terms-of-service"
+              className="underline hover:text-accent-foreground transition-colors"
+            >
+              Terms of Service
+            </a>
+            <span> and have read our </span>
+            <a
+              href="/privacy-policy"
+              className="underline hover:text-accent-foreground transition-colors"
+            >
+              Privacy Policy
+            </a>
+            .
           </div>
-        )
-      }
-    </motion.div >
+        </div>
+      )}
+    </motion.div>
   );
 }
 

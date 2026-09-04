@@ -1,9 +1,15 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { setDefaultResultOrder } from "node:dns";
-import { tavily, type TavilySearchOptions } from "@tavily/core";
+import { setGlobalDispatcher, Agent } from "undici";
 import { newsSearch } from "./news-search";
 import { sanitizeExternalContent, scanExternalContent } from "../../security/external-content-scanner";
+
+export type TavilySearchOptions = {
+  days?: number;
+  timeRange?: "day" | "week" | "month" | "year";
+  [key: string]: any;
+};
 
 /** Reduces dual-stack (IPv6/IPv4) connection failures that surface as AggregateError on some hosts (e.g. WSL2). */
 let tavilyDnsPreferIpv4Applied = false;
@@ -11,9 +17,21 @@ function ensureTavilyDnsPreferIpv4(): void {
   if (tavilyDnsPreferIpv4Applied) return;
   try {
     setDefaultResultOrder("ipv4first");
+    setGlobalDispatcher(
+      new Agent({
+        connect: {
+          autoSelectFamily: false,
+        },
+      })
+    );
     tavilyDnsPreferIpv4Applied = true;
   } catch {
-    // Edge / restricted runtimes
+    try {
+      setDefaultResultOrder("ipv4first");
+      tavilyDnsPreferIpv4Applied = true;
+    } catch {
+      // Edge / restricted runtimes
+    }
   }
 }
 
@@ -133,19 +151,18 @@ async function isValidImageUrl(url: string): Promise<boolean> {
   }
 }
 
-// Simple key rotation
-const apiKeys =
-  process.env.TAVILY_API_KEYS?.split(",")
-    .map((key) => key.trim())
-    .filter((key) => key) ?? [];
 let currentApiKeyIndex = 0;
 
 function getNextApiKey(): string | undefined {
-  if (apiKeys.length === 0) {
+  const envKeys = (process.env.TAVILY_API_KEYS || "")
+    .split(",")
+    .map((key) => key.trim())
+    .filter(Boolean);
+  if (envKeys.length === 0) {
     return undefined;
   }
-  const key = apiKeys[currentApiKeyIndex];
-  currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+  const key = envKeys[currentApiKeyIndex % envKeys.length];
+  currentApiKeyIndex = (currentApiKeyIndex + 1) % envKeys.length;
   return key;
 }
 
@@ -181,26 +198,64 @@ function getPublishedDate(obj: Record<string, unknown>): string | undefined {
   );
 }
 
+async function fetchTavilySearch(apiKey: string, query: string, options: any): Promise<any> {
+  const payload: Record<string, any> = {
+    api_key: apiKey,
+    query,
+    topic: options.topic || "general",
+    search_depth: options.searchDepth || "advanced",
+    max_results: options.maxResults || 5,
+    include_answer: options.includeAnswer || "advanced",
+    include_images: false,
+    include_image_descriptions: false,
+  };
+  if (options.includeDomains && options.includeDomains.length > 0) {
+    payload.include_domains = options.includeDomains;
+  }
+  if (options.excludeDomains && options.excludeDomains.length > 0) {
+    payload.exclude_domains = options.excludeDomains;
+  }
+  if (options.days !== undefined) {
+    payload.days = options.days;
+  }
+  if (options.timeRange !== undefined) {
+    payload.time_range = options.timeRange;
+  }
+
+  const res = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Tavily HTTP ${res.status}: ${errText || res.statusText}`);
+  }
+
+  return await res.json();
+}
+
 export const webSearch = tool({
   description:
-    "Search the web for REAL-TIME, up-to-date information. Use this tool for current events, latest news, recent updates, and any information that may have changed since your training data. For speed, prefer ONE precise query, topic ['general'], searchDepth ['basic'], and maxResults [3]. Add 'news' only when the user explicitly asks for news coverage; add 'finance' only when they ask for market/price data. Include x.com only when the user specifically asks for social sentiment or tweets.",
+    "Search the web for REAL-TIME, up-to-date information, news, roadmap updates, release schedules, documentation, technical details, prices, and facts. Pass 1-3 distinct, well-targeted queries to maximize coverage (e.g. general query + specific term query). Default topics ['general'], searchDepth ['advanced'], and maxResults [5]. Add 'news' for explicit news coverage; add 'finance' for explicit market/price data.",
   parameters: z.object({
     queries: z.array(
-      z.string().describe("Array of search queries. Do NOT include specific years like '2025' or '2026' - let the search find the most relevant results. Use 'latest' or 'upcoming' for time-sensitive queries instead of hardcoded years.")
+      z.string().describe("Array of search queries. Do NOT include specific years like '2025' or '2026' unless asked - let the search find the most relevant results. Use 'latest' or 'upcoming' for time-sensitive queries.")
     ),
     maxResults: z
       .array(
         z
           .number()
-          .describe("Array of maximum number of results to return per query. Use [3] for fast answers unless the user asks for deep research.")
+          .describe("Array of maximum number of results to return per query. Default is [5].")
       )
       .optional()
-      .default([3]),
+      .default([5]),
     topics: z
       .array(
         z
           .enum(["general", "news", "finance"])
-          .describe("Topic types to search. Default to ['general'] for speed. Add 'news' only for explicit news requests; add 'finance' only for explicit market/price data.")
+          .describe("Topic types to search. Default to ['general']. Add 'news' for explicit news requests; add 'finance' for explicit market/price data.")
       )
       .optional()
       .default(["general"]),
@@ -208,18 +263,18 @@ export const webSearch = tool({
       .array(
         z
           .enum(["basic", "advanced"])
-          .describe("Array of search depths. Use 'basic' for fast answers. Use 'advanced' only for deep research requests.")
+          .describe("Array of search depths. Default to ['advanced'] for rich, accurate results.")
       )
       .optional()
-      .default(["basic"]),
+      .default(["advanced"]),
     timeRange: z
       .enum(["day", "week", "month", "year", "all"])
-      .describe("Time range to filter results. Use 'day' for today's news, 'week' for recent updates, 'month' for monthly trends. Default is 'week' for most queries.")
+      .describe("Time range to filter results. Use 'day' for today's news, 'week' for weekly updates, 'month' for monthly trends, 'all' for best overall relevance. Default is 'all'.")
       .optional()
-      .default("week"),
+      .default("all"),
     include_domains: z
       .array(z.string())
-      .describe("Optional list of domains to restrict results to. Only use if you specifically need results from certain sites (e.g., ['x.com'] for tweets only). Leave empty for diverse sources.")
+      .describe("Optional list of domains to restrict results to. Leave empty for diverse sources.")
       .optional()
       .default([]),
     exclude_domains: z
@@ -229,10 +284,10 @@ export const webSearch = tool({
   }),
   execute: async ({
     queries,
-    maxResults = [3],
+    maxResults = [5],
     topics = ["general"],
-    searchDepth = ["basic"],
-    timeRange = "week",
+    searchDepth = ["advanced"],
+    timeRange = "all",
     include_domains = [],
     exclude_domains = [],
   }: {
@@ -270,6 +325,11 @@ export const webSearch = tool({
 
     ensureTavilyDnsPreferIpv4();
 
+    const envKeysCount = (process.env.TAVILY_API_KEYS || "")
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean).length;
+
     const searchWithRetry = async (
       query: string,
       topic: TavilyTopic,
@@ -277,7 +337,7 @@ export const webSearch = tool({
     ): Promise<SearchRow> => {
       let rateLimitRotations = 0;
 
-      while (rateLimitRotations < Math.max(apiKeys.length, 1)) {
+      while (rateLimitRotations < Math.max(envKeysCount, 1)) {
         const apiKey = getNextApiKey();
         if (!apiKey) {
           throw new Error(
@@ -289,10 +349,9 @@ export const webSearch = tool({
 
         while (transientAttempt <= MAX_TRANSIENT_RETRIES) {
           try {
-            const tvly = tavily({ apiKey });
             const isNewsOrFinance = topic === "news" || topic === "finance";
             const daysValue =
-              timeRangeToDays[timeRange] ?? (isNewsOrFinance ? 7 : undefined);
+              timeRangeToDays[timeRange] ?? (isNewsOrFinance && timeRange !== "all" ? 7 : undefined);
 
             const depth =
               searchDepth[index] || searchDepth[0] || "advanced";
@@ -302,16 +361,16 @@ export const webSearch = tool({
 
             const timeFilter: Pick<TavilySearchOptions, "days" | "timeRange"> =
               timeRange === "all"
-                ? daysValue !== undefined
+                ? {}
+                : daysValue !== undefined
                   ? { days: daysValue }
-                  : {}
-                : tavilyTimeRange !== undefined
-                  ? { timeRange: tavilyTimeRange }
-                  : {};
+                  : tavilyTimeRange !== undefined
+                    ? { timeRange: tavilyTimeRange }
+                    : {};
 
-            const data = await tvly.search(query, {
+            let data = await fetchTavilySearch(apiKey, query, {
               topic,
-              maxResults: maxResults[index] || maxResults[0] || 3,
+              maxResults: maxResults[index] || maxResults[0] || 5,
               searchDepth: depth,
               includeAnswer: includeAnswerLevel,
               includeImages: false,
@@ -320,13 +379,29 @@ export const webSearch = tool({
                 include_domains.length > 0 ? include_domains : undefined,
               excludeDomains: exclude_domains,
               ...timeFilter,
-            } as unknown as TavilySearchOptions);
+            });
+
+            // Fallback: If time-filtered search returned 0 results, retry without time constraint
+            if ((!data.results || data.results.length === 0) && timeRange !== "all") {
+              console.log(`[WEB-SEARCH] Time-filtered search returned 0 results for "${query}". Retrying with all-time search...`);
+              data = await fetchTavilySearch(apiKey, query, {
+                topic,
+                maxResults: maxResults[index] || maxResults[0] || 5,
+                searchDepth: depth,
+                includeAnswer: includeAnswerLevel,
+                includeImages: false,
+                includeImageDescriptions: false,
+                includeDomains:
+                  include_domains.length > 0 ? include_domains : undefined,
+                excludeDomains: exclude_domains,
+              });
+            }
 
             return {
               query,
               topic,
               answer: data.answer,
-              results: data.results.map((obj) => {
+              results: (data.results || []).map((obj: any) => {
                 const row = obj as unknown as Record<string, unknown>;
                 const rawText = getRawText(row);
                 const contentScan = scanExternalContent(
@@ -483,7 +558,7 @@ export const webSearch = tool({
     );
 
     const tavilySearchPromise =
-      apiKeys.length === 0
+      envKeysCount === 0
         ? Promise.resolve(
             [] as PromiseSettledResult<SearchRow>[]
           )
@@ -523,7 +598,7 @@ export const webSearch = tool({
 
     const tavilyFailureDetails: string[] = [];
 
-    if (apiKeys.length === 0) {
+    if (envKeysCount === 0) {
       warnings.push(
         "Tavily was skipped: TAVILY_API_KEYS is not set. Only News (if configured) is available."
       );
@@ -557,7 +632,7 @@ export const webSearch = tool({
     for (const q of queries) {
       const expectedTopics = topics.length;
       const ok = tavilySuccessByQuery.get(q) ?? 0;
-      if (apiKeys.length > 0 && ok === 0 && expectedTopics > 0) {
+      if (envKeysCount > 0 && ok === 0 && expectedTopics > 0) {
         noTavilyPerQuery.push(
           `No Tavily results for query "${q}" (all ${expectedTopics} topic attempts failed).`
         );

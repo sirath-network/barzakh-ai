@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useWindowSize } from "usehooks-ts";
-import { SidebarToggle } from "@/components/sidebar-toggle";
-import { Button } from "@/components/ui/button";
-import { useSidebar } from "./ui/sidebar";
-import { memo, useState, useEffect } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import type { VisibilityType } from "./visibility-selector";
-import type { User } from "next-auth";
-import { SidebarUserNav } from "./sidebar-user-nav";
-import type { Message } from "ai";
-import TextStrip from "./text-strip";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useWindowSize } from 'usehooks-ts';
+import { SidebarToggle } from '@/components/sidebar-toggle';
+import { Button } from '@/components/ui/button';
+import { useSidebar } from './ui/sidebar';
+import { memo, useState, useEffect } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import type { VisibilityType } from './visibility-selector';
+import type { User } from 'next-auth';
+import { SidebarUserNav } from './sidebar-user-nav';
+import type { Message } from 'ai';
+import TextStrip from './text-strip';
 // Import required icons
 import { ArrowLeft, ChevronLeft, PenSquare, Ghost } from 'lucide-react';
-import { ArtifactToggle } from "./artifact-toggle";
+import { ArtifactToggle } from './artifact-toggle';
 
-import { ChatHeaderMenu } from "./chat-header-menu";
+import { ChatHeaderMenu } from './chat-header-menu';
 
 // 1. Update interface props to include new optional props
 // and make chat-specific props optional.
@@ -56,7 +56,11 @@ function PureChatHeader({
   setIsIncognito?: (val: boolean) => void;
 }) {
   const router = useRouter();
-  const { open: isSidebarOpen, openMobile: isSidebarOpenMobile, isMobile } = useSidebar();
+  const {
+    open: isSidebarOpen,
+    openMobile: isSidebarOpenMobile,
+    isMobile,
+  } = useSidebar();
   const { width: windowWidth } = useWindowSize();
   const isDesktop = windowWidth >= 768;
 
@@ -73,7 +77,9 @@ function PureChatHeader({
   const ChevronLeftAny = ChevronLeft as any;
 
   return (
-    <div className={`flex flex-col sticky top-0 z-10 backdrop-blur-sm bg-white/95 dark:bg-zinc-900/95`}>
+    <div
+      className={`flex flex-col sticky top-0 z-10 backdrop-blur-sm bg-white/95 dark:bg-zinc-900/95`}
+    >
       <header className="flex md:grid md:grid-cols-3 items-center w-full h-16 px-2 md:px-4 relative justify-between">
         {/* === Left Section === */}
         <div className="flex items-center gap-2 justify-start min-w-0 z-20">
@@ -99,7 +105,9 @@ function PureChatHeader({
                   </span>
                 </ButtonAny>
               </TooltipTriggerAny>
-              <TooltipContentAny side="bottom" className="font-medium">New Chat</TooltipContentAny>
+              <TooltipContentAny side="bottom" className="font-medium">
+                New Chat
+              </TooltipContentAny>
             </TooltipAny>
           )}
 
@@ -123,7 +131,6 @@ function PureChatHeader({
         {/* === Center Section (Dynamic Title or Logo) === */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 flex items-center justify-center pointer-events-none md:static md:translate-x-0 md:pointer-events-auto min-w-0 max-w-[50%] md:max-w-none">
           <div className="pointer-events-auto flex justify-center max-w-full md:max-w-none">
-
             {/* 3. Show title if exists, otherwise show ChatHeaderMenu or logo */}
             {title ? (
               <h1 className="text-lg font-semibold truncate px-2">{title}</h1>
@@ -131,7 +138,7 @@ function PureChatHeader({
               <ChatHeaderMenu
                 chatId={chatId}
                 currentTitle={chatTitle}
-                visibility={chatVisibility || "private"}
+                visibility={chatVisibility || 'private'}
                 isArchived={isArchived}
                 onUnarchive={onUnarchive}
               />
@@ -151,27 +158,34 @@ function PureChatHeader({
               <TooltipTriggerAny asChild>
                 <ButtonAny
                   variant="ghost"
-                  className={`h-10 px-3 rounded-full hover:bg-transparent transition-all duration-300 ${isIncognito
-                      ? "relative"
-                      : ""
-                    }`}
+                  className={`h-9 px-3 rounded-full transition-all duration-300 ${
+                    isIncognito
+                      ? 'relative bg-neutral-200/70 dark:bg-white/10 border border-neutral-300/70 dark:border-white/15 shadow-sm'
+                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-800/60'
+                  }`}
                   onClick={() => setIsIncognito?.(!isIncognito)}
                   aria-label="Incognito Mode"
                 >
-                  <span className={`flex items-center gap-2 transition-all duration-300 ${isIncognito
-                      ? "text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.6)]"
-                      : "text-neutral-600 dark:text-neutral-400 hover:text-primary"
-                    }`}>
-                    <Ghost className={`flex-shrink-0 w-5 h-5 md:w-5 md:h-5 ${isIncognito ? "animate-pulse" : ""}`} />
+                  <span
+                    className={`flex items-center gap-2 transition-all duration-300 ${
+                      isIncognito
+                        ? 'text-neutral-900 dark:text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.65)]'
+                        : 'text-neutral-600 dark:text-neutral-400 hover:text-primary'
+                    }`}
+                  >
+                    <Ghost
+                      className={`flex-shrink-0 w-4 h-4 md:w-4 md:h-4 ${
+                        isIncognito ? 'animate-pulse' : ''
+                      }`}
+                    />
                     {isClient && isSidebarOpen && isDesktop && (
                       <span className="text-sm font-medium">Private</span>
                     )}
                   </span>
-
                 </ButtonAny>
               </TooltipTriggerAny>
               <TooltipContentAny side="bottom" className="font-medium">
-                {isIncognito ? "Disable Incognito" : "Incognito Mode"}
+                {isIncognito ? 'Disable Incognito' : 'Incognito Mode'}
               </TooltipContentAny>
             </TooltipAny>
           )}
@@ -184,13 +198,15 @@ function PureChatHeader({
             // On desktop: if sidebar is expanded, hide using md:hidden.
             // On mobile: if mobile sheet is open, hide using hidden.
             // This works on server too because isSidebarOpen is stable from cookies.
-            <div className={`${isSidebarOpen ? "md:hidden" : ""} ${isSidebarOpenMobile ? "hidden" : ""}`}>
+            <div
+              className={`${isSidebarOpen ? 'md:hidden' : ''} ${isSidebarOpenMobile ? 'hidden' : ''}`}
+            >
               <SidebarUserNav user={user} compact={true} />
             </div>
           ) : (
             <ButtonAny
               className="px-3 py-1 text-sm h-auto"
-              onClick={() => router.push("/login")}
+              onClick={() => router.push('/login')}
             >
               Login
             </ButtonAny>
@@ -209,7 +225,9 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   // If title exists, we assume this is settings view and don't need
   // to compare chat-specific props that may not exist.
   if (nextProps.title) {
-    return prevProps.title === nextProps.title && prevProps.user === nextProps.user;
+    return (
+      prevProps.title === nextProps.title && prevProps.user === nextProps.user
+    );
   }
 
   // Comparison for chat view

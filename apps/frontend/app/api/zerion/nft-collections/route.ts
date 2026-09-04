@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getZerionApiKey } from "@barzakh/shared/lib/utils/utils";
-import { auth } from "@/app/(auth)/auth";
 
 export async function GET(request: NextRequest) {
   // No auth required - this is public on-chain data
@@ -12,13 +11,19 @@ export async function GET(request: NextRequest) {
 
   if (!address) {
     return NextResponse.json(
-      { error: "Wallet address is required" },
+      { error: "Wallet address is required", data: [] },
       { status: 400 }
     );
   }
 
   try {
-    const zerionApiKey = getZerionApiKey();
+    let zerionApiKey: string;
+    try {
+      zerionApiKey = getZerionApiKey();
+    } catch {
+      // If Zerion API key is missing or not configured, return empty data gracefully
+      return NextResponse.json({ data: [] });
+    }
 
     const options = {
       method: "GET",
@@ -38,9 +43,9 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData?.errors?.[0]?.detail || "Failed to fetch NFT collections from Zerion";
-      console.error("Zerion API error:", response.status, errorData);
+      console.warn("Zerion NFT collections API returned status:", response.status, errorMessage);
       return NextResponse.json(
-        { error: errorMessage },
+        { error: errorMessage, data: [] },
         { status: response.status }
       );
     }
@@ -51,7 +56,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching Zerion NFT collections:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: error.message || "Internal server error", data: [] },
       { status: 500 }
     );
   }

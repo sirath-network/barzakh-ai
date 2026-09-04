@@ -340,6 +340,17 @@ export const register = async (
       const id = generateUUID();
       await createUser(id, email, password);
 
+      // Automatically sign in the newly registered user
+      try {
+        await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
+      } catch (authError) {
+        console.error("Auto-login error after registration:", authError);
+      }
+
       return {
         status: "otp_verified",
         email,

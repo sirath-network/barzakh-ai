@@ -570,9 +570,15 @@ export const getChatById = cache(async ({ id }: { id: string }) => {
   }
 });
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function saveMessages({ messages }: { messages: Array<Message> }) {
   try {
-    return await db.insert(message).values(messages);
+    const sanitizedMessages = messages.map((m) => ({
+      ...m,
+      id: m.id && UUID_REGEX.test(m.id) ? m.id : crypto.randomUUID(),
+    }));
+    return await db.insert(message).values(sanitizedMessages);
   } catch (error) {
     console.error("Failed to save messages in database", error);
     throw error;

@@ -513,19 +513,19 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result: initialResult }) => 
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("NFT Collections Fetch Error:", response.status, errorData);
 
         // Check for untrackable wallet error
         if (response.status === 400 && (errorData.error?.toLowerCase().includes("untrackable") || JSON.stringify(errorData).toLowerCase().includes("untrackable"))) {
           setIsUntrackable(true);
         }
 
-        throw new Error(`Failed to fetch NFT collections: ${response.status} ${errorData.error || ''}`);
+        setNftCollections([]);
+        return;
       }
 
       const data = await response.json();
 
-      if (!data.data || data.data.length === 0) {
+      if (!data.data || !Array.isArray(data.data) || data.data.length === 0) {
         setNftCollections([]);
         return;
       }
@@ -550,7 +550,7 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result: initialResult }) => 
       setTotalNftCollections(collections.length);
       setNftCollections(collections.slice(0, 12));
     } catch (error) {
-      console.error('Error fetching NFT collections:', error);
+      console.warn('Could not load NFT collections:', error);
       setNftCollections([]);
     } finally {
       setLoadingNfts(false);

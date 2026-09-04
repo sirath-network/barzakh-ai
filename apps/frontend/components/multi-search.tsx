@@ -76,79 +76,89 @@ const SearchLoadingState = ({
 }: {
   queries: string[];
   previewCount: number;
-}) => (
-  <div className="w-full space-y-4">
-    <Accordion
-      type="single"
-      collapsible
-      defaultValue="search"
-      className="w-full"
-    >
-      <AccordionItem value="search" className="border-none">
-        <AccordionTrigger className="p-0 hover:no-underline data-[state=closed]:border-b data-[state=closed]:border-neutral-200 data-[state=closed]:dark:border-neutral-700 data-[state=closed]:pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-muted/40">
-              <GlobeAny className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-medium text-left">Running Web Search</h2>
-                <span className="flex gap-1">
-                  <span className="w-1 h-1 rounded-full bg-neutral-400 animate-bounce [animation-delay:-0.3s]" />
-                  <span className="w-1 h-1 rounded-full bg-neutral-400 animate-bounce [animation-delay:-0.15s]" />
-                  <span className="w-1 h-1 rounded-full bg-neutral-400 animate-bounce" />
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mt-1.5">
-                <Badge variant="secondary" className="animate-pulse">
-                  Searching...
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="mt-4 pt-0 border-0">
-          <div className="flex overflow-x-auto custom-scrollbar gap-2 mb-3 no-scrollbar pb-1">
-            {queries.map((query, i) => (
-              <Badge
-                key={i}
-                variant="secondary"
-                className="px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground flex-shrink-0 border border-border/50"
-              >
-                <SearchAny className="h-3 w-3 mr-1.5" />
-                {query}
-              </Badge>
-            ))}
-          </div>
+}) => {
+  const safeQueries = Array.isArray(queries)
+    ? queries.filter((q) => typeof q === "string" && q.trim().length > 0)
+    : typeof (queries as any) === "string" && (queries as string).trim().length > 0
+      ? [queries as string]
+      : [];
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {[...Array(previewCount)].map((_, i) => (
-              <div
-                key={i}
-                className="w-full bg-card rounded-xl border border-border/50 shadow-sm"
-              >
-                <div className="p-4 animate-pulse">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-muted/40" />
-                    <div className="space-y-2 flex-1">
-                      <div className="h-4 w-3/4 bg-muted/40 rounded" />
-                      <div className="h-3 w-1/2 bg-muted/40 rounded" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 w-full bg-muted/40 rounded" />
-                    <div className="h-3 w-full bg-muted/40 rounded" />
-                    <div className="h-3 w-2/3 bg-muted/40 rounded" />
-                  </div>
+  return (
+    <div className="w-full space-y-4">
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue="search"
+        className="w-full"
+      >
+        <AccordionItem value="search" className="border-none">
+          <AccordionTrigger className="p-0 hover:no-underline data-[state=open]:mb-2 data-[state=closed]:mb-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted/40">
+                <GlobeAny className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-medium text-left">Running Web Search</h2>
+                  <span className="flex gap-1">
+                    <span className="w-1 h-1 rounded-full bg-neutral-400 animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1 h-1 rounded-full bg-neutral-400 animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1 h-1 rounded-full bg-neutral-400 animate-bounce" />
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Badge variant="secondary" className="animate-pulse">
+                    Searching...
+                  </Badge>
                 </div>
               </div>
-            ))}
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  </div>
-);
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="mt-4 pt-0 border-0">
+            {safeQueries.length > 0 && (
+              <div className="flex overflow-x-auto custom-scrollbar gap-2 mb-3 no-scrollbar pb-1">
+                {safeQueries.map((query, i) => (
+                  <Badge
+                    key={i}
+                    variant="secondary"
+                    className="px-3 py-1.5 rounded-full bg-muted/50 text-muted-foreground flex-shrink-0 border border-border/50"
+                  >
+                    <SearchAny className="h-3 w-3 mr-1.5" />
+                    {query}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {[...Array(previewCount)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-full bg-card rounded-xl border border-border/50 shadow-sm"
+                >
+                  <div className="p-4 animate-pulse">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-muted/40" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 w-3/4 bg-muted/40 rounded" />
+                        <div className="h-3 w-1/2 bg-muted/40 rounded" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 w-full bg-muted/40 rounded" />
+                      <div className="h-3 w-full bg-muted/40 rounded" />
+                      <div className="h-3 w-2/3 bg-muted/40 rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+};
 
 // ResultCard component
 const ResultCard = ({ result }: { result: SearchResult }) => (
@@ -305,16 +315,24 @@ const MultiSearch: React.FC<{
   const isPreloaded = isPreloadedRef.current;
 
   if (!result) {
+    const rawQueries =
+      args?.queries ||
+      ((args as any)?.query ? [(args as any).query] : []);
     return (
       <SearchLoadingState
-        queries={args.queries}
+        queries={Array.isArray(rawQueries) ? rawQueries : []}
         previewCount={PREVIEW_RESULT_COUNT}
       />
     );
   }
 
-  const allImages = result.web.reduce<SearchImage[]>((acc, search) => [...acc, ...search.images], []);
-  const allResults = result.web.flatMap(search => search.results);
+  const allImages = (result.web || []).reduce(
+    (acc: SearchImage[], search: any) => [...acc, ...(search?.images || [])],
+    [],
+  );
+  const allResults = (result.web || []).flatMap(
+    (search: any) => search?.results || [],
+  );
 
   const allTweets = result.x?.flatMap((search: any) => {
     if (search?.error) {

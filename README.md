@@ -1462,7 +1462,7 @@ OPENROUTER_IMAGE_PARTIAL_IMAGES=2
 
 # ── External APIs (Optional) ─────────────────────────────────────────────
 ZERION_API_KEY=...                       # Wallet portfolio analysis
-TAVILY_API_KEY=...                       # Web search tool
+TAVILY_API_KEYS=...                      # Web search tool (supports comma-separated keys for rotation)
 ARKHAM_API_KEY=...                       # Arkham Intelligence (whale tracking, entity intel)
 ETHERSCAN_API_KEY=...                    # Etherscan V2 (Mantle, multi-chain)
 

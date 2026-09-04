@@ -353,7 +353,7 @@ export async function POST(request: Request) {
   const userMessageText = extractTextFromMessage(userMessage.content);
   const hasMultimodal = hasMultimodalContent(userMessage.content);
   const isFastChat = isFastConversationalMessage(userMessageText) && !hasMultimodal;
-  const isFastRealtimeSearch = isFastRealtimeSearchMessage(userMessageText) && !hasMultimodal && (!group || group === "search");
+  const isFastRealtimeSearch = isFastRealtimeSearchMessage(userMessageText) && !hasMultimodal && group !== "imagine" && group !== "coding";
 
   // Authenticate first - BEFORE accessing any user data
   const session = await auth();
@@ -728,7 +728,7 @@ export async function POST(request: Request) {
       };
     } else if (isFastRealtimeSearch) {
       tools = ["webSearch"];
-      systemPrompt = "You are Barzakh AI. Fast search mode: answer current-info questions quickly. Use exactly one webSearch call with one concise query, topics ['general'], searchDepth ['basic'], and maxResults [3]. Then answer directly and briefly from the retrieved sources. If sources disagree or no firm date exists, say that clearly. Do not call wallet, chain, subscription, market, or image tools.";
+      systemPrompt = "You are Barzakh AI. Fast search mode: answer current-info questions accurately and comprehensively. Use 1-2 webSearch queries with topics ['general'], searchDepth ['advanced'], and maxResults [5]. Synthesize the retrieved web results clearly with key facts, dates, roadmap context, and official statements. If an exact date is not yet confirmed, provide the current status, testnet progress, expected timeline, and latest known estimates found in the search results instead of giving up. Do not call wallet, chain, subscription, market, or image tools.";
       effectiveGroup = "search";
       classificationResult = {
         primaryIntent: "search",
@@ -1231,8 +1231,11 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                   if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
                     const messagesToSave = sanitizedResponseMessages.map((message) => {
                       const cleanedContent = cleanMessageContentForStorage(message.content);
+                      const validId = (message.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.id))
+                        ? message.id
+                        : generateUUID();
                       return {
-                        id: message.id,
+                        id: validId,
                         chatId: id,
                         role: message.role,
                         content: cleanedContent,

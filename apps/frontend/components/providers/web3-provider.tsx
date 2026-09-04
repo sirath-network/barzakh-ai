@@ -1,42 +1,38 @@
 'use client';
 
-import { type State, WagmiProvider, createConfig, http } from 'wagmi';
+import { type State, WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { config, supportedChains } from '@/lib/wagmi';
-import { useMemo, useState, useEffect } from 'react';
-import { DynamicWalletProvider } from './dynamic-wallet-provider';
-import { cookieStorage, createStorage } from 'wagmi';
+import { config } from '@/lib/wagmi';
+import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 
-// Dynamically import DynamicWagmiConnector (client-only, bridges Dynamic ↔ wagmi)
-import dynamic from 'next/dynamic';
-const DynamicWagmiConnectorAsync = dynamic(
-    () => import('@dynamic-labs/wagmi-connector').then((mod) => mod.DynamicWagmiConnector),
-    { ssr: false }
-);
+import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
+import { DynamicWagmiConnector } from '@dynamic-labs/wagmi-connector';
+import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
+import { SolanaWalletConnectors } from '@dynamic-labs/solana';
+import { TronWalletConnectors } from '@dynamic-labs/tron';
+
+// Suppress noisy DynamicWagmiConnector warnings during module load
+if (typeof window !== 'undefined') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('[DynamicWagmiConnector] [WARN]: Chain')) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
 
 interface Web3ProviderProps {
   children: React.ReactNode;
   initialState?: State;
 }
 
-// Build transports dynamically
-const transports = Object.fromEntries(
-  supportedChains.map((chain) => [chain.id, http()])
-) as Record<number, ReturnType<typeof http>>;
-
-// Client config WITHOUT connectors — Dynamic SDK manages connector injection
-const clientConfig = createConfig({
-  chains: supportedChains,
-  transports,
-  multiInjectedProviderDiscovery: false,
-  ssr: true,
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
-});
-
 export function Web3Provider({ children, initialState }: Web3ProviderProps) {
   const [mounted, setMounted] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const environmentId = process.env.NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID;
+  const apiBaseUrl = process.env.NEXT_PUBLIC_DYNAMIC_API_BASE_URL;
 
   const [queryClient] = useState(
     () =>
@@ -54,22 +50,43 @@ export function Web3Provider({ children, initialState }: Web3ProviderProps) {
     setMounted(true);
   }, []);
 
-  // Use server config during SSR, client config after mount
-  const activeConfig = mounted ? clientConfig : config;
-
-  return (
-    <DynamicWalletProvider>
-      <WagmiProvider config={activeConfig} initialState={initialState}>
+  // SSR / pre-mount / missing environmentId fallback
+  if (!mounted || !environmentId) {
+    if (!environmentId && mounted) {
+      console.warn('NEXT_PUBLIC_DYNAMIC_ENVIRONMENT_ID is not set. Dynamic wallet connections disabled.');
+    }
+    return (
+      <WagmiProvider config={config} initialState={initialState}>
         <QueryClientProvider client={queryClient}>
-          {mounted ? (
-            <DynamicWagmiConnectorAsync>
-              {children}
-            </DynamicWagmiConnectorAsync>
-          ) : (
-            children
-          )}
+          {children}
         </QueryClientProvider>
       </WagmiProvider>
-    </DynamicWalletProvider>
+    );
+  }
+
+  // Client-side: full provider stack
+  // DynamicContextProvider > WagmiProvider > QueryClientProvider > DynamicWagmiConnector
+  return (
+    <DynamicContextProvider
+      theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+      settings={{
+        environmentId,
+        apiBaseUrl,
+        walletConnectors: [
+          EthereumWalletConnectors,
+          SolanaWalletConnectors,
+          TronWalletConnectors,
+        ],
+        initialAuthenticationMode: 'connect-only',
+      }}
+    >
+      <WagmiProvider config={config} initialState={initialState}>
+        <QueryClientProvider client={queryClient}>
+          <DynamicWagmiConnector>
+            {children}
+          </DynamicWagmiConnector>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </DynamicContextProvider>
   );
 }

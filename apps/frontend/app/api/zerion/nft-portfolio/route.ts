@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getZerionApiKey } from "@barzakh/shared/lib/utils/utils";
-import { auth } from "@/app/(auth)/auth";
 
 export async function GET(request: NextRequest) {
-  // SECURITY: Require authentication to prevent API key abuse
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // No auth required - this is public on-chain data
+  // Allows guests to view portfolio data in shared chats
 
   const searchParams = request.nextUrl.searchParams;
   const address = searchParams.get("address");
@@ -21,7 +17,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const zerionApiKey = getZerionApiKey();
+    let zerionApiKey: string;
+    try {
+      zerionApiKey = getZerionApiKey();
+    } catch {
+      // If Zerion API key is missing or not configured, return empty data gracefully
+      return NextResponse.json({ data: null });
+    }
 
     const options = {
       method: "GET",
@@ -48,9 +50,9 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData?.errors?.[0]?.detail || "Failed to fetch NFT portfolio from Zerion";
-      console.error("Zerion API error:", response.status, errorData);
+      console.warn("Zerion NFT portfolio API returned status:", response.status, errorMessage);
       return NextResponse.json(
-        { error: errorMessage },
+        { error: errorMessage, data: null },
         { status: response.status }
       );
     }
@@ -58,10 +60,10 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching Zerion NFT portfolio:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error.message || "Internal server error", data: null },
       { status: 500 }
     );
   }

@@ -3,6 +3,14 @@
 
 // --- Refactored Universal Email Template Generator ---
 
+const getBannerUrl = (): string => {
+  const publicUrl = process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL;
+  if (publicUrl && !publicUrl.includes("localhost")) {
+    return `${publicUrl.replace(/\/$/, "")}/images/barzakh/banner/sirath-banner.png`;
+  }
+  return "https://app.sirath.network/images/barzakh/banner/sirath-banner.png";
+};
+
 /**
  * Generates a branded HTML email template.
  * @param {string} title - The main title in the header.
@@ -10,7 +18,10 @@
  * @param {string} contentHtml - The main HTML content for the email body.
  * @returns {string} - The complete HTML email template.
  */
-const generateEmailTemplate = (title: string, subtitle: string, contentHtml: string): string => `
+const generateEmailTemplate = (title: string, subtitle: string, contentHtml: string): string => {
+  const bannerUrl = getBannerUrl();
+
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,71 +30,89 @@ const generateEmailTemplate = (title: string, subtitle: string, contentHtml: str
     <meta name="color-scheme" content="light dark">
     <style>
         /* Reset & Base */
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; color: #18181b; -webkit-font-smoothing: antialiased; }
-        .email-wrapper { width: 100%; background-color: #f4f4f5; padding: 40px 0; }
-        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #09090b; color: #f4f4f5; -webkit-font-smoothing: antialiased; }
+        .email-wrapper { width: 100%; background-color: #09090b; padding: 40px 0; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: #18181b; border-radius: 12px; overflow: hidden; border: 1px solid #27272a; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.16); }
         
         /* Typography */
-        h1 { font-size: 24px; font-weight: 700; color: #18181b; margin: 0 0 8px; letter-spacing: -0.025em; }
-        p { font-size: 16px; line-height: 1.6; color: #52525b; margin: 0 0 24px; }
+        h1 { font-size: 24px; font-weight: 700; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.025em; }
+        p { font-size: 16px; line-height: 1.6; color: #a1a1aa; margin: 0 0 24px; }
         .text-sm { font-size: 14px; }
         .text-xs { font-size: 12px; }
         .text-muted { color: #71717a; }
         .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
         
         /* Components */
-        .header { padding: 32px 40px; text-align: center; border-bottom: 1px solid #e4e4e7; }
+        .header { padding: 36px 40px 28px; text-align: center; border-bottom: 1px solid #27272a; }
         .content { padding: 40px; }
-        .footer { padding: 32px 40px; background-color: #fafafa; border-top: 1px solid #e4e4e7; text-align: center; }
+        .footer { padding: 32px 40px; background-color: #141416; border-top: 1px solid #27272a; text-align: center; }
         
-        .button { display: inline-block; background-color: #dc2626; color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; transition: background-color 0.2s; }
-        .button:hover { background-color: #b91c1c; }
+        .button { display: inline-block; background-color: #ffffff; color: #09090b !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; transition: background-color 0.2s; }
+        .button:hover { background-color: #e4e4e7; }
         
-        .otp-container { background-color: #f4f4f5; border-radius: 8px; padding: 24px; text-align: center; margin: 32px 0; border: 1px solid #e4e4e7; }
-        .otp-code { font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #18181b; }
+        .otp-container { background-color: #27272a; border-radius: 8px; padding: 24px; text-align: center; margin: 32px 0; border: 1px solid #3f3f46; }
+        .otp-code { font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #ffffff; }
         
-        .link-box { background-color: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; padding: 16px; margin: 24px 0; }
-        .link-text { color: #dc2626 !important; text-decoration: none; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; display: block; line-height: 1.5; }
+        .link-box { background-color: #27272a; border: 1px solid #3f3f46; border-radius: 8px; padding: 16px; margin: 24px 0; }
+        .link-text { color: #38bdf8 !important; text-decoration: underline; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; display: block; line-height: 1.5; }
         
         .alert { padding: 16px; border-radius: 6px; margin-top: 32px; font-size: 14px; text-align: left; }
-        .alert-warning { background-color: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+        .alert-warning { background-color: #2a1b0a; border: 1px solid #5c3510; color: #fed7aa; }
         
-        /* Dark Mode */
+        /* Dark Mode overrides */
         @media (prefers-color-scheme: dark) {
             body, .email-wrapper { background-color: #09090b !important; }
-            .email-container { background-color: #18181b !important; border: 1px solid #27272a; }
-            h1, .otp-code { color: #fafafa !important; }
+            .email-container { background-color: #18181b !important; border: 1px solid #27272a !important; }
+            h1, .otp-code { color: #ffffff !important; }
             p { color: #a1a1aa !important; }
             .header, .footer { border-color: #27272a !important; }
-            .footer { background-color: #18181b !important; }
+            .footer { background-color: #141416 !important; }
             .otp-container { background-color: #27272a !important; border-color: #3f3f46 !important; }
-            .alert-warning { background-color: #431407 !important; border-color: #7c2d12 !important; color: #fdba74 !important; }
+            .alert-warning { background-color: #2a1b0a !important; border-color: #5c3510 !important; color: #fed7aa !important; }
         }
     </style>
 </head>
 <body>
-    <div class="email-wrapper">
-        <div class="email-container">
+    <div class="email-wrapper" style="width: 100%; background-color: #09090b; padding: 40px 0;">
+        <div class="email-container" style="max-width: 600px; margin: 0 auto; background-color: #18181b; border-radius: 12px; overflow: hidden; border: 1px solid #27272a;">
             <!-- Header -->
-            <div class="header">
-                <div style="margin-bottom: 24px;">
-                    <span style="font-size: 20px; font-weight: 700; color: #dc2626;">Barzakh AI</span>
-                </div>
-                <h1>${title}</h1>
-                <p style="margin: 0; font-size: 16px; color: #71717a;">${subtitle}</p>
+            <div class="header" style="padding: 36px 40px 28px; text-align: center; border-bottom: 1px solid #27272a;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 32px auto; text-align: center;">
+                    <tr>
+                        <td align="center" style="text-align: center; padding: 0 0 22px 0;">
+                            <a href="https://app.sirath.network" target="_blank" style="text-decoration: none; display: block;">
+                                <img 
+                                    src="${bannerUrl}" 
+                                    alt="Sirath Network" 
+                                    width="160" 
+                                    style="display: block; margin: 0 auto; width: 160px; max-width: 160px; height: auto; border: 0;"
+                                />
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="text-align: center; padding: 0;">
+                            <div style="font-size: 19px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; margin: 0; text-align: center; line-height: 1.2;">
+                                Barzakh AI
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                <h1 style="font-size: 24px; font-weight: 700; color: #ffffff; margin: 0 0 8px; letter-spacing: -0.025em; text-align: center;">${title}</h1>
+                <p style="margin: 0; font-size: 16px; color: #a1a1aa; text-align: center;">${subtitle}</p>
             </div>
             
             <!-- Content -->
-            <div class="content">
+            <div class="content" style="padding: 40px;">
                 ${contentHtml}
             </div>
             
             <!-- Footer -->
-            <div class="footer">
-                <p class="text-xs text-muted" style="margin-bottom: 12px;">
+            <div class="footer" style="padding: 32px 40px; background-color: #141416; border-top: 1px solid #27272a; text-align: center;">
+                <p class="text-xs text-muted" style="margin-bottom: 12px; font-size: 12px; color: #71717a;">
                     Secure, Intelligent, Limitless.
                 </p>
-                <p class="text-xs text-muted" style="margin: 0;">
+                <p class="text-xs text-muted" style="margin: 0; font-size: 12px; color: #71717a;">
                     &copy; ${new Date().getFullYear()} Barzakh AI. All rights reserved.
                 </p>
             </div>
@@ -92,40 +121,41 @@ const generateEmailTemplate = (title: string, subtitle: string, contentHtml: str
 </body>
 </html>
 `;
+};
 
 // --- Template Specific Content Generators ---
 
 const getOTPContent = (otp: string) => `
-    <p>Hello,</p>
-    <p>We received a request to authenticate your account. Please use the following One-Time Password (OTP) to complete the verification process.</p>
+    <p style="color: #a1a1aa; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">Hello,</p>
+    <p style="color: #a1a1aa; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">We received a request to authenticate your account. Please use the following One-Time Password (OTP) to complete the verification process.</p>
     
-    <div class="otp-container">
-        <div class="otp-code font-mono">${otp}</div>
+    <div class="otp-container" style="background-color: #27272a; border-radius: 8px; padding: 24px; text-align: center; margin: 32px 0; border: 1px solid #3f3f46;">
+        <div class="otp-code font-mono" style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #ffffff; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">${otp}</div>
     </div>
     
-    <div class="alert alert-warning">
-        <strong>Security Notice:</strong> This code will expire in 10 minutes. Do not share this code with anyone, including Barzakh support staff.
+    <div class="alert alert-warning" style="background-color: #2a1b0a; border: 1px solid #5c3510; color: #fed7aa; padding: 16px; border-radius: 6px; margin-top: 32px; font-size: 14px; text-align: left;">
+        <strong style="color: #fdba74;">Security Notice:</strong> This code will expire in 10 minutes. Do not share this code with anyone, including Barzakh support staff.
     </div>
     
     <p style="margin-top: 24px; font-size: 14px; color: #71717a;">If you did not request this code, you can safely ignore this email.</p>
 `;
 
 const getResetContent = (resetUrl: string) => `
-    <p>Hello,</p>
-    <p>We received a request to reset the password for your Barzakh AI account. If you made this request, please click the button below to proceed.</p>
+    <p style="color: #a1a1aa; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">Hello,</p>
+    <p style="color: #a1a1aa; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">We received a request to reset the password for your Barzakh AI account. If you made this request, please click the button below to proceed.</p>
     
     <div style="text-align: center; margin: 32px 0;">
-        <a href="${resetUrl}" class="button" target="_blank">Reset Password</a>
+        <a href="${resetUrl}" class="button" target="_blank" style="display: inline-block; background-color: #ffffff; color: #09090b !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Reset Password</a>
     </div>
     
-    <p style="font-size: 14px; margin-bottom: 16px;">Or copy and paste this URL into your browser:</p>
+    <p style="font-size: 14px; margin-bottom: 16px; color: #a1a1aa;">Or copy and paste this URL into your browser:</p>
     
-    <div class="link-box">
-        <a href="${resetUrl}" class="link-text" target="_blank">${resetUrl}</a>
+    <div class="link-box" style="background-color: #27272a; border: 1px solid #3f3f46; border-radius: 8px; padding: 16px; margin: 24px 0;">
+        <a href="${resetUrl}" class="link-text" target="_blank" style="color: #38bdf8 !important; text-decoration: underline; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; display: block; line-height: 1.5;">${resetUrl}</a>
     </div>
     
-    <div class="alert alert-warning">
-        <strong>Security Notice:</strong> This link expires in 1 hour. If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+    <div class="alert alert-warning" style="background-color: #2a1b0a; border: 1px solid #5c3510; color: #fed7aa; padding: 16px; border-radius: 6px; margin-top: 32px; font-size: 14px; text-align: left;">
+        <strong style="color: #fdba74;">Security Notice:</strong> This link expires in 1 hour. If you didn't request a password reset, please ignore this email or contact support if you have concerns.
     </div>
 `;
 
