@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useSwitchChain, useSendTransaction, useSignMessage, useDisconnect } from "wagmi";
 // ConnectButton replaced by DynamicConnectButton defined below
-import { ArrowRightLeft, Check, AlertCircle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck, Copy } from "lucide-react";
+import { ArrowRightLeft, Check, AlertCircle, AlertTriangle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck, Copy, Bot, XCircle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { createClient } from "@relayprotocol/relay-sdk";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChainWallet, isNonEvmChain, getNonEvmChainName } from "@/hooks/use-chain-wallet";
+import { parseSwapError } from "@/lib/agent/swap-error-parser";
 
 // Dynamic import DynamicWidget to prevent SSR issues
 const DynamicWidget = dynamic(
@@ -208,6 +209,12 @@ interface RelaySwapApprovalProps {
         note?: string;
         transactionHash?: string;
         explorerUrl?: string;
+        confirmationId?: string;
+        isAgentExecution?: boolean;
+        agentWalletAddress?: string;
+        senderAddress?: string;
+        recipientAddress?: string;
+        isDestinationAgentWallet?: boolean;
         toolParams?: {
             fromChainId: number;
             toChainId: number;
@@ -220,38 +227,59 @@ interface RelaySwapApprovalProps {
     };
 }
 
+const isPlaceholderAddress = (addr?: string | null): boolean => {
+    if (!addr) return true;
+    const lower = addr.trim().toLowerCase();
+    return (
+        lower === "0x0000000000000000000000000000000000000001" ||
+        lower === "0x0000000000000000000000000000000000000000" ||
+        lower === "11111111111111111111111111111111" ||
+        lower.startsWith("0x00000000000000000000")
+    );
+};
+
 export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const { address, isConnected, chain, connector } = useAccount();
     const { switchChain } = useSwitchChain();
     const { sendTransactionAsync, isPending: isSending } = useSendTransaction();
     const { signMessageAsync } = useSignMessage();
     const { disconnect } = useDisconnect();
+    const { handleLogOut, setShowAuthFlow, primaryWallet } = useDynamicContext();
 
     // Determine initial state based on tool result status and data
     // status: "success" + transactionHash = Completed
     // status: "success" + no transactionHash + no prepared transactions = Autonomous in progress
     // status: "requires_manual_approval" OR status: "success" + prepared transactions = Ready for manual
+    // status: "requires_confirmation" = Agent wallet ready, waiting for user to confirm
     const isInitiallyCompleted = result.status === "success" && !!result.transactionHash;
     const isWaitingForAutonomousResult = result.status === "success" && !isInitiallyCompleted && !result.transactions && (result as any).isAgentExecution === true;
+    const isAgentConfirmation = result.status === "requires_confirmation" && !!result.confirmationId;
+    const isInitiallyError = result.status === "error" || (result as any).success === false;
+    const isAgentMode = isAgentConfirmation || (result as any).isAgentExecution === true;
 
-    const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error">(
+    const [step, setStep] = useState<"ready" | "verifying" | "switching" | "sending" | "confirming" | "success" | "error" | "rejected">(
         isInitiallyCompleted ? "success" :
             isWaitingForAutonomousResult ? "sending" :
-                "ready"
+                isInitiallyError ? "error" :
+                    "ready"
     );
-    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [errorMessage, setErrorMessage] = useState<string>(
+        isInitiallyError ? (result.error || result.message || "Transaction failed") : ""
+    );
+    const [showErrorDetails, setShowErrorDetails] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(result.transactionHash || null);
     const [currentTxIndex, setCurrentTxIndex] = useState(0);
     const [isVerified, setIsVerified] = useState(false);
     const [clientTransactions, setClientTransactions] = useState<RelayTransaction[]>([]);
     const [clientLoading, setClientLoading] = useState(false);
     const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+    const [agentConfirming, setAgentConfirming] = useState(false);
 
-    const copyToClipboard = (text: string, label: string) => {
+    const copyToClipboard = (text: string, label: string, successMsg: string = "Copied to clipboard") => {
         if (!text) return;
         navigator.clipboard.writeText(text);
         setCopiedAddress(label);
-        toast.success("Address copied to clipboard");
+        toast.success(successMsg);
         setTimeout(() => setCopiedAddress(null), 2000);
     };
 
@@ -289,6 +317,15 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
     const requiredChainIdNum = result.toolParams?.fromChainId || getChainIdFromName(sourceChain || "");
     const destinationChainIdNum = result.toolParams?.toChainId || getChainIdFromName(destChain || "");
+
+    const agentSenderWalletAddress = result.senderAddress || result.agentWalletAddress || (result as any).walletAddress;
+
+    const parsedError = parseSwapError(errorMessage, {
+        chainId: requiredChainIdNum,
+        chainName: sourceChain || (requiredChainIdNum ? CHAIN_NAMES[requiredChainIdNum] : undefined),
+        agentWalletAddress: agentSenderWalletAddress,
+        fromToken: (quote as any)?.fromToken?.symbol || (quote as any)?.inputToken || result.toolParams?.fromToken,
+    });
     // Check if source chain is non-EVM (e.g., swapping FROM Solana)
     const isSourceNonEvm = requiredChainIdNum ? isNonEvmChain(requiredChainIdNum) : false;
 
@@ -298,18 +335,41 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     // Get source chain wallet from Dynamic SDK (for Solana, Bitcoin, Tron)
     const sourceWallet = useChainWallet(requiredChainIdNum);
 
+    const isSourceConnected = isSourceNonEvm
+        ? !!sourceWallet?.address
+        : (isConnected || !!address || !!primaryWallet?.address);
+
+    const connectedSenderAddr = isSourceNonEvm
+        ? sourceWallet?.address
+        : (address || primaryWallet?.address || sourceWallet?.address);
+
+    const [lastUsedUser, setLastUsedUser] = useState<string | null>(null);
+
+    // Initial recipient from tool result or tool params
+    const initialValidRecipient = (() => {
+        const addr = result.recipientAddress || result.toolParams?.recipient;
+        return (addr && !isPlaceholderAddress(addr)) ? addr : "";
+    })();
+
     // Address Input Logic
-    const [recipientAddress, setRecipientAddress] = useState<string>("");
+    const [recipientAddress, setRecipientAddress] = useState<string>(initialValidRecipient);
     const [recipientError, setRecipientError] = useState<string>("");
+
+    // Effective recipient resolution — guarantees prompt/AI recipient is always preserved
+    const effectiveRecipient = (recipientAddress && !isPlaceholderAddress(recipientAddress))
+        ? recipientAddress
+        : initialValidRecipient;
+
     const [showManualInput, setShowManualInput] = useState(
-        // Auto-open the paste address input when either side is non-EVM
-        // Covers both EVM→Solana (non-EVM dest) and SOL→EVM (non-EVM source)
-        !!(destinationChainIdNum && (isNonEvmChain(destinationChainIdNum) || isSourceNonEvm))
+        // Only auto-open if manual mode AND cross-VM AND we don't already have an address
+        !isAgentMode && !!(destinationChainIdNum && (isNonEvmChain(destinationChainIdNum) || isSourceNonEvm)) && !effectiveRecipient
     );
 
     // Check if we need a separate destination address (e.g. cross-chain to non-EVM, or from non-EVM to EVM)
     const needsDestinationAddress = (() => {
         if (typeof window === "undefined") return false;
+        // In agent mode, both source and destination are handled autonomously by agent wallets
+        if (isAgentMode) return false;
 
         // If destination is non-EVM, we DEFINITELY need a separate address
         if (destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
@@ -328,34 +388,25 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     // Get destination chain wallet from Dynamic SDK (for Solana, Bitcoin, Tron)
     const destinationWallet = useChainWallet(destinationChainIdNum);
 
-    // Initialize recipient from tool params if valid, or clear if needed
+    // Initialize/sync recipient from tool params if valid
     useEffect(() => {
-        if (result.toolParams?.recipient) {
-            // If the tool returned a recipient (e.g. from prompt), use it
-            // BUT check if it's a placeholder. If it looks like a placeholder, don't auto-fill it as "valid"
-            const isPlaceholder =
-                result.toolParams.recipient.includes("11111111111111111111111111111111") ||
-                result.toolParams.recipient.startsWith("0x000000000000000000000000000000");
-
-            if (!isPlaceholder) {
-                setRecipientAddress(result.toolParams.recipient);
-            }
+        const incomingRecipient = result.recipientAddress || result.toolParams?.recipient;
+        if (incomingRecipient && !isPlaceholderAddress(incomingRecipient)) {
+            setRecipientAddress(prev => prev || incomingRecipient);
         }
-    }, [result.toolParams]);
+    }, [result.recipientAddress, result.toolParams]);
 
-    // Auto-fill recipient address from wallets
+    // Auto-fill recipient address from wallets (only if recipientAddress is not already set)
     useEffect(() => {
         if (destinationChainIdNum && isNonEvmChain(destinationChainIdNum)) {
             if (destinationWallet?.address) {
-                setRecipientAddress(destinationWallet.address);
-            } else {
-                setRecipientAddress("");
+                setRecipientAddress(prev => prev || destinationWallet.address);
             }
         } else if (isSourceNonEvm && destinationChainIdNum && !isNonEvmChain(destinationChainIdNum)) {
             // If swapping from non-EVM to EVM, auto-fill with EVM address if connected
             // Only auto-fill if the recipient address is currently empty to avoid overwriting pasted addresses
-            if (address && !recipientAddress) {
-                setRecipientAddress(address);
+            if (address) {
+                setRecipientAddress(prev => prev || address);
             }
         }
     }, [destinationWallet?.address, destinationChainIdNum, address, isSourceNonEvm]);
@@ -385,75 +436,70 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
     const [lastUsedRecipient, setLastUsedRecipient] = useState<string | null>(result.toolParams?.recipient || null);
 
     // Use client transactions if available, otherwise initial
-    // BUT if the user has changed the recipient address, we MUST ignore the initial transactions
-    // because they were built for the wrong/placeholder destination.
-    const isRecipientChanged = needsDestinationAddress && recipientAddress && recipientAddress !== lastUsedRecipient;
-    const processedTransactions = (clientTransactions.length > 0 || isRecipientChanged)
+    // BUT if the user has changed the recipient address or the initial quote was for a placeholder address,
+    // we MUST ignore the initial transactions because they were built for the dummy address.
+    const isInitialPlaceholder = isPlaceholderAddress(result.senderAddress);
+    const isRecipientChanged = needsDestinationAddress && !!effectiveRecipient && effectiveRecipient !== lastUsedRecipient;
+    const isUserChanged = !!connectedSenderAddr && (!lastUsedUser || lastUsedUser.toLowerCase() !== connectedSenderAddr.toLowerCase());
+    const processedTransactions = (clientTransactions.length > 0 || isRecipientChanged || (isInitialPlaceholder && !!connectedSenderAddr))
         ? clientTransactions
         : initialTransactions;
+
     // Fetch executable transaction client-side if needed
     useEffect(() => {
         const fetchExecutableTx = async () => {
-            // If the recipient has changed, we should clear the old transactions immediately
-            // so we don't accidentally execute the old ones while waiting.
-            if (isRecipientChanged && clientTransactions.length > 0) {
+            // If the recipient or user has changed, clear old transactions immediately
+            if ((isRecipientChanged || isUserChanged) && clientTransactions.length > 0) {
                 setClientTransactions([]);
             }
 
-            // Determine the effective user address for the quote
-            // For non-EVM sources, we need the Dynamic wallet address
-            // For EVM sources, we use the connected wagmi address
-            let effectiveUser: string | undefined;
-
-            if (isSourceNonEvm) {
-                // For non-EVM sources, we need a Dynamic wallet connection
-                if (!sourceWallet?.address) {
-                    console.log('Skipping quote fetch: Source is non-EVM, waiting for wallet connection');
-                    return;
-                }
-                effectiveUser = sourceWallet.address;
-            } else {
-                // For EVM sources, use the wagmi address
-                if (!address) return;
-                effectiveUser = address;
-            }
+            const effectiveUser = connectedSenderAddr;
+            if (!effectiveUser) return;
 
             // Use manual address input for non-EVM destinations, or EVM address
-            const effectiveRecipient = needsDestinationAddress
-                ? recipientAddress
-                : address;
+            const targetRecipient = needsDestinationAddress
+                ? effectiveRecipient
+                : (effectiveRecipient || effectiveUser);
 
-            if (!effectiveRecipient || (needsDestinationAddress && !validateRecipient(effectiveRecipient))) {
+            if (!targetRecipient || (needsDestinationAddress && !validateRecipient(targetRecipient))) {
                 return;
             }
 
             // We need to fetch if:
             // 1. We don't have transactions yet
             // 2. OR the user changed the recipient address (we must build a new tx for the new destination)
-            const needsRefetch = processedTransactions.length === 0 || isRecipientChanged;
+            // 3. OR the initial quote was for a placeholder and user has now connected their wallet
+            // 4. OR the user switched to a different wallet
+            const needsRefetch =
+                processedTransactions.length === 0 ||
+                isRecipientChanged ||
+                (isInitialPlaceholder && isUserChanged) ||
+                isUserChanged;
 
-            // For non-EVM sources, we don't require wagmi connection, only the Dynamic wallet
-            const canFetch = isSourceNonEvm
-                ? (sourceWallet?.address && result.toolParams && needsRefetch)
-                : (isConnected && address && result.toolParams && needsRefetch);
+            const canFetch = !!(isSourceConnected && effectiveUser && result.toolParams && needsRefetch);
 
-            if (canFetch && effectiveUser && result.toolParams) {
+            if (canFetch && result.toolParams) {
                 setClientLoading(true);
                 try {
-                    const client = createClient({
-                        baseApiUrl: "https://api.relay.link"
+                    const res = await fetch("/api/relay/quote", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chainId: result.toolParams.fromChainId,
+                            toChainId: result.toolParams.toChainId,
+                            currency: result.toolParams.fromToken,
+                            toCurrency: result.toolParams.toToken,
+                            amount: result.toolParams.amount,
+                            tradeType: 'EXACT_INPUT',
+                            user: effectiveUser,
+                            recipient: targetRecipient
+                        }),
                     });
 
-                    const txQuote = await client.actions.getQuote({
-                        chainId: result.toolParams.fromChainId,
-                        toChainId: result.toolParams.toChainId,
-                        currency: result.toolParams.fromToken,
-                        toCurrency: result.toolParams.toToken,
-                        amount: result.toolParams.amount,
-                        tradeType: 'EXACT_INPUT',
-                        user: effectiveUser,
-                        recipient: effectiveRecipient // Use the validated recipient
-                    });
+                    const txQuote = await res.json();
+                    if (!res.ok || txQuote.error) {
+                        throw new Error(txQuote.error || "Failed to prepare transaction.");
+                    }
 
                     if (txQuote.steps) {
                         console.log('Quote steps received:', JSON.stringify(txQuote.steps, null, 2));
@@ -474,7 +520,8 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         );
 
                         setClientTransactions(txs);
-                        setLastUsedRecipient(effectiveRecipient);
+                        setLastUsedRecipient(targetRecipient);
+                        setLastUsedUser(effectiveUser);
                         setErrorMessage(""); // Clear any previous errors
                     }
                 } catch (err: any) {
@@ -489,33 +536,17 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         // Debounce fetching to avoid rapid calls while typing
         const timer = setTimeout(() => {
             fetchExecutableTx();
-        }, 800);
+        }, 500);
 
         return () => clearTimeout(timer);
-    }, [isConnected, address, result.toolParams, processedTransactions.length, recipientAddress, needsDestinationAddress, isSourceNonEvm, sourceWallet?.address, isRecipientChanged]);
+    }, [isSourceConnected, connectedSenderAddr, result.toolParams, processedTransactions.length, effectiveRecipient, needsDestinationAddress, isSourceNonEvm, isRecipientChanged, isUserChanged]);
 
-    // Reset verification when disconnected — also wipe destination address
+    // Reset verification when disconnected
     useEffect(() => {
-        // If Non-EVM source, check dynamic wallet
-        if (isSourceNonEvm) {
-            if (!sourceWallet?.address) {
-                setIsVerified(false);
-                setRecipientAddress("");
-                setRecipientError("");
-                setShowManualInput(false);
-            }
-        } else {
-            // If EVM source, check wagmi connection
-            if (!isConnected) {
-                setIsVerified(false);
-                setRecipientAddress("");
-                setRecipientError("");
-                setShowManualInput(false);
-            }
+        if (!isSourceConnected) {
+            setIsVerified(false);
         }
-    }, [isConnected, isSourceNonEvm, sourceWallet?.address]);
-
-    const { handleLogOut, setShowAuthFlow, primaryWallet } = useDynamicContext();
+    }, [isSourceConnected]);
 
     // Auto-disconnect on success
     useEffect(() => {
@@ -549,7 +580,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     {result.message || "Initializing swap details..."}
                 </p>
-                {!isConnected && !swapAlreadyCompleted && !isCheckingSwapStatus && (
+                {!isConnected && !swapAlreadyCompleted && !isCheckingSwapStatus && !isAgentMode && (
                     <div className="mt-4 flex justify-center w-full">
                         <DynamicConnectButton />
                     </div>
@@ -644,6 +675,79 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         }
     };
 
+    // Agent confirmation handlers — for requires_confirmation status
+    const handleConfirmAgentExecution = async () => {
+        if (!result.confirmationId) return;
+        setAgentConfirming(true);
+        setErrorMessage("");
+        setStep("sending");
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+        try {
+            const res = await fetch("/api/relay/confirm-swap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ confirmationId: result.confirmationId }),
+                signal: controller.signal,
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || "Execution failed");
+            }
+
+            setTxHash(data.transactionHash || null);
+            setCompletedTxHash(data.transactionHash || null);
+            setSwapAlreadyCompleted(true);
+            setStep("success");
+
+            // Track in DB if we have a swap request ID
+            if (swapRequestId && data.transactionHash) {
+                fetch("/api/relay/swap-tracking", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        swapRequestId,
+                        transactionHash: data.transactionHash,
+                    }),
+                }).catch((err) => console.error("Failed to track swap:", err));
+            }
+        } catch (err: any) {
+            console.error("Agent execution failed:", err);
+            if (err.name === "AbortError") {
+                setErrorMessage("Execution request timed out. Please verify your network connection and retry.");
+            } else {
+                setErrorMessage(err.message || "Agent execution failed");
+            }
+            setStep("error");
+        } finally {
+            clearTimeout(timeoutId);
+            setAgentConfirming(false);
+        }
+    };
+
+    const handleRejectAgentExecution = async () => {
+        if (!result.confirmationId) return;
+
+        try {
+            await fetch("/api/relay/confirm-swap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    confirmationId: result.confirmationId,
+                    action: "reject",
+                }),
+            });
+        } catch (err) {
+            console.error("Failed to reject:", err);
+        }
+
+        setStep("rejected");
+    };
+
     // Check status on mount
     useEffect(() => {
         if (!isCheckingSwapStatus || swapAlreadyCompleted) {
@@ -702,7 +806,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
         if (processedTransactions.length === 0 || swapAlreadyCompleted) return;
 
         // If we need a destination address but it's invalid, show error
-        if (needsDestinationAddress && !validateRecipient(recipientAddress)) {
+        if (needsDestinationAddress && !validateRecipient(effectiveRecipient)) {
             setRecipientError("Please enter a valid destination address");
             return;
         }
@@ -1087,19 +1191,22 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
     const renderMinimalDestinationInput = () => {
         if (!needsDestinationAddress) return null;
+        const currentRecipient = effectiveRecipient;
+        const hasValidRecipient = !!(currentRecipient && validateRecipient(currentRecipient));
+
         return (
             <div className="space-y-2.5">
                 <div className="flex items-center gap-3">
                     <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-700" />
                     <button
                         onClick={() => setShowManualInput(!showManualInput)}
-                        className={`text-[11px] font-medium transition-all flex items-center gap-1.5 py-1.5 px-3 rounded-full border ${recipientAddress && validateRecipient(recipientAddress)
+                        className={`text-[11px] font-medium transition-all flex items-center gap-1.5 py-1.5 px-3 rounded-full border ${hasValidRecipient
                             ? 'text-green-600 dark:text-green-400 border-green-500/30 bg-green-500/5'
                             : 'text-zinc-200 dark:text-zinc-300 border-zinc-400/50 dark:border-zinc-500/50 bg-zinc-800/10 dark:bg-zinc-700/20 hover:text-white hover:border-zinc-300 dark:hover:border-zinc-400 animate-pulse'
                             }`}
                     >
                         <Wallet className="size-3" />
-                        {recipientAddress && validateRecipient(recipientAddress) ? `${getNonEvmChainName(destinationChainIdNum!) || "EVM"}: ${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}` : getNonEvmChainName(destinationChainIdNum!) ? `Enter ${getNonEvmChainName(destinationChainIdNum!)} Address` : "Enter EVM Address"}
+                        {hasValidRecipient ? `${getNonEvmChainName(destinationChainIdNum!) || "EVM"}: ${currentRecipient.slice(0, 6)}...${currentRecipient.slice(-4)}` : getNonEvmChainName(destinationChainIdNum!) ? `Enter ${getNonEvmChainName(destinationChainIdNum!)} Address` : "Enter EVM Address"}
                         <motion.div animate={{ rotate: showManualInput ? 180 : 0 }} transition={{ duration: 0.2 }}>
                             <svg width="8" height="5" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1119,7 +1226,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             <div className="relative">
                                 <input
                                     type="text"
-                                    value={recipientAddress}
+                                    value={recipientAddress || currentRecipient || ""}
                                     onChange={(e) => {
                                         setRecipientAddress(e.target.value);
                                         if (e.target.value && !validateRecipient(e.target.value)) {
@@ -1144,6 +1251,10 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
             </div>
         );
     };
+
+    if (!result || result.status === "missing_recipient") {
+        return null;
+    }
 
     return (
         <motion.div
@@ -1178,6 +1289,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 </p>
                             </div>
                         </div>
+                        {isAgentConfirmation && step === "ready" && (
+                            <div className="px-2.5 py-1 rounded-full bg-zinc-500/20 border border-zinc-500/20 text-zinc-200 text-xs font-medium flex items-center gap-1.5 backdrop-blur-sm">
+                                <Bot className="size-3 text-zinc-300" /> Agent Wallet
+                            </div>
+                        )}
                         {isCheckingSwapStatus && !isInitiallyCompleted && step === "ready" && (
                             <div className="px-2 py-1 rounded-full bg-zinc-500/20 border border-zinc-500/20 text-zinc-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
                                 <Loader2 className="size-3 animate-spin" /> Checking Status
@@ -1186,6 +1302,11 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         {(step === "sending" || step === "confirming") && (
                             <div className="px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
                                 <Loader2 className="size-3 animate-spin" /> Processing
+                            </div>
+                        )}
+                        {step === "rejected" && (
+                            <div className="px-2 py-1 rounded-full bg-zinc-500/20 border border-zinc-500/20 text-zinc-400 text-xs font-medium flex items-center gap-1 backdrop-blur-sm">
+                                <XCircle className="size-3" /> Rejected
                             </div>
                         )}
                         {isVerified && step !== "sending" && step !== "success" && !isCheckingSwapStatus && (
@@ -1245,8 +1366,8 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                         </div>
                     </div>
 
-                    {/* Source wallet connection - Show first when source is not connected */}
-                    {!swapAlreadyCompleted && step !== "success" && (isSourceNonEvm ? !sourceWallet?.address : !isConnected) && (
+                    {/* Source wallet connection - Show first when source is not connected (manual mode only) */}
+                    {!swapAlreadyCompleted && step !== "success" && !isAgentMode && !isSourceConnected && (
                         <>
                             <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
@@ -1291,25 +1412,50 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     {/* ADDRESS DETAILS - Show engaged wallets */}
                     {!swapAlreadyCompleted && step !== "success" && (
                         (() => {
+                            const isCrossVm = !!((requiredChainIdNum && isNonEvmChain(requiredChainIdNum)) !== (destinationChainIdNum && isNonEvmChain(destinationChainIdNum)));
+                            const isCrossChain = requiredChainIdNum !== destinationChainIdNum;
+
                             // Determine effective addresses
-                            const sourceAddr = isSourceNonEvm ? sourceWallet?.address : address;
-                            const destAddr = needsDestinationAddress ? recipientAddress : address;
+                            const sourceAddr = isAgentMode
+                                ? (result.senderAddress || result.agentWalletAddress)
+                                : (connectedSenderAddr || (!isPlaceholderAddress(result.senderAddress) ? result.senderAddress : undefined));
+
+                            const destAddr = effectiveRecipient
+                                || (isAgentMode && !isCrossVm ? result.agentWalletAddress : undefined)
+                                || (isAgentMode ? undefined : (isNonEvmChain(destinationChainIdNum || 0) ? destinationWallet?.address : (address || primaryWallet?.address)));
 
                             // Only show if we have at least one connected/known address that matches the intent
-                            const hasSource = isSourceNonEvm ? !!sourceWallet?.address : !!address;
+                            const hasSource = !!sourceAddr;
                             const hasDest = !!destAddr;
 
                             if (!hasSource && !hasDest) return null;
+
+                            const sourceChainName = sourceChain || (requiredChainIdNum ? CHAIN_NAMES[requiredChainIdNum] : (isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : "EVM")) || "Source";
+                            const destChainName = destChain || (destinationChainIdNum ? CHAIN_NAMES[destinationChainIdNum] : (destinationChainIdNum && isNonEvmChain(destinationChainIdNum) ? getNonEvmChainName(destinationChainIdNum) : "EVM")) || "Destination";
+
+                            const isDestAgent = result.isDestinationAgentWallet || (isAgentMode && !result.recipientAddress && !recipientAddress && !isCrossVm);
+
+                            const senderLabel = isAgentMode 
+                                ? `Agent Wallet (${sourceChainName})` 
+                                : `Sender (${sourceChainName})`;
+
+                            const recipientLabel = isDestAgent
+                                ? `Agent Wallet (${destChainName})`
+                                : `Recipient (${destChainName})`;
+
+                            const showRecipientRow = isCrossVm || isCrossChain || (destAddr && sourceAddr && destAddr.toLowerCase() !== sourceAddr.toLowerCase()) || (!isAgentMode && needsDestinationAddress);
 
                             return (
                                 <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3 space-y-3 shadow-sm">
                                     {/* Sender Row */}
                                     <div className="flex items-center justify-between group/sender">
                                         <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                                            <div className="p-1.5 rounded-md bg-zinc-200/50 dark:bg-zinc-800">
-                                                <Wallet className="size-3.5" />
+                                            <div className="p-1.5 rounded-md bg-zinc-200/50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                                                {isAgentMode ? <Bot className="size-3.5 text-zinc-700 dark:text-zinc-300" /> : <Wallet className="size-3.5 text-zinc-700 dark:text-zinc-300" />}
                                             </div>
-                                            <span className="text-xs font-medium">Sender ({isSourceNonEvm ? getNonEvmChainName(requiredChainIdNum!) : "EVM"})</span>
+                                            <span className="text-xs font-medium">
+                                                {senderLabel}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-950/50 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
@@ -1328,28 +1474,30 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                     </div>
 
                                     {/* Recipient Row */}
-                                    <div className="flex items-center justify-between group/recipient">
-                                        <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-                                            <div className="p-1.5 rounded-md bg-zinc-200/50 dark:bg-zinc-800">
-                                                <ArrowRightLeft className="size-3.5" />
+                                    {showRecipientRow && (
+                                        <div className="flex items-center justify-between group/recipient">
+                                            <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                                                <div className="p-1.5 rounded-md bg-zinc-200/50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                                                    {isDestAgent ? <Bot className="size-3.5 text-zinc-700 dark:text-zinc-300" /> : <ArrowRightLeft className="size-3.5 text-zinc-700 dark:text-zinc-300" />}
+                                                </div>
+                                                <span className="text-xs font-medium">{recipientLabel}</span>
                                             </div>
-                                            <span className="text-xs font-medium">Recipient ({destinationChainIdNum && isNonEvmChain(destinationChainIdNum) ? getNonEvmChainName(destinationChainIdNum) : "EVM"})</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-950/50 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
-                                                {destAddr ? `${destAddr.slice(0, 6)}...${destAddr.slice(-4)}` : "..."}
+                                            <div className="flex items-center gap-2">
+                                                <div className="font-mono text-xs text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-950/50 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
+                                                    {destAddr ? `${destAddr.slice(0, 6)}...${destAddr.slice(-4)}` : "..."}
+                                                </div>
+                                                {destAddr && (
+                                                    <button
+                                                        onClick={() => copyToClipboard(destAddr, 'dest')}
+                                                        className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                                        title="Copy address"
+                                                    >
+                                                        {copiedAddress === 'dest' ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                                                    </button>
+                                                )}
                                             </div>
-                                            {destAddr && (
-                                                <button
-                                                    onClick={() => copyToClipboard(destAddr, 'dest')}
-                                                    className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                                                    title="Copy address"
-                                                >
-                                                    {copiedAddress === 'dest' ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
-                                                </button>
-                                            )}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             );
                         })()
@@ -1383,13 +1531,129 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                     <AnimatePresence>
                         {step === "error" && (
                             <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm flex items-center gap-2"
+                                initial={{ opacity: 0, y: -8, scale: 0.99 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -8, scale: 0.99 }}
+                                className="rounded-xl border border-red-500/25 bg-gradient-to-b from-red-500/[0.08] via-red-500/[0.03] to-transparent dark:border-red-500/30 dark:from-red-500/10 dark:via-red-500/[0.03] p-4 shadow-sm space-y-3"
                             >
-                                <AlertCircle className="size-4 shrink-0" />
-                                <span>{errorMessage}</span>
+                                {/* Header: Icon + Title + Badge */}
+                                <div className="flex items-start gap-3">
+                                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-600 dark:text-red-400 ring-1 ring-red-500/20 shadow-sm">
+                                        <AlertTriangle className="size-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0 pt-0.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h4 className="font-semibold text-sm text-red-950 dark:text-red-200 tracking-tight">
+                                                {parsedError.title}
+                                            </h4>
+                                            <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/20">
+                                                {parsedError.badge}
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                                            {parsedError.description}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Actionable Suggestion Callout */}
+                                {parsedError.suggestion && (
+                                    <div className="flex items-start gap-2 rounded-lg bg-red-500/[0.06] dark:bg-red-500/[0.08] px-3 py-2 text-xs text-red-900 dark:text-red-200 border border-red-500/10">
+                                        <Info className="size-3.5 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+                                        <span className="leading-snug">{parsedError.suggestion}</span>
+                                    </div>
+                                )}
+
+                                {/* If Gas Error on Agent Wallet: Show Agent Wallet Address with 1-click Copy */}
+                                {parsedError.isGasError && agentSenderWalletAddress && (
+                                    <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-zinc-900/5 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-xs">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <Wallet className="size-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[10px] uppercase font-semibold text-zinc-500 dark:text-zinc-400">
+                                                    Agent Wallet Address
+                                                </span>
+                                                <span className="font-mono text-[11px] text-zinc-800 dark:text-zinc-200 truncate">
+                                                    {agentSenderWalletAddress}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(agentSenderWalletAddress, "agent-wallet", "Agent wallet address copied")}
+                                            className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded bg-zinc-200/80 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-[11px] font-medium transition-colors"
+                                        >
+                                            {copiedAddress === "agent-wallet" ? (
+                                                <>
+                                                    <Check className="size-3 text-emerald-500" />
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copied</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy className="size-3" />
+                                                    <span>Copy</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Expandable Technical Error Details */}
+                                {parsedError.technicalDetails && (
+                                    <div className="pt-2 border-t border-red-500/15 dark:border-red-500/20">
+                                        <div className="flex items-center justify-between">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowErrorDetails(!showErrorDetails)}
+                                                className="group flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                                            >
+                                                {showErrorDetails ? (
+                                                    <ChevronUp className="size-3.5 transition-transform group-hover:-translate-y-0.5" />
+                                                ) : (
+                                                    <ChevronDown className="size-3.5 transition-transform group-hover:translate-y-0.5" />
+                                                )}
+                                                <span>{showErrorDetails ? "Hide technical details" : "View technical details"}</span>
+                                            </button>
+
+                                            {showErrorDetails && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyToClipboard(parsedError.technicalDetails, "error-details", "Technical error log copied")}
+                                                    className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                                                    title="Copy raw error"
+                                                >
+                                                    {copiedAddress === "error-details" ? (
+                                                        <>
+                                                            <Check className="size-3 text-emerald-500" />
+                                                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copied</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="size-3" />
+                                                            <span>Copy Log</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <AnimatePresence>
+                                            {showErrorDetails && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: "auto" }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="mt-2 overflow-hidden"
+                                                >
+                                                    <pre className="max-h-28 overflow-y-auto rounded-lg bg-zinc-950/90 dark:bg-black/60 p-2.5 font-mono text-[10px] leading-relaxed text-zinc-300 dark:text-zinc-400 border border-zinc-800/80 select-all whitespace-pre-wrap break-all">
+                                                        {parsedError.technicalDetails}
+                                                    </pre>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -1423,12 +1687,93 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                             </motion.div>
                         )}
                     </AnimatePresence>
+                    {/* REJECTED STATE */}
+                    <AnimatePresence>
+                        {step === "rejected" && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 shadow-sm"
+                            >
+                                <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-1">
+                                    <XCircle className="size-4" />
+                                    <span className="font-semibold text-sm">Transaction Rejected</span>
+                                </div>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                                    This swap was not executed. You can request a new quote anytime.
+                                </p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* ACTIONS - Hide when swap completed or checking status on mount */}
-                    {step !== "success" && !swapAlreadyCompleted && !isCheckingSwapStatus && (
+                    {step !== "success" && step !== "rejected" && !swapAlreadyCompleted && !isCheckingSwapStatus && (
                         <div className="pt-2">
-                            {/* Non-EVM Source Chain - Show action buttons when wallet is connected */}
-                            {isSourceNonEvm && sourceWallet?.address ? (
+                            {/* Agent Confirmation Flow — shown when requires_confirmation */}
+                            {isAgentConfirmation && step === "ready" ? (
+                                <div className="space-y-3">
+                                    <div className="p-3 rounded-xl bg-zinc-100/90 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs flex items-start gap-2.5 shadow-sm">
+                                        <div className="p-1 rounded-md bg-zinc-200/80 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shrink-0 mt-0.5">
+                                            <Bot className="size-3.5" />
+                                        </div>
+                                        <span className="leading-relaxed">
+                                            Your agent wallet will execute this transaction automatically. Review the details above and confirm to proceed.
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <ButtonAny
+                                            onClick={handleRejectAgentExecution}
+                                            variant="outline"
+                                            className="flex-1 h-11 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium text-sm transition-colors rounded-md"
+                                        >
+                                            <XCircle className="size-4 mr-2" />
+                                            Reject
+                                        </ButtonAny>
+                                        <ButtonAny
+                                            onClick={handleConfirmAgentExecution}
+                                            className="flex-[2] h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.08)]"
+                                        >
+                                            <Bot className="size-4 mr-2" />
+                                            Confirm Execution
+                                        </ButtonAny>
+                                    </div>
+                                </div>
+                            ) : isAgentConfirmation && (step === "sending" || agentConfirming) ? (
+                                <ButtonAny disabled className="w-full h-11 bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium">
+                                    <Loader2 className="size-4 mr-2 animate-spin" />
+                                    Executing via Agent Wallet...
+                                </ButtonAny>
+                            ) : isAgentConfirmation && step === "error" ? (
+                                <div className="flex gap-2">
+                                    <ButtonAny
+                                        onClick={handleRejectAgentExecution}
+                                        variant="outline"
+                                        className="flex-1 h-11 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium text-sm transition-colors rounded-md"
+                                    >
+                                        <XCircle className="size-4 mr-2" />
+                                        Dismiss
+                                    </ButtonAny>
+                                    <ButtonAny
+                                        onClick={handleConfirmAgentExecution}
+                                        disabled={agentConfirming}
+                                        className="flex-[2] h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.08)]"
+                                    >
+                                        {agentConfirming ? (
+                                            <>
+                                                <Loader2 className="size-4 mr-2 animate-spin" />
+                                                Retrying Execution...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <RefreshCw className="size-4 mr-2" />
+                                                Retry Execution
+                                            </>
+                                        )}
+                                    </ButtonAny>
+                                </div>
+                            ) :
+                            /* Non-EVM Source Chain - Show action buttons when wallet is connected */
+                            isSourceNonEvm && sourceWallet?.address ? (
                                 <div className="space-y-3">
                                     {renderMinimalDestinationInput()}
                                     {/* Action button based on state */}
@@ -1439,13 +1784,13 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                         </ButtonAny>
                                     ) : processedTransactions.length === 0 ? (
                                         <ButtonAny disabled className="w-full h-11 bg-zinc-800/50 text-zinc-500" variant="ghost">
-                                            {needsDestinationAddress && !recipientAddress ? "Enter destination address..." :
+                                            {needsDestinationAddress && !effectiveRecipient ? "Enter destination address..." :
                                                 needsDestinationAddress && recipientError ? "Invalid destination address" :
                                                     "Fetching quote..."}
                                         </ButtonAny>
                                     ) : (step === "ready" && !isVerified) || step === "verifying" ? (
                                         // Hide verify button until destination address is provided (when required)
-                                        needsDestinationAddress && (!recipientAddress || !validateRecipient(recipientAddress)) ? null : (
+                                        needsDestinationAddress && (!effectiveRecipient || !validateRecipient(effectiveRecipient)) ? null : (
                                             <ButtonAny
                                                 onClick={handleVerify}
                                                 disabled={step === "verifying"}
@@ -1465,7 +1810,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                             </ButtonAny>
                                         )
                                     ) : step === "ready" ? (
-                                        needsDestinationAddress && !recipientAddress ? null : (
+                                        needsDestinationAddress && !effectiveRecipient ? null : (
                                             <ButtonAny
                                                 onClick={handleExecuteSwap}
                                                 className="w-full h-11 bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black font-semibold text-sm transition-colors rounded-md shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
@@ -1485,11 +1830,8 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                         </ButtonAny>
                                     ) : null}
                                 </div>
-                            ) : isSourceNonEvm && !sourceWallet?.address ? (
-                                /* Non-EVM source without wallet - destination input is already shown below the connect wallet card */
-                                null
-                            ) : !isConnected ? (
-                                /* EVM source without wallet - destination input is already shown below the connect wallet card */
+                            ) : !isSourceConnected ? (
+                                /* Source without wallet - destination input is already shown below the connect wallet card */
                                 null
                             ) : isWrongChain && requiredChainIdNum ? (
                                 <ButtonAny
@@ -1511,7 +1853,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 <div className="space-y-3">
                                     {renderMinimalDestinationInput()}
                                     {/* Hide verify button until destination address is provided (when required) */}
-                                    {!(needsDestinationAddress && (!recipientAddress || !validateRecipient(recipientAddress))) && (
+                                    {!(needsDestinationAddress && (!effectiveRecipient || !validateRecipient(effectiveRecipient))) && (
                                         <ButtonAny
                                             onClick={handleVerify}
                                             disabled={step === "verifying"}
@@ -1538,7 +1880,7 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 </ButtonAny>
                             ) : processedTransactions.length === 0 ? (
                                 <ButtonAny disabled className="w-full h-11 bg-zinc-800/50 text-zinc-500" variant="ghost">
-                                    {needsDestinationAddress && !recipientAddress ? "Enter destination address..." :
+                                    {needsDestinationAddress && !effectiveRecipient ? "Enter destination address..." :
                                         needsDestinationAddress && recipientError ? "Invalid destination address" :
                                             "Fetching quote..."}
                                 </ButtonAny>
@@ -1566,8 +1908,9 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
                                 <ButtonAny
                                     onClick={() => setStep("ready")}
                                     variant="outline"
-                                    className="w-full h-11 border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+                                    className="w-full h-11 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-sm transition-colors rounded-md flex items-center justify-center gap-2"
                                 >
+                                    <RefreshCw className="size-4 mr-1" />
                                     Try Again
                                 </ButtonAny>
                             ) : null}

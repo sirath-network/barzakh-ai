@@ -144,6 +144,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@splinetool/runtime": "^2.0.37",
     "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
     "@types/bcryptjs": "^3.0.0",
     "@types/d3-scale": "^4.0.8",

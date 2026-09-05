@@ -45,7 +45,9 @@ Unlike prepareRelayTransaction, this will actually securely sign and broadcast t
 
             // Initialize Relay Client natively
             const client = createClient({
-                baseApiUrl: "https://api.relay.link"
+                baseApiUrl: "https://api.relay.link",
+                source: "barzakh-ai",
+                ...(process.env.RELAY_API_KEY ? { apiKey: process.env.RELAY_API_KEY } : {}),
             });
 
             // Get the executable transaction from Relay SDK

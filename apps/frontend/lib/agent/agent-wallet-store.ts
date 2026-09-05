@@ -19,7 +19,8 @@ import { db } from "@/lib/db/db";
 import {
   agent_wallet,
   agent_delegation,
-  agent_transaction
+  agent_transaction,
+  user
 } from "@/lib/db/schema";
 import { eq, desc, and, gte } from "drizzle-orm";
 import { encryptSecret, decryptSecret } from "@/lib/security/crypto";
@@ -428,4 +429,39 @@ export async function get24hSpend(userId: string): Promise<number> {
       const val = parseFloat(cleanStr);
       return sum + (isNaN(val) ? 0 : val);
   }, 0);
+}
+
+// ─── Agent Execution Mode (Approval vs Autopilot) ───────────────────────────
+
+export type AgentExecutionMode = "approval" | "autopilot";
+
+/**
+ * Gets the execution mode for a user.
+ * Defaults to "approval" (Ask for approval) if unset or on error.
+ */
+export async function getUserAgentExecutionMode(userId: string): Promise<AgentExecutionMode> {
+  try {
+    const records = await db.select({ agentExecutionMode: user.agentExecutionMode })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+
+    if (records.length > 0 && records[0].agentExecutionMode) {
+      return records[0].agentExecutionMode as AgentExecutionMode;
+    }
+    return "approval";
+  } catch (error) {
+    console.error("[AgentStore] Failed to get user agent execution mode, defaulting to approval:", error);
+    return "approval";
+  }
+}
+
+/**
+ * Updates the execution mode for a user.
+ */
+export async function setUserAgentExecutionMode(userId: string, mode: AgentExecutionMode): Promise<void> {
+  await db.update(user)
+    .set({ agentExecutionMode: mode })
+    .where(eq(user.id, userId));
+  console.log(`[AgentStore] Execution mode updated for user ${userId}: ${mode}`);
 }

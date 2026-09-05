@@ -14,8 +14,10 @@ import {
   getRecentTransactions,
   get24hSpend,
   revokeDelegation,
+  getUserAgentExecutionMode,
+  setUserAgentExecutionMode,
 } from "@/lib/agent/agent-wallet-store";
-import type { WalletChain } from "@/lib/agent/agent-wallet-store";
+import type { WalletChain, AgentExecutionMode } from "@/lib/agent/agent-wallet-store";
 import { isDelegatedAccessEnabled } from "@/lib/agent/dynamic-agent-wallet";
 import * as allChains from "viem/chains";
 
@@ -29,9 +31,10 @@ export async function GET() {
     const userId = session.user.id;
 
     // Fetch per-chain status
-    const [evmEnabled, solanaEnabled] = await Promise.all([
+    const [evmEnabled, solanaEnabled, executionMode] = await Promise.all([
       hasDelegation(userId, "evm"),
       hasDelegation(userId, "solana"),
+      getUserAgentExecutionMode(userId),
     ]);
     const isEnabled = evmEnabled || solanaEnabled;
 
@@ -49,6 +52,7 @@ export async function GET() {
       agentEnabled: isEnabled,
       evmEnabled,
       solanaEnabled,
+      executionMode,
       serverConfigured: isDelegatedAccessEnabled(),
       // Legacy single address (EVM first, then Solana)
       walletAddress: evmWallet?.walletAddress || solanaWallet?.walletAddress || null,
@@ -111,6 +115,24 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
     const body = await request.json();
+
+    // Handle set agent execution mode (approval vs autopilot)
+    if (body.action === "set_execution_mode") {
+      const mode = body.mode as AgentExecutionMode;
+      if (!["approval", "autopilot"].includes(mode)) {
+        return NextResponse.json(
+          { error: "Invalid execution mode. Must be 'approval' or 'autopilot'." },
+          { status: 400 }
+        );
+      }
+      await setUserAgentExecutionMode(userId, mode);
+      return NextResponse.json({
+        success: true,
+        executionMode: mode,
+        message: `Agent execution mode set to ${mode === "approval" ? "Ask for approval" : "Autopilot"}`,
+      });
+    }
+
     const chain: WalletChain = body.chain || "evm";
 
     // Validate chain parameter

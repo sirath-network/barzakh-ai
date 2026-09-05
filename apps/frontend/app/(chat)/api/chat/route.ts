@@ -796,7 +796,13 @@ export async function POST(request: Request) {
         }
 
         if (isAgentEnabled) {
-          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets. When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent. To perform an EVM swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets. When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent.
+CRITICAL CROSS-CHAIN RECIPIENT RULE (EVM <-> Solana):
+- When bridging/swapping between EVM and Solana:
+  - If swapping to Solana: check if Solana Agent Wallet is ENABLED. If Solana Agent Wallet is NOT enabled (or user only has EVM wallet), and the user did not specify a Solana destination address in their prompt, you MUST ask the user for their Solana recipient address BEFORE executing the swap! (Or if \`executeAgenticRelaySwap\` returns status "missing_recipient", immediately ask the user for their Solana recipient address). Once they provide it, pass it as \`recipientAddress\` to \`executeAgenticRelaySwap\`.
+  - If swapping from Solana to EVM: check if EVM Agent Wallet is ENABLED. If EVM Agent Wallet is NOT enabled (or user only has Solana wallet), and the user did not specify an EVM recipient address in their prompt, you MUST ask the user for their EVM (0x...) recipient address BEFORE executing the swap! (Or if \`executeAgenticRelaySwap\` returns status "missing_recipient", immediately ask the user for their EVM recipient address). Once they provide it, pass it as \`recipientAddress\` to \`executeAgenticRelaySwap\`.
+  - If BOTH wallets are enabled, you do NOT need to ask; simply execute and both agent wallets will be used automatically.
+To perform an EVM swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell meme tokens on Four.meme (BNB Chain), use \`executeFourMemeBuy\` / \`executeFourMemeSell\`. To launch a new token on Four.meme, use \`executeFourMemeLaunch\`. When the user references a token from previous search or ranking results (e.g. "I want the first one", "buy UP"), extract the token address from those results and use it with \`getFourMemeTokenDetail\` or \`executeFourMemeBuy\`. Always call \`quoteFourMemeBuy\` or \`quoteFourMemeSell\` before executing to show estimates.).*`;
         } else {
           agentWalletText = `\n- **Agent Automation**: Disabled\n${walletLines.join("\n")}\n  (Wallet(s) exist but user has not delegated access. Instruct them to enable Automation in settings first.)`;
         }
@@ -998,12 +1004,15 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
         execute: async (args: any, config: any) => {
           // Hard-pin the sender and recipient to the user's authenticated agent wallet
           // to prevent Relay from defaulting to the 0x...1 placeholder address
-          const { getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
+          const { getUserAgentWalletAddress, hasDelegation: hasDelegationCheck } = await import("@/lib/agent/agent-wallet-store");
           const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
           const solanaWallet = await getUserAgentWalletAddress(authenticatedUserId, "solana");
+          const isEvmDelegated = await hasDelegationCheck(authenticatedUserId, "evm");
+          const isSolanaDelegated = await hasDelegationCheck(authenticatedUserId, "solana");
 
-          args.evmUserAddress = evmWallet || undefined;
-          args.solanaUserAddress = solanaWallet || undefined;
+          // Only pass the agent wallet if it's delegated/enabled!
+          args.evmUserAddress = (isEvmDelegated && evmWallet) ? evmWallet : undefined;
+          args.solanaUserAddress = (isSolanaDelegated && solanaWallet) ? solanaWallet : undefined;
 
           // REUSE robust inference logic from prepareRelayTransaction
           let prepareResult: any = null;
@@ -1014,7 +1023,7 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
           }
           const rawResult = prepareResult as any;
 
-          if (typeof prepareResult === "string" || rawResult.status === "error") {
+          if (typeof prepareResult === "string" || rawResult.status === "error" || rawResult.status === "missing_recipient") {
             return prepareResult;
           }
 
@@ -1022,7 +1031,18 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
             return { status: "error", message: "Failed to generate executable transaction payload." };
           }
 
+          const fromChainIdNum = args.fromChainId || rawResult.toolParams?.fromChainId;
+          const toChainIdNum = args.toChainId || rawResult.toolParams?.toChainId;
+          const agentWalletAddr = fromChainIdNum === 792703809 ? solanaWallet : evmWallet;
 
+          const senderAddress = rawResult.senderAddress || agentWalletAddr;
+          const destAddress = args.recipientAddress || rawResult.recipientAddress || (toChainIdNum === 792703809 ? solanaWallet : evmWallet);
+          const isDestinationAgentWallet = Boolean(
+            destAddress && (
+              (solanaWallet && destAddress.toLowerCase() === solanaWallet.toLowerCase()) ||
+              (evmWallet && destAddress.toLowerCase() === evmWallet.toLowerCase())
+            )
+          );
 
           // IF automation is COMPLETELY disabled (no chain has delegation), return for manual approval
           if (!isAgentEnabledLocally) {
@@ -1033,6 +1053,9 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
               timestamp: Date.now().toString(),
               preparedAt: Date.now(),
               isAgentExecution: false,
+              senderAddress,
+              recipientAddress: destAddress,
+              isDestinationAgentWallet,
               _instructionToAI: "Inform the user that automation is off for THIS specific transaction and they need to confirm the swap manually using the card above. IMPORTANT: This status applies ONLY to this transaction. If the user requests another trade in this chat, you MUST still call executeAgenticRelaySwap — never refuse based on previous manual approval results."
             };
           }
@@ -1040,7 +1063,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
           // Per-chain delegation check: for hybrid setups (e.g. EVM enabled, Solana disabled),
           // verify that EACH transaction's target chain has active delegation.
           // If any leg targets a chain without delegation, fall back to manual approval.
-          const { hasDelegation: hasDelegationCheck } = await import("@/lib/agent/agent-wallet-store");
           const txListForCheck = rawResult.transactions as any[];
           for (const tx of txListForCheck) {
             const txChainId = tx.chainId || args.fromChainId;
@@ -1055,67 +1077,107 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                 timestamp: Date.now().toString(),
                 preparedAt: Date.now(),
                 isAgentExecution: false,
+                senderAddress,
+                recipientAddress: destAddress,
+                isDestinationAgentWallet,
                 _instructionToAI: `Inform the user that ${txChainType === "solana" ? "Solana" : "EVM"} automation is not enabled for THIS specific transaction. They can confirm manually using the card above, or enable ${txChainType === "solana" ? "Solana" : "EVM"} agent automation in Settings → Wallet Settings → Enable Agent Automation. IMPORTANT: This status applies ONLY to this transaction. If the user requests another trade in this chat, you MUST still call executeAgenticRelaySwap — never refuse based on previous manual approval results.`
               };
             }
           }
 
-          const { executeRelaySwap } = await import("@/lib/agent/agent-payment-executor");
-          console.log(`[AgentExecutor] Routing exact tx payload autonomously...`);
-          const txList = rawResult.transactions as any[];
+          const { getUserAgentExecutionMode } = await import("@/lib/agent/agent-wallet-store");
+          const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
 
-          let finalHash = "";
-          for (const tx of txList) {
-            const isApproval = tx.data?.startsWith("0x095ea7b3");
-            const isTransfer = !isApproval && (args.fromToken === args.toToken) && (args.fromChainId === args.toChainId);
-            const parsedAmount = (args.amount.toLowerCase() === 'all' || args.amount.toLowerCase() === 'max') && rawResult.quoteDetails?.amountIn ? rawResult.quoteDetails.amountIn : args.amount;
+          // If autopilot is enabled, execute immediately without asking for confirmation
+          if (executionMode === "autopilot") {
+            const { executeRelaySwap } = await import("@/lib/agent/agent-payment-executor");
+            console.log(`[AgentExecutor] [Autopilot] Routing exact tx payload autonomously...`);
+            const txList = rawResult.transactions as any[];
 
-            const autoResult = await executeRelaySwap({
-              userId: authenticatedUserId,
-              operationType: isApproval ? "erc20_approve" : (isTransfer ? "transfer" : "relay_swap"),
-              inputAmount: isApproval ? "Approval" : parsedAmount,
-              inputToken: args.fromToken,
-              outputToken: args.toToken,
-              chainId: tx.chainId || args.fromChainId || 8453,
-              transaction: {
-                to: tx.to,
-                value: tx.value ? BigInt(tx.value) : 0n,
-                data: tx.data || "0x",
-                chainId: tx.chainId || args.fromChainId,
-                solanaTransaction: tx.solanaTransaction,
+            let finalHash = "";
+            for (const tx of txList) {
+              const isApproval = tx.data?.startsWith("0x095ea7b3");
+              const isTransfer = !isApproval && (args.fromToken === args.toToken) && (args.fromChainId === args.toChainId);
+              const parsedAmount = (args.amount.toLowerCase() === 'all' || args.amount.toLowerCase() === 'max') && rawResult.quoteDetails?.amountIn ? rawResult.quoteDetails.amountIn : args.amount;
+
+              const autoResult = await executeRelaySwap({
+                userId: authenticatedUserId,
+                operationType: isApproval ? "erc20_approve" : (isTransfer ? "transfer" : "relay_swap"),
+                inputAmount: isApproval ? "Approval" : parsedAmount,
+                inputToken: args.fromToken,
+                outputToken: args.toToken,
+                chainId: tx.chainId || args.fromChainId || 8453,
+                transaction: {
+                  to: tx.to,
+                  value: tx.value ? BigInt(tx.value) : 0n,
+                  data: tx.data || "0x",
+                  chainId: tx.chainId || args.fromChainId,
+                  solanaTransaction: tx.solanaTransaction,
+                }
+              });
+              if (!autoResult.success) {
+                return { status: "error", message: autoResult.error || "Autonomous execution failed during broadcast." };
               }
-            });
-            if (!autoResult.success) {
-              return { status: "error", message: autoResult.error || "Autonomous execution failed during broadcast." };
+
+              finalHash = autoResult.transactionHash || finalHash;
             }
 
+            let explorerUrl = finalHash ? `https://relay.link/transaction/${finalHash}` : undefined;
+            if (finalHash) {
+              const executionChainId = txList[0]?.chainId || args.fromChainId || 8453;
+              const allChains = await import("viem/chains");
+              const targetChain: any = Object.values(allChains).find((c: any) => c?.id === executionChainId);
 
-
-            finalHash = autoResult.transactionHash || finalHash;
-          }
-          let explorerUrl = finalHash ? `https://relay.link/transaction/${finalHash}` : undefined;
-          if (finalHash) {
-            const executionChainId = txList[0]?.chainId || args.fromChainId || 8453;
-            const allChains = await import("viem/chains");
-            const targetChain: any = Object.values(allChains).find((c: any) => c?.id === executionChainId);
-
-            // If it's a same-chain transfer, use the native block explorer
-            const isSameChain = args.fromChainId === args.toChainId;
-            if (isSameChain && targetChain?.blockExplorers?.default?.url) {
-              explorerUrl = `${targetChain.blockExplorers.default.url}/tx/${finalHash}`;
+              // If it's a same-chain transfer, use the native block explorer
+              const isSameChain = args.fromChainId === args.toChainId;
+              if (isSameChain && targetChain?.blockExplorers?.default?.url) {
+                explorerUrl = `${targetChain.blockExplorers.default.url}/tx/${finalHash}`;
+              }
             }
+
+            return {
+              status: "success",
+              message: "Autonomous execution completed successfully via Autopilot!",
+              transactionHash: finalHash,
+              isAgentExecution: true,
+              agentWalletAddress: agentWalletAddr,
+              senderAddress,
+              recipientAddress: destAddress,
+              isDestinationAgentWallet,
+              explorerUrl,
+              quoteDetails: rawResult.quoteDetails,
+              sourceChain: rawResult.sourceChain,
+              destinationChain: rawResult.destinationChain,
+              _instructionToAI: "CRITICAL: A rich UI card is ALREADY safely rendering to the user! DO NOT PRINT ANY transaction hashes, block explorer URLs, gas fees, or data tables! Keep your text output to an absolute maximum of 1 short sentence, e.g. 'Your cross-chain execution has completed autonomously via Relay.'"
+            };
           }
+
+          // Default: "approval" mode (Ask for approval)
+          // Store pending confirmation instead of executing immediately
+          const { storePendingConfirmation } = await import("@/lib/agent/pending-confirmations");
+          const confirmationId = crypto.randomUUID();
+
+          storePendingConfirmation(confirmationId, {
+            userId: authenticatedUserId,
+            args,
+            rawResult,
+            transactions: rawResult.transactions,
+          });
 
           return {
-            status: "success",
-            message: "Autonomous execution completed successfully WITHOUT manual UI!",
-            transactionHash: finalHash,
+            ...rawResult,
+            status: "requires_confirmation",
+            confirmationId,
+            agentWalletAddress: agentWalletAddr,
+            senderAddress,
+            recipientAddress: destAddress,
+            isDestinationAgentWallet,
+            message: "Transaction prepared. Please confirm to execute via your agent wallet.",
             isAgentExecution: true,
-            explorerUrl,
             quoteDetails: rawResult.quoteDetails,
             sourceChain: rawResult.sourceChain,
             destinationChain: rawResult.destinationChain,
-            _instructionToAI: "CRITICAL: A rich UI card is ALREADY safely rendering to the user! DO NOT PRINT ANY transaction hashes, block explorer URLs, gas fees, or data tables! Keep your text output to an absolute maximum of 1 short sentence, e.g. 'Your cross-chain execution has completed anonymously via Relay.'"
+            _instructionToAI: "CRITICAL: A rich UI card with Confirm/Reject buttons is ALREADY rendering. DO NOT repeat any transaction details. Just say something brief like 'Please confirm the swap above to proceed.'"
           };
         }
       }),

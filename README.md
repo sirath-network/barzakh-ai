@@ -94,7 +94,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 - **Short Product Description:** A production-ready conversational AI agent providing real-time data intelligence and private execution on Flare Network — querying enshrined FTSOv2 price feeds (~1.8s latency), monitoring FAssets (FXRP dynamic supply & collateral), verifying cross-chain state via Flare Data Connector (FDC), and executing MEV-proof private strategies via Trusted Execution Environments (TEE).
 - **Target User:** DeFi traders, XRP/FXRP liquidity providers, algorithmic strategists seeking front-running protection, and web3 users wanting natural language access to Flare's enshrined data protocols.
 - **Working Demo App:** [app.sirath.network](https://app.sirath.network)
-- **Technical Materials:** [Detailed Hackathon Technical Guide](docs/FLARE_INTEGRATION_SUBMISSION.md) | [Smart Contracts](contracts/flare/) | [TEE Enclave Code](tee/) | [Flare AI Tools Suite](packages/shared/src/lib/ai/tools/flare/)
+- **Technical Materials:** [Flare AI Tools Suite](packages/shared/src/lib/ai/tools/flare/)
 
 ---
 
@@ -178,7 +178,7 @@ To provide complete transparency for hackathon evaluation:
 | **FDC Data Connector Tools** | ❌ None | ✅ Built `getFlareFdcInfo` resolving `FdcHub` and attestation types |
 | **Flare Native Portfolio Tracker** | ❌ None | ✅ Built `getFlarePortfolio` querying live balances, ERC-20s, and FTSOv2 USD values |
 | **Flare Blockchain Utilities** | ❌ None | ✅ Built `getFlareBalance`, `getFlareBlockInfo`, `getFlareTransaction`, `getFlareGasPrice`, `getFlareNetworkStats` |
-| **Confidential Compute (TEE) Layer** | ❌ None | ✅ Built `flare-confidential.ts`, TEE strategy container (`tee/`), Dockerfile |
+| **Confidential Compute (TEE) Layer** | ❌ None | ✅ Built `flare-confidential.ts` for confidential strategy evaluation |
 | **Solidity Smart Contracts** | ❌ None | ✅ Built & deployed `FlarePriceConsumer.sol` and `FlareConfidentialStrategy.sol` on Coston2 |
 | **Multi-RPC Failover Pool** | ❌ None | ✅ Implemented 3-tier fallback pool (`flare-api`, `public-rpc`, `ankr`) |
 
@@ -186,7 +186,7 @@ To provide complete transparency for hackathon evaluation:
 
 ### 🔮 Roadmap & Next Steps
 
-1. **Phala dstack Live Hardware Enclave:** Deploy the [`tee/Dockerfile`](tee/Dockerfile) container onto a bare-metal Phala Cloud instance with active remote hardware attestation (MRENCLAVE).
+1. **Phala dstack Live Hardware Enclave:** Deploy confidential strategy execution onto a bare-metal Phala Cloud instance with active remote hardware attestation (MRENCLAVE).
 2. **Autonomous FAsset Natural Language Minting:** Enable users to trigger XRPL transactions and generate FDC payment attestations directly from chat (e.g. *"Mint 250 FXRP from my XRPL wallet"*).
 3. **Institutional MEV-Proof Fund Rebalancer:** Commercialize confidential strategy execution for DAOs and treasury managers holding large FLR and FXRP positions.
 

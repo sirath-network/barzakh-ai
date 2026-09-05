@@ -682,6 +682,7 @@ function resolveChainWithInference(
 }
 
 let isClientInitialized = false;
+const RELAY_API_KEY = process.env.RELAY_API_KEY || "";
 
 /**
  * Initialize the Relay client (lazy initialization)
@@ -689,10 +690,15 @@ let isClientInitialized = false;
 function initializeRelayClient(): void {
     if (isClientInitialized) return;
 
+    if (!RELAY_API_KEY) {
+        console.warn("[Relay] RELAY_API_KEY is not set — API calls will fail with UNAUTHORIZED_QUOTE");
+    }
+
     try {
         createClient({
             baseApiUrl: MAINNET_RELAY_API,
             source: "barzakh-ai",
+            apiKey: RELAY_API_KEY,
             chains: SUPPORTED_CHAINS.map((chain) =>
                 convertViemChainToRelayChain(chain)
             ),
@@ -723,6 +729,7 @@ async function fetchRelayQuoteDirectly(params: {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
+            ...(RELAY_API_KEY ? { "x-api-key": RELAY_API_KEY } : {}),
         },
         body: JSON.stringify({
             originChainId: params.originChainId,
@@ -775,6 +782,7 @@ async function fetchChainTokens(chainId: number): Promise<Record<string, TokenIn
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...(RELAY_API_KEY ? { "x-api-key": RELAY_API_KEY } : {}),
             },
             body: JSON.stringify({
                 chainIds: [chainId],
@@ -831,6 +839,7 @@ async function searchTokenByTerm(term: string, chainId: number): Promise<TokenIn
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                ...(RELAY_API_KEY ? { "x-api-key": RELAY_API_KEY } : {}),
             },
             body: JSON.stringify({
                 chainIds: [chainId],
@@ -1812,10 +1821,36 @@ Examples:
         const toChainId = normalizeChainId(toInference.chainId);
 
         try {
+            const isFromSolana = fromChainId === 792703809;
+            const isToSolana = toChainId === 792703809;
+            const isCrossVm = isFromSolana !== isToSolana;
+
+            // When crossing between EVM and Solana, if the destination wallet is not configured and no recipient was given:
+            if (isCrossVm) {
+                if (isToSolana && !recipientAddress && !solanaUserAddress) {
+                    return {
+                        status: "missing_recipient",
+                        destinationChain: "Solana",
+                        sourceChain: CHAIN_NAMES[fromChainId] || "EVM",
+                        message: "A Solana recipient address is required to receive funds on Solana.",
+                        _instructionToAI: "CRITICAL: The user wants to swap to Solana, but does not have an active Solana agent wallet and did not provide a destination address. You MUST ask the user to provide their Solana recipient address before proceeding. DO NOT render any swap cards yet."
+                    };
+                }
+                if (isFromSolana && !recipientAddress && !evmUserAddress) {
+                    return {
+                        status: "missing_recipient",
+                        destinationChain: CHAIN_NAMES[toChainId] || "EVM",
+                        sourceChain: "Solana",
+                        message: "An EVM recipient address (0x...) is required to receive funds on EVM.",
+                        _instructionToAI: "CRITICAL: The user wants to swap from Solana to EVM, but does not have an active EVM agent wallet and did not provide a destination address. You MUST ask the user to provide their EVM recipient address (0x...) before proceeding. DO NOT render any swap cards yet."
+                    };
+                }
+            }
+
             // Validate addresses based on source chain
             // Automatically switch to the correct embedded wallet based on the chain type
-            const resolvedUserAddress = (fromChainId === 792703809 ? solanaUserAddress : evmUserAddress) || userAddress;
-            const resolvedRecipientAddress = recipientAddress || (toChainId === 792703809 ? solanaUserAddress : evmUserAddress) || resolvedUserAddress;
+            const resolvedUserAddress = (isFromSolana ? solanaUserAddress : evmUserAddress) || userAddress;
+            const resolvedRecipientAddress = recipientAddress || (isToSolana ? solanaUserAddress : evmUserAddress) || (!isCrossVm ? resolvedUserAddress : undefined);
 
             if (resolvedUserAddress && !isValidAddressForChain(resolvedUserAddress, fromChainId)) {
                 return {
@@ -2026,6 +2061,8 @@ Examples:
                 protocol: "Relay Protocol",
                 sourceChain: CHAIN_NAMES[fromChainId],
                 destinationChain: CHAIN_NAMES[toChainId],
+                senderAddress: effectiveUserAddress,
+                recipientAddress: effectiveRecipientAddress,
                 ...(usdConversionInfo && {
                     usdConversion: {
                         requestedUSD: `$${usdConversionInfo.originalUSD}`,
@@ -2042,6 +2079,7 @@ Examples:
                     toToken: toTokenAddress,
                     amount: amountInSmallestUnit,
                     isUSD: false,
+                    recipient: effectiveRecipientAddress,
                 },
                 instructions: [
                     "1. User wallet must be connected to the source chain",

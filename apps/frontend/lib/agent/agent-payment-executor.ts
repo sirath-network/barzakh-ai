@@ -32,18 +32,35 @@ import {
   getDelegationCredentials,
   recordAgentTransaction,
 } from "./agent-wallet-store";
-import { createPublicClient, http, parseUnits, parseGwei } from "viem";
+import { createPublicClient, http, fallback, parseUnits, parseGwei } from "viem";
 import type { TransactionSerializable } from "viem";
+import { getNativeCurrencyForChain } from "./swap-error-parser";
 
 // ─── RPC Configuration ──────────────────────────────────────────────────────
 const MONAD_RPC = process.env.MONAD_RPC_URL || "https://monad-mainnet.drpc.org";
 const BSC_RPC = process.env.BNBCHAIN_RPC_URL || "https://bsc-dataseed1.binance.org";
+const BASE_RPC = process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
+const ARBITRUM_RPC = process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc";
+const POLYGON_RPC = process.env.POLYGON_RPC_URL || "https://polygon-rpc.com";
+const OPTIMISM_RPC = process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io";
 
 function getRpcTransport(chainId: number) {
-  if (chainId === 56) return http(BSC_RPC, { timeout: 30000 });
-  if (chainId === 143) return http(MONAD_RPC, { timeout: 30000 });
-  if (chainId === 5042002) return http("https://rpc.testnet.arc.network", { timeout: 30000 });
-  return http(undefined, { timeout: 30000 });
+  if (chainId === 1) {
+    const custom = process.env.ETH_MAINNET_RPC_URL;
+    if (custom) return http(custom, { timeout: 10000, retryCount: 1 });
+    return fallback([
+      http("https://ethereum-rpc.publicnode.com", { timeout: 8000, retryCount: 1 }),
+      http("https://rpc.mevblocker.io", { timeout: 8000, retryCount: 1 }),
+    ]);
+  }
+  if (chainId === 56) return http(BSC_RPC, { timeout: 10000, retryCount: 1 });
+  if (chainId === 143) return http(MONAD_RPC, { timeout: 10000, retryCount: 1 });
+  if (chainId === 8453) return http(BASE_RPC, { timeout: 10000, retryCount: 1 });
+  if (chainId === 42161) return http(ARBITRUM_RPC, { timeout: 10000, retryCount: 1 });
+  if (chainId === 137) return http(POLYGON_RPC, { timeout: 10000, retryCount: 1 });
+  if (chainId === 10) return http(OPTIMISM_RPC, { timeout: 10000, retryCount: 1 });
+  if (chainId === 5042002) return http("https://rpc.testnet.arc.network", { timeout: 10000, retryCount: 1 });
+  return http(undefined, { timeout: 10000, retryCount: 1 });
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -242,7 +259,7 @@ export async function executeRelaySwap(
   if (params.chainId === 792703809) {
     try {
       console.log(`[AgentPayment] Executing Solana relay swap...`);
-      const { Connection, VersionedTransaction } = await import("@solana/web3.js");
+      const { Connection, VersionedTransaction, PublicKey } = await import("@solana/web3.js");
       const { signSolanaTransaction } = await import("./dynamic-agent-wallet");
 
       if (!params.transaction?.solanaTransaction) {
@@ -252,13 +269,35 @@ export async function executeRelaySwap(
       const txBuffer = Buffer.from(params.transaction.solanaTransaction, "base64");
       const versionedTx = VersionedTransaction.deserialize(txBuffer);
 
+      // Pre-flight Solana Balance Check
+      const rpcUrl = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://solana-rpc.publicnode.com";
+      const connection = new Connection(rpcUrl, "confirmed");
+
+      const solanaAddress = await (await import("./agent-wallet-store")).getUserAgentWalletAddress(params.userId, "solana") || credentials.walletAddress;
+      if (solanaAddress) {
+        try {
+          const pubkey = new PublicKey(solanaAddress);
+          const solBalance = await connection.getBalance(pubkey);
+          if (solBalance === 0) {
+            console.warn(`[AgentPayment] Pre-flight check: Solana account ${solanaAddress} has 0 SOL`);
+            return {
+              success: false,
+              error: `The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account. Account ${solanaAddress} has 0 SOL on Solana, but funds are required for gas and value.`,
+              operationType: "relay_swap",
+            };
+          }
+        } catch (balErr: any) {
+          if (balErr?.message?.includes("exceeds the balance")) {
+            throw balErr;
+          }
+          console.warn(`[AgentPayment] Solana pre-flight balance check non-fatal warning:`, balErr?.message || balErr);
+        }
+      }
+
       // Sign transaction
       const signedTx = await signSolanaTransaction(params.userId, versionedTx);
 
       // Broadcast transaction
-      const rpcUrl = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-      const connection = new Connection(rpcUrl, "confirmed");
-
       console.log(`[AgentPayment] Broadcasting Solana transaction...`);
       const signature = await connection.sendTransaction(signedTx, { skipPreflight: false });
 
@@ -276,7 +315,7 @@ export async function executeRelaySwap(
       // Record for audit
       await recordAgentTransaction({
         userId: params.userId,
-        walletAddress: await (await import("./agent-wallet-store")).getUserAgentWalletAddress(params.userId, "solana") || credentials.walletAddress,
+        walletAddress: solanaAddress,
         operationType: params.operationType || "relay_swap",
         amount: params.inputAmount,
         signature: signature,
@@ -314,6 +353,81 @@ export async function executeRelaySwap(
     chain: targetChain as any,
     transport: getRpcTransport(targetChain.id),
   });
+
+  // ─── EVM Pre-flight Native & Token Balance Check ───
+  try {
+    const nativeBalance = await publicClient.getBalance({
+      address: credentials.walletAddress as `0x${string}`,
+    });
+    const txValue = typeof params.transaction.value === 'bigint'
+      ? params.transaction.value
+      : BigInt(params.transaction.value || 0);
+
+    const nativeSymbol = getNativeCurrencyForChain(targetChain.id, targetChain.name);
+
+    if (nativeBalance === 0n) {
+      console.warn(`[AgentPayment] Pre-flight check: Account ${credentials.walletAddress} has 0 ${nativeSymbol} on ${targetChain.name}`);
+      return {
+        success: false,
+        error: `The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account. Account ${credentials.walletAddress} has 0 ${nativeSymbol} on ${targetChain.name}, but funds are required for gas and value.`,
+        operationType: "relay_swap",
+      };
+    }
+
+    if (txValue > 0n && nativeBalance < txValue) {
+      console.warn(`[AgentPayment] Pre-flight check: Account ${credentials.walletAddress} has insufficient native balance (${nativeBalance} < ${txValue})`);
+      return {
+        success: false,
+        error: `The total cost (gas * gas fee + value) of executing this transaction exceeds the balance of the account. Account ${credentials.walletAddress} has insufficient ${nativeSymbol} on ${targetChain.name} for the transaction value and network gas fee.`,
+        operationType: "relay_swap",
+      };
+    }
+
+    // Check ERC20 token balance if inputToken is an ERC-20 contract
+    if (
+      params.inputToken &&
+      params.inputToken.startsWith("0x") &&
+      params.inputToken.toLowerCase() !== "0x0000000000000000000000000000000000000000" &&
+      params.inputToken.toLowerCase() !== "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    ) {
+      try {
+        const tokenBalance = await publicClient.readContract({
+          address: params.inputToken as `0x${string}`,
+          abi: [
+            {
+              name: "balanceOf",
+              type: "function",
+              stateMutability: "view",
+              inputs: [{ name: "account", type: "address" }],
+              outputs: [{ name: "balance", type: "uint256" }],
+            },
+          ] as const,
+          functionName: "balanceOf",
+          args: [credentials.walletAddress as `0x${string}`],
+        });
+
+        if (tokenBalance === 0n) {
+          console.warn(`[AgentPayment] Pre-flight check: Account ${credentials.walletAddress} has 0 ERC20 balance for ${params.inputToken}`);
+          return {
+            success: false,
+            error: `transfer amount exceeds balance. Your account ${credentials.walletAddress} has 0 tokens of ${params.inputToken} on ${targetChain.name}.`,
+            operationType: "relay_swap",
+          };
+        }
+      } catch {
+        // Ignore ERC-20 readContract failures and let standard transaction simulation run
+      }
+    }
+  } catch (balErr: any) {
+    if (balErr?.message?.includes("exceeds the balance") || balErr?.message?.includes("transfer amount exceeds balance")) {
+      return {
+        success: false,
+        error: balErr.message,
+        operationType: "relay_swap",
+      };
+    }
+    console.warn(`[AgentPayment] EVM pre-flight balance check non-fatal warning:`, balErr?.message || balErr);
+  }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -452,7 +566,7 @@ export async function executeRelaySwap(
       // Final attempt or non-retryable error
       return {
         success: false,
-        error: error.message || "Failed to execute relay swap",
+        error: error.shortMessage || error.message || "Failed to execute relay swap",
         operationType: "relay_swap",
       };
     }

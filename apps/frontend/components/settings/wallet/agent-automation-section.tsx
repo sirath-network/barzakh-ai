@@ -44,6 +44,7 @@ interface AgentStatus {
   wallets: WalletInfo[];
   evmWalletAddress: string | null;
   solanaWalletAddress: string | null;
+  executionMode?: "approval" | "autopilot";
 
   spent24h: number;
   recentTransactions: Array<{
@@ -108,6 +109,7 @@ export function AgentAutomationSection() {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingMode, setIsUpdatingMode] = useState(false);
   const [isCreatingWallet, setIsCreatingWallet] = useState<WalletChain | null>(null);
 
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -188,6 +190,28 @@ export function AgentAutomationSection() {
       toast.error(`Failed to ${enable ? "enable" : "disable"} automation`);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleSetExecutionMode = async (mode: "approval" | "autopilot") => {
+    setIsUpdatingMode(true);
+    try {
+      const res = await fetch("/api/settings/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_execution_mode", mode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Permission set to ${mode === "approval" ? "Ask for Approval" : "Autopilot"}`);
+        fetchStatus();
+      } else {
+        toast.error(data.message || "Failed to update permission");
+      }
+    } catch (error) {
+      toast.error("Failed to update permission");
+    } finally {
+      setIsUpdatingMode(false);
     }
   };
 
@@ -456,6 +480,77 @@ export function AgentAutomationSection() {
           {renderWalletCard("evm")}
           {renderWalletCard("solana")}
         </div>
+
+        {/* ── Execution Permission (Ask for Approval vs Autopilot) ── */}
+        {status?.agentEnabled && (
+          <div className="space-y-3 rounded-xl border border-border bg-muted/40 p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-primary" />
+                  Execution Permission
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Choose how your AI agent executes transactions
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Option 1: Ask for approval (Default) */}
+              <button
+                type="button"
+                onClick={() => handleSetExecutionMode("approval")}
+                disabled={isUpdatingMode}
+                className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                  (status.executionMode ?? "approval") === "approval"
+                    ? "border-violet-500/60 bg-violet-500/10 shadow-sm ring-1 ring-violet-500/30"
+                    : "border-border bg-background/50 hover:bg-background/80 hover:border-border/80"
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-1.5">
+                  <span className="font-semibold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-violet-500" />
+                    Ask for approval
+                  </span>
+                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400">
+                    Default
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  AI prepares the quote and requires your explicit confirmation before executing.
+                </p>
+              </button>
+
+              {/* Option 2: Autopilot */}
+              <button
+                type="button"
+                onClick={() => handleSetExecutionMode("autopilot")}
+                disabled={isUpdatingMode}
+                className={`flex flex-col text-left p-3.5 rounded-xl border transition-all ${
+                  status.executionMode === "autopilot"
+                    ? "border-amber-500/60 bg-amber-500/10 shadow-sm ring-1 ring-amber-500/30"
+                    : "border-border bg-background/50 hover:bg-background/80 hover:border-border/80"
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-1.5">
+                  <span className="font-semibold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    Autopilot
+                  </span>
+                  {status.executionMode === "autopilot" && (
+                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  AI executes transactions immediately without waiting for confirmation.
+                </p>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Spend Summary — only if any automation is enabled */}
         {status?.agentEnabled && (

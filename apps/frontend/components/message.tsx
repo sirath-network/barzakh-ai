@@ -317,6 +317,49 @@ const filterSystemExplanatoryContent = (
   return filteredParagraphs.join('\n\n').trim();
 };
 
+// List of tools that have dedicated UI components in messages
+const RENDERABLE_TOOL_NAMES = [
+  'searchEvmTokenMarketData',
+  'searchSolanaTokenMarketData',
+  'getSolanaChainWalletPortfolio',
+  'getEvmMultiChainWalletPortfolio',
+  'getMantlePortfolio',
+  'getMonadPortfolio',
+  'getGoatPortfolio',
+  'getTokenBalances',
+  'getSolanaWalletTransactions',
+  'getMantleTransactionHistory',
+  'getCronosTransactionHistory',
+  'getMonadTransactionHistory',
+  'getZkEVMTransactionHistory',
+  'getEvmOnchainDataUsingZerion',
+  'getEvmOnchainDataUsingEtherscan',
+  'getCreditcoinApiData',
+  'getVanaApiData',
+  'getZetaApiData',
+  'getFlowApiData',
+  'getSeiApiData',
+  'translateTransactions',
+  'createImage',
+  'initiateX402Payment',
+  'executeAutonomousSubscription',
+  'getRelayQuote',
+  'getRelayBridgeQuote',
+  'prepareRelayTransaction',
+  'executeAgenticRelaySwap',
+  'searchNadFunTokens',
+  'searchFourMemeTokens',
+  'getFourMemeRankings',
+  'executeFourMemeBuy',
+  'executeFourMemeSell',
+  'executeFourMemeLaunch',
+  'searchRenaissCards',
+  'getRenaissCardPrice',
+  'getRenaissMarketTrends',
+  'analyzeRenaissCollection',
+  'getRenaissCardDetails',
+];
+
 const PurePreviewMessage = ({
   chatId,
   message,
@@ -500,17 +543,43 @@ const PurePreviewMessage = ({
   // Check if assistant has real content, reasoning, or visible tools
   const hasVisibleTools = Boolean(
     (allWebSearchTools && allWebSearchTools.length > 0) ||
-      (otherCompletedTools && otherCompletedTools.length > 0),
+      (otherCompletedTools &&
+        otherCompletedTools.some((tool: any) => {
+          if (!RENDERABLE_TOOL_NAMES.includes(tool.toolName)) return false;
+          const res = tool.result;
+          if (!res || typeof res === 'string') return false;
+          // Relay tools only render a visible card when there is a quote or non-error status
+          if (
+            [
+              'getRelayQuote',
+              'getRelayBridgeQuote',
+              'prepareRelayTransaction',
+              'executeAgenticRelaySwap',
+            ].includes(tool.toolName)
+          ) {
+            if (res.status === 'error' && !res.quote && !res.quoteDetails) {
+              return false;
+            }
+          }
+          return true;
+        })),
+  );
+
+  const hasTextContent = Boolean(
+    (typeof message.content === 'string' && message.content.trim().length > 0) ||
+      (Array.isArray(message.content) &&
+        (message.content as any[]).some(
+          (part) => part.type === 'text' && part.text?.trim()?.length > 0,
+        )),
   );
 
   const hasRealContent = Boolean(
-    (typeof message.content === 'string' && message.content.length > 0) ||
-      (Array.isArray(message.content) && message.content.length > 0) ||
+    hasTextContent ||
       hasVisibleTools ||
       message.reasoning,
   );
 
-  // Show thinking synchronously if assistant message has no content yet while loading
+  // Show thinking synchronously if assistant message has no visible content yet while loading
   const isThinking =
     message.role === 'assistant' && isLoading && !hasRealContent;
 
@@ -609,63 +678,12 @@ const PurePreviewMessage = ({
 
                   {/* === TOP SECTION: OTHER TOOL RESULTS (PORTFOLIO, TOKEN INFO, etc.) === */}
                   {(() => {
-                    // List of tools that have UI components
-                    const renderableToolNames = [
-                      'searchEvmTokenMarketData',
-                      'searchSolanaTokenMarketData',
-                      'getSolanaChainWalletPortfolio',
-                      'getEvmMultiChainWalletPortfolio',
-                      'getMantlePortfolio',
-                      'getMonadPortfolio', // Monad portfolio (primary)
-                      'getGoatPortfolio', // GOAT Network portfolio
-                      'getTokenBalances',
-                      'getSolanaWalletTransactions',
-                      // EVM chain transaction history tools
-                      'getMantleTransactionHistory',
-                      'getCronosTransactionHistory',
-                      'getMonadTransactionHistory', // Monad transactions
-                      'getZkEVMTransactionHistory',
-                      'getEvmOnchainDataUsingZerion',
-                      'getEvmOnchainDataUsingEtherscan',
-                      // Other chains supported by EvmTransactionHistory
-                      'getCreditcoinApiData',
-                      'getVanaApiData',
-                      'getZetaApiData',
-                      'getFlowApiData',
-                      'getSeiApiData',
-                      'translateTransactions',
-                      // Note: getMonadDefiPositions, getMonadNFTs, getMonadTokenPositions excluded
-                      // They are handled internally by getMonadPortfolio
-                      'createImage',
-                      'initiateX402Payment',
-                      'executeAutonomousSubscription',
-                      // Relay Protocol - all quote tools show UI
-                      'getRelayQuote',
-                      'getRelayBridgeQuote',
-                      'prepareRelayTransaction',
-                      'executeAgenticRelaySwap',
-                      // nad.fun Tools
-                      'searchNadFunTokens',
-                      // Four.meme Tools (BNB Chain)
-                      'searchFourMemeTokens',
-                      'getFourMemeRankings',
-                      'executeFourMemeBuy',
-                      'executeFourMemeSell',
-                      'executeFourMemeLaunch',
-                      // Renaiss Tools
-                      'searchRenaissCards',
-                      'getRenaissCardPrice',
-                      'getRenaissMarketTrends',
-                      'analyzeRenaissCollection',
-                      'getRenaissCardDetails',
-                    ];
-
                     // Filter to only tools that have renderable components
                     let renderableTools =
                       otherCompletedTools?.filter(
                         (tool) =>
                           tool.state === 'result' &&
-                          renderableToolNames.includes(tool.toolName),
+                          RENDERABLE_TOOL_NAMES.includes(tool.toolName),
                       ) || [];
 
                     // Deduplicate getEvmOnchainDataUsingZerion calls - prefer portfolio data
@@ -810,11 +828,11 @@ const PurePreviewMessage = ({
                                 <RelaySwapApprovalAny result={result} />
                               ),
                             prepareRelayTransaction:
-                              typeof result === 'string' ? null : (
+                              typeof result === 'string' || (result as any)?.status === 'missing_recipient' ? null : (
                                 <RelaySwapApprovalAny result={result} />
                               ),
                             executeAgenticRelaySwap:
-                              typeof result === 'string' ? null : (
+                              typeof result === 'string' || (result as any)?.status === 'missing_recipient' ? null : (
                                 <RelaySwapApprovalAny result={result} />
                               ),
                             // nad.fun Tools
@@ -1360,7 +1378,7 @@ const PurePreviewMessage = ({
                   )}
 
                   {/* === BOTTOM SECTION: MESSAGE ACTIONS & SOURCE BADGES === */}
-                  {message.role === 'assistant' && (
+                  {message.role === 'assistant' && (hasTextContent || (!isLoading && hasRealContent)) && (
                     <motion.div
                       className="flex flex-col mt-1"
                       initial={isPreloaded ? false : { opacity: 0, y: 10 }}
