@@ -646,6 +646,7 @@ export default function ImageCropModal({ imageSrc, onSave, onCancel }: ImageCrop
         </div>
       </div>
 
+      {/* @ts-ignore */}
       <style jsx>{`
         .modern-slider::-webkit-slider-thumb {
           appearance: none;

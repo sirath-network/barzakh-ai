@@ -112,6 +112,10 @@ const THEMED_CHAIN_LOGOS: Record<string, { light: string; dark: string }> = {
     light: "/images/icon/flare/flare-dark.png",
     dark: "/images/icon/flare/flare-light.png",
   },
+  somnia: {
+    light: "/images/icon/somnia/somnia-dark.png",
+    dark: "/images/icon/somnia/somnia-light.png",
+  },
   aptos: {
     light: "/images/icon/aptos/aptos-dark.png",
     dark: "/images/icon/aptos/aptos-light.png",

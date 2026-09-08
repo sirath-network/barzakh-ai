@@ -461,6 +461,9 @@ importers:
       '@solana/web3.js':
         specifier: ^1.98.4
         version: 1.98.4(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@somnia-chain/markets-sdk':
+        specifier: ^0.28.1
+        version: 0.28.1(graphql@16.12.0)(react@19.2.0)(viem@2.47.18(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
       '@splinetool/react-spline':
         specifier: ^4.1.0
         version: 4.1.0(@splinetool/runtime@2.0.37)(next@16.2.11(@opentelemetry/api@1.9.0)(@types/node@22.19.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -886,6 +889,9 @@ importers:
       '@solana/web3.js':
         specifier: 1.98.0
         version: 1.98.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      '@somnia-chain/markets-sdk':
+        specifier: ^0.28.1
+        version: 0.28.1(graphql@16.12.0)(react@19.2.0)(viem@2.47.18(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
       '@tavily/core':
         specifier: ^0.7.2
         version: 0.7.2
@@ -4696,6 +4702,18 @@ packages:
 
   '@solana/web3.js@1.98.4':
     resolution: {integrity: sha512-vv9lfnvjUsRiq//+j5pBdXig0IQdtzA0BRZ3bXEP4KaIyF1CcaydWqgyzQgfZMNIsWNWmG+AUHwPy4AHOD6gpw==}
+
+  '@somnia-chain/markets-sdk@0.28.1':
+    resolution: {integrity: sha512-CwrYT/kSKaCxYk9ehdOPxGggOrRepaJIEH9tTQINGn4iHIDmE7kMoP33Da0GS0MA4LIt57mRnOnru0NZnnCU7A==}
+    peerDependencies:
+      '@somnia-chain/reactivity': ^0.2.1
+      react: 19.2.0
+      viem: ^2
+    peerDependenciesMeta:
+      '@somnia-chain/reactivity':
+        optional: true
+      react:
+        optional: true
 
   '@splinetool/react-spline@4.1.0':
     resolution: {integrity: sha512-Y379gm17gw+1nxT/YXTCJnVIWuu7tsUH1tp/YxsYb0pZnc9Gljk7Om4Kpq7WPq0bZ4zidVCxf6xn6jgDcbHifQ==}
@@ -16148,6 +16166,15 @@ snapshots:
       - encoding
       - typescript
       - utf-8-validate
+
+  '@somnia-chain/markets-sdk@0.28.1(graphql@16.12.0)(react@19.2.0)(viem@2.47.18(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))':
+    dependencies:
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.12.0)
+      viem: 2.47.18(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+    optionalDependencies:
+      react: 19.2.0
+    transitivePeerDependencies:
+      - graphql
 
   '@splinetool/react-spline@4.1.0(@splinetool/runtime@2.0.37)(next@16.2.11(@opentelemetry/api@1.9.0)(@types/node@22.19.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:

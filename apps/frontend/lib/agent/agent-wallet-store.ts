@@ -22,7 +22,7 @@ import {
   agent_transaction,
   user
 } from "@/lib/db/schema";
-import { eq, desc, and, gte } from "drizzle-orm";
+import { eq, desc, and, gte, like } from "drizzle-orm";
 import { encryptSecret, decryptSecret } from "@/lib/security/crypto";
 import type { DelegationCredentials } from "./dynamic-agent-wallet";
 
@@ -395,6 +395,38 @@ export async function getRecentTransactions(
     .where(eq(agent_transaction.userId, userId))
     .orderBy(desc(agent_transaction.createdAt))
     .limit(limit);
+
+  return results.map(tx => ({
+    id: tx.id,
+    userId: tx.userId,
+    walletAddress: tx.walletAddress,
+    operationType: tx.operationType,
+    amount: tx.amount,
+    signature: tx.signature,
+    metadata: tx.metadata as Record<string, unknown> | undefined,
+    createdAt: tx.createdAt
+  }));
+}
+
+/**
+ * Gets all DreamDEX transactions for a user or wallet address.
+ */
+export async function getUserDreamDexTransactions(
+  userId?: string,
+  walletAddress?: string
+): Promise<AgentTransaction[]> {
+  const conditions: any[] = [like(agent_transaction.operationType, "dreamdex_%")];
+  if (userId) {
+    conditions.push(eq(agent_transaction.userId, userId));
+  }
+  if (walletAddress) {
+    conditions.push(eq(agent_transaction.walletAddress, walletAddress));
+  }
+
+  const results = await db.select()
+    .from(agent_transaction)
+    .where(and(...conditions))
+    .orderBy(desc(agent_transaction.createdAt));
 
   return results.map(tx => ({
     id: tx.id,

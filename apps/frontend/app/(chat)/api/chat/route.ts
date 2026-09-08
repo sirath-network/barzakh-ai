@@ -183,6 +183,51 @@ function toCoreSafeMessages(messages: Array<Message>): Array<CoreMessage> {
     }
 
     if (role === 'assistant') {
+      const toolInvocations = (message as any).toolInvocations;
+      const hasCompletedTools = Array.isArray(toolInvocations) && toolInvocations.some((ti: any) => ti.state === 'result' || ti.result !== undefined);
+
+      if (hasCompletedTools) {
+        const parts: any[] = [];
+        if (typeof content === 'string' && content.trim()) {
+          parts.push({ type: 'text', text: content });
+        } else if (Array.isArray(content)) {
+          for (const part of content) {
+            if (part && part.type === 'text') {
+              const text = Array.isArray(part.text)
+                ? part.text.map((p: any) => (typeof p === 'string' ? p : p?.text ?? '')).join('')
+                : typeof part.text === 'string' ? part.text : String(part.text ?? '');
+              if (text) parts.push({ type: 'text', text });
+            }
+          }
+        }
+
+        const toolResultParts: any[] = [];
+        for (const ti of toolInvocations) {
+          if (ti.toolCallId && ti.toolName) {
+            parts.push({
+              type: 'tool-call',
+              toolCallId: ti.toolCallId,
+              toolName: ti.toolName,
+              args: ti.args || {},
+            });
+            if (ti.result !== undefined) {
+              toolResultParts.push({
+                type: 'tool-result',
+                toolCallId: ti.toolCallId,
+                toolName: ti.toolName,
+                result: ti.result,
+              });
+            }
+          }
+        }
+
+        result.push({ role: 'assistant', content: parts.length > 0 ? parts : '' });
+        if (toolResultParts.length > 0) {
+          result.push({ role: 'tool', content: toolResultParts });
+        }
+        continue;
+      }
+
       if (typeof content === 'string') {
         result.push({ role: 'assistant', content });
       } else if (Array.isArray(content)) {
@@ -587,7 +632,7 @@ export async function POST(request: Request) {
   const HIGH_PRIORITY_INTENTS = ['imagine', 'coding'] as const;
 
   // Chain-specific groups that support context persistence
-  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat'] as const;
+  const CHAIN_SPECIFIC_GROUPS = ['cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat', 'somnia'] as const;
 
   // Extract chain context from chat history for follow-up message routing
   function extractChainContext(msgs: Array<Message>): string | null {
@@ -606,6 +651,7 @@ export async function POST(request: Request) {
       mantle: [/\bmantle\b/i, /\bmnt\s+(token|balance)/i],
       flare: [/\bflare\b/i, /\bflr\s+(token|coin|balance|price)/i, /\bftso\b/i, /\bfasset[s]?\b/i, /\bfxrp\b/i, /\bcoston2?\b/i, /\bsongbird\b/i],
       goat: [/\bgoat\b/i, /\.goat\b/i, /\bgns\b/i, /\berc[- ]?8004\b/i, /\bwgbtc\b/i, /\bbitvm2?\b/i],
+      somnia: [/\bsomnia\b/i, /\bdreamdex\b/i, /\bevent\s*contract/i, /\bprediction\s*market/i, /\bstt\b/i, /\bshannon\b/i, /\btusdc\b/i, /\b[A-Z]{2,10}-(UP|DOWN)(-\d+)?(-\d+[mh])?\b/i, /\b(put|bet|buy|sell)\b.*\b(up|down)\b/i],
       // Generic EVM - 0x addresses (40 hex chars) indicate EVM chain
       // This should be checked LAST since specific chains like Cronos also use 0x
       on_chain: [/\b0x[a-fA-F0-9]{40}\b/, /\betherscan\b/i, /\bethereum\b/i, /\b(optimism|arbitrum|base|polygon)\b/i],
@@ -697,11 +743,12 @@ export async function POST(request: Request) {
       const detectedIntent = classificationResult.primaryIntent;
       const isHighPriority = HIGH_PRIORITY_INTENTS.includes(detectedIntent as typeof HIGH_PRIORITY_INTENTS[number]);
       const isDefaultGroup = !group || group === 'search';
+      const isChainSpecific = CHAIN_SPECIFIC_GROUPS.includes(detectedIntent as any);
 
       // Override if:
-      // 1. High confidence AND (user is on default group OR detected intent is high-priority)
-      // This ensures image/coding prompts ALWAYS route correctly, even from chain-specific tools
-      if (classificationResult.confidence >= 0.6 && (isDefaultGroup || isHighPriority)) {
+      // 1. High confidence AND (user is on default group OR detected intent is high-priority OR switching to specific chain from on_chain)
+      // This ensures image/coding prompts and chain-specific tools (like Somnia DreamDEX) ALWAYS route correctly
+      if (classificationResult.confidence >= 0.6 && (isDefaultGroup || isHighPriority || (effectiveGroup === 'on_chain' && isChainSpecific) || detectedIntent === 'somnia')) {
         effectiveGroup = detectedIntent;
       }
     } catch (classifyError) {
@@ -763,14 +810,16 @@ export async function POST(request: Request) {
       username = userData.username || userData.email || username;
 
       // Fetch Agent Wallet and Automation Status (Multi-Chain) — all in parallel
-      const { hasDelegation, getUserAgentWalletAddress } = await import("@/lib/agent/agent-wallet-store");
-      const [isEvmEnabled, isSolanaEnabled, evmWalletAddress, solanaWalletAddress] = await Promise.all([
+      const { hasDelegation, getUserAgentWalletAddress, getUserAgentExecutionMode } = await import("@/lib/agent/agent-wallet-store");
+      const [isEvmEnabled, isSolanaEnabled, evmWalletAddress, solanaWalletAddress, agentExecutionMode] = await Promise.all([
         hasDelegation(activeUserId, "evm"),
         hasDelegation(activeUserId, "solana"),
         getUserAgentWalletAddress(activeUserId, "evm"),
         getUserAgentWalletAddress(activeUserId, "solana"),
+        getUserAgentExecutionMode(activeUserId),
       ]);
       const isAgentEnabled = isEvmEnabled || isSolanaEnabled;
+      const isAutopilotActive = agentExecutionMode === "autopilot";
       // Use EVM wallet as primary for backward compatibility
       const agentWalletAddress = evmWalletAddress;
 
@@ -796,7 +845,8 @@ export async function POST(request: Request) {
         }
 
         if (isAgentEnabled) {
-          agentWalletText = `\n- **Agent Automation**: ENABLED\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets. When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent.
+          agentWalletText = `\n- **Agent Automation**: ENABLED\n- **Execution Permission Mode**: ${isAutopilotActive ? "AUTOPILOT (ACTIVE)" : "ASK FOR APPROVAL (DEFAULT)"}\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets.
+${isAutopilotActive ? "CRITICAL AUTOPILOT ACTIVE RULE: The user has AUTOPILOT ENABLED in their settings. When executing trades, bets, or swaps (including DreamDEX on Somnia), transactions execute AUTONOMOUSLY without waiting for confirmation. NEVER output 'Please review and confirm...', 'awaiting your confirmation', or tell the user to confirm! Output: 'Your order has been placed on DreamDEX via Autopilot.'" : "APPROVAL RULE: Execution mode is Ask for Approval. Prepare the order and prompt the user to review and confirm on the card above."} When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent.
 CRITICAL CROSS-CHAIN RECIPIENT RULE (EVM <-> Solana):
 - When bridging/swapping between EVM and Solana:
   - If swapping to Solana: check if Solana Agent Wallet is ENABLED. If Solana Agent Wallet is NOT enabled (or user only has EVM wallet), and the user did not specify a Solana destination address in their prompt, you MUST ask the user for their Solana recipient address BEFORE executing the swap! (Or if \`executeAgenticRelaySwap\` returns status "missing_recipient", immediately ask the user for their Solana recipient address). Once they provide it, pass it as \`recipientAddress\` to \`executeAgenticRelaySwap\`.
@@ -1198,6 +1248,335 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
       getAgentWalletInfo: createGetAgentWalletInfoTool(authenticatedUserId),
       getAgentTokenBalance: createGetAgentTokenBalanceTool(authenticatedUserId),
       executeAutonomousSubscription: createAutonomousSubscriptionTool(authenticatedUserId),
+      // Somnia / DreamDEX Event Contracts Autonomous Execution Tools
+      dreamDexPlaceOrder: tool({
+        ...allTools.dreamDexPlaceOrder,
+        execute: async (args: any, config: any) => {
+          const { getUserAgentWalletAddress, hasDelegation: hasDelegationCheck, getUserAgentExecutionMode } = await import("@/lib/agent/agent-wallet-store");
+          const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
+          const isEvmDelegated = await hasDelegationCheck(authenticatedUserId, "evm");
+
+          if (isEvmDelegated && evmWallet) {
+            args.userAddress = evmWallet;
+          }
+
+          let prepResult: any = null;
+          try {
+            prepResult = await allTools.dreamDexPlaceOrder.execute(args, config);
+          } catch (error: any) {
+            return { success: false, status: "error", error: error.message || "Failed to prepare order" };
+          }
+
+          if (!prepResult || prepResult.success === false || prepResult.status === "insufficient_collateral" || prepResult.status === "insufficient_gas") {
+            return prepResult;
+          }
+
+          const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
+
+          // 1. Autopilot Mode: Execute immediately without requiring approval
+          if (isEvmDelegated && executionMode === "autopilot") {
+            const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
+            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, prepResult);
+            if (execResult.success) {
+              return {
+                ...prepResult,
+                status: "success",
+                isExecuted: true,
+                executionMode: "autopilot",
+                transactionHash: execResult.transactionHash,
+                txHash: execResult.transactionHash,
+                explorerUrl: execResult.explorerUrl,
+                message: `Order placed and confirmed on DreamDEX CLOB autonomously via Autopilot! Tx: ${execResult.transactionHash}`,
+                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! DO NOT repeat transaction hashes or explorer links. Output ONLY 1 short sentence: 'Your order has been placed on DreamDEX via Autopilot.'"
+              };
+            } else {
+              return {
+                ...prepResult,
+                status: "error",
+                error: execResult.error,
+                message: `Autonomous execution failed: ${execResult.error}`,
+              };
+            }
+          }
+
+          // 2. Approval Mode (Default): Generate confirmation ID and await user click on card
+          if (isEvmDelegated) {
+            const { storePendingConfirmation } = await import("@/lib/agent/pending-confirmations");
+            const confirmationId = crypto.randomUUID();
+
+            storePendingConfirmation(confirmationId, {
+              userId: authenticatedUserId,
+              args,
+              rawResult: prepResult,
+              transactions: [],
+            });
+
+            return {
+              ...prepResult,
+              status: "requires_confirmation",
+              confirmationId,
+              isAgentExecution: true,
+              executionMode: "approval",
+              agentWalletAddress: evmWallet,
+              message: "Order prepared. Please review the details and confirm to execute via your agent wallet.",
+              _instructionToAI: "CRITICAL: A rich UI card with Confirm and Reject buttons is ALREADY rendering to the user! DO NOT ask the user to type confirm or repeat order details. DO NOT call dreamDexPlaceOrder again. Output ONLY one brief sentence: 'Please review and confirm your DreamDEX order above to execute on Somnia.'"
+            };
+          }
+
+          // 3. Manual Mode (External wallet)
+          return {
+            ...prepResult,
+            executionMode: "manual",
+            status: "requires_manual_signature",
+            message: "Please sign the transaction using your connected external wallet."
+          };
+        }
+      }),
+
+      dreamDexMintTokens: tool({
+        ...allTools.dreamDexMintTokens,
+        execute: async (args: any, config: any) => {
+          const { getUserAgentWalletAddress, hasDelegation: hasDelegationCheck, getUserAgentExecutionMode } = await import("@/lib/agent/agent-wallet-store");
+          const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
+          const isEvmDelegated = await hasDelegationCheck(authenticatedUserId, "evm");
+
+          if (isEvmDelegated && evmWallet) {
+            args.userAddress = evmWallet;
+          }
+
+          let prepResult: any = null;
+          try {
+            prepResult = await allTools.dreamDexMintTokens.execute(args, config);
+          } catch (error: any) {
+            return { success: false, status: "error", error: error.message || "Failed to prepare mint" };
+          }
+
+          if (!prepResult || prepResult.success === false || prepResult.status === "insufficient_collateral" || prepResult.status === "insufficient_gas") {
+            return prepResult;
+          }
+
+          const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
+
+          // 1. Autopilot Mode
+          if (isEvmDelegated && executionMode === "autopilot") {
+            const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
+            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, prepResult);
+            if (execResult.success) {
+              return {
+                ...prepResult,
+                status: "success",
+                isExecuted: true,
+                executionMode: "autopilot",
+                transactionHash: execResult.transactionHash,
+                txHash: execResult.transactionHash,
+                explorerUrl: execResult.explorerUrl,
+                message: `Minted outcome tokens on Somnia Network autonomously via Autopilot! Tx: ${execResult.transactionHash}`,
+                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! Output ONLY 1 short sentence: 'Your outcome tokens have been minted on DreamDEX via Autopilot.'"
+              };
+            } else {
+              return {
+                ...prepResult,
+                status: "error",
+                error: execResult.error,
+                message: `Autonomous mint execution failed: ${execResult.error}`,
+              };
+            }
+          }
+
+          // 2. Approval Mode (Default)
+          if (isEvmDelegated) {
+            const { storePendingConfirmation } = await import("@/lib/agent/pending-confirmations");
+            const confirmationId = crypto.randomUUID();
+
+            storePendingConfirmation(confirmationId, {
+              userId: authenticatedUserId,
+              args,
+              rawResult: prepResult,
+              transactions: [],
+            });
+
+            return {
+              ...prepResult,
+              status: "requires_confirmation",
+              confirmationId,
+              isAgentExecution: true,
+              executionMode: "approval",
+              agentWalletAddress: evmWallet,
+              message: "Mint transaction prepared. Please confirm to execute via your agent wallet.",
+              _instructionToAI: "CRITICAL: A rich UI card with Confirm and Reject buttons is ALREADY rendering to the user! Output ONLY one brief sentence: 'Please review and confirm your mint transaction above to proceed.'"
+            };
+          }
+
+          // 3. Manual Mode
+          return {
+            ...prepResult,
+            executionMode: "manual",
+            status: "requires_manual_signature",
+            message: "Please sign the mint transaction using your connected external wallet."
+          };
+        }
+      }),
+
+      dreamDexRedeemWinnings: tool({
+        ...allTools.dreamDexRedeemWinnings,
+        execute: async (args: any, config: any) => {
+          const { getUserAgentWalletAddress, hasDelegation: hasDelegationCheck, getUserAgentExecutionMode, getUserDreamDexTransactions } = await import("@/lib/agent/agent-wallet-store");
+          const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
+          const isEvmDelegated = await hasDelegationCheck(authenticatedUserId, "evm");
+
+          if (isEvmDelegated && evmWallet) {
+            args.userAddress = evmWallet;
+            args.address = evmWallet;
+          }
+
+          try {
+            const dreamdexTxs = await getUserDreamDexTransactions(authenticatedUserId, args.address || evmWallet);
+            const extraPools: Array<{ address: string; symbol?: string; asset?: string }> = [];
+            const seen = new Set<string>();
+            const trades: Array<any> = [];
+            for (const tx of dreamdexTxs) {
+              const meta = tx.metadata as any;
+              if (meta?.pool && !seen.has(meta.pool.toLowerCase())) {
+                seen.add(meta.pool.toLowerCase());
+                extraPools.push({
+                  address: meta.pool,
+                  symbol: meta.marketSymbol,
+                  asset: meta.marketSymbol?.split("-")[0],
+                });
+              }
+              trades.push({
+                signature: tx.signature,
+                pool: meta?.pool,
+                marketSymbol: meta?.marketSymbol,
+                side: meta?.side,
+                amount: tx.amount,
+                price: meta?.price,
+                quantity: meta?.quantity,
+                operationType: tx.operationType,
+                createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : String(tx.createdAt),
+              });
+            }
+            args.extraPools = extraPools;
+            args.trades = trades;
+          } catch (err) {
+            console.warn("[ChatRoute] Failed to load extra pools for redeem:", err);
+          }
+
+          let prepResult: any = null;
+          try {
+            prepResult = await allTools.dreamDexRedeemWinnings.execute(args, config);
+          } catch (error: any) {
+            return { success: false, status: "error", error: error.message || "Failed to prepare redemption" };
+          }
+
+          if (!prepResult || prepResult.success === false) {
+            return prepResult;
+          }
+
+          const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
+
+          // 1. Autopilot Mode
+          if (isEvmDelegated && executionMode === "autopilot") {
+            const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
+            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, { ...prepResult, action: "redeem" });
+            if (execResult.success) {
+              return {
+                ...prepResult,
+                status: "success",
+                isExecuted: true,
+                executionMode: "autopilot",
+                transactionHash: execResult.transactionHash,
+                txHash: execResult.transactionHash,
+                explorerUrl: execResult.explorerUrl,
+                message: `Redeemed winning tokens on Somnia Network autonomously via Autopilot! Tx: ${execResult.transactionHash}`,
+                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! Output ONLY 1 short sentence: 'Your winnings have been redeemed on Somnia via Autopilot.'"
+              };
+            } else {
+              return {
+                ...prepResult,
+                status: "error",
+                error: execResult.error,
+                message: `Autonomous redemption failed: ${execResult.error}`,
+              };
+            }
+          }
+
+          // 2. Approval Mode (Default)
+          if (isEvmDelegated) {
+            const { storePendingConfirmation } = await import("@/lib/agent/pending-confirmations");
+            const confirmationId = crypto.randomUUID();
+
+            storePendingConfirmation(confirmationId, {
+              userId: authenticatedUserId,
+              args,
+              rawResult: prepResult,
+              transactions: [],
+            });
+
+            return {
+              ...prepResult,
+              status: "requires_confirmation",
+              confirmationId,
+              isAgentExecution: true,
+              executionMode: "approval",
+              agentWalletAddress: evmWallet,
+              message: prepResult.message,
+              _instructionToAI: "CRITICAL: A rich UI card with Confirm Redemption and Reject buttons is ALREADY rendering to the user! Output ONLY one brief sentence: 'Please review and confirm the redemption card above to claim your 10.00 tUSDC winnings.'"
+            };
+          }
+
+          // 3. Manual Mode
+          return {
+            ...prepResult,
+            executionMode: "manual",
+            status: "requires_manual_signature",
+            message: "Please sign the redemption transaction using your connected external wallet."
+          };
+        }
+      }),
+      getDreamDexPortfolio: tool({
+        ...allTools.getDreamDexPortfolio,
+        execute: (async (args: any, config: any) => {
+          const { getUserAgentWalletAddress, getUserDreamDexTransactions } = await import("@/lib/agent/agent-wallet-store");
+          const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
+          if (!args.address && evmWallet) {
+            args.address = evmWallet;
+          }
+          try {
+            const dreamdexTxs = await getUserDreamDexTransactions(authenticatedUserId, args.address);
+            const extraPools: Array<{ address: string; symbol?: string; asset?: string }> = [];
+            const seen = new Set<string>();
+            const trades: Array<any> = [];
+            for (const tx of dreamdexTxs) {
+              const meta = tx.metadata as any;
+              if (meta?.pool && !seen.has(meta.pool.toLowerCase())) {
+                seen.add(meta.pool.toLowerCase());
+                extraPools.push({
+                  address: meta.pool,
+                  symbol: meta.marketSymbol,
+                  asset: meta.marketSymbol?.split("-")[0],
+                });
+              }
+              trades.push({
+                signature: tx.signature,
+                pool: meta?.pool,
+                marketSymbol: meta?.marketSymbol,
+                side: meta?.side,
+                amount: tx.amount,
+                price: meta?.price,
+                quantity: meta?.quantity,
+                operationType: tx.operationType,
+                createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : String(tx.createdAt),
+              });
+            }
+            args.extraPools = extraPools;
+            args.trades = trades;
+          } catch (err) {
+            console.warn("[ChatRoute] Failed to load extra pools from transactions:", err);
+          }
+          return await allTools.getDreamDexPortfolio.execute(args, config);
+        }) as any,
+      }),
     } : {}),
     // Override shared package quote tools with viem-based versions (always available)
     quoteFourMemeBuy: quoteFourMemeBuyTool,
@@ -1291,7 +1670,8 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                   });
 
                   if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                    const messagesToSave = sanitizedResponseMessages.map((message) => {
+                    const now = Date.now();
+                    const messagesToSave = sanitizedResponseMessages.map((message, index) => {
                       const cleanedContent = cleanMessageContentForStorage(message.content);
                       const validId = (message.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.id))
                         ? message.id
@@ -1301,7 +1681,7 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                         chatId: id,
                         role: message.role,
                         content: cleanedContent,
-                        createdAt: new Date(),
+                        createdAt: new Date(now + index * 10),
                       };
                     });
 
@@ -1358,14 +1738,15 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                     });
 
                     if (sanitizedResponseMessages && sanitizedResponseMessages.length > 0) {
-                      const messagesToSave = sanitizedResponseMessages.map((message) => {
+                      const now = Date.now();
+                      const messagesToSave = sanitizedResponseMessages.map((message, index) => {
                         const cleanedContent = cleanMessageContentForStorage(message.content);
                         return {
                           id: message.id,
                           chatId: id,
                           role: message.role,
                           content: cleanedContent,
-                          createdAt: new Date(),
+                          createdAt: new Date(now + index * 10),
                         };
                       });
 

@@ -69,6 +69,34 @@ export const goatNetwork = defineChain({
   },
 });
 
+// Somnia Shannon Testnet (DreamDEX Event Contracts, Chain ID 50312)
+export const somniaTestnet = defineChain({
+  id: 50312,
+  name: 'Somnia Shannon Testnet',
+  nativeCurrency: { name: 'Somnia Testnet Token', symbol: 'STT', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://dream-rpc.somnia.network'] },
+    public: { http: ['https://dream-rpc.somnia.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'Somnia Shannon Explorer', url: 'https://shannon-explorer.somnia.network' },
+  },
+});
+
+// Somnia Mainnet (Chain ID 5031)
+export const somnia = defineChain({
+  id: 5031,
+  name: 'Somnia Mainnet',
+  nativeCurrency: { name: 'Somnia Token', symbol: 'STT', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://api.infra.mainnet.somnia.network'] },
+    public: { http: ['https://api.infra.mainnet.somnia.network'] },
+  },
+  blockExplorers: {
+    default: { name: 'Somnia Explorer', url: 'https://somnia-explorer.io' },
+  },
+});
+
 export const supportedChains = [
   mainnet,
   optimism,
@@ -123,6 +151,8 @@ export const supportedChains = [
   flare,
   flareTestnet,
   goatNetwork,
+  somniaTestnet,
+  somnia,
 ] as const;
 
 // WalletConnect projectId - Dynamic SDK uses this internally via dashboard config

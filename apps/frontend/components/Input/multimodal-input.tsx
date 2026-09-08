@@ -261,6 +261,19 @@ function PureMultimodalInput({
     setIsMounted(true);
   }, []);
 
+  useEffect(() => {
+    const handleCustomPrompt = (e: any) => {
+      const prompt = e.detail?.prompt;
+      if (prompt && append) {
+        append({ role: 'user', content: prompt });
+      }
+    };
+    window.addEventListener('barzakh:send-prompt' as any, handleCustomPrompt as any);
+    return () => {
+      window.removeEventListener('barzakh:send-prompt' as any, handleCustomPrompt as any);
+    };
+  }, [append]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
   const hasQueuedAttachments = attachments.length > 0 || uploadQueue.length > 0;

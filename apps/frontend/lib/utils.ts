@@ -26,12 +26,33 @@ export function saveChatModelAsCookieClient(model: string) {
 export function convertToUIMessages(
   messages: Array<DBMessage>
 ): Array<Message> {
-  const uiMessages = messages.reduce((chatMessages: Array<Message>, message) => {
+  // Pass 1: Collect all tool results from any message in the chat
+  // This makes tool-call and tool-result resolution immune to database row ordering (e.g. out-of-order timestamps)
+  const toolResultsMap = new Map<string, any>();
+  for (const message of messages) {
+    if (message.role === "tool" && Array.isArray(message.content)) {
+      for (const content of message.content as any[]) {
+        if (content && content.type === "tool-result" && content.toolCallId) {
+          toolResultsMap.set(content.toolCallId, content.result);
+        }
+      }
+    } else if (Array.isArray(message.content)) {
+      for (const content of message.content as any[]) {
+        if (content && content.type === "tool-result" && content.toolCallId) {
+          toolResultsMap.set(content.toolCallId, content.result);
+        }
+      }
+    }
+  }
+
+  // Pass 2: Convert messages into UI messages
+  const uiMessages: Array<Message> = [];
+
+  for (const message of messages) {
+    // Standalone tool messages have their results harvested into toolResultsMap
+    // and attached directly to tool-call invocations.
     if (message.role === "tool") {
-      return addToolMessageToChat({
-        toolMessage: message as CoreToolMessage,
-        messages: chatMessages,
-      });
+      continue;
     }
 
     let textContent = "";
@@ -43,29 +64,32 @@ export function convertToUIMessages(
       textContent = message.content;
     } else if (Array.isArray(message.content)) {
       // Check if the message contains images
-      hasImages = message.content.some((content: any) => content.type === "image");
+      hasImages = message.content.some((content: any) => content && content.type === "image");
 
       if (hasImages) {
         // If message contains images, extract text content AND tool invocations
         const textParts: string[] = [];
-        for (const content of message.content) {
+        for (const content of message.content as any[]) {
+          if (!content) continue;
           if (content.type === "text") {
             textParts.push(content.text);
           } else if (content.type === "tool-call") {
+            const result = toolResultsMap.get(content.toolCallId);
             toolInvocations.push({
-              state: "call",
+              state: result !== undefined ? "result" : "call",
               toolCallId: content.toolCallId,
               toolName: content.toolName,
-              args: content.args,
-            });
+              args: content.args || {},
+              ...(result !== undefined ? { result } : {}),
+            } as ToolInvocation);
           } else if (content.type === "tool-result") {
             toolInvocations.push({
-              state: "result",
+              state: "result" as const,
               toolCallId: content.toolCallId,
               toolName: content.toolName,
               args: content.args || {},
               result: content.result,
-            });
+            } as ToolInvocation);
           } else if (content.type === "reasoning") {
             reasoning = content.reasoning;
           }
@@ -88,17 +112,20 @@ export function convertToUIMessages(
           textContent = textParts[0] || "";
         }
       } else {
-        // For messages without images, use the original logic
-        for (const content of message.content) {
+        // For messages without images, extract text and tool invocations
+        for (const content of message.content as any[]) {
+          if (!content) continue;
           if (content.type === "text") {
             textContent += content.text;
           } else if (content.type === "tool-call") {
+            const result = toolResultsMap.get(content.toolCallId);
             toolInvocations.push({
-              state: "call",
+              state: result !== undefined ? "result" : "call",
               toolCallId: content.toolCallId,
               toolName: content.toolName,
-              args: content.args,
-            });
+              args: content.args || {},
+              ...(result !== undefined ? { result } : {}),
+            } as ToolInvocation);
           } else if (content.type === "tool-result") {
             toolInvocations.push({
               state: "result" as const,
@@ -106,7 +133,7 @@ export function convertToUIMessages(
               toolName: content.toolName,
               args: content.args || {},
               result: content.result,
-            });
+            } as ToolInvocation);
           } else if (content.type === "reasoning") {
             reasoning = content.reasoning;
           }
@@ -129,93 +156,56 @@ export function convertToUIMessages(
           // Keep image and text parts, exclude metadata
           (part.type === 'image' || (part.type === 'text' && !part.text.includes('[ORIGINAL_IMAGE_URLS_FOR_EDITING')))
         )
-        : textContent) as any, // For assistant/other messages, use extracted text
+        : textContent) as any,
       reasoning,
-      toolInvocations,
+      toolInvocations: toolInvocations.length > 0 ? toolInvocations : undefined,
     };
 
-    chatMessages.push(uiMessage);
+    uiMessages.push(uiMessage);
+  }
 
-    return chatMessages;
-  }, []);
-
-  // Post-process: Merge consecutive assistant messages with tool invocations
-  // This fixes the issue where after page refresh, sources are displayed separately
+  // Post-process: Merge consecutive assistant messages (e.g. tool invocation turn + commentary turn)
+  // This ensures UI cards and assistant text descriptions remain united in a single message
   const mergedMessages: Array<Message> = [];
 
   for (let i = 0; i < uiMessages.length; i++) {
     const currentMessage = uiMessages[i];
     const prevMessage = mergedMessages[mergedMessages.length - 1];
 
-    // Check if we should merge this message with the previous one
     if (
       currentMessage.role === "assistant" &&
       prevMessage &&
       prevMessage.role === "assistant"
     ) {
-      // Case 1: Both have tool invocations - merge them
-      // Case 2: Previous has tool invocations, current has content but no tools - merge content into previous
-      // Case 3: Previous has no tools but current has tools - merge tools into previous
-
-      const prevHasTools = prevMessage.toolInvocations && prevMessage.toolInvocations.length > 0;
-      const currentHasTools = currentMessage.toolInvocations && currentMessage.toolInvocations.length > 0;
-      const prevHasContent = prevMessage.content && (typeof prevMessage.content === "string" ? prevMessage.content.trim() : true);
-      const currentHasContent = currentMessage.content && (typeof currentMessage.content === "string" ? currentMessage.content.trim() : true);
-
-      // Merge if: prev has tools and current is just content, OR both have tools
-      if ((prevHasTools && !currentHasTools && currentHasContent) || (prevHasTools && currentHasTools)) {
-        // Merge tool invocations if current has them
-        if (currentHasTools) {
-          prevMessage.toolInvocations = [
-            ...prevMessage.toolInvocations!,
-            ...currentMessage.toolInvocations!,
-          ];
-        }
-
-        // Append content if the current message has meaningful content
-        if (currentHasContent) {
-          if (typeof currentMessage.content === "string" && currentMessage.content.trim()) {
-            if (typeof prevMessage.content === "string" && prevMessage.content.trim()) {
-              // Both have content - combine them
-              prevMessage.content = prevMessage.content + "\n\n" + currentMessage.content;
-            } else {
-              // Only current has content - use it
-              prevMessage.content = currentMessage.content;
-            }
-          }
-        }
-
-        // Keep the reasoning from the latest message if available
-        if (currentMessage.reasoning) {
-          prevMessage.reasoning = currentMessage.reasoning;
-        }
-
-        // Don't push the current message as it's been merged
-        continue;
+      // Merge tool invocations if current has them
+      if (currentMessage.toolInvocations && currentMessage.toolInvocations.length > 0) {
+        prevMessage.toolInvocations = [
+          ...(prevMessage.toolInvocations || []),
+          ...currentMessage.toolInvocations,
+        ];
       }
 
-      // Case 3: Current has tools, previous doesn't - merge current into previous
-      if (currentHasTools && !prevHasTools && prevHasContent) {
-        // Add the tool invocations to the previous message
-        prevMessage.toolInvocations = currentMessage.toolInvocations;
+      // Merge text content
+      const prevContent = typeof prevMessage.content === "string" ? prevMessage.content.trim() : "";
+      const currentContent = typeof currentMessage.content === "string" ? currentMessage.content.trim() : "";
 
-        // Append content if current has it
-        if (currentHasContent) {
-          if (typeof currentMessage.content === "string" && currentMessage.content.trim()) {
-            if (typeof prevMessage.content === "string") {
-              prevMessage.content = prevMessage.content + "\n\n" + currentMessage.content;
-            }
+      if (currentContent) {
+        if (prevContent) {
+          if (!prevContent.includes(currentContent)) {
+            prevMessage.content = `${prevContent}\n\n${currentContent}`;
           }
+        } else {
+          prevMessage.content = currentContent;
         }
-
-        // Keep the reasoning from the latest message if available
-        if (currentMessage.reasoning) {
-          prevMessage.reasoning = currentMessage.reasoning;
-        }
-
-        // Don't push the current message as it's been merged
-        continue;
       }
+
+      // Keep the reasoning from the latest message if available
+      if (currentMessage.reasoning && !prevMessage.reasoning) {
+        prevMessage.reasoning = currentMessage.reasoning;
+      }
+
+      // Don't push currentMessage since it was merged
+      continue;
     }
 
     // If not mergeable, add the message as is

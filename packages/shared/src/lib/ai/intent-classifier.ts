@@ -540,6 +540,37 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
+    // Somnia Network (DreamDEX Event Contracts / Prediction Markets)
+    {
+        id: 'somnia',
+        intent: 'somnia',
+        patterns: [
+            /\bsomnia\b/i,
+            /\bdreamdex\b/i,
+            /\bevent\s*contract[s]?\b/i,
+            /\bprediction\s*market[s]?\b/i,
+            /\bbinary\s*(prediction|market|pool|option)[s]?\b/i,
+            /\b(up|down)\s*token[s]?\b/i,
+            /\bstt\s+(token|coin|balance|wallet|portfolio)\b/i,
+            /\bsomnia\s*(network|chain|mainnet|testnet|shannon|wallet|portfolio)\b/i,
+            /\b(on\s+somnia|on\s+dreamdex|on\s+shannon)\b/i,
+            /\btusdc\b/i,
+            /\bshannon\s*(testnet|network)?\b/i,
+            /\b[A-Z]{2,10}-(UP|DOWN)(-\d+)?(-\d+[mh])?\b/i,
+            /\b(put|bet|risk|buy|sell)\b.*\b(on\s+)?(up|down)\b/i,
+            /\b(view|show|check|open|my)\s*(dreamdex\s*)?(prediction\s*)?portfolio\b/i,
+            /\b(active|open)\s*prediction[s]?\b/i,
+        ],
+        keywords: ['somnia', 'dreamdex', 'dream dex', 'event contract', 'event contracts',
+            'prediction market', 'prediction markets', 'binary prediction', 'binary market',
+            'up token', 'down token', 'up/down', 'implied probability', 'conviction score',
+            'stt token', 'somnia network', 'somnia chain', 'shannon testnet', 'tusdc',
+            'mint tokens', 'redeem winnings', 'prediction portfolio', 'buy up', 'buy down',
+            'view portfolio', 'show my dreamdex portfolio', 'dreamdex portfolio'],
+        tokens: ['STT'],
+        addressFormat: 'evm',
+        isEvm: true,
+    },
 ];
 
 /**
@@ -947,6 +978,47 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 96,
     },
 
+    // Somnia Network / DreamDEX Event Contracts (prediction markets)
+    {
+        intent: "somnia",
+        patterns: [
+            /\bsomnia\b/i,
+            /\bdreamdex\b/i,
+            /\bevent\s*contract[s]?\b/i,
+            /\bprediction\s*market[s]?\b/i,
+            /\bbinary\s*(prediction|market|pool|option)[s]?\b/i,
+            /\b(up|down)\s*token[s]?\b/i,
+            /\b(on\s+somnia|on\s+dreamdex|on\s+shannon)\b/i,
+            /\bsomnia\s*(network|chain|mainnet|testnet|shannon|wallet|portfolio)\b/i,
+            /\bstt\s+(token|coin|balance|wallet|portfolio|price|transfer)\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\b(somnia|stt|dreamdex|event\s*contract|prediction)\b/i,
+            /\b(somnia|stt|dreamdex|event\s*contract|prediction)\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\btusdc\b/i,
+            /\bshannon\s*(testnet|network)?\b/i,
+            /\bconviction\s*scor(e|ing)\b/i,
+            /\b(mint|redeem|place\s*order|put|bet|risk|buy|sell)\b.*\b(dreamdex|event\s*contract|prediction|up|down)\b/i,
+            /\b(dreamdex|event\s*contract|prediction|up|down)\b.*\b(mint|redeem|place\s*order|put|bet|risk|buy|sell)\b/i,
+            /\b[A-Z]{2,10}-(UP|DOWN)(-\d+)?(-\d+[mh])?\b/i,
+            /\b(put|bet|risk)\b.*\b\d+.*\b(on\s+)?(up|down)\b/i,
+            /\bimplied\s*probability\b/i,
+            /\b(view|show|check|open|my)\s*(dreamdex\s*)?(prediction\s*)?portfolio\b/i,
+            /\b(active|open)\s*prediction[s]?\b/i,
+            /\b(win|loss|pnl|profit)\s*(record|history|status)?\b.*\b(dreamdex|prediction|somnia)\b/i,
+            /\b(dreamdex|prediction|somnia)\b.*\b(win|loss|pnl|profit)\b/i,
+        ],
+        keywords: [
+            "somnia", "dreamdex", "dream dex", "somnia network", "somnia chain",
+            "somnia mainnet", "somnia wallet", "somnia portfolio", "on somnia", "on dreamdex",
+            "event contract", "event contracts", "prediction market", "prediction markets",
+            "binary prediction", "binary market", "up token", "down token", "up/down tokens",
+            "implied probability", "conviction score", "ai prediction", "ai oracle",
+            "stt token", "shannon testnet", "tusdc", "redeem winnings",
+            "mint tokens", "prediction portfolio", "binary pool", "buy up", "buy down",
+            "view portfolio", "show my dreamdex portfolio", "dreamdex portfolio",
+        ],
+        priority: 98,
+    },
+
     // BNB Chain / Four.meme specific (routes to on_chain)
     {
         intent: "on_chain",
@@ -1266,6 +1338,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "flare": Flare Network specific queries (FLR token, FTSO oracle, FAssets/FXRP, FDC, confidential compute)
     - "goat": GOAT Network Bitcoin-secured L2 specific queries (BTC as gas, GNS .goat domain resolution, ERC-8004 agent cards/reputation, WGBTC, BitVM bridge)
     - "renaiss": Renaiss collectible cards platform (Pokemon/One Piece card queries, card marketplace, slab grading, cert number lookups, pricing/valuation/FMV oracle)
+    - "somnia": Somnia Network / DreamDEX Event Contract queries (prediction markets, binary predictions, event contracts, Up/Down tokens, implied probability, conviction scoring, mint/redeem/trade prediction tokens, STT token)
     - "multimodal": Image analysis or file reading requests
     - "search": General web search, questions, information lookup
     `;
@@ -1275,7 +1348,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss', 'goat'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss', 'goat', 'somnia'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
@@ -1294,7 +1367,7 @@ CRITICAL RULES:
    - Example: "bridge to Base" -> "on_chain"
 
 3. ADDRESS FORMAT RULES (may OVERRIDE context):
-- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei, renaiss, goat): Accept "0x..." addresses (40 hex chars)
+- EVM-compatible chains (cronos, mantle, monad, zeta, creditcoin, vana, flow, sei, renaiss, goat, somnia): Accept "0x..." addresses (40 hex chars)
 - Aptos uses 32-byte "0x..." addresses (64 hex chars); classify 64-char addresses as "aptos".
 - If context is "${chatContext}" ${isEvmContext ? '(EVM-compatible)' : '(NOT EVM)'} and user provides:
     - A "0x..." address (40 hex chars): ${isEvmContext ? `Keep as "${chatContext}"` : 'Classify as "on_chain"'}
@@ -1335,6 +1408,7 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                     "flare",
                     "goat",
                     "renaiss",
+                    "somnia",
                     "multimodal",
                     "search",
                 ]),
@@ -1418,7 +1492,7 @@ JSON Response:`,
 
                 // If address format conflicts with context, override it
                 // EVM-compatible chains: these accept 0x addresses
-                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat'];
+                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat', 'somnia'];
 
                 if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
                     console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
@@ -1511,7 +1585,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat', 'somnia', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1562,7 +1636,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana', 'goat'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana', 'goat', 'somnia'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -1678,7 +1752,7 @@ export async function classifyIntent(
 
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat', 'somnia'];
 
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&

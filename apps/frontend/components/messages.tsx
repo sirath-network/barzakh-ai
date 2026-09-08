@@ -1,6 +1,6 @@
 // components/messages.tsx
 
-import { ChatRequestOptions, Message } from "ai";
+import { ChatRequestOptions, CreateMessage, Message } from "ai";
 import { ThinkingMessage } from "./thinking-message";
 import { PreviewMessage } from "./message";
 import { Overview } from "./overview";
@@ -25,6 +25,10 @@ interface MessagesProps {
     chatRequestOptions?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  append?: (
+    message: Message | CreateMessage,
+    chatRequestOptions?: ChatRequestOptions
+  ) => Promise<string | null | undefined>;
 }
 
 function PureMessages({
@@ -36,6 +40,7 @@ function PureMessages({
   selectedGroup,
   reload,
   isReadonly,
+  append,
 }: MessagesProps) {
   return (
     <div
@@ -69,6 +74,7 @@ function PureMessages({
               reload={reload}
               isReadonly={isReadonly}
               allMessages={messages}
+              append={append}
             />
           </div>
         );

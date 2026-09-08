@@ -451,6 +451,7 @@ export function Chat({
                     selectedGroup={selectedGroup}
                     reload={reload}
                     isReadonly={effectiveIsReadonly}
+                    append={append}
                   />
                 </div>
                 <div className="flex-shrink-0">

@@ -169,6 +169,17 @@ const NadFunTokenSearchAny = NadFunTokenSearch as any;
 const FourMemeTokenSearchAny = FourMemeTokenSearch as any;
 const FourMemeApprovalAny = FourMemeApproval as any;
 
+// DreamDEX Event Contract Components
+import { DreamDexMarketsCard } from './dreamdex/dreamdex-markets-card';
+import { DreamDexTradeCard } from './dreamdex/dreamdex-trade-card';
+import { DreamDexPortfolioCard } from './dreamdex/dreamdex-portfolio-card';
+import { DreamDexAnalysisCard } from './dreamdex/dreamdex-analysis-card';
+
+const DreamDexMarketsCardAny = DreamDexMarketsCard as any;
+const DreamDexTradeCardAny = DreamDexTradeCard as any;
+const DreamDexPortfolioCardAny = DreamDexPortfolioCard as any;
+const DreamDexAnalysisCardAny = DreamDexAnalysisCard as any;
+
 // Helper to remove AI preamble narration when tools are used
 // This filters out phrases like "I'll search for..." that create bad UX
 const filterPreambleContent = (content: string, hasTools: boolean): string => {
@@ -358,6 +369,17 @@ const RENDERABLE_TOOL_NAMES = [
   'getRenaissMarketTrends',
   'analyzeRenaissCollection',
   'getRenaissCardDetails',
+  // DreamDEX / Somnia Event Contracts
+  'getDreamDexMarkets',
+  'getDreamDexMarketDetails',
+  'getDreamDexMarketHistory',
+  'dreamDexMintTokens',
+  'dreamDexPlaceOrder',
+  'dreamDexCancelOrder',
+  'dreamDexCancelAllOrders',
+  'dreamDexRedeemWinnings',
+  'getDreamDexPortfolio',
+  'getAIPredictionAnalysis',
 ];
 
 const PurePreviewMessage = ({
@@ -370,6 +392,7 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
   allMessages = [],
+  append,
 }: {
   chatId: string;
   message: Message;
@@ -384,8 +407,31 @@ const PurePreviewMessage = ({
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
   allMessages?: Message[];
+  append?: (
+    message: any,
+    chatRequestOptions?: ChatRequestOptions,
+  ) => Promise<string | null | undefined>;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+
+  const handleDreamDexAction = (promptText: string) => {
+    if (append) {
+      append({ role: 'user', content: promptText });
+    } else {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('barzakh:send-prompt', { detail: { prompt: promptText } }));
+        const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.value = promptText;
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          const form = textarea.closest('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }
+      }
+    }
+  };
   const [actionsVisible, setActionsVisible] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -541,7 +587,27 @@ const PurePreviewMessage = ({
   const statusText = getStatusText();
 
   // Check if assistant has real content, reasoning, or visible tools
+  const DREAMDEX_RENDERABLE_TOOL_NAMES = [
+    'getDreamDexMarkets',
+    'getDreamDexMarketDetails',
+    'getDreamDexMarketHistory',
+    'dreamDexMintTokens',
+    'dreamDexPlaceOrder',
+    'dreamDexCancelOrder',
+    'dreamDexCancelAllOrders',
+    'dreamDexRedeemWinnings',
+    'getDreamDexPortfolio',
+    'getAIPredictionAnalysis',
+  ];
+
+  const hasDreamDexTool = Boolean(
+    message.toolInvocations?.some((tool: any) =>
+      DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+    ),
+  );
+
   const hasVisibleTools = Boolean(
+    hasDreamDexTool ||
     (allWebSearchTools && allWebSearchTools.length > 0) ||
       (otherCompletedTools &&
         otherCompletedTools.some((tool: any) => {
@@ -686,6 +752,22 @@ const PurePreviewMessage = ({
                           RENDERABLE_TOOL_NAMES.includes(tool.toolName),
                       ) || [];
 
+                    // Instantly render DreamDEX tools even in pending/call state
+                    // so users see the rich UI card immediately without waiting several seconds for on-chain multicalls!
+                    const dreamDexPendingTools = (message.toolInvocations || []).filter(
+                      (tool) =>
+                        (tool.state === 'call' || tool.state === 'partial-call') &&
+                        DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+                    );
+
+                    const existingCallIds = new Set(renderableTools.map((t: any) => t.toolCallId));
+                    for (const pt of dreamDexPendingTools) {
+                      if (!existingCallIds.has(pt.toolCallId)) {
+                        renderableTools.push(pt as any);
+                        existingCallIds.add(pt.toolCallId);
+                      }
+                    }
+
                     // Deduplicate getEvmOnchainDataUsingZerion calls - prefer portfolio data
                     // This prevents duplicate renders when AI makes multiple API calls
                     const zerionTools = renderableTools.filter(
@@ -720,8 +802,12 @@ const PurePreviewMessage = ({
                         }}
                       >
                         {renderableTools.map((toolInvocation) => {
-                          const { toolName, toolCallId, result } =
-                            toolInvocation as any;
+                          const { toolName, toolCallId } = toolInvocation as any;
+                          const isToolPending = toolInvocation.state === 'call' || toolInvocation.state === 'partial-call';
+                          const toolArgs = (toolInvocation as any).args || {};
+                          const result = isToolPending
+                            ? { ...toolArgs, isLoading: true, isPending: true }
+                            : (toolInvocation as any).result;
 
                           const toolComponents: Record<
                             string,
@@ -881,6 +967,37 @@ const PurePreviewMessage = ({
                             ),
                             getRenaissPackDetails: (
                               <RenaissPacksAny result={result} />
+                            ),
+                            // DreamDEX / Somnia Event Contracts
+                            getDreamDexMarkets: (
+                              <DreamDexMarketsCardAny result={result} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getDreamDexMarketDetails: (
+                              <DreamDexMarketsCardAny result={result} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getDreamDexMarketHistory: (
+                              <DreamDexMarketsCardAny result={result} onSelectAction={handleDreamDexAction} />
+                            ),
+                            dreamDexMintTokens: (
+                              <DreamDexTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            dreamDexPlaceOrder: (
+                              <DreamDexTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            dreamDexCancelOrder: (
+                              <DreamDexTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            dreamDexCancelAllOrders: (
+                              <DreamDexTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            dreamDexRedeemWinnings: (
+                              <DreamDexTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getDreamDexPortfolio: (
+                              <DreamDexPortfolioCardAny result={result} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getAIPredictionAnalysis: (
+                              <DreamDexAnalysisCardAny result={result} onSelectAction={handleDreamDexAction} />
                             ),
                           };
 
@@ -1182,7 +1299,10 @@ const PurePreviewMessage = ({
                                 t.toolName === 'getGoatPortfolio' ||
                                 t.toolName === 'getMonadDefiPositions' ||
                                 t.toolName === 'getMonadNFTs' ||
-                                t.toolName === 'getMonadTokenPositions',
+                                t.toolName === 'getMonadTokenPositions' ||
+                                t.toolName === 'getDreamDexPortfolio' ||
+                                t.toolName === 'getDreamDexMarkets' ||
+                                t.toolName === 'getAIPredictionAnalysis',
                             );
                             if (hasOnchainTools && filteredContent) {
                               filteredContent =
@@ -1192,6 +1312,38 @@ const PurePreviewMessage = ({
                                 filteredContent,
                                 true,
                               );
+                            }
+
+                            // Check if a trade was executed via Autopilot
+                            const isDreamDexAutopilot = completedTools?.some(
+                              (t) => {
+                                const res = (t as any)?.result;
+                                return (
+                                  (t.toolName === 'dreamDexPlaceOrder' ||
+                                    t.toolName === 'dreamDexMintTokens' ||
+                                    t.toolName === 'dreamDexRedeemWinnings') &&
+                                  (res?.executionMode === 'autopilot' ||
+                                    res?.isExecuted === true ||
+                                    res?.status === 'success' ||
+                                    Boolean(res?.transactionHash || res?.txHash))
+                                );
+                              }
+                            );
+
+                            if (isDreamDexAutopilot && filteredContent) {
+                              filteredContent = filteredContent
+                                .replace(
+                                  /Please\s+review\s+and\s+confirm\s+your\s+DreamDEX\s+order\s+above\s+to\s+execute\s+on\s+Somnia\.?/gi,
+                                  'Your order has been placed on DreamDEX via Autopilot.',
+                                )
+                                .replace(
+                                  /Please\s+review\s+and\s+confirm\s+[^.]+\./gi,
+                                  'Your order has been placed on DreamDEX via Autopilot.',
+                                )
+                                .replace(
+                                  /Please\s+confirm\s+your\s+DreamDEX\s+order\s+[^.]+\./gi,
+                                  'Your order has been placed on DreamDEX via Autopilot.',
+                                );
                             }
 
                             // Don't render empty content (or just whitespace) after filtering
@@ -1226,6 +1378,21 @@ const PurePreviewMessage = ({
                                                   filterSystemExplanatoryContent(
                                                     filteredText,
                                                     true,
+                                                  );
+                                              }
+                                              if (isDreamDexAutopilot && filteredText) {
+                                                filteredText = filteredText
+                                                  .replace(
+                                                    /Please\s+review\s+and\s+confirm\s+your\s+DreamDEX\s+order\s+above\s+to\s+execute\s+on\s+Somnia\.?/gi,
+                                                    'Your order has been placed on DreamDEX via Autopilot.',
+                                                  )
+                                                  .replace(
+                                                    /Please\s+review\s+and\s+confirm\s+[^.]+\./gi,
+                                                    'Your order has been placed on DreamDEX via Autopilot.',
+                                                  )
+                                                  .replace(
+                                                    /Please\s+confirm\s+your\s+DreamDEX\s+order\s+[^.]+\./gi,
+                                                    'Your order has been placed on DreamDEX via Autopilot.',
                                                   );
                                               }
                                               if (
