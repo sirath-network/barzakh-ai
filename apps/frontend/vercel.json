@@ -20,10 +20,6 @@
         {
             "path": "/api/messagelimitcron",
             "schedule": "0 0 * * *"
-        },
-        {
-            "path": "/api/cron/dreamdex-sweep",
-            "schedule": "*/5 * * * *"
         }
     ]
 }

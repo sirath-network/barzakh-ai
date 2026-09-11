@@ -49,7 +49,7 @@ export function DreamDexAnalysisCard({ result, onSelectAction }: DreamDexAnalysi
         {/* Header Banner */}
         <div className="relative h-28 w-full overflow-hidden">
           <Image
-            src="/images/barzakh/banner/relay-art.png"
+            src="/images/barzakh/banner/dreamdex-banner.png"
             alt="AI Prediction Analysis"
             fill
             className="object-cover opacity-80"

@@ -340,8 +340,10 @@ export class DreamDexApiClient {
       const defaultPools = [
         { pool: "0x276f5834C407b5B1d1De943dEf367f33E33f6E3C", asset: "BTC", intervalSec: 300, symbol: "BTC-UP-5m" },
         { pool: "0x3770105e7C867F88224130b4908E5E3B51e91847", asset: "BTC", intervalSec: 900, symbol: "BTC-UP-15m" },
+        { pool: "0xF0981caA193a3D7E028Bb8dD404cC1d8629C66e3", asset: "BTC", intervalSec: 14400, symbol: "BTC-UP-4h" },
         { pool: "0x241A56bd55Cb119E62702b75FD171e0a983b1aCc", asset: "ETH", intervalSec: 300, symbol: "ETH-UP-5m" },
         { pool: "0x70784Dc7Ca87Bf2ED5220072d8c8f9661716170F", asset: "ETH", intervalSec: 900, symbol: "ETH-UP-15m" },
+        { pool: "0x9887d318fFd0e385E6d3113ef78b9a664AB4d0CB", asset: "ETH", intervalSec: 14400, symbol: "ETH-UP-4h" },
       ];
       for (const dp of defaultPools) {
         const key = dp.pool.toLowerCase();
@@ -554,6 +556,12 @@ export class DreamDexApiClient {
       }
 
       if (["15m", "5m", "1m", "4h", "1h"].some((interval) => matchesMarketInterval(query, interval))) {
+        // Fallback to safe active market for this asset if exact interval has rolled over
+        const fallbackMarket =
+          markets.find((m) => m.asset === asset && m.isLive && m.expiryTimestamp > nowSec + MIN_SAFE_WINDOW_SEC) ||
+          markets.find((m) => m.asset === asset && m.isLive) ||
+          markets.find((m) => m.asset === asset);
+        if (fallbackMarket) return fallbackMarket;
         return null;
       }
 

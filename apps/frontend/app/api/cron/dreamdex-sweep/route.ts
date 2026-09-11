@@ -21,6 +21,7 @@ export async function GET(request: Request) {
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     console.warn("[DreamDexSweepCron] Unauthorized attempt to invoke cron sweep");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

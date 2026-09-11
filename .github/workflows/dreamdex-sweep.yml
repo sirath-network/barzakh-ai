@@ -1,0 +1,22 @@
+name: DreamDEX Settlement Sweep
+
+on:
+  schedule:
+    # Run every 5 minutes (fastest interval supported by GitHub Actions)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  dreamdex-sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger DreamDEX settlement sweep
+        run: |
+          curl -X GET "${{ secrets.FRONTEND_URL }}/api/cron/dreamdex-sweep" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --fail \
+            --silent \
+            --show-error
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
