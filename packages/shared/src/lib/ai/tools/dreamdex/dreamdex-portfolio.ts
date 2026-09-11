@@ -40,7 +40,7 @@ export const getDreamDexPortfolio = tool({
       .optional()
       .describe("Recent trades for transaction hash matching"),
   }),
-  execute: async ({ address, testnet = true, extraPools, trades }: any) => {
+  execute: async ({ address, testnet = true, extraPools, trades, bypassCache }: any) => {
     try {
       const isTestnet = testnet !== false;
       const networkName = isTestnet ? "Somnia Shannon Testnet" : "Somnia Mainnet";
@@ -49,7 +49,7 @@ export const getDreamDexPortfolio = tool({
       const targetAddress = address || "0xcE6327fFb8329303e6D2db4d274D80F7337daB1d";
 
       // Fetch data from API with extra pools and trades
-      const rawPositions = await dreamDexApi.getPositions(targetAddress, { extraPools, trades });
+      const rawPositions = await dreamDexApi.getPositions(targetAddress, { extraPools, trades, bypassCache });
       const positions = Array.isArray(rawPositions)
         ? { active: rawPositions, orders: [], resolved: [] }
         : rawPositions || {};
@@ -112,7 +112,16 @@ export const getDreamDexPortfolio = tool({
           marketName: market?.symbol || market?.shortSymbol || order.marketSymbol || order.marketId,
           side: order.side,
           price: order.price,
+          entryPrice: order.price,
           quantity: order.quantity,
+          currentValue: `$${((order.quantity || 0) * (order.price || 0)).toFixed(2)} ${currency}`,
+          status: order.status || "Open",
+          timeframe: order.timeframe || extractTimeframe(order.marketSymbol || ""),
+          expiryTimestamp: order.expiryTimestamp,
+          createdAt: order.createdAt,
+          poolAddress: order.poolAddress,
+          marketNonce: order.marketNonce,
+          txHash: order.txHash,
         };
       });
 
@@ -130,13 +139,14 @@ export const getDreamDexPortfolio = tool({
             (m.poolAddress && pos.poolAddress && m.poolAddress.toLowerCase() === pos.poolAddress.toLowerCase())
         );
         const isRefunded = pos.outcome === "REFUNDED" || pos.status === "Refunded";
-        const isExpired = !isRefunded && (pos.outcome === "EXPIRED" || pos.status === "Expired");
+        const isClosedEarly = pos.outcome === "CLOSED" || pos.status === "Closed Early";
+        const isExpired = !isRefunded && !isClosedEarly && (pos.outcome === "EXPIRED" || pos.status === "Expired");
         const pnlNum = isRefunded || isExpired ? 0 : (
           typeof pos.pnl === "number"
             ? pos.pnl
             : parseFloat(String(pos.pnl || "").replace(/[^0-9.-]/g, "")) || 0
         );
-        const isWin = !isRefunded && !isExpired && (pos.isWinner === true || pos.outcome === "WON" || pnlNum > 0);
+        const isWin = !isRefunded && !isClosedEarly && !isExpired && pos.outcome !== "LOST" && (pos.isWinner === true || pos.outcome === "WON" || pnlNum > 0);
         if (isWin) wins += 1;
         totalPnL += pnlNum;
 
@@ -147,25 +157,26 @@ export const getDreamDexPortfolio = tool({
         }
 
         const isRedeemed = pos.isRedeemed === true || pos.status === "Redeemed" || pos.claimed === true;
-        const claimable = isWin && !isRedeemed && !isExpired && !isRefunded;
+        const claimable = isWin && !isRedeemed && !isExpired && !isRefunded && !isClosedEarly && (pos.claimable === true || pos.status === "Claimable");
 
         return {
           market: pos.market || market?.symbol || market?.shortSymbol || pos.marketSymbol || pos.marketId,
           marketName: pos.market || market?.symbol || market?.shortSymbol || pos.marketSymbol || pos.marketId,
           poolAddress: pos.poolAddress,
-          outcome: isWin ? "WON" : isRefunded ? "REFUNDED" : isExpired ? "EXPIRED" : "LOST",
+          outcome: isWin ? "WON" : isClosedEarly ? "CLOSED" : isRefunded ? "REFUNDED" : isExpired ? "EXPIRED" : "LOST",
           side: pos.side || (isWin ? "UP" : "DOWN"),
           isWinner: isWin,
           quantity: pos.quantity || 20,
-          pnl: isRefunded || isExpired ? "$0.00 tUSDC" : `${pnlNum >= 0 ? "+" : "-"}$${Math.abs(pnlNum).toFixed(2)} ${currency}`,
+          pnl: isRefunded || isExpired ? "$0.00 tUSDC" : (pnlNum === 0 ? "$0.00 tUSDC" : `${pnlNum >= 0 ? "+" : "-"}$${Math.abs(pnlNum).toFixed(2)} ${currency}`),
           payout: pos.payout || (isWin ? `${(pos.quantity || 20).toFixed(2)} ${currency}` : isRefunded ? `${((pos.quantity || 20) * 0.5).toFixed(2)} ${currency}` : `0.00 ${currency}`),
-          status: isRedeemed ? "Redeemed" : isWin ? "Claimable" : isRefunded ? "Refunded" : isExpired ? "Expired" : "Settled",
+          status: isRedeemed ? "Redeemed" : isClosedEarly ? "Closed Early" : isWin ? (claimable ? "Claimable" : "Settled") : isRefunded ? "Refunded" : isExpired ? "Expired" : "Settled",
           isRedeemed,
           claimed: isRedeemed,
           claimable,
           timeframe: pos.timeframe || extractTimeframe(pos.market || pos.marketSymbol || ""),
           createdAt: pos.createdAt,
           settledAt: pos.settledAt,
+          closedAt: pos.closedAt || pos.settledAt,
           txHash: pos.txHash || undefined,
           explorerUrl: pos.txHash
             ? `${explorer}/tx/${pos.txHash}`

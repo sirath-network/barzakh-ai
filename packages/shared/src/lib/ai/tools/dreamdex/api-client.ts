@@ -6,6 +6,12 @@ import { createPublicClient, http, fallback, decodeEventLog } from "viem";
 const MARKET_CREATOR_ADDR = "0x138CfA6b80475b8c03d7E468b2442278E51e645a" as const;
 const BINARY_MODULE_ADDR = "0x3ecC694Cef705358864a646142ac17A90E29e388" as const;
 
+/** Match a timeframe token without treating 15m as 5m. */
+export function matchesMarketInterval(symbol: string, interval: string): boolean {
+  const normalizedInterval = interval.toLowerCase();
+  return new RegExp(`(?:^|[-_\\s])${normalizedInterval}(?:[-_\\s]|$)`, "i").test(symbol);
+}
+
 const marketCreatorEventsAbi = [
   {
     type: "event",
@@ -115,6 +121,7 @@ export interface TradedHistoryItem {
   amount?: string;
   price?: number;
   quantity?: number;
+  marketNonce?: string;
   operationType?: string;
   createdAt?: string;
 }
@@ -122,6 +129,7 @@ export interface TradedHistoryItem {
 export interface GetPositionsOptions {
   extraPools?: TradedPoolItem[];
   trades?: TradedHistoryItem[];
+  bypassCache?: boolean;
 }
 
 export class DreamDexApiClient {
@@ -136,6 +144,17 @@ export class DreamDexApiClient {
   private inFlightPositionsFetch: Map<string, Promise<any>> = new Map();
   private registeredTradedPools: Map<string, { address: string; symbol?: string; asset?: string }> = new Map();
   private discoveredPools: Map<string, { address: string; asset: string; symbol?: string }> = new Map();
+
+  clearPositionsCache(address?: string) {
+    if (address) {
+      const key = address.toLowerCase();
+      this.positionsCache.delete(key);
+      this.inFlightPositionsFetch.delete(key);
+    } else {
+      this.positionsCache.clear();
+      this.inFlightPositionsFetch.clear();
+    }
+  }
 
   registerTradedPool(poolAddress: string, symbol?: string, asset?: string) {
     if (!poolAddress) return;
@@ -158,10 +177,18 @@ export class DreamDexApiClient {
   constructor(baseUrl: string = "https://stg.api.dreamdex.io/v0", timeout: number = 10000) {
     this.baseUrl = baseUrl;
     this.timeout = timeout;
-    // Pre-warm active markets asynchronously on startup so user queries never wait
-    try {
-      this.getEventContractMarkets().catch(() => {});
-    } catch {}
+    // Pre-warm active markets asynchronously on startup and keep refreshed in background so user queries have 0ms latency
+    if (typeof window === "undefined") {
+      try {
+        this.getEventContractMarkets().catch(() => {});
+        const timer = setInterval(() => {
+          this.refreshMarketsInBackground().catch(() => {});
+        }, 30_000);
+        if (timer && typeof (timer as any).unref === "function") {
+          (timer as any).unref();
+        }
+      } catch {}
+    }
   }
 
   private getSdk(): SomniaMarkets {
@@ -208,14 +235,19 @@ export class DreamDexApiClient {
    * Fetch all active binary Event Contract prediction markets on Somnia Shannon testnet.
    * Discovers fresh rolling markets on-chain via event logs with SWR caching and background refresh.
    */
-  async getEventContractMarkets(): Promise<FormattedEventContractMarket[]> {
+  async getEventContractMarkets(bypassCache: boolean = false): Promise<FormattedEventContractMarket[]> {
     const now = Math.floor(Date.now() / 1000);
+
+    if (bypassCache) {
+      this.cachedMarkets = [];
+      this.lastFetchTime = 0;
+    }
 
     // 1. SWR Cache check: return active cached markets immediately (0ms latency!)
     const stillActive = this.cachedMarkets.filter((m) => m.expiryTimestamp > now + 5);
     const isCacheFresh = this.cachedMarkets.length > 0 && Date.now() - this.lastFetchTime < this.CACHE_TTL_MS;
 
-    if (stillActive.length > 0) {
+    if (!bypassCache && stillActive.length > 0) {
       if (!isCacheFresh) {
         // Trigger background refresh without blocking the caller!
         this.refreshMarketsInBackground().catch(() => {});
@@ -224,7 +256,7 @@ export class DreamDexApiClient {
     }
 
     // 2. In-flight request deduplication
-    if (this.inFlightMarketFetch) {
+    if (this.inFlightMarketFetch && !bypassCache) {
       return await this.inFlightMarketFetch;
     }
 
@@ -256,7 +288,7 @@ export class DreamDexApiClient {
       });
 
       const head = await pub.getBlockNumber();
-      // Search recent blocks in parallel 1000-block slices (25,000 blocks ~ 41 min)
+      // Search recent blocks in parallel 1000-block slices (25,000 blocks ~ 42 minutes)
       const steps = Array.from({ length: 25 }, (_, i) => i);
       const logBatches = await Promise.all(
         steps.map(async (step) => {
@@ -264,7 +296,7 @@ export class DreamDexApiClient {
           const from = to - 999n;
           try {
             return await pub.getLogs({
-              address: [MARKET_CREATOR_ADDR, BINARY_MODULE_ADDR],
+              event: marketCreatorEventsAbi[0],
               fromBlock: from,
               toBlock: to,
             });
@@ -278,13 +310,13 @@ export class DreamDexApiClient {
       const candidateMarkets: any[] = [];
       for (const log of allLogs) {
         try {
-          const decoded = decodeEventLog({
-            abi: [...marketCreatorEventsAbi, ...binaryModuleEventsAbi],
-            data: log.data,
-            topics: log.topics,
-          });
-          if (decoded.eventName === "MarketCreated") {
-            candidateMarkets.push(decoded.args);
+          const args = (log as any).args;
+          if (args && args.pool) {
+            const coll = (args.collateral || "").toLowerCase();
+            const isUsdc = coll === "0x70a86d8842fb63c4ad2b7cdddf530ebf1bb25d8e" || coll === "0x1b8ed5380a4741df019acf5faa0ce6ecbf6167ee";
+            if (isUsdc || !args.collateral) {
+              candidateMarkets.push(args);
+            }
           }
         } catch {}
       }
@@ -304,42 +336,81 @@ export class DreamDexApiClient {
         }
       }
 
+      // Always include standard active rolling pools so markets are always discoverable
+      const defaultPools = [
+        { pool: "0x276f5834C407b5B1d1De943dEf367f33E33f6E3C", asset: "BTC", intervalSec: 300, symbol: "BTC-UP-5m" },
+        { pool: "0x3770105e7C867F88224130b4908E5E3B51e91847", asset: "BTC", intervalSec: 900, symbol: "BTC-UP-15m" },
+        { pool: "0x241A56bd55Cb119E62702b75FD171e0a983b1aCc", asset: "ETH", intervalSec: 300, symbol: "ETH-UP-5m" },
+        { pool: "0x70784Dc7Ca87Bf2ED5220072d8c8f9661716170F", asset: "ETH", intervalSec: 900, symbol: "ETH-UP-15m" },
+      ];
+      for (const dp of defaultPools) {
+        const key = dp.pool.toLowerCase();
+        if (!poolMap.has(key)) {
+          poolMap.set(key, dp);
+        }
+      }
+      for (const [key, dp] of this.discoveredPools.entries()) {
+        if (!poolMap.has(key)) {
+          poolMap.set(key, { pool: dp.address, asset: dp.asset, symbol: dp.symbol });
+        }
+      }
+      for (const [key, rp] of this.registeredTradedPools.entries()) {
+        if (!poolMap.has(key)) {
+          poolMap.set(key, { pool: rp.address, asset: rp.asset, symbol: rp.symbol });
+        }
+      }
+
       // Verify active, non-finalized pools on-chain using high-speed multicall
       const liveOnChainMarkets: FormattedEventContractMarket[] = [];
-      const poolList = Array.from(poolMap.values()).filter((m) => Number(m.expiry || 0) > now + 15);
+      const poolList = Array.from(poolMap.values());
       if (poolList.length > 0) {
         const poolCheckContracts = poolList.flatMap((m) => [
           { address: m.pool as `0x${string}`, abi: binaryPoolReadAbi, functionName: "finalized" },
           { address: m.pool as `0x${string}`, abi: binaryPoolReadAbi, functionName: "marketExpiryNs" },
         ]);
         const checkResults = await pub.multicall({ contracts: poolCheckContracts });
-        const nowNs = BigInt(Date.now()) * 1_000_000n;
 
         for (let i = 0; i < poolList.length; i++) {
           const m = poolList[i];
-          const finalized = checkResults[i * 2]?.status === "success" ? (checkResults[i * 2].result as boolean) : true;
+          const finalized = checkResults[i * 2]?.status === "success" ? (checkResults[i * 2].result as boolean) : false;
           const expiryNs = checkResults[i * 2 + 1]?.status === "success" ? (checkResults[i * 2 + 1].result as bigint) : 0n;
 
-          if (!finalized && expiryNs > nowNs) {
-            const expirySec = Number(m.expiry);
-            const strike = Number(m.strike || 0) / 100;
-            const startSec = Number(m.tradingStart || 0);
+          if (!finalized) {
             let durationSec = m.intervalSec ? Number(m.intervalSec) : 0;
-            if (!durationSec && startSec > 0 && expirySec > startSec) {
-              durationSec = expirySec - startSec;
+            const startSec = Number(m.tradingStart || 0);
+            const mExpirySec = Number(m.expiry || 0);
+            if (!durationSec && startSec > 0 && mExpirySec > startSec) {
+              durationSec = mExpirySec - startSec;
             }
-            const durationMin = durationSec > 0 ? Math.round(durationSec / 60) : 5;
+            if (!durationSec) {
+              const symLower = (m.symbol || "").toLowerCase();
+              durationSec = symLower.includes("15m") ? 900 : symLower.includes("1h") ? 3600 : symLower.includes("4h") ? 14400 : 300;
+            }
+            const durationMin = Math.max(1, Math.round(durationSec / 60));
             const interval = durationMin >= 60 ? `${Math.round(durationMin / 60)}h` : `${durationMin}m`;
 
+            // On-chain live expiry from binary pool
+            const liveExpirySec = expiryNs > 0n ? Number(expiryNs / 1_000_000_000n) : mExpirySec;
+
+            // Rolling window calculation: if on-chain expiry has lapsed, calculate next rolling window end
+            let effectiveExpirySec = liveExpirySec;
+            if (effectiveExpirySec <= now) {
+              effectiveExpirySec = Math.ceil(now / durationSec) * durationSec;
+              if (effectiveExpirySec <= now) {
+                effectiveExpirySec += durationSec;
+              }
+            }
+
+            const strike = Number(m.strike || 0) / 100;
             const symbol = strike > 0
               ? `${m.asset}-UP-${strike.toFixed(0)}-${interval}`
               : `${m.asset}-UP-${interval}`;
             const shortSymbol = `${m.asset}-${interval}`;
-            const expiryDate = new Date(expirySec * 1000);
+            const expiryDate = new Date(effectiveExpirySec * 1000);
 
             liveOnChainMarkets.push({
-              id: m.marketId,
-              marketId: m.marketId,
+              id: m.marketId || m.pool,
+              marketId: m.marketId || m.pool,
               symbol,
               shortSymbol,
               asset: m.asset || "BTC",
@@ -353,14 +424,14 @@ export class DreamDexApiClient {
               lastPrice: 0.5,
               tradingVolume: "$12,450 tUSDC",
               expiryTime: expiryDate.toISOString(),
-              expiryTimestamp: expirySec,
+              expiryTimestamp: effectiveExpirySec,
               status: "Trading",
               isLive: true,
               poolAddress: m.pool,
               marketAddress: m.market || m.pool,
               yesTokenId: m.yesId ? String(m.yesId) : undefined,
               noTokenId: m.noId ? String(m.noId) : undefined,
-              collateral: m.collateral || SOMNIA_TESTNET_ADDRESSES.testUsdc,
+              collateral: m.collateral || "0x70a86D8842FB63C4Ad2b7cdddF530eBf1BB25d8E",
               type: "EVENT_CONTRACT",
               isEventContract: true,
               explorerUrl: `https://shannon-explorer.somnia.network/address/${m.pool}`,
@@ -370,8 +441,35 @@ export class DreamDexApiClient {
       }
 
       if (liveOnChainMarkets.length > 0) {
-        // Sort with longest remaining window first so users have maximum time to trade
-        liveOnChainMarkets.sort((a, b) => b.expiryTimestamp - a.expiryTimestamp);
+        // Sort systematically: Group by asset (BTC first, then ETH, then others),
+        // and sort by duration ascending (1m -> 5m -> 15m -> 1h -> 4h) so all timeframes are clearly represented.
+        const durationOrder: Record<string, number> = {
+          "1m": 1,
+          "5m": 2,
+          "15m": 3,
+          "1h": 4,
+          "4h": 5,
+        };
+        const assetPriority: Record<string, number> = {
+          BTC: 1,
+          ETH: 2,
+          SOMI: 3,
+        };
+
+        liveOnChainMarkets.sort((a, b) => {
+          const aAsset = assetPriority[a.asset] || 99;
+          const bAsset = assetPriority[b.asset] || 99;
+          if (aAsset !== bAsset) return aAsset - bAsset;
+
+          // Extract duration tag from symbol or shortSymbol
+          const aIv = ["1m", "5m", "15m", "1h", "4h"].find((iv) => matchesMarketInterval(a.symbol, iv)) || "5m";
+          const bIv = ["1m", "5m", "15m", "1h", "4h"].find((iv) => matchesMarketInterval(b.symbol, iv)) || "5m";
+          const aRank = durationOrder[aIv] || 99;
+          const bRank = durationOrder[bIv] || 99;
+          if (aRank !== bRank) return aRank - bRank;
+
+          return a.expiryTimestamp - b.expiryTimestamp;
+        });
 
         // Ensure strictly unique symbols across live markets
         const seenSymbols = new Set<string>();
@@ -412,7 +510,10 @@ export class DreamDexApiClient {
 
     const query = (symbol || "").toLowerCase().trim();
 
-    // 1. Exact match on id, marketId, or symbol
+    const nowSec = Math.floor(Date.now() / 1000);
+    const MIN_SAFE_WINDOW_SEC = 15; // 15 seconds minimum for taker orders on testnet solver
+
+    // 1. Exact match on id, marketId, or symbol (if still has safe fill lifespan)
     const exact = markets.find(
       (m) =>
         m.id.toLowerCase() === query ||
@@ -420,22 +521,52 @@ export class DreamDexApiClient {
         m.symbol.toLowerCase() === query ||
         m.shortSymbol.toLowerCase() === query
     );
-    if (exact) return exact;
-
-    // 2. Asset matching (e.g. user passes "ETH", "BTC", "SOMI")
-    if (query.includes("eth") || query.includes("ethereum")) {
-      const ethMarket = markets.find((m) => m.asset === "ETH" && m.isLive) || markets.find((m) => m.asset === "ETH");
-      if (ethMarket) return ethMarket;
+    if (exact && exact.isLive && exact.expiryTimestamp > nowSec + MIN_SAFE_WINDOW_SEC) {
+      return exact;
     }
 
-    if (query.includes("btc") || query.includes("bitcoin")) {
-      const btcMarket = markets.find((m) => m.asset === "BTC" && m.isLive) || markets.find((m) => m.asset === "BTC");
-      if (btcMarket) return btcMarket;
-    }
+    // 2. Asset matching with interval awareness (e.g. user passes "BTC-UP-78446-1m", "ETH-UP-2474-5m")
+    const asset = query.includes("btc") || query.includes("bitcoin") ? "BTC"
+      : query.includes("eth") || query.includes("ethereum") ? "ETH"
+      : query.includes("somi") || query.includes("somnia") ? "SOMI"
+      : null;
 
-    if (query.includes("somi") || query.includes("somnia")) {
-      const somiMarket = markets.find((m) => m.asset === "SOMI" && m.isLive) || markets.find((m) => m.asset === "SOMI");
-      if (somiMarket) return somiMarket;
+    if (asset) {
+      const intervalMatch = ["15m", "5m", "1m", "4h", "1h"].find(
+        (iv) => matchesMarketInterval(query, iv) || new RegExp(`(?:^|[-_\\s])${iv}(?:[-_\\s]|$)`, "i").test(query)
+      );
+      if (intervalMatch) {
+        // First try to find a matching interval market that has at least 15s left
+        const safeInterval = markets.find(
+          (m) =>
+            m.asset === asset &&
+            matchesMarketInterval(m.symbol, intervalMatch) &&
+            m.isLive &&
+            m.expiryTimestamp > nowSec + MIN_SAFE_WINDOW_SEC
+        );
+        if (safeInterval) return safeInterval;
+
+        // Fallback to any matching interval market
+        const matchingInterval = markets.find(
+          (m) => m.asset === asset && matchesMarketInterval(m.symbol, intervalMatch) && m.isLive
+        );
+        if (matchingInterval) return matchingInterval;
+      }
+
+      if (["15m", "5m", "1m", "4h", "1h"].some((interval) => matchesMarketInterval(query, interval))) {
+        return null;
+      }
+
+      // Asset-only queries may select the freshest active market.
+      const safeAssetMarket = markets.find(
+        (m) => m.asset === asset && m.isLive && m.expiryTimestamp > nowSec + MIN_SAFE_WINDOW_SEC
+      );
+      if (safeAssetMarket) return safeAssetMarket;
+
+      const liveAssetMarket =
+        markets.find((m) => m.asset === asset && m.isLive) ||
+        markets.find((m) => m.asset === asset);
+      if (liveAssetMarket) return liveAssetMarket;
     }
 
     // 3. Question contains query
@@ -447,8 +578,8 @@ export class DreamDexApiClient {
     );
     if (partial) return partial;
 
-    // 4. Default to first live market
-    return markets[0] || null;
+    // 4. Default to first live market with safe lifespan
+    return markets.find((m) => m.isLive && m.expiryTimestamp > nowSec + MIN_SAFE_WINDOW_SEC) || exact || markets[0] || null;
   }
 
   async getOrderBook(marketSymbol: string) {
@@ -495,11 +626,15 @@ export class DreamDexApiClient {
 
   async getPositions(address: string, options?: GetPositionsOptions) {
     const cacheKey = (address || "default").toLowerCase();
+    if (options?.bypassCache) {
+      this.positionsCache.delete(cacheKey);
+      this.inFlightPositionsFetch.delete(cacheKey);
+    }
     const cached = this.positionsCache.get(cacheKey);
     const now = Date.now();
 
     // Cache TTL: 15s fresh, 60s stale-while-revalidate (instant 0ms response!)
-    if (cached) {
+    if (cached && !options?.bypassCache) {
       if (now - cached.timestamp < 15000) {
         return cached.data;
       }
@@ -736,7 +871,8 @@ export class DreamDexApiClient {
               const poolBig = BigInt(tr.pool);
               const sideStr = String(tr.side || "").toLowerCase();
               const outcomeIdx = (sideStr.includes("down") || sideStr.includes("no")) ? 1 : 0;
-              const outId = (poolBig << 72n) | (state.nonce << 8n) | BigInt(outcomeIdx);
+              const nonce = tr.marketNonce ? BigInt(tr.marketNonce) : state.nonce;
+              const outId = (poolBig << 72n) | (nonce << 8n) | BigInt(outcomeIdx);
               const key = outId.toString();
               if (!seenOutcomeIds.has(key)) {
                 seenOutcomeIds.add(key);
@@ -744,7 +880,7 @@ export class DreamDexApiClient {
                   pool: tr.pool,
                   asset: tr.marketSymbol?.split("-")[0] || "CRYPTO",
                   symbol: tr.marketSymbol,
-                  nonce: state.nonce,
+                  nonce,
                   outcomeIdx,
                   outcomeId: outId,
                   currentNonce: Number(state.nonce),
@@ -787,9 +923,10 @@ export class DreamDexApiClient {
         for (const tr of options.trades) {
           if (tr.operationType === "dreamdex_place_order" && tr.pool) {
             const state = poolStateMap.get(tr.pool.toLowerCase());
-            if (state && state.finalized) {
+            const tradeNonce = tr.marketNonce ? BigInt(tr.marketNonce) : state?.nonce;
+            if (tradeNonce) {
               const poolBig = BigInt(tr.pool);
-              const marketKey = (poolBig << 64n) | state.nonce;
+              const marketKey = (poolBig << 64n) | tradeNonce;
               const keyStr = marketKey.toString();
               if (!marketKeysMap.has(keyStr)) {
                 marketKeysMap.set(keyStr, null);
@@ -807,7 +944,7 @@ export class DreamDexApiClient {
       }
 
       for (const token of heldTokens) {
-        if (token.finalized) {
+        if (token.finalized || token.nonce < BigInt(token.currentNonce) || token.expiryNs <= nowNs) {
           const poolBig = BigInt(token.pool);
           const marketKey = (poolBig << 64n) | token.nonce;
           const keyStr = marketKey.toString();
@@ -852,26 +989,37 @@ export class DreamDexApiClient {
       };
 
       const activeList: any[] = [];
+      const orderList: any[] = [];
       const resolvedList: any[] = [];
       const handledSignatures = new Set<string>();
       const handledPoolSides = new Set<string>();
+      const closesTrade = (close: TradedHistoryItem, buy: TradedHistoryItem, pool: string, symbol: string) => {
+        if (close.operationType !== "dreamdex_close_position" || !close.createdAt || !buy.createdAt) return false;
+        if (new Date(close.createdAt).getTime() <= new Date(buy.createdAt).getTime()) return false;
+        if (close.pool?.toLowerCase() === pool.toLowerCase()) return true;
+        return close.marketSymbol?.toLowerCase() === symbol.toLowerCase();
+      };
 
       // 6. Process held tokens (0 RPC calls in loop)
       for (const token of heldTokens) {
         const qty = Number(token.balance) / 1e6;
         const sideStr = token.outcomeIdx === 0 ? "Up" : "Down";
-        const sym = token.symbol || `${token.asset}-${sideStr.toUpperCase()}-${token.nonce}`;
-        const isMarketActive = !token.finalized && token.expiryNs > nowNs && Number(token.nonce) === token.currentNonce;
-
         const matchingTrade = options?.trades?.find((t) =>
+          t.operationType === "dreamdex_place_order" &&
           t.pool?.toLowerCase() === token.pool.toLowerCase() &&
+          (!t.marketNonce || BigInt(t.marketNonce) === token.nonce) &&
           (String(t.side || "").toLowerCase().includes("down") ? 1 : 0) === token.outcomeIdx
         );
+        const sym = matchingTrade?.marketSymbol || token.symbol || `${token.asset}-${sideStr.toUpperCase()}-${token.nonce}`;
+        const wasClosed = matchingTrade
+          ? options?.trades?.some((close) => closesTrade(close, matchingTrade, token.pool, sym))
+          : false;
+        const isMarketActive = !token.finalized && token.expiryNs > nowNs && Number(token.nonce) === token.currentNonce && !wasClosed;
 
         if (matchingTrade?.signature) {
           handledSignatures.add(matchingTrade.signature);
         }
-        handledPoolSides.add(`${token.pool.toLowerCase()}-${sideStr.toLowerCase()}`);
+        handledPoolSides.add(`${token.pool.toLowerCase()}-${token.nonce}-${sideStr.toLowerCase()}`);
 
         if (isMarketActive) {
           const asset = token.asset || sym.split("-")[0] || "BTC";
@@ -919,10 +1067,10 @@ export class DreamDexApiClient {
           });
         } else {
           let isWin = false;
-          let outcome = "LOST";
-          let pnl = -(qty * 0.5);
-          let payout = "0.00 tUSDC";
-          let status = "Settled";
+          let outcome = wasClosed ? "CLOSED" : "LOST";
+          let pnl = wasClosed ? 0 : -(qty * 0.5);
+          let payout = wasClosed ? `${(qty * 0.5).toFixed(2)} tUSDC` : "0.00 tUSDC";
+          let status = wasClosed ? "Closed Early" : "Settled";
 
           const poolBig = BigInt(token.pool);
           const marketKey = (poolBig << 64n) | token.nonce;
@@ -936,9 +1084,14 @@ export class DreamDexApiClient {
             status = isWin ? "Claimable" : "Settled";
           }
 
+          const timeframe = extractTimeframe(sym);
+          const settledAt = token.expiryNs ? new Date(Number(token.expiryNs / 1000000n)).toISOString() : undefined;
+          const createdAt = matchingTrade?.createdAt || (settledAt ? new Date(new Date(settledAt).getTime() - 300_000).toISOString() : undefined);
+
           resolvedList.push({
             market: sym,
             marketId: `0x${token.outcomeId.toString(16)}`,
+            outcomeId: token.outcomeId.toString(),
             marketSymbol: sym,
             poolAddress: token.pool,
             side: sideStr,
@@ -952,6 +1105,10 @@ export class DreamDexApiClient {
             isRedeemed: status === "Redeemed",
             claimed: status === "Redeemed",
             claimable: status === "Claimable",
+            timeframe,
+            createdAt,
+            settledAt,
+            closedAt: settledAt,
             txHash: matchingTrade?.signature,
             explorerUrl: matchingTrade?.signature
               ? `https://shannon-explorer.somnia.network/tx/${matchingTrade.signature}`
@@ -964,21 +1121,51 @@ export class DreamDexApiClient {
       if (options?.trades) {
         for (const trade of options.trades) {
           if (trade.operationType && trade.operationType.includes("redeem")) {
-            const pool = trade.pool;
-            const sym = trade.marketSymbol || "Event Contract";
-            const isAlreadyPresent = resolvedList.some(
-              (r) =>
-                (trade.signature && r.txHash === trade.signature) ||
-                (pool && r.poolAddress?.toLowerCase() === pool.toLowerCase() && r.isWinner)
-            );
-            if (!isAlreadyPresent) {
+            const pool = (trade.pool || "").toLowerCase();
+            const sym = (trade.marketSymbol || "").toLowerCase();
+
+            // First: update ANY existing winning position in resolvedList that matches this pool, symbol, or signature
+            let didUpdateExisting = false;
+            for (const r of resolvedList) {
+              const rPool = (r.poolAddress || "").toLowerCase();
+              const rSym = (r.market || r.marketSymbol || r.marketName || "").toLowerCase();
+              const matchesPool = pool && rPool && rPool === pool;
+              const matchesSym = sym && rSym && (rSym === sym || rSym.includes(sym) || sym.includes(rSym));
+              const matchesTx = trade.signature && r.txHash === trade.signature;
+
+              if (r.isWinner && (matchesPool || matchesSym || matchesTx)) {
+                r.isRedeemed = true;
+                r.claimed = true;
+                r.claimable = false;
+                r.status = "Redeemed";
+                if (trade.signature) {
+                  r.txHash = trade.signature;
+                  r.explorerUrl = `https://shannon-explorer.somnia.network/tx/${trade.signature}`;
+                }
+                didUpdateExisting = true;
+              }
+            }
+
+            if (!didUpdateExisting) {
               const qty = Number(trade.amount) || 10;
               const pnl = qty * 0.425;
+              const timeframe = extractTimeframe(trade.marketSymbol || sym || "");
+              const matchingBuyTrade = options?.trades?.find(
+                (tr) =>
+                  tr.operationType === "dreamdex_place_order" &&
+                  tr.pool?.toLowerCase() === pool &&
+                  tr.createdAt &&
+                  trade.createdAt &&
+                  new Date(tr.createdAt).getTime() <= new Date(trade.createdAt).getTime()
+              );
+              const createdAt = matchingBuyTrade?.createdAt || trade.createdAt;
+              const settledAt = trade.createdAt || undefined;
+
               resolvedList.unshift({
-                market: sym,
+                market: trade.marketSymbol || "Event Contract",
                 marketId: `${pool || "0x"}-redeemed`,
-                marketSymbol: sym,
-                poolAddress: pool,
+                marketSymbol: trade.marketSymbol || "Event Contract",
+                poolAddress: trade.pool,
                 side: "Up",
                 quantity: qty,
                 outcome: "WON",
@@ -990,11 +1177,15 @@ export class DreamDexApiClient {
                 isRedeemed: true,
                 claimed: true,
                 claimable: false,
+                timeframe,
+                createdAt,
+                settledAt,
+                closedAt: trade.createdAt || undefined,
                 txHash: trade.signature,
                 explorerUrl: trade.signature
                   ? `https://shannon-explorer.somnia.network/tx/${trade.signature}`
-                  : pool
-                  ? `https://shannon-explorer.somnia.network/address/${pool}`
+                  : trade.pool
+                  ? `https://shannon-explorer.somnia.network/address/${trade.pool}`
                   : undefined,
               });
             }
@@ -1004,17 +1195,53 @@ export class DreamDexApiClient {
             const poolAddr = trade.pool?.toLowerCase();
             if (!poolAddr) continue;
             const state = poolStateMap.get(poolAddr);
-            const isMarketActive = state ? (!state.finalized && state.expiryNs > nowNs) : false;
             const sideStr = String(trade.side || "buy_up").toLowerCase().includes("down") ? "Down" : "Up";
             const outcomeIdx = sideStr === "Down" ? 1 : 0;
             const sym = trade.marketSymbol || "Event Contract";
             const price = Number(trade.price) || 0.50;
             const qty = Number(trade.quantity) || (Number(trade.amount) ? Math.round(Number(trade.amount) / price) : 20);
 
-            if (isMarketActive) {
-              if (handledPoolSides.has(`${poolAddr}-${sideStr.toLowerCase()}`)) {
+            // 1. Check on-chain balance for this trade's outcome
+            const poolBig = BigInt(poolAddr);
+            const tradeNonce = trade.marketNonce ? BigInt(trade.marketNonce) : state?.nonce;
+            const outId = (poolBig << 72n) | ((tradeNonce || 0n) << 8n) | BigInt(outcomeIdx);
+            const onChainBal = balanceMap.get(outId.toString()) || 0n;
+
+            // 2. Check trade age against market window duration
+            const tf = extractTimeframe(sym);
+            const tfSec = tf.endsWith("m") ? parseInt(tf) * 60 : tf.endsWith("h") ? parseInt(tf) * 3600 : tf.endsWith("d") ? parseInt(tf) * 86400 : 3600;
+            const tradeAgeMs = trade.createdAt ? (Date.now() - new Date(trade.createdAt).getTime()) : Infinity;
+            const isTradeWithinLifespan = tradeAgeMs < (tfSec + 60) * 1000;
+
+            // 3. Check if trade was already closed via early exit
+            const wasClosed = options?.trades?.some((close) => closesTrade(close, trade, poolAddr, sym));
+
+            // A trade can ONLY be Active if the pool window is unfinalized AND within lifespan AND not closed AND user actually holds tokens!
+            const isMarketActive = state ? (!state.finalized && state.expiryNs > nowNs && isTradeWithinLifespan && !wasClosed && onChainBal > 0n) : false;
+
+            const isOrderOpen = state && !state.finalized && state.expiryNs > nowNs && isTradeWithinLifespan && !wasClosed && onChainBal === 0n;
+
+            if (isOrderOpen) {
+              if (trade.signature) handledSignatures.add(trade.signature);
+              orderList.push({
+                market: sym,
+                marketSymbol: sym,
+                poolAddress: trade.pool,
+                marketNonce: tradeNonce?.toString(),
+                side: sideStr,
+                price,
+                quantity: qty,
+                status: "Open",
+                timeframe: tf,
+                expiryTimestamp: Number(state.expiryNs / 1_000_000_000n),
+                createdAt: trade.createdAt,
+                txHash: trade.signature,
+              });
+            } else if (isMarketActive) {
+              const positionKey = `${poolAddr}-${tradeNonce || "unknown"}-${sideStr.toLowerCase()}`;
+              if (handledPoolSides.has(positionKey)) {
                 const existing = activeList.find(
-                  (a) => a.poolAddress?.toLowerCase() === poolAddr && a.side?.toLowerCase() === sideStr.toLowerCase()
+                  (a) => a.poolAddress?.toLowerCase() === poolAddr && a.marketNonce === tradeNonce?.toString() && a.side?.toLowerCase() === sideStr.toLowerCase()
                 );
                 if (existing && !existing.txHash && trade.signature) {
                   existing.txHash = trade.signature;
@@ -1024,7 +1251,7 @@ export class DreamDexApiClient {
               }
 
               if (trade.signature) handledSignatures.add(trade.signature);
-              handledPoolSides.add(`${poolAddr}-${sideStr.toLowerCase()}`);
+              handledPoolSides.add(positionKey);
 
               const asset = sym.split("-")[0] || "BTC";
               const timeframe = extractTimeframe(sym);
@@ -1048,6 +1275,7 @@ export class DreamDexApiClient {
                 marketId: `${trade.pool}-open-order`,
                 marketSymbol: sym,
                 poolAddress: trade.pool,
+                marketNonce: tradeNonce?.toString(),
                 side: sideStr,
                 quantity: qty,
                 entryPrice,
@@ -1071,9 +1299,7 @@ export class DreamDexApiClient {
               });
             } else {
               const isAlreadyInResolved = resolvedList.some(
-                (r) =>
-                  (trade.signature && r.txHash === trade.signature) ||
-                  (r.poolAddress?.toLowerCase() === poolAddr && r.side?.toLowerCase() === sideStr.toLowerCase())
+                (r) => trade.signature && r.txHash === trade.signature
               );
               if (!isAlreadyInResolved) {
                 if (trade.signature) handledSignatures.add(trade.signature);
@@ -1082,16 +1308,18 @@ export class DreamDexApiClient {
                 let pnl = 0;
                 let payout = `${(qty * price).toFixed(2)} tUSDC`;
                 let status = "Refunded";
+                let outId: bigint | undefined = undefined;
 
-                if (state && state.finalized) {
+                const nonceToUse = tradeNonce || (state ? state.nonce : undefined);
+                if (nonceToUse !== undefined) {
                   const poolBig = BigInt(poolAddr);
-                  const marketKey = (poolBig << 64n) | state.nonce;
+                  const marketKey = (poolBig << 64n) | nonceToUse;
                   const s = marketKeysMap.get(marketKey.toString());
-                  if (s) {
+                  if (s && s.finalized) {
                     const winIdx = s.payoutNumerators[0] > 0n ? 0 : s.payoutNumerators[1] > 0n ? 1 : -1;
                     const wouldWin = winIdx === outcomeIdx;
 
-                    const outId = (poolBig << 72n) | (state.nonce << 8n) | BigInt(outcomeIdx);
+                    outId = (poolBig << 72n) | (nonceToUse << 8n) | BigInt(outcomeIdx);
                     const onChainBal = balanceMap.get(outId.toString()) || 0n;
 
                     if (onChainBal > 0n) {
@@ -1109,12 +1337,17 @@ export class DreamDexApiClient {
                         status = "Settled";
                       }
                     } else {
-                      const wasRedeemed = options?.trades?.some(
+                      const redeemTrade = options?.trades?.find(
                         (tr) =>
                           tr.operationType === "dreamdex_redeem" &&
-                          tr.pool?.toLowerCase() === poolAddr
+                          (tr.pool?.toLowerCase() === poolAddr ||
+                           (tr.marketSymbol && sym && (
+                             tr.marketSymbol.toLowerCase() === sym.toLowerCase() ||
+                             sym.toLowerCase().includes(tr.marketSymbol.toLowerCase()) ||
+                             tr.marketSymbol.toLowerCase().includes(sym.toLowerCase())
+                           )))
                       );
-                      if (wasRedeemed) {
+                      if (wouldWin || redeemTrade) {
                         outcome = "WON";
                         isWin = true;
                         pnl = qty * (1 - price);
@@ -1135,11 +1368,47 @@ export class DreamDexApiClient {
                 const isRedeemed = status === "Redeemed";
 
                 const timeframe = extractTimeframe(sym);
+                const tfSec = timeframe.endsWith("m") ? parseInt(timeframe) * 60 : timeframe.endsWith("h") ? parseInt(timeframe) * 3600 : timeframe.endsWith("d") ? parseInt(timeframe) * 86400 : 3600;
+
+                // Check if position was closed early via close_position
+                const closeTrade = options?.trades?.find((close) => closesTrade(close, trade, poolAddr, sym));
+
+                if (closeTrade) {
+                  status = "Closed Early";
+                  outcome = "CLOSED";
+                }
+
+                // Compute accurate settledAt / closedAt
+                let settledAt: string | undefined = undefined;
+                if (closeTrade?.createdAt) {
+                  settledAt = closeTrade.createdAt;
+                } else if (trade.createdAt) {
+                  const tradeTime = new Date(trade.createdAt).getTime();
+                  if (tradeTime + tfSec * 1000 <= Date.now()) {
+                    settledAt = new Date(tradeTime + tfSec * 1000).toISOString();
+                  } else if (state?.expiryNs) {
+                    settledAt = new Date(Number(state.expiryNs / 1000000n)).toISOString();
+                  }
+                } else if (state?.expiryNs) {
+                  settledAt = new Date(Number(state.expiryNs / 1000000n)).toISOString();
+                }
+
+                const redeemTrade = options?.trades?.find(
+                  (tr) =>
+                    tr.operationType === "dreamdex_redeem" &&
+                    (tr.pool?.toLowerCase() === poolAddr ||
+                     (tr.marketSymbol && sym && tr.marketSymbol.toLowerCase() === sym.toLowerCase()))
+                );
+                const displayTxHash = (isRedeemed && redeemTrade?.signature)
+                  ? redeemTrade.signature
+                  : (closeTrade?.signature || trade.signature);
+
                 resolvedList.push({
                   market: sym,
                   marketId: `${trade.pool}-settled-order`,
                   marketSymbol: sym,
                   poolAddress: trade.pool,
+                  outcomeId: outId ? outId.toString() : undefined,
                   side: sideStr,
                   quantity: qty,
                   outcome,
@@ -1153,10 +1422,11 @@ export class DreamDexApiClient {
                   claimable: isClaimable,
                   timeframe,
                   createdAt: trade.createdAt || undefined,
-                  settledAt: state?.expiryNs ? new Date(Number(state.expiryNs / 1000000n)).toISOString() : undefined,
-                  txHash: trade.signature,
-                  explorerUrl: trade.signature
-                    ? `https://shannon-explorer.somnia.network/tx/${trade.signature}`
+                  settledAt,
+                  closedAt: settledAt,
+                  txHash: displayTxHash,
+                  explorerUrl: displayTxHash
+                    ? `https://shannon-explorer.somnia.network/tx/${displayTxHash}`
                     : `https://shannon-explorer.somnia.network/address/${trade.pool}`,
                 });
               }
@@ -1165,9 +1435,16 @@ export class DreamDexApiClient {
         }
       }
 
+      // 8. Sort resolved positions by newest first (descending by settledAt, closedAt, or createdAt)
+      resolvedList.sort((a, b) => {
+        const timeA = new Date(a.closedAt || a.settledAt || a.createdAt || 0).getTime();
+        const timeB = new Date(b.closedAt || b.settledAt || b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+
       return {
         active: activeList,
-        orders: [],
+        orders: orderList,
         resolved: resolvedList,
       };
     } catch (error) {

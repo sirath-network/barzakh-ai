@@ -272,33 +272,6 @@ export const dreamDexPlaceOrder = tool({
       const targetSymbol = market.symbol || marketSymbol;
       const targetQuestion = market.question || `Will ${market.asset || "ETH"} go Up?`;
 
-      // Resolve effective price: user-specified price, or market implied price, or 0.50 default
-      let effectivePrice = price;
-      if (effectivePrice === undefined || effectivePrice === null) {
-        effectivePrice = market.lastPrice || 0.50;
-      }
-      if (effectivePrice < 0.01 || effectivePrice > 0.99) {
-        effectivePrice = 0.50;
-      }
-
-      // Calculate effective quantity (contracts) and total collateral (tUSDC)
-      let effectiveQuantity: number;
-      let effectiveCollateral: number;
-
-      if (amount !== undefined && amount > 0) {
-        // User specified a collateral amount to bet (e.g. 50 tUSDC)
-        effectiveQuantity = Math.max(1, Math.round(amount / effectivePrice));
-        effectiveCollateral = parseFloat((effectiveQuantity * effectivePrice).toFixed(2));
-      } else if (quantity !== undefined && quantity > 0) {
-        // User specified a number of contracts
-        effectiveQuantity = quantity;
-        effectiveCollateral = parseFloat((effectivePrice * quantity).toFixed(2));
-      } else {
-        // Default to 10 tUSDC bet
-        effectiveCollateral = 10;
-        effectiveQuantity = Math.max(1, Math.round(10 / effectivePrice));
-      }
-
       const rawSide = (side || "buy_up").toLowerCase().trim();
       const effectiveSide: "buy_up" | "buy_down" | "sell_up" | "sell_down" =
         rawSide.includes("sell_down") ? "sell_down"
@@ -307,7 +280,65 @@ export const dreamDexPlaceOrder = tool({
         : "buy_up";
       const isUp = effectiveSide === "buy_up" || effectiveSide === "sell_down";
 
-      const priceInMillionths = Math.round(effectivePrice * 1000000);
+      // Query live order book to get exact taker prices crossing the spread (prevents unfilled order refunds)
+      let bestBid = 480000;
+      let bestAsk = 520000;
+      try {
+        const ob = await dreamDexApi.getOrderBook(targetSymbol);
+        if (ob?.bids?.[0]?.price) bestBid = Number(ob.bids[0].price);
+        if (ob?.asks?.[0]?.price) bestAsk = Number(ob.asks[0].price);
+      } catch (err) {
+        console.warn("[DreamDexTrading] Live orderbook fetch fallback:", err);
+      }
+
+      // Compute taker crossing prices:
+      // UP: crosses YES asks at bestAsk (e.g. 0.52)
+      // DOWN: crosses YES bids at bestBid (cost for NO is 1.0 - bestBid = 0.52)
+      const marketTakerPrice = isUp ? (bestAsk / 1e6) : ((1e6 - bestBid) / 1e6);
+
+      let effectivePrice = price;
+      let priceInMillionths: number;
+
+      if (effectivePrice !== undefined && effectivePrice !== null && effectivePrice >= 0.01 && effectivePrice <= 0.99) {
+        // User explicitly specified a limit price
+        if (isUp) {
+          priceInMillionths = Math.round(effectivePrice * 1e6);
+        } else {
+          // For DOWN: in BinaryPool kind 2 is placed as an ask on the YES book.
+          // Willingness to pay effectivePrice for DOWN means selling YES at (1 - effectivePrice).
+          priceInMillionths = Math.round((1 - effectivePrice) * 1e6);
+        }
+      } else {
+        // Market / Taker Order: Price to cross the order book and fill IMMEDIATELY (0% refund guarantee)
+        effectivePrice = marketTakerPrice;
+        if (isUp) {
+          // Cross the best ask (with slight safety buffer to guarantee taker fill)
+          priceInMillionths = Math.min(990000, bestAsk + 10000);
+        } else {
+          // Cross the best bid (with slight safety buffer to guarantee taker fill)
+          priceInMillionths = Math.max(10000, bestBid - 10000);
+        }
+      }
+
+      // Calculate effective quantity (contracts) and total collateral (tUSDC)
+      let effectiveQuantity: number;
+      let effectiveCollateral: number;
+
+      if (amount !== undefined && amount > 0) {
+        // User specified a collateral amount to bet (e.g. 50 tUSDC)
+        effectiveQuantity = Math.max(0.001, Math.floor((amount / effectivePrice) * 1_000) / 1_000);
+        effectiveCollateral = effectiveQuantity * effectivePrice;
+      } else if (quantity !== undefined && quantity > 0) {
+        // User specified a number of contracts
+        effectiveQuantity = quantity;
+        effectiveCollateral = parseFloat((effectivePrice * quantity).toFixed(2));
+      } else {
+        // Default to 10 tUSDC bet
+        effectiveCollateral = 10;
+        effectiveQuantity = Math.max(0.001, Math.floor((10 / effectivePrice) * 1_000) / 1_000);
+        effectiveCollateral = effectiveQuantity * effectivePrice;
+      }
+
       const totalCollateralUSDC = effectiveCollateral.toFixed(2);
       const requiredUSDCAmount = effectiveCollateral;
 
@@ -468,13 +499,16 @@ export const dreamDexRedeemWinnings = tool({
   execute: async ({ marketSymbol, testnet = true, address, userAddress, trades, extraPools }: any) => {
     try {
       const targetAddress = address || userAddress || "0xcE6327fFb8329303e6D2db4d274D80F7337daB1d";
-      const positions = await dreamDexApi.getPositions(targetAddress, { extraPools, trades });
+      const positions = await dreamDexApi.getPositions(targetAddress, { extraPools, trades, bypassCache: true });
       const resolved = positions.resolved || [];
 
       // Find all genuinely claimable winning positions
       const claimablePositions = resolved.filter(
         (p: any) => p.claimable === true && !p.isRedeemed && p.status === "Claimable"
-      );
+      ).filter((position: any, index: number, positions: any[]) => {
+        const id = String(position.outcomeId || position.marketId || "");
+        return !id || positions.findIndex((candidate: any) => String(candidate.outcomeId || candidate.marketId || "") === id) === index;
+      });
 
       if (claimablePositions.length === 0) {
         const activeCount = (positions.active || []).length;
@@ -497,9 +531,15 @@ export const dreamDexRedeemWinnings = tool({
         };
       }
 
-      // If user passed a specific marketSymbol, find that one, otherwise pick the first claimable
+      const totalClaimablePayout = claimablePositions.reduce((sum: number, p: any) => {
+        const num = parseFloat(String(p.payout || "").replace(/[^0-9.-]/g, "")) || p.quantity || 0;
+        return sum + num;
+      }, 0);
+
+      const isRedeemAll = !marketSymbol || marketSymbol.toLowerCase() === "all" || marketSymbol.toLowerCase().includes("winning");
       let targetPos = claimablePositions[0];
-      if (marketSymbol) {
+
+      if (marketSymbol && !isRedeemAll) {
         const matched = claimablePositions.find((p: any) =>
           (p.marketSymbol && p.marketSymbol.toLowerCase().includes(marketSymbol.toLowerCase())) ||
           (p.market && p.market.toLowerCase().includes(marketSymbol.toLowerCase()))
@@ -509,21 +549,26 @@ export const dreamDexRedeemWinnings = tool({
         }
       }
 
-      const pool = targetPos.poolAddress || "";
-      const targetSymbol = targetPos.marketSymbol || targetPos.market || marketSymbol || "Event Contract";
-      const quantity = targetPos.quantity || 20;
-      const payoutAmount = targetPos.payout || `${quantity.toFixed(2)} tUSDC`;
-      const netProfit = targetPos.pnlFormatted || `+$${(quantity * 0.425).toFixed(2)} tUSDC`;
+      const hasMultiple = claimablePositions.length > 1 && isRedeemAll;
+      const targetSymbol = hasMultiple
+        ? `All Winning Markets (${claimablePositions.length} positions)`
+        : (targetPos.marketSymbol || targetPos.market || marketSymbol || "Event Contract");
+      const quantity = hasMultiple
+        ? claimablePositions.reduce((sum: number, p: any) => sum + (p.quantity || 0), 0)
+        : (targetPos.quantity || 20);
+      const payoutAmount = hasMultiple
+        ? `$${totalClaimablePayout.toFixed(2)} tUSDC`
+        : (targetPos.payout || `${quantity.toFixed(2)} tUSDC`);
+      const netProfit = hasMultiple
+        ? `+$${(totalClaimablePayout * 0.45).toFixed(2)} tUSDC`
+        : (targetPos.pnlFormatted || `+$${(quantity * 0.425).toFixed(2)} tUSDC`);
 
-      const totalClaimablePayout = claimablePositions.reduce((sum: number, p: any) => {
-        const num = parseFloat(String(p.payout || "").replace(/[^0-9.-]/g, "")) || p.quantity || 0;
-        return sum + num;
-      }, 0);
-
-      const hasMultiple = claimablePositions.length > 1;
-      const multiNotice = hasMultiple
-        ? ` (Note: You have ${claimablePositions.length} winning positions totaling $${totalClaimablePayout.toFixed(2)} tUSDC. Redeeming ${targetSymbol} first.)`
-        : "";
+      const claimablePositionsPayload = claimablePositions.map((p: any) => ({
+        marketSymbol: p.marketSymbol || p.market,
+        pool: p.poolAddress,
+        amount: p.quantity,
+        outcomeId: p.outcomeId || (p.marketId?.startsWith("0x") ? p.marketId : undefined),
+      }));
 
       return {
         success: true,
@@ -537,31 +582,154 @@ export const dreamDexRedeemWinnings = tool({
         collateral: quantity.toFixed(2),
         payoutAmount,
         netProfit,
-        poolAddress: pool,
-        outcomeId: targetPos.marketId?.startsWith("0x") ? targetPos.marketId : undefined,
+        poolAddress: targetPos.poolAddress || "",
+        outcomeId: targetPos.outcomeId || (targetPos.marketId?.startsWith("0x") ? targetPos.marketId : undefined),
         totalClaimableAmount: totalClaimablePayout,
         claimableMarketsCount: claimablePositions.length,
+        claimablePositions: hasMultiple ? claimablePositionsPayload : undefined,
         parameters: {
           marketSymbol: targetSymbol,
-          pool,
+          pool: targetPos.poolAddress || "",
           testnet,
           action: "redeem",
           amount: quantity,
-          outcomeId: targetPos.marketId?.startsWith("0x") ? targetPos.marketId : undefined,
+          outcomeId: targetPos.outcomeId || (targetPos.marketId?.startsWith("0x") ? targetPos.marketId : undefined),
+          claimablePositions: hasMultiple ? claimablePositionsPayload : undefined,
         },
         tradeDetails: {
           market: targetSymbol,
           action: "REDEEM WINNING TOKENS",
-          contracts: `${quantity} winning contracts`,
+          contracts: `${hasMultiple ? `${claimablePositions.length} winning positions (${quantity} total contracts)` : `${quantity} winning contracts`}`,
           payout: payoutAmount,
           netProfit,
           ratio: "1:1 Collateral Payout (1.00 tUSDC per contract)",
         },
-        message: `Prepared redemption for ${quantity} winning contracts on ${targetSymbol}. Payout: ${payoutAmount} (${netProfit} net profit).${multiNotice} Please confirm below to claim your funds.`,
+        message: hasMultiple
+          ? `Prepared redemption for ${claimablePositions.length} winning positions totaling ${payoutAmount} (${netProfit} net profit). Please confirm below to claim your funds.`
+          : `Prepared redemption for ${quantity} winning contracts on ${targetSymbol}. Payout: ${payoutAmount} (${netProfit} net profit). Please confirm below to claim your funds.`,
       };
     } catch (error: any) {
       return {
         error: "Failed to prepare redemption transaction",
+        details: error.message || String(error),
+      };
+    }
+  },
+});
+
+export const dreamDexClosePosition = tool({
+  description:
+    "Exit or close an active DreamDEX prediction market position early before the market window expires. Sells back held UP or DOWN contracts to the CLOB order book at the current market/mark price. Use this whenever the user asks to close position, exit early, cash out early, or sell back contracts.",
+  parameters: z.object({
+    marketSymbol: z
+      .string()
+      .optional()
+      .describe("The Event Contract market symbol or asset (e.g. 'BTC-UP-5m', 'ETH', 'BTC'). If omitted, automatically finds user's active position."),
+    pool: z
+      .string()
+      .optional()
+      .describe("The specific pool contract address (optional)"),
+    quantity: z
+      .number()
+      .optional()
+      .describe("Number of contracts to close. If omitted, closes 100% of the active position."),
+    price: z
+      .number()
+      .optional()
+      .describe("Desired exit limit price as probability (0.01-0.99). If omitted, sells at current market/mark price."),
+    userAddress: z
+      .string()
+      .optional()
+      .describe("User's EVM wallet address"),
+    testnet: z.boolean().optional().describe("Use testnet (default true)"),
+    trades: z.array(z.any()).optional().describe("User trade history"),
+    extraPools: z.array(z.any()).optional().describe("Extra pool addresses"),
+  }),
+  execute: async ({ marketSymbol, pool, quantity, price, userAddress, testnet = true, trades, extraPools }: any) => {
+    try {
+      const targetAddress = userAddress || "0xcE6327fFb8329303e6D2db4d274D80F7337daB1d";
+      const positions = await dreamDexApi.getPositions(targetAddress, { extraPools, trades });
+      const activePositions = positions.active || [];
+
+      if (activePositions.length === 0) {
+        return {
+          success: false,
+          status: "no_active_position",
+          action: "close_position",
+          message: "No active prediction positions found to close. All previous market windows have already resolved. You can place a new bet on Live Markets!",
+          _instructionToAI: "Inform the user that there are no active positions open right now.",
+        };
+      }
+
+      // Find the target active position
+      let targetPos = activePositions[0];
+      if (pool) {
+        const found = activePositions.find((p: any) => p.poolAddress?.toLowerCase() === pool.toLowerCase());
+        if (found) targetPos = found;
+      } else if (marketSymbol) {
+        const cleanSym = marketSymbol.toLowerCase();
+        const found = activePositions.find((p: any) =>
+          (p.marketSymbol && p.marketSymbol.toLowerCase().includes(cleanSym)) ||
+          (p.market && p.market.toLowerCase().includes(cleanSym)) ||
+          (p.symbol && p.symbol.toLowerCase().includes(cleanSym))
+        );
+        if (found) targetPos = found;
+      }
+
+      const isUp = String(targetPos.side || "").toLowerCase().includes("up");
+      const effectiveSide = isUp ? "sell_up" : "sell_down";
+      const targetSymbol = targetPos.marketSymbol || targetPos.market || targetPos.symbol || marketSymbol || "Active Market";
+      const poolAddr = pool || targetPos.poolAddress || "";
+      const totalContracts = targetPos.quantity || 10;
+      const closeQuantity = quantity && quantity > 0 ? Math.min(quantity, totalContracts) : totalContracts;
+
+      // Exit price
+      const exitPrice = price && price >= 0.01 && price <= 0.99
+        ? price
+        : (targetPos.currentPrice || targetPos.entryPrice || 0.50);
+      const priceInMillionths = Math.round(exitPrice * 1_000_000);
+      const estimatedProceeds = (closeQuantity * exitPrice).toFixed(2);
+      const pnlStr = targetPos.unrealizedPnL || targetPos.pnlFormatted || "$0.00 tUSDC";
+
+      return {
+        success: true,
+        status: "prepared_awaiting_approval",
+        isExecuted: false,
+        requiresApproval: true,
+        executionMode: "requires_signature",
+        action: "close_position",
+        side: effectiveSide,
+        marketSymbol: targetSymbol,
+        quantity: closeQuantity,
+        price: exitPrice,
+        estimatedProceeds: `${estimatedProceeds} tUSDC`,
+        userAddress: targetAddress,
+        poolAddress: poolAddr,
+        parameters: {
+          action: "close_position",
+          marketSymbol: targetSymbol,
+          pool: poolAddr,
+          side: effectiveSide,
+          quantity: closeQuantity,
+          displayPrice: exitPrice,
+          priceInMillionths,
+          amount: parseFloat(estimatedProceeds),
+          testnet,
+        },
+        tradeDetails: {
+          market: targetSymbol,
+          action: `EARLY EXIT (${isUp ? "SELL UP" : "SELL DOWN"})`,
+          contracts: `${closeQuantity} contracts`,
+          exitPrice: `$${exitPrice.toFixed(2)} (${Math.round(exitPrice * 100)}% Implied)`,
+          estimatedProceeds: `${estimatedProceeds} tUSDC`,
+          unrealizedPnL: pnlStr,
+        },
+        message: `Prepared early exit for ${closeQuantity} contracts on ${targetSymbol} at mark price $${exitPrice.toFixed(2)}. Estimated return: ${estimatedProceeds} tUSDC. Please confirm below to exit your position on Somnia Network.`,
+        _instructionToAI: "CRITICAL: A rich UI confirmation card is ALREADY rendering to the user! DO NOT ask the user to type confirm or repeat parameters. Output ONLY one short sentence: 'Please review and confirm your early position exit above to execute on Somnia.'",
+      };
+    } catch (error: any) {
+      return {
+        error: "Failed to prepare close position transaction",
         details: error.message || String(error),
       };
     }

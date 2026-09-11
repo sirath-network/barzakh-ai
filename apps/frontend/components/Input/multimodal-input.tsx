@@ -151,6 +151,7 @@ function PureSendButton({
       transition={{ duration: 0.15 }}
     >
       <Button
+        type="button"
         className={cn(
           'rounded-full p-2 h-9 w-9 flex items-center justify-center transition-all duration-200',
           'bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800',
@@ -256,14 +257,40 @@ function PureMultimodalInput({
   const ghostRef = useRef<HTMLDivElement>(null);
   const { width } = useWindowSize();
   const [isMounted, setIsMounted] = useState(false);
+  const [showStop, setShowStop] = useState(isLoading);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setShowStop(false);
+      return;
+    }
+    const latest = safeMessages[safeMessages.length - 1] as any;
+    const invocations = latest?.toolInvocations || [];
+    const hasPendingTool = invocations.some((tool: any) => tool.state === 'call' || tool.state === 'partial-call');
+    const hasCompletedOutput = latest?.role === 'assistant' && (Boolean(latest.content?.trim()) || invocations.some((tool: any) => tool.state === 'result'));
+    if (hasPendingTool || !hasCompletedOutput) {
+      setShowStop(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowStop(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading, safeMessages]);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const lastPromptTimeRef = useRef<number>(0);
+  const isSubmittingRef = useRef<boolean>(false);
+
   useEffect(() => {
     const handleCustomPrompt = (e: any) => {
       const prompt = e.detail?.prompt;
+      const now = Date.now();
+      if (now - lastPromptTimeRef.current < 1000) {
+        return;
+      }
+      lastPromptTimeRef.current = now;
       if (prompt && append) {
         append({ role: 'user', content: prompt });
       }
@@ -602,9 +629,19 @@ function PureMultimodalInput({
   };
 
   const submitForm = useCallback(async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setTimeout(() => {
+      isSubmittingRef.current = false;
+    }, 1000);
+
     if (isLoading) {
-      toast.error('Please wait for the previous response to complete.');
-      return;
+      if (showStop) {
+        toast.error('Please wait for the previous response to complete.');
+        return;
+      }
+      stop();
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
     }
     if (uploadQueue.length > 0) {
       toast.info('Please wait for file uploads to complete before sending.');
@@ -1223,7 +1260,7 @@ function PureMultimodalInput({
                   )}
 
                   {/* Moved Send/Stop Buttons to the right of ModelSelector */}
-                  {isLoading ? (
+                  {showStop ? (
                     <StopButton stop={stop} setMessages={setMessages} />
                   ) : (
                     <AnimatePresence>

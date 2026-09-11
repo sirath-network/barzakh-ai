@@ -846,7 +846,7 @@ export async function POST(request: Request) {
 
         if (isAgentEnabled) {
           agentWalletText = `\n- **Agent Automation**: ENABLED\n- **Execution Permission Mode**: ${isAutopilotActive ? "AUTOPILOT (ACTIVE)" : "ASK FOR APPROVAL (DEFAULT)"}\n${walletLines.join("\n")}\n  *(CRITICAL DIRECTIVE: You have full delegated access to enabled Embedded Agent Wallets.
-${isAutopilotActive ? "CRITICAL AUTOPILOT ACTIVE RULE: The user has AUTOPILOT ENABLED in their settings. When executing trades, bets, or swaps (including DreamDEX on Somnia), transactions execute AUTONOMOUSLY without waiting for confirmation. NEVER output 'Please review and confirm...', 'awaiting your confirmation', or tell the user to confirm! Output: 'Your order has been placed on DreamDEX via Autopilot.'" : "APPROVAL RULE: Execution mode is Ask for Approval. Prepare the order and prompt the user to review and confirm on the card above."} When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent.
+${isAutopilotActive ? "CRITICAL AUTOPILOT ACTIVE RULE: The user has AUTOPILOT ENABLED in their settings. When executing trades, bets, redemptions, or swaps (including DreamDEX on Somnia), execute using the appropriate tool first. DO NOT output any preamble text, commentary, or confirmation sentences before calling the tool or before the tool completes! Once the tool executes, transactions execute AUTONOMOUSLY without waiting for confirmation. NEVER output 'Please review and confirm...', 'awaiting your confirmation', or tell the user to confirm! For placing/minting prediction orders, output ONLY 1 short sentence after the tool completes: 'Your order has been placed on DreamDEX via Autopilot.' For redeeming winnings (dreamDexRedeemWinnings), output ONLY the redemption confirmation sentence (e.g. 'Successfully redeemed ...') and NEVER output 'Your order has been placed on DreamDEX via Autopilot.'!" : "APPROVAL RULE: Execution mode is Ask for Approval. Prepare the action and prompt the user to review and confirm on the card above."} When the user says "my wallet", "my funds", or wants to check "my balance", they are ALWAYS referring to the appropriate Embedded Agent Wallet based on chain context. For EVM operations use ${evmWalletAddress || "N/A"}, for Solana operations use ${solanaWalletAddress || "N/A"}. You MUST implicitly use the correct address for ALL tool parameters unconditionally. NEVER halt execution to ask conversational clarifying questions like "Which wallet?" or "Which chain?" when chain context is obvious. YOU ARE FULLY AUTONOMOUS. Do not ask for permission, just use your tools sequentially to execute the user's intent.
 CRITICAL CROSS-CHAIN RECIPIENT RULE (EVM <-> Solana):
 - When bridging/swapping between EVM and Solana:
   - If swapping to Solana: check if Solana Agent Wallet is ENABLED. If Solana Agent Wallet is NOT enabled (or user only has EVM wallet), and the user did not specify a Solana destination address in their prompt, you MUST ask the user for their Solana recipient address BEFORE executing the swap! (Or if \`executeAgenticRelaySwap\` returns status "missing_recipient", immediately ask the user for their Solana recipient address). Once they provide it, pass it as \`recipientAddress\` to \`executeAgenticRelaySwap\`.
@@ -866,6 +866,10 @@ To perform an EVM swap or bridge, use \`executeAgenticRelaySwap\`. To buy/sell m
     const userSubscriptionContext = `\n\n## Current User Context:\n- **Current Tier**: ${currentTier}\n- **Billing Cycle**: ${currentBillingCycle}\n- **Username**: ${username}${agentWalletText}\n\nCRITICAL SUBSCRIPTION RULES:\n1. If the user wants to upgrade, downgrade, or cancel their subscription AND Agent Automation is ENABLED with an EVM wallet, you MUST use \`executeAutonomousSubscription\`. Do not use \`initiateX402Payment\` as it will halt execution and ask the user to pay manually.\n2. If Agent Automation is NOT enabled, or the user does not have an EVM agent wallet, you MUST use \`initiateX402Payment\` for upgrades/downgrades.\n3. Always ask the user for confirmation (e.g. "Do you want me to automatically upgrade you to Ultimate for $X using your agent wallet?") BEFORE executing \`executeAutonomousSubscription\`, unless they explicitly authorized it in their message.\n\nWhen using \`initiateX402Payment\`, pass currentTier="${currentTier}" and currentBillingCycle="${currentBillingCycle}".`;
 
     systemPrompt = systemPrompt + userSubscriptionContext;
+  }
+
+  if (/live\s*(prediction\s*)?markets|show.*prediction\s*markets/i.test(userMessageText || "")) {
+    systemPrompt += `\n\nCRITICAL USER EXPERIENCE RULE: The user has asked to view live prediction markets. Execute getDreamDexMarkets immediately. Reply with EXACTLY ONE short sentence: "Here are the live DreamDEX prediction markets on Somnia Shannon." DO NOT generate any bullet points, lists, market questions, or price tables in your text, because the visual Prediction Markets card already renders all markets, timeframes, and Buy UP/DOWN buttons in the UI!`;
   }
 
   // Select appropriate model based on routed group
@@ -1007,14 +1011,28 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     const { hasDelegation } = await import("@/lib/agent/agent-wallet-store");
     isAgentEnabledLocally = await hasDelegation(activeUserId);
 
-    // Always inject autonomous execution tools if authenticated to allow for manual approval flow
-    safeActiveTools.push("executeFourMemeBuy");
-    safeActiveTools.push("executeFourMemeSell");
-    safeActiveTools.push("executeFourMemeLaunch");
-    safeActiveTools.push("executeAgenticRelaySwap");
-    safeActiveTools.push("querySignalAgent");
+    // Contextually prune tool payloads to cut AI token usage and latency
+    const promptLower = (userMessageText || "").toLowerCase();
+    const isSomnia = effectiveGroup === "somnia";
+    const needsFourMeme = effectiveGroup === "on_chain" || /four\.?meme|meme|pump|token\s+launch/i.test(promptLower);
+    const needsRelay = (!isSomnia && effectiveGroup !== "imagine") || /swap|bridge|cross[-\s]?chain|relay/i.test(promptLower);
+    const needsSignal = !isSomnia || /signal|alpha|alert/i.test(promptLower);
 
-    if (isAgentEnabledLocally) {
+    if (needsFourMeme) {
+      safeActiveTools.push("executeFourMemeBuy");
+      safeActiveTools.push("executeFourMemeSell");
+      safeActiveTools.push("executeFourMemeLaunch");
+    }
+
+    if (needsRelay) {
+      safeActiveTools.push("executeAgenticRelaySwap");
+    }
+
+    if (needsSignal) {
+      safeActiveTools.push("querySignalAgent");
+    }
+
+    if (isAgentEnabledLocally && !isSomnia) {
       safeActiveTools.push("executeAutonomousSubscription");
 
       // Remove all manual quoting and execution tools when automation is enabled to simplify AI routing
@@ -1025,6 +1043,34 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
         "initiateX402Payment"
       ].includes(toolName));
     }
+  }
+
+  // Guarantee DreamDEX tools are always present whenever prompt touches prediction markets to eliminate AI_NoSuchToolError
+  const recentMessagesText = (messages || [])
+    .slice(-4)
+    .map((m: any) => (typeof m.content === "string" ? m.content : JSON.stringify(m.content || "")))
+    .join(" ");
+
+  const hasDreamDexContext = /dreamdex|prediction|somnia|tusdc|win.*lose|portfolio/i.test(recentMessagesText);
+  const isDreamDexPrompt =
+    /dreamdex|prediction|portfolio|bets?|winnings?|redeem|settled|event\s*contract|tusdc|up-.*-[0-9]+[mh]|buy\s+(up|down)|sell\s+(up|down)|close\s+position|exit\s+(early|position|market)|put\s+\d+/i.test(
+      userMessageText || ""
+    ) || (hasDreamDexContext && /portfolio|position|winnings?|redeem|history|markets?/i.test(userMessageText || ""));
+
+  if (isDreamDexPrompt || effectiveGroup === "somnia") {
+    safeActiveTools.push(
+      "getDreamDexMarkets",
+      "getDreamDexMarketDetails",
+      "getDreamDexMarketHistory",
+      "dreamDexPlaceOrder",
+      "dreamDexMintTokens",
+      "dreamDexCancelOrder",
+      "dreamDexCancelAllOrders",
+      "dreamDexRedeemWinnings",
+      "dreamDexClosePosition",
+      "getDreamDexPortfolio",
+      "getAIPredictionAnalysis"
+    );
   }
 
   safeActiveTools = uniqueToolNames(safeActiveTools);
@@ -1273,10 +1319,22 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
 
           const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
 
-          // 1. Autopilot Mode: Execute immediately without requiring approval
+          // 1. Autopilot Mode: Execute immediately without requiring approval (with 25s timeout safety)
           if (isEvmDelegated && executionMode === "autopilot") {
             const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
-            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, prepResult);
+            const timeoutPromise = new Promise<any>((resolve) => {
+              setTimeout(() => {
+                resolve({
+                  success: false,
+                  error: "DreamDEX order confirmation timed out on Somnia testnet. Please check your portfolio or try again.",
+                });
+              }, 25000);
+            });
+            let execResult = await Promise.race([
+              executeAgenticDreamDexTrade(authenticatedUserId, prepResult),
+              timeoutPromise,
+            ]);
+
             if (execResult.success) {
               return {
                 ...prepResult,
@@ -1286,15 +1344,18 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                 transactionHash: execResult.transactionHash,
                 txHash: execResult.transactionHash,
                 explorerUrl: execResult.explorerUrl,
+                marketSymbol: execResult.marketSymbol || prepResult.marketSymbol,
                 message: `Order placed and confirmed on DreamDEX CLOB autonomously via Autopilot! Tx: ${execResult.transactionHash}`,
-                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! DO NOT repeat transaction hashes or explorer links. Output ONLY 1 short sentence: 'Your order has been placed on DreamDEX via Autopilot.'"
+                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! DO NOT output bullet lists, summaries, trade details, contracts count, collateral spent, or transaction hashes/links. Output ONLY 1 short sentence: 'Your order has been placed on DreamDEX via Autopilot.'"
               };
             } else {
               return {
                 ...prepResult,
                 status: "error",
+                executionMode: "autopilot",
                 error: execResult.error,
                 message: `Autonomous execution failed: ${execResult.error}`,
+                _instructionToAI: `CRITICAL: The autopilot order FAILED. DO NOT say 'Your order has been placed' or any success message! The UI card already shows the error. Output ONLY 1 short sentence explaining the failure briefly, e.g.: 'The order could not be filled on DreamDEX. No collateral was spent.' DO NOT output transaction hashes, wallet balances, developer resources, documentation links, or long technical explanations.`
               };
             }
           }
@@ -1357,10 +1418,22 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
 
           const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
 
-          // 1. Autopilot Mode
+          // 1. Autopilot Mode (with 25s timeout safety)
           if (isEvmDelegated && executionMode === "autopilot") {
             const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
-            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, prepResult);
+            const timeoutPromise = new Promise<any>((resolve) => {
+              setTimeout(() => {
+                resolve({
+                  success: false,
+                  error: "DreamDEX mint confirmation timed out on Somnia testnet. Please check your portfolio or try again.",
+                });
+              }, 25000);
+            });
+            let execResult = await Promise.race([
+              executeAgenticDreamDexTrade(authenticatedUserId, prepResult),
+              timeoutPromise,
+            ]);
+
             if (execResult.success) {
               return {
                 ...prepResult,
@@ -1377,8 +1450,10 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
               return {
                 ...prepResult,
                 status: "error",
+                executionMode: "autopilot",
                 error: execResult.error,
                 message: `Autonomous mint execution failed: ${execResult.error}`,
+                _instructionToAI: `CRITICAL: The autopilot mint FAILED. DO NOT say 'Your tokens have been minted' or any success message! The UI card already shows the error. Output ONLY 1 short sentence explaining the failure briefly. DO NOT output transaction hashes, wallet balances, developer resources, documentation links, or long technical explanations.`
               };
             }
           }
@@ -1475,11 +1550,29 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
 
           const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
 
-          // 1. Autopilot Mode
+          // 1. Autopilot Mode (with 25s timeout safety)
           if (isEvmDelegated && executionMode === "autopilot") {
             const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
-            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, { ...prepResult, action: "redeem" });
+            const timeoutPromise = new Promise<any>((resolve) => {
+              setTimeout(() => {
+                resolve({
+                  success: false,
+                  error: "DreamDEX redemption timed out on Somnia testnet. Please check your portfolio or try again.",
+                });
+              }, 25000);
+            });
+            let execResult = await Promise.race([
+              executeAgenticDreamDexTrade(authenticatedUserId, { ...prepResult, action: "redeem" }),
+              timeoutPromise,
+            ]);
+
             if (execResult.success) {
+              try {
+                const { dreamDexApi } = await import("@barzakh/shared/lib/ai/tools/dreamdex/api-client");
+                dreamDexApi.clearPositionsCache(evmWallet || undefined);
+              } catch {}
+
+              const successMessage = execResult.message || `Redeemed winning tokens on Somnia Network autonomously via Autopilot! Tx: ${execResult.transactionHash || ""}`;
               return {
                 ...prepResult,
                 status: "success",
@@ -1488,15 +1581,21 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
                 transactionHash: execResult.transactionHash,
                 txHash: execResult.transactionHash,
                 explorerUrl: execResult.explorerUrl,
-                message: `Redeemed winning tokens on Somnia Network autonomously via Autopilot! Tx: ${execResult.transactionHash}`,
-                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! Output ONLY 1 short sentence: 'Your winnings have been redeemed on Somnia via Autopilot.'"
+                redeemedCount: execResult.redeemedCount,
+                totalPayout: execResult.totalPayout,
+                quantity: execResult.totalPayout ? parseFloat(execResult.totalPayout.replace(/[^0-9.-]/g, "")) : prepResult.quantity,
+                collateral: execResult.totalPayout ? execResult.totalPayout.replace(/[^0-9.-]/g, "") : prepResult.collateral,
+                message: successMessage,
+                _instructionToAI: `CRITICAL: An interactive UI card is ALREADY displaying the details, status, and Somnia explorer link. This is a winnings redemption, NOT placing an order. Output ONLY 1 short sentence: '${successMessage}'. NEVER say 'Your order has been placed on DreamDEX via Autopilot.' CRITICAL: NEVER invent, hallucinate, or output any transaction hashes or URLs in plain text. If referencing a transaction, ONLY cite the exact transactionHash '${execResult.transactionHash || ""}' from the result or direct the user to the interactive card.`
               };
             } else {
               return {
                 ...prepResult,
                 status: "error",
+                executionMode: "autopilot",
                 error: execResult.error,
                 message: `Autonomous redemption failed: ${execResult.error}`,
+                _instructionToAI: `CRITICAL: The autopilot redemption FAILED. DO NOT say 'Your winnings have been redeemed' or any success message! The UI card already shows the error. Output ONLY 1 short sentence explaining the failure briefly. DO NOT output transaction hashes, wallet balances, developer resources, documentation links, or long technical explanations.`
               };
             }
           }
@@ -1521,7 +1620,7 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
               executionMode: "approval",
               agentWalletAddress: evmWallet,
               message: prepResult.message,
-              _instructionToAI: "CRITICAL: A rich UI card with Confirm Redemption and Reject buttons is ALREADY rendering to the user! Output ONLY one brief sentence: 'Please review and confirm the redemption card above to claim your 10.00 tUSDC winnings.'"
+              _instructionToAI: "CRITICAL: A rich UI card with Confirm Redemption and Reject buttons is ALREADY rendering to the user! DO NOT ask the user to type confirm or repeat order details. Output ONLY one brief sentence: 'Please review and confirm the redemption card above to claim your winnings.'"
             };
           }
 
@@ -1531,6 +1630,125 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
             executionMode: "manual",
             status: "requires_manual_signature",
             message: "Please sign the redemption transaction using your connected external wallet."
+          };
+        }
+      }),
+      dreamDexClosePosition: tool({
+        ...allTools.dreamDexClosePosition,
+        execute: async (args: any, config: any) => {
+          const { getUserAgentWalletAddress, hasDelegation: hasDelegationCheck, getUserAgentExecutionMode, getUserDreamDexTransactions } = await import("@/lib/agent/agent-wallet-store");
+          const evmWallet = await getUserAgentWalletAddress(authenticatedUserId, "evm");
+          const isEvmDelegated = await hasDelegationCheck(authenticatedUserId, "evm");
+
+          if (isEvmDelegated && evmWallet) {
+            args.userAddress = evmWallet;
+          }
+
+          try {
+            const dreamdexTxs = await getUserDreamDexTransactions(authenticatedUserId, args.userAddress || evmWallet);
+            const extraPools: Array<{ address: string; symbol?: string; asset?: string }> = [];
+            const seen = new Set<string>();
+            const trades: Array<any> = [];
+            for (const tx of dreamdexTxs) {
+              const meta = tx.metadata as any;
+              if (meta?.pool && !seen.has(meta.pool.toLowerCase())) {
+                seen.add(meta.pool.toLowerCase());
+                extraPools.push({
+                  address: meta.pool,
+                  symbol: meta.marketSymbol,
+                  asset: meta.marketSymbol?.split("-")[0],
+                });
+              }
+              trades.push({
+                signature: tx.signature,
+                pool: meta?.pool,
+                marketSymbol: meta?.marketSymbol,
+                side: meta?.side,
+                amount: tx.amount,
+                price: meta?.price,
+                quantity: meta?.quantity,
+                operationType: tx.operationType,
+                createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : String(tx.createdAt),
+              });
+            }
+            args.extraPools = extraPools;
+            args.trades = trades;
+          } catch (err) {
+            console.warn("[ChatRoute] Failed to load extra pools for close position:", err);
+          }
+
+          let prepResult: any = null;
+          try {
+            prepResult = await allTools.dreamDexClosePosition.execute(args, config);
+          } catch (error: any) {
+            return { success: false, status: "error", error: error.message || "Failed to prepare early exit" };
+          }
+
+          if (!prepResult || prepResult.success === false) {
+            return prepResult;
+          }
+
+          const executionMode = await getUserAgentExecutionMode(authenticatedUserId);
+
+          // 1. Autopilot Mode
+          if (isEvmDelegated && executionMode === "autopilot") {
+            const { executeAgenticDreamDexTrade } = await import("@/lib/agent/dreamdex-executor");
+            const execResult = await executeAgenticDreamDexTrade(authenticatedUserId, prepResult);
+
+            if (execResult.success) {
+              return {
+                ...prepResult,
+                status: "success",
+                isExecuted: true,
+                executionMode: "autopilot",
+                transactionHash: execResult.transactionHash,
+                txHash: execResult.transactionHash,
+                explorerUrl: execResult.explorerUrl,
+                message: `Closed position and exited market early on Somnia Network autonomously via Autopilot! Tx: ${execResult.transactionHash}`,
+                _instructionToAI: "CRITICAL: A rich UI card is ALREADY rendering to the user! Output ONLY 1 short sentence: 'Your prediction position has been closed early on Somnia via Autopilot.'"
+              };
+            } else {
+              return {
+                ...prepResult,
+                status: "error",
+                executionMode: "autopilot",
+                error: execResult.error,
+                message: `Autonomous exit failed: ${execResult.error}`,
+                _instructionToAI: `CRITICAL: The autopilot position exit FAILED. DO NOT say 'Your position has been closed' or any success message! The UI card already shows the error. Output ONLY 1 short sentence explaining the failure briefly. DO NOT output transaction hashes, wallet balances, developer resources, documentation links, or long technical explanations.`
+              };
+            }
+          }
+
+          // 2. Approval Mode (Default)
+          if (isEvmDelegated) {
+            const { storePendingConfirmation } = await import("@/lib/agent/pending-confirmations");
+            const confirmationId = crypto.randomUUID();
+
+            storePendingConfirmation(confirmationId, {
+              userId: authenticatedUserId,
+              args,
+              rawResult: prepResult,
+              transactions: [],
+            });
+
+            return {
+              ...prepResult,
+              status: "requires_confirmation",
+              confirmationId,
+              isAgentExecution: true,
+              executionMode: "approval",
+              agentWalletAddress: evmWallet,
+              message: prepResult.message,
+              _instructionToAI: "CRITICAL: A rich UI card with Confirm and Reject buttons is ALREADY rendering to the user! Output ONLY one brief sentence: 'Please review and confirm your early exit order above to execute on Somnia.'"
+            };
+          }
+
+          // 3. Manual Mode
+          return {
+            ...prepResult,
+            executionMode: "manual",
+            status: "requires_manual_signature",
+            message: "Please sign the exit transaction using your connected external wallet."
           };
         }
       }),
@@ -1649,7 +1867,12 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
 - **IMAGE HANDLING**: You CAN launch tokens using images users upload directly to the chat! Do not ask for external URLs if you see an image in the recent message history. The 'executeFourMemeLaunch' tool automatically handles the upload.
 - **TRANSACTION LINKS**: After a successful buy, sell, or launch, ALWAYS provide a clickable markdown link to the transaction on BscScan using the \`explorerUrl\` from the tool result. Format: \`[View on BscScan](url)\`.
 - **AGENT IDENTITY**: You have an embedded agent wallet on BNB Chain. If you are unsure about your address or BNB balance, use \`getAgentWalletInfo\`. To check a specific token balance, use \`getAgentTokenBalance\`.
-- **SELL ALL**: The \`executeFourMemeSell\` tool now supports the string "all" for \`tokenAmount\`. Use this when the user wants to liquidate their entire position.`,
+- **SELL ALL**: The \`executeFourMemeSell\` tool now supports the string "all" for \`tokenAmount\`. Use this when the user wants to liquidate their entire position.
+
+**DREAMDEX PROTOCOL GUIDELINES:**
+- When the user asks about their prediction portfolio, bets, positions, winnings, or history on DreamDEX / Somnia (e.g. "View Portfolio", "Show my portfolio", "Check my bets"), ALWAYS invoke the \`getDreamDexPortfolio\` tool. NEVER output conversational text about the portfolio without invoking \`getDreamDexPortfolio\`.
+- When the user asks to redeem or claim winnings, invoke \`dreamDexRedeemWinnings\`.
+- When the user asks to see prediction markets, invoke \`getDreamDexMarkets\`.`,
           messages: managedMessages, // Fast small-talk sends only the latest user message
           maxSteps: isFastChat ? 1 : (isFastRealtimeSearch ? 3 : 8),
           maxRetries: isFastChat ? 0 : (isFastRealtimeSearch ? 1 : 2), // Keep fast lanes tight; full tool flows can retry more
@@ -1827,5 +2050,3 @@ export async function DELETE(request: Request) {
     });
   }
 }
-
-  

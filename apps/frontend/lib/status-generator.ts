@@ -142,6 +142,40 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   getZkEVMTokenList: () => "Fetching zkEVM tokens",
   getZkEVMGasPrice: () => "Estimating zkEVM gas",
 
+  // =========================================================
+  // DREAMDEX / SOMNIA PREDICTION MARKETS
+  // =========================================================
+  getDreamDexMarkets: () => "Fetching live prediction markets on Somnia Shannon",
+  getDreamDexMarketDetails: (params) => {
+    const sym = params?.symbol || "market";
+    return `Checking order book & probabilities for ${sym}`;
+  },
+  getDreamDexMarketHistory: () => "Loading resolved prediction market history",
+  getDreamDexPortfolio: () => "Loading prediction portfolio & positions on Somnia",
+  dreamDexPlaceOrder: (params) => {
+    const sym = params?.marketSymbol || params?.symbol || "market";
+    const side = String(params?.side || "").toLowerCase().includes("down") ? "DOWN" : "UP";
+    return `Submitting ${side} prediction for ${sym} to DreamDEX CLOB`;
+  },
+  dreamDexMintTokens: (params) => {
+    const sym = params?.marketSymbol || params?.symbol || "contracts";
+    return `Minting prediction outcome tokens for ${sym}`;
+  },
+  dreamDexCancelOrder: () => "Cancelling open order on DreamDEX CLOB",
+  dreamDexCancelAllOrders: () => "Cancelling all open orders on DreamDEX CLOB",
+  dreamDexRedeemWinnings: (params) => {
+    const sym = params?.marketSymbol;
+    return sym ? `Redeeming winning contracts on ${sym}` : "Redeeming winning prediction contracts on Somnia";
+  },
+  dreamDexClosePosition: (params) => {
+    const sym = params?.marketSymbol || "position";
+    return `Closing ${sym} position early on Somnia`;
+  },
+  getAIPredictionAnalysis: (params) => {
+    const sym = params?.marketSymbol || params?.symbol || "market";
+    return `Analyzing ${sym} with AI conviction scoring`;
+  },
+
   // x402
   initiateX402Payment: () => "Preparing payment transaction",
   getSubscriptionInfo: () => "Retrieving subscription details",

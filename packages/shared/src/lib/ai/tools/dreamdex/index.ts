@@ -15,6 +15,7 @@ export {
     dreamDexCancelOrder,
     dreamDexCancelAllOrders,
     dreamDexRedeemWinnings,
+    dreamDexClosePosition,
 } from "./dreamdex-trading";
 
 // === Portfolio Tracker ===
@@ -62,6 +63,7 @@ export const allDreamDexTools = {
     dreamDexCancelOrder: () => import("./dreamdex-trading").then(m => m.dreamDexCancelOrder),
     dreamDexCancelAllOrders: () => import("./dreamdex-trading").then(m => m.dreamDexCancelAllOrders),
     dreamDexRedeemWinnings: () => import("./dreamdex-trading").then(m => m.dreamDexRedeemWinnings),
+    dreamDexClosePosition: () => import("./dreamdex-trading").then(m => m.dreamDexClosePosition),
     getDreamDexPortfolio: () => import("./dreamdex-portfolio").then(m => m.getDreamDexPortfolio),
     getAIPredictionAnalysis: () => import("./dreamdex-oracle").then(m => m.getAIPredictionAnalysis),
 };

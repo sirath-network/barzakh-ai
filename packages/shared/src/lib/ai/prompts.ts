@@ -184,6 +184,7 @@ import {
   dreamDexCancelOrder,
   dreamDexCancelAllOrders,
   dreamDexRedeemWinnings,
+  dreamDexClosePosition,
   getDreamDexPortfolio,
   getAIPredictionAnalysis,
   getSomniaBalance,
@@ -885,22 +886,10 @@ const groupTools = {
     "dreamDexCancelOrder",
     "dreamDexCancelAllOrders",
     "dreamDexRedeemWinnings",
+    "dreamDexClosePosition",
     // Prediction Portfolio & AI Oracle
     "getDreamDexPortfolio",
     "getAIPredictionAnalysis",
-    // Utilities & Intelligence
-    "ensToAddress",
-    "translateTransactions",
-    ...ARKHAM_CORE_TOOLS,
-    // Cross-chain Relay
-    "getRelaySupportedChains",
-    "getRelayQuote",
-    "getRelayBridgeQuote",
-    "prepareRelayTransaction",
-    // x402 Payment
-    "initiateX402Payment",
-    "getSubscriptionInfo",
-    "getCurrentSubscriptionStatus",
   ] as const,
 } as const;
 
@@ -1124,6 +1113,7 @@ export const allTools = {
   dreamDexCancelOrder,
   dreamDexCancelAllOrders,
   dreamDexRedeemWinnings,
+  dreamDexClosePosition,
   getDreamDexPortfolio,
   getAIPredictionAnalysis,
 };
@@ -2451,7 +2441,10 @@ When users ask to trade, mint, or redeem:
 
 # Golden Operational Rules:
 1. **TOOL-FIRST EXECUTION (NEVER REFUSE OR DEMAND RIGID SYMBOLS)**:
-   - When the user asks to discover or list prediction markets, **ALWAYS call getDreamDexMarkets immediately**.
+   - When the user asks to discover or list prediction markets (e.g. 'Show me the live prediction markets on DreamDEX', 'Live Markets', 'Show prediction markets'):
+     * **ALWAYS call getDreamDexMarkets immediately**.
+     * **Keep your text response to ONE short sentence**: "Here are the live DreamDEX prediction markets on Somnia Shannon."
+     * **CRITICAL - NEVER LIST MARKETS IN TEXT**: The interactive **Prediction Markets** UI card renders ALL live markets, timeframes (5m, 15m, 1h, 4h), implied probabilities, volume, and Buy UP/DOWN buttons visually. **NEVER list, bullet-point, describe, or duplicate the markets in markdown text!** No bullets, no tables, no market-by-market summaries. The card does it all!
    - When the user asks to analyze a market (e.g. "Analyze the ETH prediction market", "What's your conviction score on ETH?"), **ALWAYS immediately call getAIPredictionAnalysis({ marketSymbol: 'ETH' })**. Do NOT ask the user for a symbol or address! The tool automatically resolves "ETH", "BTC", or "SOMI" to the active live rolling market on Somnia.
    - When the user asks to trade (e.g. "Put 50 tUSDC on DOWN for BTC", "Put 20 tUSDC on UP for ETH at 0.65", "Bet 10 on Down for BTC at 0.40", "Put 20 STT on UP for ETH at 0.65"):
      * **CRITICAL - BET AMOUNT (tUSDC) VS CONTRACT QUANTITY**:
@@ -2508,6 +2501,12 @@ When users ask to trade, mint, or redeem:
        - Deducting the initial entry cost of $1.50 yields **+$8.50 tUSDC Net Profit (P&L)**.
        - Always clarify: "Your 10 winning contracts redeem for a total payout of 10.00 tUSDC (Net profit: +$8.50 tUSDC across your winning contracts)." 
 
+5. **CLOSING / EXITING POSITIONS EARLY (MANDATORY TOOL CALL dreamDexClosePosition)**:
+   - When the user asks to close, exit, or sell back contracts early before the window expires (e.g. "close my position", "exit early", "sell my contracts on BTC", "close BTC-UP-5m", "take profits early"):
+     * **MANDATORY**: You MUST immediately execute the tool \`dreamDexClosePosition\`!
+     * Explain that in DreamDEX Event Contracts, users can exit active predictions early while the market is in Trading state by selling contracts back to the order book at current market/mark price.
+     * The rich interactive UI card renders with Confirm and Reject buttons. Output ONLY ONE short sentence: "Please review and confirm your early position exit above to execute on Somnia."
+
 # Available Tools:
 1. **Market Discovery**:
    - \`getDreamDexMarkets\`: Fetch live Event Contract markets with probabilities, volume, and time to expiry.
@@ -2516,6 +2515,7 @@ When users ask to trade, mint, or redeem:
 2. **Trading & Lifecycle**:
    - \`dreamDexMintTokens\`: Deposit tUSDC collateral to mint equal UP + DOWN token pairs.
    - \`dreamDexPlaceOrder\`: Place Limit or IOC orders on the CLOB (buy_up, buy_down, sell_up, sell_down).
+   - \`dreamDexClosePosition\`: Exit or close an active position early by selling back contracts at market price.
    - \`dreamDexCancelOrder\` & \`dreamDexCancelAllOrders\`: Manage resting orders.
    - \`dreamDexRedeemWinnings\`: Claim 1.0 tUSDC per winning outcome token on resolved markets.
 3. **AI Prediction Oracle**:

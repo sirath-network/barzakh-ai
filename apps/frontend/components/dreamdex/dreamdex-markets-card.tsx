@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
-import { TrendingUp, TrendingDown, Clock, BarChart3, Sparkles, ExternalLink } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, BarChart3, Sparkles, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DreamDexMarketsCardProps {
@@ -64,8 +65,19 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/5 text-[11px] sm:text-xs text-zinc-300 font-medium shrink-0">
-                <span>Somnia Shannon</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => dispatchAction(`Check market details for ${result.symbol}`)}
+                  title="Refresh market details"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 text-[11px] sm:text-xs text-zinc-200 hover:text-white font-medium transition-all duration-150 active:scale-95 cursor-pointer"
+                >
+                  <RefreshCw className="size-3 text-cyan-400" />
+                  <span className="hidden xs:inline">Refresh</span>
+                </button>
+                <div className="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/5 text-[11px] sm:text-xs text-zinc-300 font-medium shrink-0">
+                  <span>Somnia Shannon</span>
+                </div>
               </div>
             </div>
           </div>
@@ -116,7 +128,7 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
               <button
                 type="button"
                 className="flex-1 min-w-0 h-9 flex items-center justify-center gap-1.5 px-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
-                onClick={() => dispatchAction(`Put 10 tUSDC on UP for ${result.symbol} at ${(probNum / 100).toFixed(2)}`)}
+                onClick={() => dispatchAction(`Put 10 tUSDC on UP for ${result.symbol}`)}
               >
                 <TrendingUp className="size-3.5 shrink-0 text-emerald-600" />
                 <span className="truncate">Predict UP</span>
@@ -124,7 +136,7 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
               <button
                 type="button"
                 className="flex-1 min-w-0 h-9 flex items-center justify-center gap-1.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-medium transition-all duration-150 active:scale-95 cursor-pointer"
-                onClick={() => dispatchAction(`Put 10 tUSDC on DOWN for ${result.symbol} at ${(parseFloat(downProb) / 100).toFixed(2)}`)}
+                onClick={() => dispatchAction(`Put 10 tUSDC on DOWN for ${result.symbol}`)}
               >
                 <TrendingDown className="size-3.5 shrink-0 text-rose-400" />
                 <span className="truncate">Predict DOWN</span>
@@ -155,7 +167,135 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
   // Market List View
   const isPending = Boolean(result.isLoading || result.isPending);
   const rawList = result.data || result.markets || (Array.isArray(result) ? result : []);
-  const markets = Array.isArray(rawList) ? rawList : [];
+  const initialMarkets = Array.isArray(rawList) ? rawList : [];
+
+  const [marketsData, setMarketsData] = useState<any[]>(initialMarkets);
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
+
+  // Keep local state in sync when parent result updates
+  useEffect(() => {
+    if (Array.isArray(rawList) && rawList.length > 0) {
+      setMarketsData(rawList);
+    }
+  }, [result]);
+
+  // High-precision 1-second ticking timer for smooth real-time countdown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowSec(Math.floor(Date.now() / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Manual & auto-refresh handler with cache-busting
+  const handleRefresh = async (bypass = false) => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(`/api/dreamdex/markets?_t=${Date.now()}${bypass ? "&refresh=true" : ""}`, {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.markets) && json.markets.length > 0) {
+          setMarketsData(json.markets);
+          setLastRefreshed(new Date());
+        }
+      }
+    } catch (err) {
+      console.warn("[DreamDexMarketsCard] Refresh error:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Auto-refresh polling every 15 seconds to fetch new rolling windows from Somnia
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        handleRefresh(true);
+      }
+    }, 15_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Check if any market has expired, and auto-refresh to advance to next rolling window
+  const hasExpiredMarket = useMemo(() => {
+    return marketsData.some((m: any) => {
+      const targetSec = m.expiryTimestamp || (m.expiryTime ? Math.floor(new Date(m.expiryTime).getTime() / 1000) : 0);
+      return targetSec > 0 && targetSec <= nowSec;
+    });
+  }, [marketsData, nowSec]);
+
+  useEffect(() => {
+    if (hasExpiredMarket && !isRefreshing) {
+      const timer = setTimeout(() => {
+        handleRefresh(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasExpiredMarket, isRefreshing]);
+
+  const markets = marketsData;
+
+  const getTimeframe = (m: any): string => {
+    const sym = (m.symbol || "").toLowerCase();
+    if (sym.includes("-1m")) return "1m";
+    if (sym.includes("-5m")) return "5m";
+    if (sym.includes("-15m")) return "15m";
+    if (sym.includes("-1h")) return "1h";
+    if (sym.includes("-4h")) return "4h";
+    return "5m";
+  };
+
+  const getTimeframeBadge = (tf: string) => {
+    switch (tf) {
+      case "1m":
+        return { label: "1m Window", className: "bg-purple-500/10 text-purple-400 border-purple-500/30" };
+      case "5m":
+        return { label: "5m Window", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
+      case "15m":
+        return { label: "15m Window", className: "bg-blue-500/10 text-blue-400 border-blue-500/30" };
+      case "1h":
+        return { label: "1h Window", className: "bg-sky-500/10 text-sky-400 border-sky-500/30" };
+      case "4h":
+        return { label: "4h Window", className: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" };
+      default:
+        return { label: "Window", className: "bg-zinc-800 text-zinc-400 border-zinc-700" };
+    }
+  };
+
+  const getRemainingText = (expiryTime?: string, expirySec?: number) => {
+    const targetSec = expirySec || (expiryTime ? Math.floor(new Date(expiryTime).getTime() / 1000) : 0);
+    if (!targetSec) return "Active";
+    const diffSec = targetSec - nowSec;
+    if (diffSec <= 0) return "Rolling over...";
+    if (diffSec < 60) return `Ends in ${diffSec}s`;
+    const m = Math.floor(diffSec / 60);
+    const s = diffSec % 60;
+    if (m < 60) return `Ends in ${m}m ${s > 0 ? `${s}s` : ""}`.trim();
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    return `Ends in ${h}h ${remM}m`;
+  };
+
+  const availableTimeframes = useMemo(() => {
+    const tfs = new Set<string>();
+    for (const m of markets) {
+      tfs.add(getTimeframe(m));
+    }
+    const order = ["1m", "5m", "15m", "1h", "4h"];
+    return order.filter((tf) => tfs.has(tf));
+  }, [markets]);
+
+  const filteredMarkets = useMemo(() => {
+    if (selectedTimeframe === "all") return markets;
+    return markets.filter((m) => getTimeframe(m) === selectedTimeframe);
+  }, [markets, selectedTimeframe]);
 
   if (isPending) {
     return (
@@ -244,18 +384,68 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/5 text-[11px] sm:text-xs text-zinc-300 font-medium shrink-0">
-              <span>Somnia Shannon</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleRefresh(true)}
+                disabled={isRefreshing}
+                title="Refresh live prediction markets"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 text-[11px] sm:text-xs text-zinc-200 hover:text-white font-medium transition-all duration-150 active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`size-3 text-cyan-400 ${isRefreshing ? "animate-spin" : ""}`} />
+                <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+              </button>
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/5 text-[11px] sm:text-xs text-zinc-300 font-medium shrink-0">
+                <span>Somnia Shannon</span>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Timeframe Filter Pills */}
+        {availableTimeframes.length > 1 && (
+          <div className="flex items-center gap-1.5 px-3 sm:px-4 pt-3 pb-1 border-b border-zinc-100 dark:border-zinc-800/40 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setSelectedTimeframe("all")}
+              className={`px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer ${
+                selectedTimeframe === "all"
+                  ? "bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold shadow-sm"
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white border border-zinc-200 dark:border-zinc-800"
+              }`}
+            >
+              All Timeframes ({markets.length})
+            </button>
+            {availableTimeframes.map((tf) => {
+              const count = markets.filter((m) => getTimeframe(m) === tf).length;
+              return (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => setSelectedTimeframe(tf)}
+                  className={`px-2.5 py-1 rounded-lg text-xs transition-all flex items-center gap-1 cursor-pointer ${
+                    selectedTimeframe === tf
+                      ? "bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold shadow-sm"
+                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white border border-zinc-200 dark:border-zinc-800"
+                  }`}
+                >
+                  <span className="font-semibold">{tf}</span>
+                  <span className="text-[10px] opacity-70">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Markets Grid */}
         <div className="p-3 sm:p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-            {markets.map((m: any, idx: number) => {
+            {filteredMarkets.map((m: any, idx: number) => {
               const probStr = m.impliedProbability || "50%";
               const probNum = parseFloat(probStr) || 50;
+              const tf = getTimeframe(m);
+              const tfBadge = getTimeframeBadge(tf);
+              const remText = getRemainingText(m.expiryTime, m.expiryTimestamp);
 
               return (
                 <div
@@ -263,10 +453,15 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
                   className="p-3 sm:p-3.5 rounded-xl bg-zinc-950/40 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800/60 hover:border-zinc-700 transition-all flex flex-col justify-between min-w-0"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-1.5 min-w-0">
-                      <span className="font-mono font-semibold text-xs text-white truncate min-w-0 flex-1" title={m.symbol}>
-                        {m.symbol}
-                      </span>
+                    <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${tfBadge.className} shrink-0`}>
+                          {tfBadge.label}
+                        </span>
+                        <span className="font-mono font-semibold text-xs text-white truncate" title={m.symbol}>
+                          {m.symbol}
+                        </span>
+                      </div>
                       <span className="text-[11px] font-bold text-emerald-400 shrink-0">
                         {probNum.toFixed(0)}% UP
                       </span>
@@ -280,7 +475,10 @@ export function DreamDexMarketsCard({ result, onSelectAction }: DreamDexMarketsC
 
                     <div className="flex justify-between items-center text-[10px] text-zinc-400 mb-2 font-mono gap-1">
                       <span className="truncate">Vol: {m.tradingVolume || "$12.4k"}</span>
-                      <span className="shrink-0">Exp: {m.expiryTime ? new Date(m.expiryTime).toLocaleDateString() : "Active"}</span>
+                      <span className="shrink-0 flex items-center gap-1 text-zinc-300">
+                        <Clock className="size-2.5 text-zinc-400" />
+                        {remText || "Active"}
+                      </span>
                     </div>
                   </div>
 

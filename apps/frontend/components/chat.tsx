@@ -235,7 +235,12 @@ export function Chat({
     }
   }, []);
 
-  // Effect for auto-scroll when new messages are added (only if already at bottom)
+  const latestMessage = messages[messages.length - 1];
+  const latestContent = typeof latestMessage?.content === 'string' ? latestMessage.content : '';
+  const latestToolsCount = latestMessage?.toolInvocations?.length || 0;
+  const latestToolState = latestMessage?.toolInvocations?.[latestToolsCount - 1]?.state;
+
+  // Effect for auto-scroll when new messages are added or content/tools update (only if already at bottom)
   useEffect(() => {
     const el = chatContainerRef.current;
     if (el && isAtBottom) {
@@ -244,7 +249,7 @@ export function Chat({
         el.scrollTop = el.scrollHeight;
       });
     }
-  }, [messages.length, isAtBottom]);
+  }, [messages.length, latestContent.length, latestToolsCount, latestToolState, isAtBottom]);
 
   // Auto-scroll to bottom on initial mount when there are messages
   useEffect(() => {
@@ -455,7 +460,10 @@ export function Chat({
                   />
                 </div>
                 <div className="flex-shrink-0">
-                  <form className="mx-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 gap-2 w-full md:max-w-3xl">
+                  <form
+                    onSubmit={(e) => e.preventDefault()}
+                    className="mx-auto px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 gap-2 w-full md:max-w-3xl"
+                  >
                     {isCurrentlyArchived ? (
                       <div className="flex flex-col items-center justify-center py-4 px-6">
                         <p className="text-sm text-muted-foreground mb-3 text-center">

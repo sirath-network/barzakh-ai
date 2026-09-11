@@ -3,12 +3,16 @@ import { auth } from "@/app/(auth)/auth";
 import { getUserAgentWalletAddress, getUserDreamDexTransactions } from "@/lib/agent/agent-wallet-store";
 import { getDreamDexPortfolio } from "@barzakh/shared/lib/ai/tools/dreamdex/dreamdex-portfolio";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const session = await auth();
     const userId = session?.user?.id;
     let address = searchParams.get("address");
+    const bypassCache = searchParams.get("refresh") === "true" || searchParams.has("_t");
 
     if (!address && userId) {
       address = await getUserAgentWalletAddress(userId, "evm");
@@ -43,6 +47,7 @@ export async function GET(request: Request) {
           amount: tx.amount,
           price: meta?.price,
           quantity: meta?.quantity,
+          marketNonce: meta?.marketNonce,
           operationType: tx.operationType,
           createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : String(tx.createdAt),
         });
@@ -56,6 +61,7 @@ export async function GET(request: Request) {
       testnet: true,
       extraPools,
       trades,
+      bypassCache,
     });
 
     return NextResponse.json({

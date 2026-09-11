@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Check, AlertCircle, Loader2, ExternalLink, Bot, XCircle, TrendingUp, TrendingDown, Coins, RefreshCw, BarChart3, Wallet } from "lucide-react";
+import { Check, AlertCircle, Loader2, ExternalLink, Bot, XCircle, TrendingUp, TrendingDown, Coins, RefreshCw, BarChart3, Wallet, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const SOMNIA_FAUCET_URL = "https://t.me/+XHq0F0JXMyhmMzM0";
@@ -11,17 +11,20 @@ interface DreamDexTradeCardProps {
   result: any;
   toolCallId?: string;
   onSelectAction?: (promptText: string) => void;
+  toolName?: string;
 }
 
-export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamDexTradeCardProps) {
-  const action = result?.action || "place_order";
-  const symbol = result?.marketSymbol || result?.symbol || result?.parameters?.marketSymbol || "BTC-5m";
+export function DreamDexTradeCard({ result, toolCallId, onSelectAction, toolName }: DreamDexTradeCardProps) {
+  const action = result?.action || (toolName === "dreamDexRedeemWinnings" ? "redeem" : toolName === "dreamDexClosePosition" ? "close_position" : toolName === "dreamDexMintTokens" ? "mint" : "place_order");
+  const isRedeem = action === "redeem" || result?.action === "redeem" || toolName === "dreamDexRedeemWinnings";
+  const isClosePosition = action === "close_position" || result?.action === "close_position" || toolName === "dreamDexClosePosition";
+  const symbol = result?.marketSymbol || result?.symbol || result?.parameters?.marketSymbol || (isRedeem ? "All Settled Markets" : "BTC-5m");
   const rawSide = result?.side || result?.parameters?.side || result?.tradeDetails?.side || (result?.action === "buy_up" ? "buy_up" : "buy_up");
   const side = String(rawSide).toLowerCase().includes("down") ? "buy_down" : "buy_up";
   const isUp = side === "buy_up";
   const price = result?.price || result?.parameters?.displayPrice || (result?.parameters?.priceInMillionths ? result.parameters.priceInMillionths / 1000000 : (result?.millionths ? result.millionths / 1000000 : 0.50));
-  const quantity = result?.quantity || result?.parameters?.quantity || result?.effectiveQuantity || (result?.amount ? Math.max(1, Math.round(Number(result.amount) / (price || 0.5))) : 20);
-  const totalCost = result?.collateral || result?.parameters?.amount || result?.effectiveCollateral || result?.amount || (quantity * price).toFixed(2);
+  const quantity = result?.quantity || result?.parameters?.quantity || result?.effectiveQuantity || (result?.amount ? Math.max(1, Math.round(Number(result.amount) / (price || 0.5))) : (isRedeem ? "Scanning..." : 20));
+  const totalCost = result?.collateral || result?.parameters?.amount || result?.effectiveCollateral || result?.amount || (isRedeem ? "Calculating..." : (quantity * price).toFixed(2));
 
   // Deterministic order storage key to prevent re-execution across page refreshes
   const orderFingerprint = toolCallId || `${symbol}_${action}_${side}_${quantity}_${totalCost}`;
@@ -43,6 +46,7 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
 
   const [step, setStep] = useState<"ready" | "sending" | "done" | "rejected" | "error">(() => {
     if (result?.txHash) return "done";
+    if (result?.status === "error" || result?.success === false) return "error";
     if (typeof window !== "undefined") {
       try {
         const cached = localStorage.getItem(storageKey);
@@ -56,7 +60,23 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
   });
 
   const [agentConfirming, setAgentConfirming] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
+    if (result?.status === "error" || result?.success === false) {
+      return result?.error || result?.message || "Execution failed on Somnia Network";
+    }
+    return null;
+  });
+  const [pendingBalance, setPendingBalance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (result?.txHash) {
+      setTxHash(result.txHash);
+      setStep("done");
+    } else if (result?.status === "error" || result?.success === false) {
+      setErrorMessage(result?.error || result?.message || "Execution failed on Somnia Network");
+      setStep("error");
+    }
+  }, [result?.txHash, result?.status, result?.success, result?.error, result?.message]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -73,6 +93,16 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
     }
   }, [storageKey]);
 
+  useEffect(() => {
+    if (result?.walletBalance?.tUSDC ?? result?.usdcBalance ?? result?.currentBalance) return;
+    const controller = new AbortController();
+    fetch("/api/dreamdex/balance", { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => data?.balance && setPendingBalance(data.balance))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [result?.walletBalance?.tUSDC, result?.usdcBalance, result?.currentBalance]);
+
   if (!result) return null;
 
   const dispatchAction = (promptText: string) => {
@@ -83,7 +113,6 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
     }
   };
 
-  const isRedeem = action === "redeem" || result.action === "redeem";
   const isInsufficient = result.status === "insufficient_collateral" || result.status === "insufficient_gas";
   const isExecutedAlready = !!txHash || !!result.txHash;
   const isRejected = step === "rejected";
@@ -91,11 +120,24 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
   const isPendingOrder = Boolean(result?.isLoading || result?.isPending);
   const isAgentConfirmation = !isDone && !isRejected && !isInsufficient && !isPendingOrder;
 
-  const displayUsdcBalance = result.usdcBalance != null
-    ? `${Number(result.usdcBalance).toFixed(2)} tUSDC`
-    : result.currentBalance != null
-    ? `${Number(result.currentBalance).toFixed(2)} tUSDC`
-    : "461.35 tUSDC";
+  // Notify portfolio cards when a redemption is executed so they can update immediately
+  useEffect(() => {
+    if (isRedeem && isDone && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("barzakh:dreamdex-redeemed", {
+        detail: {
+          marketSymbol: symbol,
+          poolAddress: result?.parameters?.pool || result?.poolAddress || result?.pool,
+          txHash: txHash || result?.txHash,
+        },
+      }));
+    }
+  }, [isRedeem, isDone]);
+
+  const rawUsdcBalance = result.walletBalance?.tUSDC ?? result.usdcBalance ?? result.currentBalance ?? pendingBalance;
+  const parsedUsdcBalance = parseFloat(String(rawUsdcBalance ?? ""));
+  const displayUsdcBalance = Number.isFinite(parsedUsdcBalance)
+    ? `${parsedUsdcBalance.toFixed(2)} tUSDC`
+    : "Unavailable";
 
   const explorerLink = txHash
     ? `https://shannon-explorer.somnia.network/tx/${txHash}`
@@ -183,13 +225,29 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
               <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/5 text-white shrink-0">
                 {isDone ? (
                   <Check className="size-4 sm:size-5 text-emerald-400" />
+                ) : isRedeem ? (
+                  <Coins className="size-4 sm:size-5 text-emerald-400" />
                 ) : (
                   <Bot className="size-4 sm:size-5" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
-                  <span className="truncate">{isDone ? (isRedeem ? "Redemption Completed" : "Order Executed") : isRejected ? "Action Cancelled" : isRedeem ? "Redeem Prediction Winnings" : "Prediction Order"}</span>
+                  <span className="truncate">
+                    {isDone
+                      ? isRedeem
+                        ? "Redemption Completed"
+                        : isClosePosition
+                        ? "Position Closed Early"
+                        : "Order Executed"
+                      : isRejected
+                      ? "Action Cancelled"
+                      : isRedeem
+                      ? "Redeem Prediction Winnings"
+                      : isClosePosition
+                      ? "Exit Market Early"
+                      : "Prediction Order"}
+                  </span>
                 </h3>
                 <p className="text-[11px] sm:text-xs text-zinc-400 flex items-center gap-1.5 truncate">
                   via DreamDEX CLOB <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -200,13 +258,17 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
             <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/5 text-[11px] sm:text-xs text-zinc-300 font-medium shrink-0">
               {isDone ? (
                 <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                  <Check className="size-3" /> {isRedeem ? "REDEEMED" : "EXECUTED"}
+                  <Check className="size-3" /> {isRedeem ? "REDEEMED" : isClosePosition ? "CLOSED" : "EXECUTED"}
                 </span>
               ) : isInsufficient ? (
                 <span className="text-amber-400 font-semibold">Low Balance</span>
               ) : isRedeem ? (
                 <span className="text-emerald-400 font-semibold flex items-center gap-1">
                   <Coins className="size-3" /> 1:1 Payout
+                </span>
+              ) : isClosePosition ? (
+                <span className="text-amber-400 font-semibold flex items-center gap-1">
+                  <Zap className="size-3" /> Early Exit
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
@@ -258,12 +320,17 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-zinc-400">{isRedeem ? "Action" : "Action & Position"}</span>
-              <span className={`font-bold flex items-center gap-1 ${isRedeem ? "text-emerald-400" : isUp ? "text-emerald-400" : "text-rose-400"}`}>
+              <span className="text-zinc-400">{isRedeem ? "Action" : isClosePosition ? "Action (Early Exit)" : "Action & Position"}</span>
+              <span className={`font-bold flex items-center gap-1 ${isRedeem ? "text-emerald-400" : isClosePosition ? "text-amber-400" : isUp ? "text-emerald-400" : "text-rose-400"}`}>
                 {isRedeem ? (
                   <>
                     <Coins className="size-3.5 text-emerald-400" />
                     REDEEM WINNING TOKENS
+                  </>
+                ) : isClosePosition ? (
+                  <>
+                    <Zap className="size-3.5" />
+                    CLOSE POSITION ({isUp ? "SELL UP" : "SELL DOWN"})
                   </>
                 ) : action === "mint" ? (
                   "MINT UP/DOWN SET"
@@ -285,7 +352,11 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
               <>
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-400">Winning Contracts</span>
-                  <span className="font-mono font-semibold text-white">{quantity} contracts</span>
+                  <span className="font-mono font-semibold text-white">
+                    {isDone
+                      ? `${quantity} contracts`
+                      : (result?.quantity ? `${result.quantity} contracts` : "Scanning portfolio...")}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-400">Redemption Ratio</span>
@@ -293,12 +364,18 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-400">Net Profit (P&L)</span>
-                  <span className="font-mono font-semibold text-emerald-400">{result.netProfit || "+$8.50 tUSDC"}</span>
+                  <span className="font-mono font-semibold text-emerald-400">
+                    {isDone ? (result?.netProfit || "+$0.00 tUSDC") : "Calculating..."}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-800/60">
                   <span className="text-zinc-300 font-medium">Total Redemption Payout</span>
                   <span className="font-mono font-bold text-sm text-emerald-400">
-                    {typeof totalCost === "number" ? totalCost.toFixed(2) : totalCost} tUSDC
+                    {isDone
+                      ? `${typeof totalCost === "number" ? totalCost.toFixed(2) : totalCost} tUSDC`
+                      : (result?.totalPayout || result?.collateral || result?.amount
+                          ? `${result.totalPayout || result.collateral || result.amount} tUSDC`
+                          : "Scanning & calculating...")}
                   </span>
                 </div>
               </>
@@ -306,7 +383,7 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
               <>
                 {action !== "mint" ? (
                   <div className="flex justify-between items-center">
-                    <span className="text-zinc-400">Limit Price (Probability)</span>
+                    <span className="text-zinc-400">{isClosePosition ? "Exit Price (Mark)" : "Limit Price (Probability)"}</span>
                     <span className="font-mono font-semibold text-white">
                       {price.toFixed(2)} ({(price * 100).toFixed(0)}% Implied)
                     </span>
@@ -314,13 +391,13 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
                 ) : null}
 
                 <div className="flex justify-between items-center">
-                  <span className="text-zinc-400">Contracts / Quantity</span>
+                  <span className="text-zinc-400">{isClosePosition ? "Contracts to Sell" : "Contracts / Quantity"}</span>
                   <span className="font-mono font-semibold text-white">{quantity} contracts</span>
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-800/60">
-                  <span className="text-zinc-300 font-medium">Total Collateral</span>
-                  <span className="font-mono font-bold text-sm text-white">
+                  <span className="text-zinc-300 font-medium">{isClosePosition ? "Estimated Return" : "Total Collateral"}</span>
+                  <span className={`font-mono font-bold text-sm ${isClosePosition ? "text-amber-400" : "text-white"}`}>
                     {typeof totalCost === "number" ? totalCost.toFixed(2) : totalCost} tUSDC
                   </span>
                 </div>
@@ -386,9 +463,13 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
           ) : isPendingOrder ? (
             <div className="p-3.5 rounded-xl bg-zinc-950/40 border border-zinc-800 text-xs text-zinc-300 flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin text-cyan-400 shrink-0" />
+                <Loader2 className={`size-4 animate-spin shrink-0 ${isRedeem ? "text-emerald-400" : "text-cyan-400"}`} />
                 <span>
-                  {result?.executionMode === "autopilot"
+                  {isRedeem
+                    ? "Scanning & redeeming winning contracts on Somnia..."
+                    : isClosePosition
+                    ? "Closing prediction position on Somnia..."
+                    : result?.executionMode === "autopilot"
                     ? "Executing order via Autopilot on Somnia..."
                     : "Preparing DreamDEX order parameters..."}
                 </span>
@@ -430,6 +511,11 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction }: DreamD
                     <>
                       <Coins className="size-3.5 shrink-0 text-black" />
                       <span className="truncate">Confirm Redemption</span>
+                    </>
+                  ) : isClosePosition ? (
+                    <>
+                      <Zap className="size-3.5 shrink-0 text-amber-500 fill-amber-500" />
+                      <span className="truncate">Confirm Early Exit</span>
                     </>
                   ) : (
                     <>

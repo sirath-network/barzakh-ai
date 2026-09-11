@@ -16,7 +16,7 @@ const client = postgres(process.env.POSTGRES_URL, {
   max_lifetime: 60 * 30, // Close connections after 30 minutes
   
   // Connection behavior
-  connect_timeout: 10, // Connection timeout in seconds
+  connect_timeout: 30, // Connection timeout in seconds (increased to handle parallel bursts)
   prepare: false, // Disable prepared statements for better compatibility
   
   // Development settings

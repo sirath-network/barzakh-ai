@@ -8,9 +8,9 @@ export const getDreamDexMarkets = tool({
   parameters: z.object({
     testnet: z.boolean().optional().describe("Use testnet (default true)"),
   }),
-  execute: async ({ testnet = true }) => {
+  execute: async ({ testnet = true, refresh = false }: any) => {
     try {
-      const markets = await dreamDexApi.getEventContractMarkets();
+      const markets = await dreamDexApi.getEventContractMarkets(Boolean(refresh));
       
       const formatted = markets.map((m) => ({
         id: m.id,
@@ -23,6 +23,7 @@ export const getDreamDexMarkets = tool({
         impliedProbability: m.impliedProbability,
         tradingVolume: m.tradingVolume,
         expiryTime: m.expiryTime,
+        expiryTimestamp: m.expiryTimestamp,
         status: m.status,
         poolAddress: m.poolAddress,
         marketAddress: m.marketAddress,
@@ -33,6 +34,8 @@ export const getDreamDexMarkets = tool({
         markets: formatted,
         count: formatted.length,
         network: "Somnia Shannon Testnet",
+        displayNote:
+          "The interactive Prediction Markets card is already rendered in the UI. Output ONLY: 'Here are the live DreamDEX prediction markets on Somnia Shannon.' Do NOT write bullet points or lists of markets.",
       };
     } catch (error: any) {
       return {
