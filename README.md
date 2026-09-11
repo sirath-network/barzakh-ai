@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Flare_Network-FTSOv2_&_Confidential_Compute-ede8e8?style=for-the-badge" alt="Flare Network">&nbsp;
+  <img src="https://img.shields.io/badge/Somnia_Network-DreamDEX_Prediction_Markets-ede8e8?style=for-the-badge" alt="Somnia Network">&nbsp;
   <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8?style=for-the-badge" alt="Relay Protocol">
 </p>
 
@@ -33,12 +33,12 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [Flare Summer Signal Hackathon — Official Submission](#-flare-summer-signal-hackathon--official-submission)
+- [Somnia Network & DreamDEX Integration](#-somnia-network--dreamdex-integration--the-oracle-agent-for-prediction-markets)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [AI Models & Orchestration](#ai-models--orchestration)
 - [Blockchain Tools](#blockchain-tools)
-  - [Flare Network (The Oracle Agent & Confidential Compute)](#flare-network--the-oracle-agent--confidential-compute)
+  - [Somnia Network & DreamDEX Event Contracts](#somnia-network--dreamdex-event-contracts)
   - [Arkham Intelligence](#%EF%B8%8F-arkham-intelligence--blockchain-investigation--whale-tracking)
   - [Mantle Network](#%EF%B8%8F-mantle-network--l2-blockchain-tools)
   - [Creditcoin](#-creditcoin--blockchain-data-tools)
@@ -65,8 +65,8 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | Feature | Description |
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
-| **Flare Oracle Agent** | Enshrined FTSOv2 price feeds (~1.8s block latency), FXRP supply tracking, and FDC state verification |
-| **Flare Confidential Compute** | Hardware-enforced TEE enclave for private DCA/limit order execution and zero-knowledge portfolio health scoring |
+| **DreamDEX Prediction Markets** | Conversational binary prediction trading, AI conviction scoring (0–100), and CLOB limit/market orders on Somnia |
+| **Autonomous Portfolio Settlement** | Automated 24/7 background settlement & redemption sweeps via GitHub Actions and Somnia Shannon RPC |
 | **Autonomous Token Launches** | 4-step end-to-end launch on Four.meme with automated logo resolution and tax config |
 | **Scheduled Agent Workflows** | Background monitoring for subscriptions and automated task execution via `api/cron` |
 | **Cross-Chain Execution** | 85+ chains via Relay Protocol (BSC, Base, Ethereum, Arbitrum, Solana, etc.) |
@@ -74,44 +74,22 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Decentralized Storage** | Upload text, images, PDFs, videos to Shelby Protocol (Aptos Testnet) with optional NFT minting |
 | **Azure Multi-Model AI** | GPT-4o/4.1/5.x, Grok, Kimi, DeepSeek, and BZKH model-router deployments with intelligent routing |
 | **Smart Chain Inference** | Auto-detects which chain a token belongs to — no need to specify |
-| **100+ Blockchain Tools** | Chain-specific analyzers for Flare, Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
+| **100+ Blockchain Tools** | Chain-specific analyzers for Somnia, Monad, Cronos, Mantle, EVM, Aptos, Solana, Flow, SEI, Creditcoin |
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 | **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
 
 ---
 
-## 🏆 Flare Summer Signal Hackathon — Official Submission
+## ⚡ Somnia Network & DreamDEX Integration — The Oracle Agent for Prediction Markets
 
-> **Tagline:** *The first onchain AI agent that sees across blockchains via FTSO & FDC, protects user alpha via Confidential Compute, and unlocks DeFi for FXRP.*
+> **Tagline:** *The first onchain AI agent that discovers live binary prediction markets, performs algorithmic AI conviction scoring, executes CLOB trades, and autonomously sweeps winnings on Somnia Network.*
 
-### 📋 Submission Summary
+### 📋 Overview & Architectural Primitive
 
-- **Project Name:** Barzakh AI × Flare: "The Oracle Agent"
-- **Selected Bounties:**
-  - 🥇 **Bounty 1: Interoperable Asset Products**
-  - 🥇 **Bounty 2: Confidential Compute Apps**
-- **Short Product Description:** A production-ready conversational AI agent providing real-time data intelligence and private execution on Flare Network — querying enshrined FTSOv2 price feeds (~1.8s latency), monitoring FAssets (FXRP dynamic supply & collateral), verifying cross-chain state via Flare Data Connector (FDC), and executing MEV-proof private strategies via Trusted Execution Environments (TEE).
-- **Target User:** DeFi traders, XRP/FXRP liquidity providers, algorithmic strategists seeking front-running protection, and web3 users wanting natural language access to Flare's enshrined data protocols.
-- **Working Demo App:** [app.sirath.network](https://app.sirath.network)
-- **Technical Materials:** [Flare AI Tools Suite](packages/shared/src/lib/ai/tools/flare/)
+Barzakh AI deeply integrates with **Somnia Shannon Testnet** (Chain ID: `50312`), the ultra-high-throughput EVM L1 blockchain (400,000+ TPS with sub-second block finality), and **DreamDEX Event Contracts**, the premier decentralized prediction market protocol on Somnia.
 
----
-
-### 🌐 Network Deployments & Live Smart Contracts
-
-| Contract / Resource | Network | Address / Explorer | Deployment Transaction |
-| :--- | :--- | :--- | :--- |
-| **`FlarePriceConsumer.sol`** | Coston2 Testnet (114) | [`0x5c3742143057ad31adb50ec8149864d4e72cb6d6`](https://coston2-explorer.flare.network/address/0x5c3742143057ad31adb50ec8149864d4e72cb6d6) | [`0xcaba2ae4...`](https://coston2-explorer.flare.network/tx/0xcaba2ae4799e58365f298fddf4707f293dd1ea5d4c15c74720d71a6444b1e0fa) |
-| **`FlareConfidentialStrategy.sol`** | Coston2 Testnet (114) | [`0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7`](https://coston2-explorer.flare.network/address/0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7) | [`0xa44b8bda...`](https://coston2-explorer.flare.network/tx/0xa44b8bdac1338f101831c3bb76325e98fd7b3773d3c56e608a2600a082e450ce) |
-| **Flare Contract Registry** | Mainnet (14) & Coston2 (114) | `0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019` | Enshrined Protocol Registry |
-| **Live RPC Feeds (Read)** | Flare Mainnet (14) | Direct on-chain zero-gas calls via Multi-RPC failover pool | Real-time FTSOv2 & FXRP |
-
-- **Deployer / Initial TEE Signer Wallet:** `0xa36ab3DB5f908e66B1Bcc4f7b0dFb42237027aD7`
-
----
-
-### 🧩 How Barzakh AI Uses Flare
+Through natural language conversation, users can discover rolling prediction markets, assess market sentiment with algorithmic AI conviction scoring, place taker orders on the Central Limit Order Book (CLOB), manage open positions with early exits, and redeem winnings autonomously.
 
 ```
  ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -119,76 +97,82 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
  └────────────────────────┬───────────────────────────────────┬─────────────────────┘
                           │                                   │
              ┌────────────▼────────────────┐       ┌────────────▼──────────────┐
-             │ 🏆 BOUNTY 1: INTEROP ASSETS│        │ 🏆 BOUNTY 2: CONFIDENTIAL│
+             │  AI CONVICTION SCORING      │       │  AUTONOMOUS TRADING & CLOB│
              └────────────┬────────────────┘       └────────────┬──────────────┘
                           │                                   │
          ┌────────────────┼────────────────┐                  │
          ▼                ▼                ▼                  ▼
    ┌───────────┐    ┌───────────┐    ┌───────────┐     ┌─────────────────────┐
-   │  FTSO v2  │    │  FAssets  │    │    FDC    │     │ Flare TEE Enclave   │
-   │  Oracle   │    │  (FXRP)   │    │   (Hub)   │     │ (Intel TDX / dstack)│
+   │ Implied   │    │ CLOB Book │    │ Algorithmic│    │ Embedded Agent      │
+   │ Probability│    │ Depth &   │    │ Conviction │    │ Wallet & Autopilot  │
+   │ Dynamics  │    │ Imbalance │    │ Score (0-100)    (Zero-Click Execution)│
    └─────┬─────┘    └─────┬─────┘    └─────┬─────┘     └──────────┬──────────┘
          │                │                │                      │
-         │  Block-latency │  $149M+ FXRP   │  Cross-Chain Proofs  │  Hardware Encrypted
-         │  Feed Pricing  │  Collateral    │  (XRPL/BTC/Web2)     │  Strategy Execution
+         │  Market Odds   │  Spread & Depth│  Structured Risk &   │  Onchain Settlement
+         │  (UP vs DOWN)  │  Analytics     │  Trading Strategy    │  tUSDC Collateral
          │                │                │                      │
          └────────────────┴────────────────┴──────────────────────┘
                                   │
                                   ▼
    ┌────────────────────────────────────────────────────────────────────────────────┐
-   │         FLARE MAINNET (Chain ID 14) & COSTON2 TESTNET (Chain ID 114)           │
-   │   • Contract Registry: 0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019              │
-   │   • FtsoV2 / TestFtsoV2 Contract Resolution & 3-Tier Multi-RPC Failover Pool   │
+   │                    SOMNIA SHANNON TESTNET (Chain ID: 50312)                    │
+   │   • High-Throughput EVM L1 (400k+ TPS) • RPC: https://dream-rpc.somnia.network │
+   │   • DreamDEX Event Contracts CLOB • Collateral: tUSDC (6 dec) • Gas: STT      │
+   │   • 24/7 Automated Settlement Sweep via GitHub Actions                         │
    └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Enshrined FTSOv2 Oracle (Bounty 1):**
-   - Direct smart contract queries to `FtsoV2` via dynamic `IFlareContractRegistry` resolution (`0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019`).
-   - Consensus-verified prices for `FLR/USD`, `BTC/USD`, `ETH/USD`, `XRP/USD`, `SOL/USD`, `DOGE/USD` updated with block-latency (~1.8s).
-   - Zero reliance on centralized third-party APIs (CoinGecko, CoinMarketCap).
+---
 
-2. **FAssets & FXRP Integration (Bounty 1):**
-   - Dynamic resolution of `AssetManagerFXRP` and FXRP ERC-20 token (`0xAd552A648C74D49E10027AB8a618A3ad4901c5bE` on Mainnet).
-   - Real-time monitoring of circulating FXRP supply (149.5M+ FXRP on Flare Mainnet) and dual-layer collateral health (FLR pool collateral + stablecoin vault collateral).
+### 🧩 Core Mechanics: Event Contracts & Binary Outcomes
 
-3. **Flare Data Connector (FDC) Attestation (Bounty 1):**
-   - Resolves `FdcHub` (`0xc25c749DC27Efb1864Cb3DADa8845B7687eB2d44` on Mainnet) to inspect supported cross-chain attestation types (`Payment`, `AddressValidity`, `BalanceDecreasingTransaction`, `EVMTransaction`, `Web2Json`).
+1. **The Binary Event Contract Primitive**:
+   - Every prediction market settles to a binary outcome: **UP** (Bullish/Yes) or **DOWN** (Bearish/No).
+   - **Collateral**: Testnet USDC (`tUSDC`, 6 decimals — `1 tUSDC = 1,000,000` base units).
+   - **Gas Token**: Somnia Testnet Token (`STT`, 18 decimals).
+   - **Minting Sets**: `1.00 tUSDC` collateral mints 1 complete outcome set: 1 UP token + 1 DOWN token via the ERC-6909 multi-token standard.
+   - **CLOB Order Book Pricing**: Prices represent implied outcome probability in millionths ($10^6$ units):
+     - `900,000` = 0.90 = **90% probability** ($0.90 / contract)
+     - `650,000` = 0.65 = **65% probability** ($0.65 / contract)
+     - `500,000` = 0.50 = **50% probability** ($0.50 / contract)
+     - `100,000` = 0.10 = **10% probability** ($0.10 / contract)
+   - **Settlement & Redemption**:
+     - When a market window resolves, winning outcome tokens redeem **1:1 for 1.00 tUSDC** collateral.
+     - Losing outcome tokens expire worthless (0 tUSDC).
+     - Voided or cancelled markets allow mutual redemption of both sides at **0.50 tUSDC** per contract.
 
-4. **Flare Confidential Compute & TEE Enclave (Bounty 2):**
-   - Hardware-enforced isolation (Intel TDX / SGX container architecture) protecting user trading alpha against front-running and MEV.
-   - **Private Strategy Execution:** Submits client-side encrypted envelopes (`0x...`) for automated DCAs and limit orders evaluated inside the enclave.
-   - **Zero-Knowledge Portfolio Health Scoring:** Private portfolio diagnostics where balances and trading history enter the enclave, but only aggregated health scores (0-100) and anonymized recommendations exit.
-   - **Onchain Settlement Contract:** [`FlareConfidentialStrategy.sol`](https://coston2-explorer.flare.network/address/0x653fde50d3ee1f2d82b2bac5871b0d96d8ae87c7) verifies TEE hardware-signed execution proofs and FTSOv2 price boundaries on Coston2 testnet.
+2. **AI Conviction Scoring Engine (`getAIPredictionAnalysis`)**:
+   - Evaluates active prediction markets by cross-referencing live implied probability, order book depth, bid-ask spreads, and momentum.
+   - Generates an objective **AI Conviction Score (0–100)** with directional bias (`Lean UP`, `Lean DOWN`, `Neutral`), structured reasoning, risk level (`Low`, `Medium`, `High`), and suggested trading strategy.
+   - Renders interactive `DreamDexAnalysisCard` with real-time conviction gauges and quick **"Bet UP (10 tUSDC)"** / **"Bet DOWN (10 tUSDC)"** action triggers.
 
-5. **3-Tier Resilient RPC Pool:**
-   - Automated failover across `flare-api.flare.network`, `flare.public-rpc.com` (~298ms latency), and `rpc.ankr.com` with 8s timeouts, eliminating RPC drops.
+3. **Triple-Tier Wallet Execution Modes**:
+   - **Autopilot Mode (Full Autonomous)**: Embedded EVM agent wallet executes trades directly on Somnia Shannon testnet without confirmation popups, returning live transaction hashes and block explorer links.
+   - **Ask for Approval Mode (Default)**: Prepares the trade and renders a rich `DreamDexTradeCard` with interactive **Confirm & Execute Trade** and **Reject** buttons.
+   - **Manual Mode**: External Web3 wallet (MetaMask, Rabby) signing support with prepared transaction parameters.
+
+4. **Early Position Exits (`dreamDexClosePosition`)**:
+   - Allows users to liquidate active prediction positions prior to expiration by selling contracts back to the CLOB order book at current market price, locking in gains or mitigating losses.
+
+5. **Autonomous 24/7 Settlement Sweep via GitHub Actions**:
+   - [`.github/workflows/dreamdex-sweep.yml`](.github/workflows/dreamdex-sweep.yml) runs every 5 minutes around the clock.
+   - Automatically checks all registered user agent wallets for claimable winning contracts across finalized Somnia markets and broadcasts batch redemption transactions on-chain — even while users are offline.
 
 ---
 
-### 📊 Separation of Work: Existing vs. Hackathon Additions
+### 🌐 Network Deployments & Live Contracts
 
-To provide complete transparency for hackathon evaluation:
-
-| Component / Feature | Status Before Program | Built / Ported / Improved During Program |
-| :--- | :--- | :--- |
-| **Core Monorepo & AI Router** | Pre-existing | Enhanced system prompts and intent patterns for Flare |
-| **Flare Chain Configuration** | ❌ None | ✅ Added Flare Mainnet (14) & Coston2 (114) to Wagmi, Viem, Intent Classifier |
-| **FTSOv2 Oracle AI Tools** | ❌ None | ✅ Built `getFlareFtsoPrice` & `getFlareFtsoMultiPrices` via on-chain contract queries |
-| **FAssets / FXRP AI Tools** | ❌ None | ✅ Built `getFlareFxrpInfo` with dynamic `AssetManagerFXRP` & supply tracking |
-| **FDC Data Connector Tools** | ❌ None | ✅ Built `getFlareFdcInfo` resolving `FdcHub` and attestation types |
-| **Flare Native Portfolio Tracker** | ❌ None | ✅ Built `getFlarePortfolio` querying live balances, ERC-20s, and FTSOv2 USD values |
-| **Flare Blockchain Utilities** | ❌ None | ✅ Built `getFlareBalance`, `getFlareBlockInfo`, `getFlareTransaction`, `getFlareGasPrice`, `getFlareNetworkStats` |
-| **Confidential Compute (TEE) Layer** | ❌ None | ✅ Built `flare-confidential.ts` for confidential strategy evaluation |
-| **Solidity Smart Contracts** | ❌ None | ✅ Built & deployed `FlarePriceConsumer.sol` and `FlareConfidentialStrategy.sol` on Coston2 |
-| **Multi-RPC Failover Pool** | ❌ None | ✅ Implemented 3-tier fallback pool (`flare-api`, `public-rpc`, `ankr`) |
-
----
-
-### 🔮 Roadmap & Next Steps
-
-1. **Phala dstack Live Hardware Enclave:** Deploy confidential strategy execution onto a bare-metal Phala Cloud instance with active remote hardware attestation (MRENCLAVE).
-2. **Autonomous FAsset Natural Language Minting:** Enable users to trigger XRPL transactions and generate FDC payment attestations directly from chat (e.g. *"Mint 250 FXRP from my XRPL wallet"*).
-3. **Institutional MEV-Proof Fund Rebalancer:** Commercialize confidential strategy execution for DAOs and treasury managers holding large FLR and FXRP positions.
+| Contract / Resource | Network | Address / Endpoint | Details |
+| :--- | :--- | :--- | :--- |
+| **Somnia RPC Endpoint** | Shannon Testnet (50312) | `https://dream-rpc.somnia.network` | High-speed JSON-RPC |
+| **Somnia Block Explorer** | Shannon Testnet (50312) | [`shannon-explorer.somnia.network`](https://shannon-explorer.somnia.network) | Block, tx, and contract explorer |
+| **tUSDC Collateral Token** | Shannon Testnet (50312) | [`0x0957C6D772843a30F28B7Cd436DE9c1d0EAf8517`](https://shannon-explorer.somnia.network/address/0x0957C6D772843a30F28B7Cd436DE9c1d0EAf8517) | ERC-20 Settlement Token (6 decimals) |
+| **BTC-UP-5m Binary Pool** | Shannon Testnet (50312) | [`0x276f5834C407b5B1d1De943dEf367f33E33f6E3C`](https://shannon-explorer.somnia.network/address/0x276f5834C407b5B1d1De943dEf367f33E33f6E3C) | Rolling 5-minute Bitcoin Market |
+| **BTC-UP-15m Binary Pool** | Shannon Testnet (50312) | [`0x3770105e7C867F88224130b4908E5E3B51e91847`](https://shannon-explorer.somnia.network/address/0x3770105e7C867F88224130b4908E5E3B51e91847) | Rolling 15-minute Bitcoin Market |
+| **BTC-UP-4h Binary Pool** | Shannon Testnet (50312) | [`0xF0981caA193a3D7E028Bb8dD404cC1d8629C66e3`](https://shannon-explorer.somnia.network/address/0xF0981caA193a3D7E028Bb8dD404cC1d8629C66e3) | Rolling 4-hour Bitcoin Market |
+| **ETH-UP-5m Binary Pool** | Shannon Testnet (50312) | [`0x241A56bd55Cb119E62702b75FD171e0a983b1aCc`](https://shannon-explorer.somnia.network/address/0x241A56bd55Cb119E62702b75FD171e0a983b1aCc) | Rolling 5-minute Ethereum Market |
+| **ETH-UP-15m Binary Pool** | Shannon Testnet (50312) | [`0x70784Dc7Ca87Bf2ED5220072d8c8f9661716170F`](https://shannon-explorer.somnia.network/address/0x70784Dc7Ca87Bf2ED5220072d8c8f9661716170F) | Rolling 15-minute Ethereum Market |
+| **ETH-UP-4h Binary Pool** | Shannon Testnet (50312) | [`0x9887d318fFd0e385E6d3113ef78b9a664AB4d0CB`](https://shannon-explorer.somnia.network/address/0x9887d318fFd0e385E6d3113ef78b9a664AB4d0CB) | Rolling 4-hour Ethereum Market |
 
 ---
 
@@ -505,7 +489,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 
 | Chain | Tools | Key Capabilities |
 |-------|-------|------------------|
-| **Flare Network** | 13 | Enshrined FTSOv2 price feeds (~1.8s block latency), FAssets (FXRP dynamic supply & collateral), Flare Data Connector (FDC) cross-chain attestations, native portfolio tracker, TEE confidential compute strategy execution & zero-knowledge portfolio health scoring |
+| **Somnia & DreamDEX** | 13 | Binary prediction markets (UP/DOWN), CLOB order book trading, AI conviction scoring (0–100), automated early exit/close position, 1:1 winnings redemption, native portfolio tracker, and 24/7 background settlement sweep on Somnia Shannon |
 | **Arkham Intelligence** | 43 | Whale tracking, entity investigation, fund flow analysis, portfolio, transfers, DEX swaps, token data, market metrics, address labels — across 20+ chains (Ethereum, Bitcoin, Solana, BSC, Tron, TON, Dogecoin, etc.) |
 | **Cronos EVM** | 12 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info, internal tx, logs |
 | **Cronos zkEVM** | 11 | zkCRO balance, tx history, token transfers, internal tx, contract ABI/source, token supply, block info |
@@ -524,60 +508,60 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 
 ---
 
-### Flare Network — The Oracle Agent & Confidential Compute
+### Somnia Network & DreamDEX Event Contracts
 
-Barzakh AI provides **13 dedicated Flare tools** integrating Flare's enshrined oracle (FTSOv2), FAssets (FXRP), Flare Data Connector (FDC), and hardware-isolated Confidential Compute (TEE):
+Barzakh AI provides **13 dedicated Somnia & DreamDEX tools** integrating Somnia Shannon high-speed blockchain infrastructure with DreamDEX Central Limit Order Book (CLOB) prediction markets, AI conviction analytics, and autonomous settlement:
 
-#### 🛠️ Flare AI Tool Suite
+#### 🛠️ Somnia & DreamDEX AI Tool Suite
 
 | Tool | Category | Description |
 | :--- | :--- | :--- |
-| `getFlareFtsoPrice` | 🔮 Oracle (FTSOv2) | Consensus-verified price feed for FLR, BTC, ETH, XRP, SOL, DOGE directly from `FtsoV2` contract |
-| `getFlareFtsoMultiPrices` | 🔮 Oracle (FTSOv2) | Batch queries comparing multi-asset market prices in a single conversational turn |
-| `getFlareFxrpInfo` | 🪙 FAssets / FXRP | Dynamic `AssetManagerFXRP` resolution, circulating FXRP supply (149.5M+), and dual-collateral health |
-| `getFlareFdcInfo` | 🌐 FDC Attestation | Flare Data Connector hub details and supported attestation types (`Payment`, `EVMTransaction`, `Web2Json`) |
-| `getFlarePortfolio` | 💼 Wallet / Portfolio | Full on-chain portfolio: native FLR, ERC-20 token holdings, and live FTSOv2 USD valuation |
-| `getFlareBalance` | ⛓️ Blockchain | Native FLR (Mainnet) or C2FLR (Coston2 Testnet) balance |
-| `getFlareTokenBalance` | ⛓️ Blockchain | ERC-20 token balance (WFLR, FXRP, etc.) |
-| `getFlareTransaction` | ⛓️ Blockchain | Transaction status, confirmations, and gas used |
-| `getFlareBlockInfo` | ⛓️ Blockchain | Latest block number, timestamp, and gas stats |
-| `getFlareGasPrice` | ⛓️ Blockchain | Current gas price with transfer and swap cost estimations |
-| `getFlareNetworkStats` | ⛓️ Blockchain | Network overview, chain ID, and explorer links |
-| `getFlareConfidentialStrategyInfo` | 🔒 Confidential Compute | Interactive educational breakdown of TEE trust models and hardware privacy |
-| `submitConfidentialStrategy` | 🔒 Confidential Compute | Client-side encrypted DCA/limit order strategy submission to isolated TEE enclave |
-| `getConfidentialPortfolioScore` | 🔒 Confidential Compute | Zero-knowledge portfolio risk, diversification, and yield scoring with attestation hash |
+| `getDreamDexMarkets` | 📊 Market Discovery | Real-time discovery of active rolling prediction markets (5m, 15m, 1h, 4h) across BTC, ETH, and SOMI with strike prices, implied odds, volume, and countdowns |
+| `getDreamDexMarketDetails` | 📊 Market Discovery | Comprehensive order book inspection: best bids, best asks, bid-ask spread, strike price, and settlement oracle status |
+| `getDreamDexMarketHistory` | 📊 Market Discovery | Historical market resolutions, finalized winning outcomes, strike prices, and resolution timestamps |
+| `getAIPredictionAnalysis` | 🧠 AI Oracle | Algorithmic conviction scoring (0–100) synthesizing implied probability, order book depth, and market momentum into clear directional bias (Lean UP / Lean DOWN / Neutral) and risk guidance |
+| `dreamDexPlaceOrder` | ⚡ CLOB Trading | Execute limit or taker market orders on DreamDEX CLOB (UP / DOWN) using tUSDC collateral with automatic onchain approval handling and balance checks |
+| `dreamDexClosePosition` | ⚡ CLOB Trading | Exit active predictions early before expiry by selling contracts back to the CLOB order book at mark price to lock in profits or cap drawdowns |
+| `dreamDexRedeemWinnings` | 💰 Settlement | Redeem winning outcome contracts 1:1 for 100% face-value tUSDC collateral on-chain with clear payout vs. net P&L tracking |
+| `dreamDexMintTokens` | 🪙 Token Minting | Mint complete sets of outcome tokens (1 UP + 1 DOWN per 1 tUSDC collateral) directly via the ERC-6909 standard |
+| `dreamDexCancelOrder` | ⚡ Order Management | Cancel an individual active resting limit order on the DreamDEX CLOB order book |
+| `dreamDexCancelAllOrders`| ⚡ Order Management | Bulk cancel all open resting orders across all DreamDEX prediction markets |
+| `getDreamDexPortfolio` | 💼 Wallet / Portfolio | Live on-chain prediction portfolio: active contracts, unrealized P&L, winning contracts count, total collateral at risk, and historical trades |
+| `getSomniaBalance` | ⛓️ Blockchain | Query native STT gas token and tUSDC prediction collateral balances on Somnia Shannon Testnet |
+| `getSomniaNetworkStats` | ⛓️ Blockchain | Live Somnia Shannon network metrics: latest block number, gas price, chain ID (50312), and block explorer status |
 
-#### 🎯 Try It — Flare Natural Language Prompts
+#### 🎯 Try It — Somnia & DreamDEX Natural Language Prompts
 
 > **Live at [app.sirath.network](https://app.sirath.network)** — test these prompts in the chat:
 
 ```text
-What is the live FTSO price of FLR, BTC, and XRP?
+Show me the live prediction markets on DreamDEX
 ```
 ```text
-Show FXRP circulating supply and collateral health on Flare
+Analyze ETH-UP-4h with AI conviction scoring
 ```
 ```text
-Track portfolio 0xA485582EEd34126fbB5387b35757e1F71dfc4cE8 on Flare
+Put 10 tUSDC on UP for BTC-UP-4h
 ```
 ```text
-What attestation types does the Flare Data Connector support?
+Put 10 tUSDC on DOWN for ETH-UP-15m
 ```
 ```text
-Execute a private DCA strategy to buy FXRP whenever FTSO volatility is under 2%
+Close my position on ETH-UP-4h
 ```
 ```text
-Privately score my portfolio health without exposing my token balances on-chain
+Redeem my winnings on DreamDEX
 ```
 ```text
-Check the latest block and gas price on Flare Mainnet
+Show my DreamDEX prediction portfolio
+```
+```text
+Check my STT gas and tUSDC collateral balance on Somnia
 ```
 
-#### 🛡️ Resilient 3-Tier Multi-RPC Pool
-All Flare queries automatically utilize an intelligent failover pool with 8-second request timeouts to guarantee zero downtime and eliminate timeout errors:
-- **Primary:** `https://flare-api.flare.network/ext/C/rpc` (Official RPC)
-- **Backup 1:** `https://flare.public-rpc.com` (High-speed community RPC ~298ms)
-- **Backup 2:** `https://rpc.ankr.com/flare` (Ankr Global Infrastructure)
+#### 🛡️ Resilient Somnia Shannon RPC & Background Settlement
+- **High-Speed RPC:** Connected directly to `https://dream-rpc.somnia.network` with high-speed Viem multicall bundling for sub-second order book and position reads.
+- **24/7 Automated Settlement Sweep:** Powered by [`.github/workflows/dreamdex-sweep.yml`](.github/workflows/dreamdex-sweep.yml), running every 5 minutes around the clock to detect finalized winning positions across user agent wallets and execute automated on-chain redemptions.
 
 ---
 
@@ -866,7 +850,7 @@ Barzakh AI integrates **[Arkham Intelligence](https://arkm.com)** with **43 dedi
 ```
 ethereum · bitcoin · solana · bsc · polygon · arbitrum · optimism · base
 tron · ton · dogecoin · avalanche · fantom · blast · linea · manta
-mantle · sonic · flare · zcash
+mantle · sonic · zcash
 ```
 
 #### 🎯 Try It — Arkham Intelligence Use Cases
