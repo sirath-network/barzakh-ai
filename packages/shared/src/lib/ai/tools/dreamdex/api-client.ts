@@ -848,12 +848,20 @@ export class DreamDexApiClient {
         const poolBig = BigInt(p.address);
         const minN = Math.max(1, numNonce - 1);
 
+        const tf = extractTimeframe(p.symbol || "");
+        const tfSec = tf.endsWith("m") ? parseInt(tf) * 60 : tf.endsWith("h") ? parseInt(tf) * 3600 : tf.endsWith("d") ? parseInt(tf) * 86400 : 3600;
+
         for (let n = numNonce; n >= minN; n--) {
           for (const idx of [0, 1] as const) {
             const outId = (poolBig << 72n) | (BigInt(n) << 8n) | BigInt(idx);
             const key = outId.toString();
             if (!seenOutcomeIds.has(key)) {
               seenOutcomeIds.add(key);
+              const nonceDiff = BigInt(numNonce - n);
+              const pastExpiryNs = (state.expiryNs > 0n && nonceDiff > 0n)
+                ? (state.expiryNs - nonceDiff * BigInt(tfSec) * 1_000_000_000n)
+                : state.expiryNs;
+
               scanItems.push({
                 pool: p.address,
                 asset: p.asset,
@@ -862,8 +870,8 @@ export class DreamDexApiClient {
                 outcomeIdx: idx,
                 outcomeId: outId,
                 currentNonce: numNonce,
-                finalized: state.finalized,
-                expiryNs: state.expiryNs,
+                finalized: n < numNonce ? true : state.finalized,
+                expiryNs: pastExpiryNs,
               });
             }
           }
@@ -884,6 +892,13 @@ export class DreamDexApiClient {
               const key = outId.toString();
               if (!seenOutcomeIds.has(key)) {
                 seenOutcomeIds.add(key);
+                const tf = extractTimeframe(tr.marketSymbol || "");
+                const tfSec = tf.endsWith("m") ? parseInt(tf) * 60 : tf.endsWith("h") ? parseInt(tf) * 3600 : tf.endsWith("d") ? parseInt(tf) * 86400 : 3600;
+                const nonceDiff = state.nonce > nonce ? (state.nonce - nonce) : 0n;
+                const pastExpiryNs = (state.expiryNs > 0n && nonceDiff > 0n)
+                  ? (state.expiryNs - nonceDiff * BigInt(tfSec) * 1_000_000_000n)
+                  : state.expiryNs;
+
                 scanItems.push({
                   pool: tr.pool,
                   asset: tr.marketSymbol?.split("-")[0] || "CRYPTO",
@@ -892,8 +907,8 @@ export class DreamDexApiClient {
                   outcomeIdx,
                   outcomeId: outId,
                   currentNonce: Number(state.nonce),
-                  finalized: state.finalized,
-                  expiryNs: state.expiryNs,
+                  finalized: state.nonce > nonce ? true : state.finalized,
+                  expiryNs: pastExpiryNs,
                 });
               }
             }
@@ -1093,8 +1108,19 @@ export class DreamDexApiClient {
           }
 
           const timeframe = extractTimeframe(sym);
-          const settledAt = token.expiryNs ? new Date(Number(token.expiryNs / 1000000n)).toISOString() : undefined;
-          const createdAt = matchingTrade?.createdAt || (settledAt ? new Date(new Date(settledAt).getTime() - 300_000).toISOString() : undefined);
+          const tfSec = timeframe.endsWith("m") ? parseInt(timeframe) * 60 : timeframe.endsWith("h") ? parseInt(timeframe) * 3600 : timeframe.endsWith("d") ? parseInt(timeframe) * 86400 : 3600;
+
+          let createdAt = matchingTrade?.createdAt;
+          let settledAt: string | undefined = undefined;
+
+          if (createdAt) {
+            const tradeTime = new Date(createdAt).getTime();
+            settledAt = new Date(Math.min(tradeTime + tfSec * 1000, Date.now())).toISOString();
+          } else if (token.expiryNs) {
+            const expMs = Number(token.expiryNs / 1000000n);
+            settledAt = new Date(Math.min(expMs, Date.now())).toISOString();
+            createdAt = new Date(Math.max(0, new Date(settledAt).getTime() - tfSec * 1000)).toISOString();
+          }
 
           resolvedList.push({
             market: sym,
@@ -1110,9 +1136,9 @@ export class DreamDexApiClient {
             pnlFormatted: `${pnl >= 0 ? "+" : "-"}$${Math.abs(pnl).toFixed(2)} tUSDC`,
             payout,
             status,
-            isRedeemed: status === "Redeemed",
-            claimed: status === "Redeemed",
-            claimable: status === "Claimable",
+            isRedeemed: isWin && status === "Redeemed",
+            claimed: isWin && status === "Redeemed",
+            claimable: isWin && status === "Claimable",
             timeframe,
             createdAt,
             settledAt,
@@ -1132,16 +1158,27 @@ export class DreamDexApiClient {
             const pool = (trade.pool || "").toLowerCase();
             const sym = (trade.marketSymbol || "").toLowerCase();
 
-            // First: update ANY existing winning position in resolvedList that matches this pool, symbol, or signature
+            // Only update an existing position if:
+            // 1. It is NOT currently held onchain (if heldTokens found it with balance > 0, tokens are NOT burned!)
+            // 2. The pool address matches EXACTLY
+            // 3. The redeem transaction happened AFTER the position was created (tradeTime >= posTime)
+            // NEVER match by generic symbol string alone across rolling windows!
+            const tradeTime = trade.createdAt ? new Date(trade.createdAt).getTime() : 0;
             let didUpdateExisting = false;
             for (const r of resolvedList) {
-              const rPool = (r.poolAddress || "").toLowerCase();
-              const rSym = (r.market || r.marketSymbol || r.marketName || "").toLowerCase();
-              const matchesPool = pool && rPool && rPool === pool;
-              const matchesSym = sym && rSym && (rSym === sym || rSym.includes(sym) || sym.includes(rSym));
-              const matchesTx = trade.signature && r.txHash === trade.signature;
+              // On-chain ground truth: If r has an outcomeId and is claimable, the user still physically holds
+              // unburned winning contracts onchain! It must NEVER be overwritten by an older historical trade!
+              if (r.outcomeId && r.claimable) {
+                continue;
+              }
 
-              if (r.isWinner && (matchesPool || matchesSym || matchesTx)) {
+              const rPool = (r.poolAddress || "").toLowerCase();
+              const rTime = r.createdAt ? new Date(r.createdAt).getTime() : 0;
+              const matchesPool = pool && rPool && rPool === pool;
+              const matchesTx = trade.signature && r.txHash === trade.signature;
+              const isAfterCreation = tradeTime > 0 && rTime > 0 ? tradeTime >= rTime : true;
+
+              if (r.isWinner && ((matchesPool && isAfterCreation) || matchesTx)) {
                 r.isRedeemed = true;
                 r.claimed = true;
                 r.claimable = false;
@@ -1151,6 +1188,7 @@ export class DreamDexApiClient {
                   r.explorerUrl = `https://shannon-explorer.somnia.network/tx/${trade.signature}`;
                 }
                 didUpdateExisting = true;
+                break;
               }
             }
 
@@ -1171,7 +1209,7 @@ export class DreamDexApiClient {
 
               resolvedList.unshift({
                 market: trade.marketSymbol || "Event Contract",
-                marketId: `${pool || "0x"}-redeemed`,
+                marketId: `${pool || "0x"}-redeemed-${trade.signature || Date.now()}`,
                 marketSymbol: trade.marketSymbol || "Event Contract",
                 poolAddress: trade.pool,
                 side: "Up",
@@ -1355,12 +1393,18 @@ export class DreamDexApiClient {
                              tr.marketSymbol.toLowerCase().includes(sym.toLowerCase())
                            )))
                       );
-                      if (wouldWin || redeemTrade) {
+                      if (wouldWin) {
                         outcome = "WON";
                         isWin = true;
                         pnl = qty * (1 - price);
                         payout = `${qty.toFixed(2)} tUSDC`;
                         status = "Redeemed";
+                      } else if (winIdx !== -1) {
+                        outcome = "LOST";
+                        isWin = false;
+                        pnl = -(qty * price);
+                        payout = "0.00 tUSDC";
+                        status = "Settled";
                       } else {
                         outcome = "REFUNDED";
                         isWin = false;
@@ -1392,13 +1436,9 @@ export class DreamDexApiClient {
                   settledAt = closeTrade.createdAt;
                 } else if (trade.createdAt) {
                   const tradeTime = new Date(trade.createdAt).getTime();
-                  if (tradeTime + tfSec * 1000 <= Date.now()) {
-                    settledAt = new Date(tradeTime + tfSec * 1000).toISOString();
-                  } else if (state?.expiryNs) {
-                    settledAt = new Date(Number(state.expiryNs / 1000000n)).toISOString();
-                  }
+                  settledAt = new Date(Math.min(tradeTime + tfSec * 1000, Date.now())).toISOString();
                 } else if (state?.expiryNs) {
-                  settledAt = new Date(Number(state.expiryNs / 1000000n)).toISOString();
+                  settledAt = new Date(Math.min(Number(state.expiryNs / 1000000n), Date.now())).toISOString();
                 }
 
                 const redeemTrade = options?.trades?.find(
@@ -1443,12 +1483,18 @@ export class DreamDexApiClient {
         }
       }
 
-      // 8. Sort resolved positions by newest first (descending by settledAt, closedAt, or createdAt)
-      resolvedList.sort((a, b) => {
-        const timeA = new Date(a.closedAt || a.settledAt || a.createdAt || 0).getTime();
-        const timeB = new Date(b.closedAt || b.settledAt || b.createdAt || 0).getTime();
-        return timeB - timeA;
-      });
+      // 8. Sort resolved positions strictly by newest first (descending by effective timestamp)
+      const getEffectiveTimestamp = (item: any): number => {
+        const c = item.closedAt ? new Date(item.closedAt).getTime() : 0;
+        const s = item.settledAt ? new Date(item.settledAt).getTime() : 0;
+        const cr = item.createdAt ? new Date(item.createdAt).getTime() : 0;
+        return Math.max(
+          isNaN(c) ? 0 : c,
+          isNaN(s) ? 0 : s,
+          isNaN(cr) ? 0 : cr
+        );
+      };
+      resolvedList.sort((a, b) => getEffectiveTimestamp(b) - getEffectiveTimestamp(a));
 
       return {
         active: activeList,

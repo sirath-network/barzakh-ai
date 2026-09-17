@@ -156,7 +156,7 @@ export const getDreamDexPortfolio = tool({
           totalInvested += invested;
         }
 
-        const isRedeemed = pos.isRedeemed === true || pos.status === "Redeemed" || pos.claimed === true;
+        const isRedeemed = isWin && (pos.isRedeemed === true || pos.status === "Redeemed" || pos.claimed === true);
         const claimable = isWin && !isRedeemed && !isExpired && !isRefunded && !isClosedEarly && (pos.claimable === true || pos.status === "Claimable");
 
         return {
@@ -185,6 +185,19 @@ export const getDreamDexPortfolio = tool({
             : `${explorer}/address/${targetAddress}`,
         };
       });
+
+      // Sort resolved positions strictly from newest (latest) to oldest
+      const getPosTimestamp = (p: any): number => {
+        const c = p.closedAt ? new Date(p.closedAt).getTime() : 0;
+        const s = p.settledAt ? new Date(p.settledAt).getTime() : 0;
+        const cr = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+        return Math.max(
+          isNaN(c) ? 0 : c,
+          isNaN(s) ? 0 : s,
+          isNaN(cr) ? 0 : cr
+        );
+      };
+      resolvedPositions.sort((a: any, b: any) => getPosTimestamp(b) - getPosTimestamp(a));
 
       // Include active positions in totalInvested
       for (const act of activePositions) {

@@ -4,3 +4,5 @@ export function sharedFunction() {
 
 export * from "./lib/ai/tools/dreamdex/api-client";
 export * from "./lib/ai/tools/dreamdex/sdk-client";
+export * from "./lib/ai/tools/keeperhub";
+

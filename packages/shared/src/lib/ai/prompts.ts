@@ -190,6 +190,15 @@ import {
   getSomniaBalance,
   getSomniaNetworkStats,
 } from "./tools/dreamdex";
+// KeeperHub Workflow Automation & Deterministic Execution Tools
+import {
+  keeperHubComposeWorkflow,
+  keeperHubDryRun,
+  keeperHubExecute,
+  keeperHubGetAuditTrail,
+  keeperHubListWorkflows,
+  keeperHubGetExecutionHistory,
+} from "./tools/keeperhub";
 // Arkham Intelligence Tools (Cross-chain blockchain intelligence)
 import {
   arkhamSearch,
@@ -545,6 +554,11 @@ const groupTools = {
     "analyzeRenaissCollection",
     "getRenaissCardDetails",
     "watchRenaissCard",
+    // KeeperHub Deterministic Execution & Audit
+    "keeperHubComposeWorkflow",
+    "keeperHubDryRun",
+    "keeperHubExecute",
+    "keeperHubGetAuditTrail",
   ] as const,
   creditcoin: [
     "webSearch",
@@ -890,6 +904,40 @@ const groupTools = {
     // Prediction Portfolio & AI Oracle
     "getDreamDexPortfolio",
     "getAIPredictionAnalysis",
+    // KeeperHub Deterministic Execution for DreamDEX
+    "keeperHubComposeWorkflow",
+    "keeperHubDryRun",
+    "keeperHubExecute",
+    "keeperHubGetAuditTrail",
+  ] as const,
+  keeperhub: [
+    "webSearch",
+    "getSiteContent",
+    "keeperHubComposeWorkflow",
+    "keeperHubDryRun",
+    "keeperHubExecute",
+    "keeperHubGetAuditTrail",
+    "keeperHubListWorkflows",
+    "keeperHubGetExecutionHistory",
+    // Cross-chain & DeFi tools
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // DreamDEX on Somnia tools
+    "getDreamDexMarkets",
+    "getDreamDexMarketDetails",
+    "getDreamDexMarketHistory",
+    "getSomniaBalance",
+    "getSomniaNetworkStats",
+    "getDreamDexPortfolio",
+    "getAIPredictionAnalysis",
+    "getEvmMultiChainWalletPortfolio",
+    "ensToAddress",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
   ] as const,
 } as const;
 
@@ -1116,6 +1164,13 @@ export const allTools = {
   dreamDexClosePosition,
   getDreamDexPortfolio,
   getAIPredictionAnalysis,
+  // KeeperHub Deterministic Execution Tools
+  keeperHubComposeWorkflow,
+  keeperHubDryRun,
+  keeperHubExecute,
+  keeperHubGetAuditTrail,
+  keeperHubListWorkflows,
+  keeperHubGetExecutionHistory,
 };
 
 const groupPrompts = {
@@ -2467,8 +2522,10 @@ When users ask to trade, mint, or redeem:
 2. **ORDER EXECUTION MODES: AUTOPILOT VS ASK FOR APPROVAL**:
    - **WHEN AUTOPILOT IS ACTIVE (Execution Permission: Autopilot)**:
      * Transactions on DreamDEX execute AUTONOMOUSLY and IMMEDIATELY on-chain via embedded wallet!
+     * When composing a KeeperHub workflow trade (e.g. \`keeperHubComposeWorkflow\`), it executes AUTONOMOUSLY and IMMEDIATELY on-chain via the agent wallet without requiring user approval!
      * NEVER output 'Please review and confirm...', 'awaiting your confirmation', or tell the user to confirm!
-     * Output ONLY one short sentence: "Your order has been placed on DreamDEX via Autopilot."
+     * For DreamDEX direct orders: Output ONLY one short sentence: "Your order has been placed on DreamDEX via Autopilot."
+     * For KeeperHub workflow trades: Output ONLY one short sentence: "Your KeeperHub workflow has been executed onchain via Autopilot."
    - **WHEN ASK FOR APPROVAL IS ACTIVE (Execution Permission: Ask for approval / Default)**:
      * When \`dreamDexPlaceOrder\` or \`dreamDexMintTokens\` returns \`status: 'requires_confirmation'\` or \`prepared_awaiting_approval\`:
        - The rich UI confirmation card with **Confirm & Execute Trade** and **Reject** buttons is ALREADY rendering in the user's interface!
@@ -2529,6 +2586,54 @@ When users ask to trade, mint, or redeem:
 - Always express probabilities clearly (e.g., "65% implied probability (\$0.65)").
 - Truncate all hex addresses (e.g. \`0x70a8...5d8E\`) in plain text to prevent safety cutoffs.
 - Always provide clickable explorer links to https://shannon-explorer.somnia.network.
+`,
+  keeperhub: `
+You are Barzakh AI powered by the KeeperHub Deterministic Execution Layer.
+
+## 🎯 THE KEEPERHUB THESIS:
+Agents are probabilistic by design. Onchain value transfer does not forgive that.
+KeeperHub removes the reinterpretation:
+1. The AI composes a deterministic workflow DAG through KeeperHub tools.
+2. The user reviews the exact workflow steps, parameters, and risk assessment in the chat.
+3. The user can dry-run it without touching the chain to simulate results and estimate gas.
+4. The user approves execution -> KeeperHub executes the exact workflow deterministically.
+Nothing is inferred or reinterpreted at execution time. Underneath sits production infrastructure handling nonce management, Smart Gas Estimation, MEV protection, and a full audit trail of every run.
+
+## 🛠️ CORE WORKFLOW INSTRUCTIONS:
+1. **COMPOSING WORKFLOWS (keeperHubComposeWorkflow)**:
+   - When the user asks to perform an onchain operation (swap tokens, cross-chain bridge, DreamDEX prediction market trade, automated scheduled strategy, batch settlement sweep, token transfer):
+   - Call \`keeperHubComposeWorkflow\` with the appropriate \`intent\` and \`params\`.
+   - The interactive KeeperHub Workflow Card will automatically render in the chat with visual DAG steps, Dry Run button, and Execute button.
+   - Summarize the composed steps clearly and concisely in your text response.
+
+2. **SIMULATION / DRY RUN (keeperHubDryRun)**:
+   - When the user asks to test, dry-run, or simulate a workflow:
+   - Call \`keeperHubDryRun\`.
+   - Report the simulation outcome: read/write operations, estimated gas, and confirmation that all preconditions passed.
+
+3. **DETERMINISTIC EXECUTION (keeperHubExecute)**:
+   - When the user approves execution (e.g. "Execute", "Run workflow", "Proceed"):
+   - Call \`keeperHubExecute\`.
+   - Report transaction hashes (truncated, e.g. 0xabc...def) and provide the KeeperHub audit trail link.
+
+4. **AUDIT TRAIL (keeperHubGetAuditTrail)**:
+   - When the user asks to inspect a past execution, check execution logs, or verify what occurred:
+   - Call \`keeperHubGetAuditTrail\` with the \`executionId\`.
+   - Summarize the step-by-step audit log, gas used, and block receipts.
+
+5. **AUTOMATED & SCHEDULED PREDICTION TRADING (DreamDEX Integration)**:
+   - KeeperHub can schedule and automate DreamDEX prediction market strategies on Somnia Network.
+   - Use intent: 'dreamdex-auto-trade' to compose recurring conviction-based trading workflows.
+   - Use intent: 'settlement-sweep' to automate 24/7 winnings redemption across user wallets.
+
+6. **KEEPERHUB EXECUTION MODES (AUTOPILOT VS APPROVAL)**:
+   - **Autopilot Mode**: When the user has Autopilot enabled on their wallet, composing a KeeperHub trade (like "Compose a KeeperHub trade putting 25 tUSDC on DOWN for ETH-UP-15m") automatically executes deterministically onchain via their agent wallet.
+     * The tool execution immediately runs the workflow onchain and returns the confirmed transaction details.
+     * The rich UI card already displays the confirmed execution and transaction link.
+     * Output ONLY one short sentence: "Your KeeperHub workflow has been executed onchain via Autopilot."
+   - **Ask for Approval Mode (Default)**: When Autopilot is NOT enabled, composing returns the workflow DAG for review.
+     * The rich UI card displays the DAG with [Execute Deterministically] and [Dry Run] buttons.
+     * Explain that the workflow is composed and ready for manual execution.
 `,
 };
 const addressSafetySuffix = `

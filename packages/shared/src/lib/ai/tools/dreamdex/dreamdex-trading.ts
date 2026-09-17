@@ -526,8 +526,14 @@ export const dreamDexRedeemWinnings = tool({
           success: false,
           status: "no_claimable_winnings",
           action: "redeem",
+          marketSymbol: "All Settled Markets",
+          quantity: 0,
+          amount: 0,
+          collateral: "0.00",
+          payoutAmount: "$0.00 tUSDC",
+          netProfit: "+$0.00 tUSDC",
           message: explanation,
-          _instructionToAI: `Inform the user: "${explanation}" Do NOT output or simulate a confirmation card.`
+          _instructionToAI: `CRITICAL: All winnings have already been claimed and redeemed into the user's tUSDC balance on Somnia Shannon! A card is ALREADY displaying this. Output ONLY 1 short friendly sentence: 'All settled winning contracts have already been redeemed into your tUSDC balance.' DO NOT say 'The order could not be filled' or talk about orders/collateral!`
         };
       }
 

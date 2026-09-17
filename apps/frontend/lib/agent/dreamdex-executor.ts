@@ -850,9 +850,11 @@ export async function executeAgenticDreamDexTrade(
                 const bestAsk = asks[0].price;
                 onChainPrice = bestAsk + SLIPPAGE_BUFFER > 990_000n ? 990_000n : bestAsk + SLIPPAGE_BUFFER;
                 if (params.amount && params.amount > 0) {
-                  const askPriceNum = Number(bestAsk) / 1e6;
-                  if (askPriceNum > 0) {
-                    quantityInUnits = BigInt(Math.floor((params.amount / askPriceNum) * 1e6));
+                  // Use the slippage-adjusted onChainPrice to calculate quantity so actual
+                  // collateral (qty * onChainPrice) never exceeds the user's requested amount.
+                  const effectivePriceNum = Number(onChainPrice) / 1e6;
+                  if (effectivePriceNum > 0) {
+                    quantityInUnits = BigInt(Math.floor((params.amount / effectivePriceNum) * 1e6));
                   }
                 }
               } else {
@@ -864,9 +866,11 @@ export async function executeAgenticDreamDexTrade(
                 const bestBid = bids[0].price;
                 onChainPrice = bestBid >= SLIPPAGE_BUFFER ? bestBid - SLIPPAGE_BUFFER : bestBid;
                 if (params.amount && params.amount > 0) {
-                  const noCostNum = (1_000_000 - Number(bestBid)) / 1e6;
-                  if (noCostNum > 0) {
-                    quantityInUnits = BigInt(Math.floor((params.amount / noCostNum) * 1e6));
+                  // Use slippage-adjusted onChainPrice to calculate quantity so actual
+                  // collateral (qty * (1 - onChainPrice)) never exceeds the user's requested amount.
+                  const effectiveNoCostNum = (1_000_000 - Number(onChainPrice)) / 1e6;
+                  if (effectiveNoCostNum > 0) {
+                    quantityInUnits = BigInt(Math.floor((params.amount / effectiveNoCostNum) * 1e6));
                   }
                 }
               } else {
@@ -1293,20 +1297,21 @@ export async function executeAgenticDreamDexTrade(
             }
           };
 
+          let userTxs: any[] = [];
+          try {
+            userTxs = await getUserDreamDexTransactions(userId, agentAddress);
+          } catch (err) {
+            console.warn("[DreamDexExecutor] Error loading user tx pools for redeem:", err);
+          }
+
           if (poolAddress && poolAddress !== ZERO_ADDRESS) {
             addCandidate(poolAddress, marketSymbol);
           } else {
             // Add pools dynamically from user's trade history ONLY if no specific pool was requested
-            let userTxs: any[] = [];
-            try {
-              userTxs = await getUserDreamDexTransactions(userId, agentAddress);
-              for (const tx of userTxs) {
-                const p = (tx.metadata as any)?.pool;
-                const sym = (tx.metadata as any)?.marketSymbol;
-                if (p) addCandidate(p, sym);
-              }
-            } catch (err) {
-              console.warn("[DreamDexExecutor] Error loading user tx pools for redeem:", err);
+            for (const tx of userTxs) {
+              const p = (tx.metadata as any)?.pool;
+              const sym = (tx.metadata as any)?.marketSymbol;
+              if (p) addCandidate(p, sym);
             }
 
             // If no specific pool or user trades found, fallback to registered pools
@@ -1327,11 +1332,21 @@ export async function executeAgenticDreamDexTrade(
                   functionName: "marketNonce",
                 });
 
-                // Fast concurrent check of current nonce and previous 3 windows
+                // Fast concurrent check of recent nonces and user's recorded nonces
                 const noncesToCheck: bigint[] = [];
-                for (let offset = 0n; offset <= 3n; offset++) {
+                for (let offset = 0n; offset <= 10n; offset++) {
                   if (currentNonce >= offset && currentNonce - offset >= 1n) {
                     noncesToCheck.push(currentNonce - offset);
+                  }
+                }
+                for (const tx of userTxs) {
+                  const p = (tx.metadata as any)?.pool;
+                  const n = (tx.metadata as any)?.marketNonce;
+                  if (p && p.toLowerCase() === pool.toLowerCase() && n) {
+                    const bigN = BigInt(n);
+                    if (!noncesToCheck.includes(bigN) && bigN >= 1n) {
+                      noncesToCheck.push(bigN);
+                    }
                   }
                 }
 
@@ -1391,77 +1406,103 @@ export async function executeAgenticDreamDexTrade(
         }
 
         if (tokensToRedeem.length === 0) {
-          // Check if user already has a recorded redemption transaction in DB specifically for this pool
-          let userTxs: any[] = [];
-          try {
-            userTxs = await getUserDreamDexTransactions(userId, agentAddress);
-          } catch {}
-
-          const priorRedeemTx = userTxs.find((tx) =>
-            tx.operationType === "dreamdex_redeem" &&
-            poolAddress && poolAddress !== ZERO_ADDRESS &&
-            (tx.metadata as any)?.pool?.toLowerCase() === poolAddress.toLowerCase()
-          );
-
-          if (priorRedeemTx?.signature) {
-            console.log(`[DreamDexExecutor] User already redeemed this market. Prior on-chain tx: ${priorRedeemTx.signature}`);
-            dreamDexApi.clearPositionsCache(agentAddress);
-            return {
-              success: true,
-              transactionHash: priorRedeemTx.signature,
-              explorerUrl: `${SOMNIA_TESTNET_EXPLORER}/tx/${priorRedeemTx.signature}`,
-              action: "redeem",
-              marketSymbol,
-              message: "Your winning contracts have already been redeemed on Somnia Shannon testnet into your tUSDC balance.",
-              alreadyRedeemed: true,
-            };
-          } else {
-            return {
-              success: false,
-              error: "No unredeemed winning contracts found in your agent wallet on Somnia Shannon testnet. Your winnings may have already been redeemed into your tUSDC collateral balance.",
-              action: "redeem",
-              marketSymbol,
-            };
-          }
+          return {
+            success: false,
+            error: "No unredeemed winning contracts found in your agent wallet on Somnia Shannon testnet. Your winning positions may have already been claimed or are in rolling windows that have not yet settled.",
+            action: "redeem",
+            marketSymbol,
+          };
         }
 
-        // 4. Execute on-chain redemptions sequentially
+        // 4. Execute on-chain redemptions in parallel batch with assigned nonces for blazing fast instant execution
         const redeemedHashes: string[] = [];
         let totalRedeemedUSDC = 0;
 
-        for (const t of tokensToRedeem) {
-          try {
-            // Re-verify balance right before sending writeContract
-            const liveBal = await publicClient.readContract({
-              address: OUTCOME_TOKEN_SINGLETON,
-              abi: erc6909Abi,
-              functionName: "balanceOf",
-              args: [agentAddress, t.outcomeId],
-            }).catch(() => 0n);
+        // Pre-check live balances in parallel
+        const liveTokensWithBalance: Array<TokenToRedeem & { liveBal: bigint }> = [];
+        const liveBalances = await Promise.all(
+          tokensToRedeem.map((t) =>
+            publicClient
+              .readContract({
+                address: OUTCOME_TOKEN_SINGLETON,
+                abi: erc6909Abi,
+                functionName: "balanceOf",
+                args: [agentAddress, t.outcomeId],
+              })
+              .catch(() => 0n)
+          )
+        );
 
-            if (liveBal === 0n) {
-              console.log(`[DreamDexExecutor] Token ${t.outcomeId} balance is 0 (already claimed/redeemed). Skipping.`);
-              continue;
+        for (let i = 0; i < tokensToRedeem.length; i++) {
+          const bal = liveBalances[i];
+          if (bal > 0n) {
+            liveTokensWithBalance.push({ ...tokensToRedeem[i], liveBal: bal });
+          }
+        }
+
+        if (liveTokensWithBalance.length === 0) {
+          dreamDexApi.clearPositionsCache(agentAddress);
+          return {
+            success: false,
+            error: "No unredeemed winning contracts found in your agent wallet on Somnia Shannon testnet. Your winning positions may have already been claimed.",
+            action: "redeem",
+            marketSymbol,
+          };
+        }
+
+        console.log(`[DreamDexExecutor] Fast batch-redeeming ${liveTokensWithBalance.length} winning tokens on Somnia Shannon...`);
+
+        // Get starting pending nonce
+        const baseNonce = await publicClient.getTransactionCount({
+          address: agentAddress,
+          blockTag: "pending",
+        });
+
+        // Broadcast all redeem transactions in parallel with sequential nonces
+        const broadcastResults = await Promise.all(
+          liveTokensWithBalance.map(async (t, idx) => {
+            const nonce = baseNonce + idx;
+            const redeemAmount = t.liveBal < t.amount ? t.liveBal : t.amount;
+            console.log(`[DreamDexExecutor] (Batch ${idx + 1}/${liveTokensWithBalance.length}) Broadcasting redeem: outcomeId=${t.outcomeId.toString()}, amount=${redeemAmount}, nonce=${nonce}`);
+
+            try {
+              const hash = await walletClient.writeContract({
+                address: BINARY_SETTLEMENT,
+                abi: settlementAbi,
+                functionName: "redeem",
+                args: [t.outcomeId, redeemAmount, agentAddress],
+                nonce,
+              });
+              return { hash, token: t, redeemAmount, error: null };
+            } catch (err: any) {
+              console.warn(`[DreamDexExecutor] Broadcast error for token ${t.outcomeId}:`, err?.shortMessage || err?.message || err);
+              return { hash: null, token: t, redeemAmount, error: err };
             }
+          })
+        );
 
-            const redeemAmount = liveBal < t.amount ? liveBal : t.amount;
-            console.log(`[DreamDexExecutor] Executing BinarySettlement.redeem on-chain: outcomeId=${t.outcomeId.toString()}, amount=${redeemAmount}`);
-
-            const redeemHash = await walletClient.writeContract({
-              address: BINARY_SETTLEMENT,
-              abi: settlementAbi,
-              functionName: "redeem",
-              args: [t.outcomeId, redeemAmount, agentAddress],
-            });
-
-            const receipt = await publicClient.waitForTransactionReceipt({ hash: redeemHash, timeout: 60000, pollingInterval: 400 });
-            if (receipt.status === "reverted") {
-              throw new Error("Settlement redeem transaction reverted on Somnia Shannon testnet.");
+        // Wait for all receipts in parallel
+        const settledReceipts = await Promise.all(
+          broadcastResults.map(async (b) => {
+            if (!b.hash) return null;
+            try {
+              const receipt = await publicClient.waitForTransactionReceipt({
+                hash: b.hash,
+                timeout: 30000,
+                pollingInterval: 400,
+              });
+              return { receipt, token: b.token, redeemAmount: b.redeemAmount };
+            } catch (e: any) {
+              console.warn(`[DreamDexExecutor] Receipt wait error for ${b.hash}:`, e?.message || e);
+              return null;
             }
+          })
+        );
 
-            console.log(`[DreamDexExecutor] Redemption confirmed on-chain: ${receipt.transactionHash}`);
-            redeemedHashes.push(receipt.transactionHash);
-            const payoutNum = Number(redeemAmount) / 1_000_000;
+        for (const s of settledReceipts) {
+          if (s?.receipt && s.receipt.status !== "reverted") {
+            redeemedHashes.push(s.receipt.transactionHash);
+            const payoutNum = Number(s.redeemAmount) / 1_000_000;
             totalRedeemedUSDC += payoutNum;
 
             await recordAgentTransaction({
@@ -1469,22 +1510,15 @@ export async function executeAgenticDreamDexTrade(
               walletAddress: agentAddress,
               operationType: "dreamdex_redeem",
               amount: String(payoutNum),
-              signature: receipt.transactionHash,
+              signature: s.receipt.transactionHash,
               metadata: {
-                marketSymbol: t.marketSymbol || marketSymbol,
-                pool: t.pool,
-                outcomeId: t.outcomeId.toString(),
+                marketSymbol: s.token.marketSymbol || marketSymbol,
+                pool: s.token.pool,
+                outcomeId: s.token.outcomeId.toString(),
                 chain: "somnia",
                 chainId: 50312,
               },
-            });
-          } catch (redeemErr: any) {
-            const errStr = String(redeemErr?.shortMessage || redeemErr?.message || redeemErr);
-            if (errStr.includes("0xf4d678b8") || errStr.includes("InsufficientBalance")) {
-              console.log(`[DreamDexExecutor] Token ${t.outcomeId} reverted with InsufficientBalance (already claimed).`);
-            } else {
-              console.warn(`[DreamDexExecutor] Error redeeming token ${t.outcomeId}:`, redeemErr?.shortMessage || redeemErr?.message || redeemErr);
-            }
+            }).catch(() => {});
           }
         }
 

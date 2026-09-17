@@ -214,22 +214,29 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
     });
   };
 
-  // Sync with localStorage when address updates
+  // Sync with localStorage when address updates, sanitizing legacy generic symbol keys
   useEffect(() => {
     if (typeof window !== "undefined" && address) {
       try {
-        const stored = localStorage.getItem(getStorageKey(address));
+        const storedKey = getStorageKey(address);
+        const stored = localStorage.getItem(storedKey);
         if (stored) {
           const parsed = JSON.parse(stored);
-          setRedeemedTxMap((prev) => {
-            const next = new Map(prev);
-            for (const [k, v] of Object.entries(parsed)) {
-              if (v || !next.has(k)) {
-                next.set(k, v as string);
-              }
+          const sanitized = new Map<string, string>();
+          let hasLegacy = false;
+          for (const [k, v] of Object.entries(parsed)) {
+            // Drop legacy generic keys like "__all__", "btc-up-5m", "eth-up-15m" that pollute future windows
+            const isGeneric = k === "__all__" || /^[a-z]+-up-(?:1m|5m|15m|1h|4h)(?:-[a-z0-9]+)?$/i.test(k);
+            if (isGeneric) {
+              hasLegacy = true;
+            } else if (v || !sanitized.has(k)) {
+              sanitized.set(k, v as string);
             }
-            return next;
-          });
+          }
+          if (hasLegacy) {
+            localStorage.setItem(storedKey, JSON.stringify(Object.fromEntries(sanitized)));
+          }
+          setRedeemedTxMap(sanitized);
         }
       } catch {}
     }
@@ -260,31 +267,55 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
     return () => window.removeEventListener("barzakh:dreamdex-redeemed", onRedeemed);
   }, [address]);
 
+  // Listen for new trades (from Single trades or recurring Auto Bot rounds) to refresh active positions immediately
+  useEffect(() => {
+    let t: NodeJS.Timeout | null = null;
+    const onTraded = () => {
+      handleRefresh(true);
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        handleRefresh(true);
+      }, 3500);
+    };
+    window.addEventListener("barzakh:dreamdex-traded", onTraded);
+    window.addEventListener("barzakh:dreamdex-order-placed", onTraded);
+    return () => {
+      if (t) clearTimeout(t);
+      window.removeEventListener("barzakh:dreamdex-traded", onTraded);
+      window.removeEventListener("barzakh:dreamdex-order-placed", onTraded);
+    };
+  }, [address]);
+
+  const getPositionUniqueKey = (pos: Position | any): string => {
+    if (!pos) return "";
+    return (
+      pos.outcomeId ||
+      pos.marketId ||
+      (pos.poolAddress && pos.createdAt ? `${pos.poolAddress}_${pos.createdAt}` : "") ||
+      (pos.poolAddress && pos.txHash ? `${pos.poolAddress}_${pos.txHash}` : "") ||
+      pos.txHash ||
+      ""
+    ).toLowerCase();
+  };
+
   const isPositionLocallyRedeemed = (pos: Position | any): boolean => {
+    if (!pos) return false;
+    // Lost, refunded, or closed/expired positions can NEVER be redeemed
+    if (pos.outcome === "LOST" || pos.isWinner === false || pos.outcome === "REFUNDED" || pos.outcome === "EXPIRED" || pos.outcome === "CLOSED") {
+      return false;
+    }
     if (pos?.isRedeemed || pos?.status === "Redeemed" || pos?.claimed) return true;
     if (redeemedTxMap.size === 0) return false;
-    if (redeemedTxMap.has("__all__")) return true;
-    const pool = (pos.poolAddress || "").toLowerCase();
-    const sym = (pos.market || pos.marketName || pos.symbol || pos.marketSymbol || "").toLowerCase();
-    if (pool && redeemedTxMap.has(pool)) return true;
-    if (sym && redeemedTxMap.has(sym)) return true;
-    for (const [key] of redeemedTxMap) {
-      if (key !== "__all__" && sym && (sym.includes(key) || key.includes(sym))) return true;
-    }
+    const key = getPositionUniqueKey(pos);
+    if (key && redeemedTxMap.has(key)) return true;
     return false;
   };
 
   const getLocalRedeemedTx = (pos: Position | any): string | undefined => {
     if (pos.txHash) return pos.txHash;
     if (redeemedTxMap.size === 0) return undefined;
-    const pool = (pos.poolAddress || "").toLowerCase();
-    const sym = (pos.market || pos.marketName || pos.symbol || pos.marketSymbol || "").toLowerCase();
-    if (pool && redeemedTxMap.get(pool)) return redeemedTxMap.get(pool);
-    if (sym && redeemedTxMap.get(sym)) return redeemedTxMap.get(sym);
-    if (redeemedTxMap.get("__all__")) return redeemedTxMap.get("__all__");
-    for (const [key, tx] of redeemedTxMap) {
-      if (key !== "__all__" && tx && sym && (sym.includes(key) || key.includes(sym))) return tx;
-    }
+    const key = getPositionUniqueKey(pos);
+    if (key && redeemedTxMap.get(key)) return redeemedTxMap.get(key);
     return undefined;
   };
 
@@ -443,7 +474,8 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
   // Extract Resolved History with local redeemed override
   const rawResolved = portfolioData.resolvedPositions || portfolioData.history || portfolioData.portfolio?.resolvedPositions || [];
   const resolvedPositions: Position[] = (Array.isArray(rawResolved) ? rawResolved : []).map((p: any) => {
-    if (isPositionLocallyRedeemed(p)) {
+    const isWin = (p.isWinner === true || p.outcome === "WON") && p.outcome !== "LOST";
+    if (isWin && isPositionLocallyRedeemed(p)) {
       return {
         ...p,
         isRedeemed: true,
@@ -453,8 +485,32 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
         txHash: p.txHash || getLocalRedeemedTx(p),
       };
     }
+    if (!isWin) {
+      return {
+        ...p,
+        isRedeemed: false,
+        claimed: false,
+        claimable: false,
+        status: p.status === "Redeemed" ? (p.outcome === "REFUNDED" ? "Refunded" : "Settled") : p.status,
+      };
+    }
     return p;
   });
+
+  // Helper to extract timestamp for newest-to-oldest sorting
+  const getPositionTime = (p: any): number => {
+    const closed = p.closedAt ? new Date(p.closedAt).getTime() : 0;
+    const settled = p.settledAt ? new Date(p.settledAt).getTime() : 0;
+    const created = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+    return Math.max(
+      isNaN(closed) ? 0 : closed,
+      isNaN(settled) ? 0 : settled,
+      isNaN(created) ? 0 : created
+    );
+  };
+
+  // Sort strictly from newest (latest) to oldest
+  resolvedPositions.sort((a, b) => getPositionTime(b) - getPositionTime(a));
 
   // Categorize positions for filtering
   const getPositionCategory = (pos: Position) => {
@@ -597,13 +653,16 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
       if (isNaN(d.getTime())) return null;
 
       const now = new Date();
-      const isToday = d.toDateString() === now.toDateString();
+      // Guard against future timestamps on settled items
+      const effectiveDate = d.getTime() > now.getTime() ? now : d;
+
+      const isToday = effectiveDate.toDateString() === now.toDateString();
 
       const yesterday = new Date();
       yesterday.setDate(now.getDate() - 1);
-      const isYesterday = d.toDateString() === yesterday.toDateString();
+      const isYesterday = effectiveDate.toDateString() === yesterday.toDateString();
 
-      const timeStr = d.toLocaleTimeString([], {
+      const timeStr = effectiveDate.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -614,7 +673,7 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
       if (isYesterday) {
         return `${prefix} Yesterday ${timeStr}`;
       }
-      const dateStr = d.toLocaleDateString([], {
+      const dateStr = effectiveDate.toLocaleDateString([], {
         month: "short",
         day: "numeric",
       });
@@ -936,6 +995,7 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
                   const isExpired = !isRefunded && !isClosedEarly && (pos.outcome === "EXPIRED" || pos.status === "Expired");
                   const pnlVal = typeof pos.pnl === "number" ? pos.pnl : parseFloat(String(pos.pnl || "0").replace(/[^0-9.-]/g, "")) || 0;
                   const won = !isRefunded && !isClosedEarly && !isExpired && pos.outcome !== "LOST" && pos.isWinner !== false && (pos.outcome === "WON" || pos.isWinner === true || pnlVal > 0);
+                  const isLost = !isRefunded && !isClosedEarly && !isExpired && (pos.outcome === "LOST" || pos.isWinner === false || (!won && pnlVal < 0));
                   const isClaimable = won && (pos.claimable === true || pos.status === "Claimable") && !pos.isRedeemed && pos.status !== "Redeemed" && !pos.claimed && !isPositionLocallyRedeemed(pos);
                   const sym = pos.market || pos.marketName || pos.symbol || pos.marketSymbol || `Market #${idx + 1}`;
                   const tfInfo = formatTimeframe(pos.timeframe, sym);
@@ -1024,7 +1084,7 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
                           )}
                         </div>
 
-                        {pos.isRedeemed || pos.status === "Redeemed" || pos.claimed || isPositionLocallyRedeemed(pos) ? (
+                        {won && (pos.isRedeemed || pos.status === "Redeemed" || pos.claimed || isPositionLocallyRedeemed(pos)) ? (
                           <div className="flex items-center gap-1.5">
                             <span className="px-2 py-1 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                               <Coins className="size-2.5 text-emerald-400" /> Redeemed
@@ -1066,13 +1126,15 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
                             size="sm"
                             className="h-7 px-3 bg-white hover:bg-zinc-200 text-black font-semibold text-xs rounded-lg shadow-sm transition-colors flex items-center gap-1.5 active:scale-95"
                             onClick={() => {
-                              // Optimistically mark as redeemed immediately
-                              updateRedeemedTxMap((prev) => {
-                                const next = new Map(prev);
-                                next.set(sym.toLowerCase(), "");
-                                if ((pos as any).poolAddress) next.set(((pos as any).poolAddress).toLowerCase(), "");
-                                return next;
-                              });
+                              // Optimistically mark as redeemed immediately by unique position key
+                              const key = getPositionUniqueKey(pos);
+                              if (key) {
+                                updateRedeemedTxMap((prev) => {
+                                  const next = new Map(prev);
+                                  next.set(key, "");
+                                  return next;
+                                });
+                              }
                               dispatchAction(`Redeem winning contracts on ${sym}`);
                             }}
                           >
@@ -1083,6 +1145,23 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
                           <div className="flex items-center gap-1.5">
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
                               <Coins className="size-2.5 text-blue-400" /> Refunded
+                            </span>
+                            {pos.txHash && (
+                              <a
+                                href={`https://shannon-explorer.somnia.network/tx/${pos.txHash}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2 py-1 rounded-md text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center gap-1 font-mono border border-zinc-700/50"
+                              >
+                                <span>TX</span>
+                                <ExternalLink className="size-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        ) : isLost ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/50 flex items-center gap-1">
+                              Settled
                             </span>
                             {pos.txHash && (
                               <a
@@ -1144,14 +1223,16 @@ export function DreamDexPortfolioCard({ result, onSelectAction }: DreamDexPortfo
                 type="button"
                 className="flex-1 min-w-0 h-9 flex items-center justify-center gap-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-semibold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer px-2"
                 onClick={() => {
-                  // Optimistically mark ALL claimable positions as redeemed
+                  // Optimistically mark ONLY claimable winning positions as redeemed by unique position key
                   updateRedeemedTxMap((prev) => {
                     const next = new Map(prev);
-                    next.set("__all__", "");
                     for (const p of resolvedPositions) {
-                      const sym = (p.market || p.marketName || p.symbol || p.marketSymbol || "").toLowerCase();
-                      if (sym) next.set(sym, "");
-                      if ((p as any).poolAddress) next.set(((p as any).poolAddress).toLowerCase(), "");
+                      const isWin = (p.outcome === "WON" || p.isWinner === true) && p.outcome !== "LOST";
+                      const canClaim = isWin && (p.claimable === true || p.status === "Claimable") && !p.isRedeemed && p.status !== "Redeemed" && !p.claimed && !isPositionLocallyRedeemed(p);
+                      if (canClaim) {
+                        const key = getPositionUniqueKey(p);
+                        if (key) next.set(key, "");
+                      }
                     }
                     return next;
                   });

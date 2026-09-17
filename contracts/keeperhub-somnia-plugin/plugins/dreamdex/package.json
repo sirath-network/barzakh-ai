@@ -1,0 +1,32 @@
+{
+  "name": "@keeperhub/plugin-dreamdex",
+  "version": "1.0.0",
+  "description": "DreamDEX prediction market and event contract automation plugin for KeeperHub on Somnia Network",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "keywords": [
+    "keeperhub",
+    "plugin",
+    "somnia",
+    "dreamdex",
+    "prediction-markets",
+    "clob",
+    "web3"
+  ],
+  "author": "Barzakh AI / Sirath Network",
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3"
+  }
+}

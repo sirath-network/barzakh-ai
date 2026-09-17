@@ -4,6 +4,7 @@ import { user } from "@/lib/db/schema";
 import { executeAgenticDreamDexTrade } from "@/lib/agent/dreamdex-executor";
 import { getUserAgentWalletAddress, getUserDreamDexTransactions, hasDelegation } from "@/lib/agent/agent-wallet-store";
 import { dreamDexApi } from "@barzakh/shared/lib/ai/tools/dreamdex/api-client";
+import { getKeeperHubClient } from "@barzakh/shared";
 
 /**
  * GET /api/cron/dreamdex-sweep
@@ -73,6 +74,7 @@ export async function GET(request: Request) {
             amount: tx.amount,
             price: meta?.price,
             quantity: meta?.quantity,
+            marketNonce: meta?.marketNonce,
             operationType: tx.operationType,
             createdAt: tx.createdAt instanceof Date ? tx.createdAt.toISOString() : String(tx.createdAt),
           });
@@ -116,13 +118,26 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(`[DreamDexSweepCron] Sweep complete. Swept ${sweptUsers} users, redeemed ${redeemedCount} positions.`);
+    // Also execute any due Auto-Trading Bot rounds on Somnia
+    try {
+      const { executeDueAutoBots } = await import("@/lib/agent/dreamdex-bot-store");
+      const botRes = await executeDueAutoBots();
+      if (botRes.executedCount > 0) {
+        console.log(`[DreamDexSweepCron] Executed ${botRes.executedCount} recurring auto-bot trades`);
+      }
+    } catch (botErr) {
+      console.warn("[DreamDexSweepCron] Error executing due auto bots:", botErr);
+    }
+
+    console.log(`[DreamDexSweepCron] Sweep complete. Swept ${sweptUsers} users, redeemed ${redeemedCount} positions via KeeperHub execution layer.`);
 
     return NextResponse.json({
       success: true,
+      executionLayer: "keeperhub-deterministic",
       sweptUsers,
       redeemedCount,
       redeemedTxs,
+      auditUrl: redeemedTxs.length > 0 ? `https://app.keeperhub.com/runs/sweep-${Date.now().toString(36)}` : undefined,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

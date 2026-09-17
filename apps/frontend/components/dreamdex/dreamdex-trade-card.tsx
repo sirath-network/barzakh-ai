@@ -117,6 +117,11 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction, toolName
   const isExecutedAlready = !!txHash || !!result.txHash;
   const isRejected = step === "rejected";
   const isDone = isExecutedAlready || step === "done";
+  const isAlreadyClaimed =
+    result?.status === "no_claimable_winnings" ||
+    (errorMessage || "").toLowerCase().includes("already") ||
+    (errorMessage || "").toLowerCase().includes("no unredeemed") ||
+    result?.alreadyRedeemed === true;
   const isPendingOrder = Boolean(result?.isLoading || result?.isPending);
   const isAgentConfirmation = !isDone && !isRejected && !isInsufficient && !isPendingOrder;
 
@@ -355,7 +360,11 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction, toolName
                   <span className="font-mono font-semibold text-white">
                     {isDone
                       ? `${quantity} contracts`
-                      : (result?.quantity ? `${result.quantity} contracts` : "Scanning portfolio...")}
+                      : isAlreadyClaimed
+                      ? "0 contracts (All Claimed)"
+                      : result?.quantity
+                      ? `${result.quantity} contracts`
+                      : "0 contracts"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -365,17 +374,23 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction, toolName
                 <div className="flex justify-between items-center">
                   <span className="text-zinc-400">Net Profit (P&L)</span>
                   <span className="font-mono font-semibold text-emerald-400">
-                    {isDone ? (result?.netProfit || "+$0.00 tUSDC") : "Calculating..."}
+                    {isAlreadyClaimed
+                      ? "+$0.00 tUSDC"
+                      : result?.netProfit || (isDone ? "+$0.00 tUSDC" : "+$0.00 tUSDC")}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-800/60">
                   <span className="text-zinc-300 font-medium">Total Redemption Payout</span>
                   <span className="font-mono font-bold text-sm text-emerald-400">
-                    {isDone
+                    {isAlreadyClaimed
+                      ? "$0.00 tUSDC"
+                      : result?.totalPayout || result?.payoutAmount
+                      ? String(result.totalPayout || result.payoutAmount).includes("tUSDC")
+                        ? String(result.totalPayout || result.payoutAmount)
+                        : `${result.totalPayout || result.payoutAmount} tUSDC`
+                      : isDone
                       ? `${typeof totalCost === "number" ? totalCost.toFixed(2) : totalCost} tUSDC`
-                      : (result?.totalPayout || result?.collateral || result?.amount
-                          ? `${result.totalPayout || result.collateral || result.amount} tUSDC`
-                          : "Scanning & calculating...")}
+                      : "$0.00 tUSDC"}
                   </span>
                 </div>
               </>

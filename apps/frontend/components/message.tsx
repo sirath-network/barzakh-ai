@@ -180,6 +180,10 @@ const DreamDexTradeCardAny = DreamDexTradeCard as any;
 const DreamDexPortfolioCardAny = DreamDexPortfolioCard as any;
 const DreamDexAnalysisCardAny = DreamDexAnalysisCard as any;
 
+// KeeperHub Deterministic Workflow Components
+import { KeeperHubWorkflowCard } from './keeperhub/keeperhub-workflow-card';
+const KeeperHubWorkflowCardAny = KeeperHubWorkflowCard as any;
+
 // Helper to deduplicate consecutive repeated sentences in AI output.
 // The AI model sometimes outputs the same sentence twice back-to-back, e.g.:
 // "Your order has been placed on DreamDEX via Autopilot.Your order has been placed on DreamDEX via Autopilot."
@@ -517,6 +521,11 @@ const RENDERABLE_TOOL_NAMES = [
   'dreamDexClosePosition',
   'getDreamDexPortfolio',
   'getAIPredictionAnalysis',
+  // KeeperHub Deterministic Workflows
+  'keeperHubComposeWorkflow',
+  'keeperHubDryRun',
+  'keeperHubExecute',
+  'keeperHubGetAuditTrail',
 ];
 
 const PurePreviewMessage = ({
@@ -729,6 +738,13 @@ const PurePreviewMessage = ({
     'getAIPredictionAnalysis',
   ];
 
+  const KEEPERHUB_RENDERABLE_TOOL_NAMES = [
+    'keeperHubComposeWorkflow',
+    'keeperHubDryRun',
+    'keeperHubExecute',
+    'keeperHubGetAuditTrail',
+  ];
+
   const hasCompletedDreamDexTool = Boolean(
     completedTools?.some((tool: any) =>
       DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
@@ -743,9 +759,25 @@ const PurePreviewMessage = ({
     ),
   );
 
-  const hasVisibleTools = Boolean(
+  const hasCompletedKeeperHubTool = Boolean(
+    completedTools?.some((tool: any) =>
+      KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+    ),
+  );
+
+  const hasPendingKeeperHubTool = Boolean(
+    message.toolInvocations?.some(
+      (tool: any) =>
+        (tool.state === 'call' || tool.state === 'partial-call') &&
+        KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+    ),
+  );
+
+  const hasVisibleTools = message.role !== 'user' && Boolean(
     hasCompletedDreamDexTool ||
     hasPendingDreamDexTool ||
+    hasCompletedKeeperHubTool ||
+    hasPendingKeeperHubTool ||
     (allWebSearchTools && allWebSearchTools.length > 0) ||
       (otherCompletedTools &&
         otherCompletedTools.some((tool: any) => {
@@ -842,7 +874,8 @@ const PurePreviewMessage = ({
                   )}
 
                   {/* === TOP SECTION: ONLY WEB SEARCH RESULTS === */}
-                  {allWebSearchTools &&
+                  {message.role !== 'user' &&
+                    allWebSearchTools &&
                     allWebSearchTools.length > 0 &&
                     allWebSearchTools.map((tool) => {
                       const toolResult =
@@ -882,6 +915,9 @@ const PurePreviewMessage = ({
 
                   {/* === TOP SECTION: OTHER TOOL RESULTS (PORTFOLIO, TOKEN INFO, etc.) === */}
                   {(() => {
+                    // Tool cards must NEVER render on user messages
+                    if (message.role === 'user') return null;
+
                     // Filter to only tools that have renderable components (completed or pending DreamDEX cards)
                     let renderableTools =
                       message.toolInvocations?.filter((tool: any) => {
@@ -890,7 +926,8 @@ const PurePreviewMessage = ({
                         if (tool.state === 'result') return true;
                         if (
                           (tool.state === 'call' || tool.state === 'partial-call') &&
-                          DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName)
+                          (DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName) ||
+                           KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName))
                         ) {
                           return true;
                         }
@@ -921,7 +958,7 @@ const PurePreviewMessage = ({
                     // Client-side fallback: If message text announces the DreamDEX portfolio but the AI omitted the tool call,
                     // synthesize a getDreamDexPortfolio tool invocation so the portfolio card is ALWAYS rendered!
                     const messageContentStr = typeof message.content === 'string' ? message.content : '';
-                    const announcesPortfolio = /live DreamDEX prediction portfolio|prediction portfolio on Somnia/i.test(messageContentStr);
+                    const announcesPortfolio = message.role === 'assistant' && /live DreamDEX prediction portfolio|prediction portfolio on Somnia/i.test(messageContentStr);
                     const hasPortfolioTool = renderableTools.some((t: any) => t.toolName === 'getDreamDexPortfolio');
                     if (announcesPortfolio && !hasPortfolioTool) {
                       renderableTools = [
@@ -931,6 +968,56 @@ const PurePreviewMessage = ({
                           args: {},
                           state: 'result',
                           result: {}, // Empty result triggers card's mount auto-refresh
+                        } as any,
+                        ...renderableTools,
+                      ];
+                    }
+
+                    // Client-side fallback: If message text announces a KeeperHub workflow but the AI omitted or streamed the tool call,
+                    // synthesize a keeperHubComposeWorkflow tool invocation so the KeeperHub card is ALWAYS rendered!
+                    const announcesKeeperHub = message.role === 'assistant' && /KeeperHub workflow|execute deterministically|composed.*KeeperHub/i.test(messageContentStr);
+                    const hasKeeperHubTool = renderableTools.some((t: any) => KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(t.toolName));
+                    if (announcesKeeperHub && !hasKeeperHubTool) {
+                      const stepMatches = Array.from(messageContentStr.matchAll(/\d+\.\s+([^:?]+)[:?]/g)).map(m => m[1].trim());
+                      const parsedSteps = stepMatches.length > 0
+                        ? stepMatches.map(label => ({
+                            action: label,
+                            type: /approve|place|swap|redeem|order|transfer/i.test(label)
+                              ? 'web3-write'
+                              : /check|confirm|verify|balance/i.test(label)
+                              ? 'web3-read'
+                              : 'condition'
+                          }))
+                        : [
+                            { action: 'Check tUSDC Balance', type: 'web3-read' },
+                            { action: 'Sufficient tUSDC?', type: 'condition' },
+                            { action: 'Approve tUSDC for DreamDEX', type: 'web3-write' },
+                            { action: 'Place UP Order on BTC-UP-5m', type: 'web3-write' },
+                            { action: 'Confirm Position', type: 'web3-read' },
+                          ];
+
+                      renderableTools = [
+                        {
+                          toolName: 'keeperHubComposeWorkflow',
+                          toolCallId: `synthetic-keeperhub-workflow-${message.id}`,
+                          args: {},
+                          state: 'result',
+                          result: {
+                            success: true,
+                            workflow: {
+                              name: 'KeeperHub Onchain Workflow',
+                              description: 'Deterministic onchain execution composed by Barzakh AI.',
+                              nodes: parsedSteps.map((s, i) => ({
+                                id: `node-${i + 1}`,
+                                label: s.action,
+                                type: s.type,
+                                config: {},
+                              })),
+                            },
+                            steps: parsedSteps,
+                            estimatedGas: '~150,000 gas',
+                            estimatedDuration: '~15s',
+                          },
                         } as any,
                         ...renderableTools,
                       ];
@@ -1179,6 +1266,25 @@ const PurePreviewMessage = ({
                             getAIPredictionAnalysis: (
                               <DreamDexAnalysisCardAny result={result} onSelectAction={handleDreamDexAction} />
                             ),
+                            // KeeperHub Workflow & Deterministic Execution Cards
+                            keeperHubComposeWorkflow: (
+                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            keeperHubDryRun: (
+                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            keeperHubExecute: (
+                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            keeperHubGetAuditTrail: (
+                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            keeperHubListWorkflows: result?.workflow ? (
+                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ) : null,
+                            keeperHubGetExecutionHistory: result?.workflow ? (
+                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ) : null,
                           };
 
                           return (
@@ -1450,7 +1556,8 @@ const PurePreviewMessage = ({
                             message.toolInvocations?.some(
                               (tool: any) =>
                                 (tool.state === 'call' || tool.state === 'partial-call') &&
-                                DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+                                (DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName) ||
+                                 KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName)),
                             ),
                           );
                           const hasTools =
@@ -1507,11 +1614,13 @@ const PurePreviewMessage = ({
                                 const res = (t as any)?.result;
                                 return (
                                   (t.toolName === 'dreamDexPlaceOrder' ||
-                                    t.toolName === 'dreamDexMintTokens') &&
+                                    t.toolName === 'dreamDexMintTokens' ||
+                                    t.toolName === 'keeperHubComposeWorkflow') &&
                                   (res?.executionMode === 'autopilot' ||
                                     res?.isExecuted === true ||
                                     res?.status === 'success' ||
-                                    Boolean(res?.transactionHash || res?.txHash))
+                                    res?.status === 'completed' ||
+                                    Boolean(res?.transactionHash || res?.txHash || res?.transactionHashes?.length))
                                 );
                               }
                             );
@@ -1581,6 +1690,24 @@ const PurePreviewMessage = ({
                               } else if (tName === 'getAIPredictionAnalysis') {
                                 if (!filteredContent || filteredContent.length < 10) {
                                   filteredContent = 'Here is the AI conviction scoring analysis for this prediction market.';
+                                }
+                              }
+                            }
+
+                            // Instant companion text for KeeperHub workflow tools
+                            const completedKeeperHub = completedTools?.find((t) =>
+                              KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(t.toolName),
+                            );
+                            if (completedKeeperHub && (!filteredContent || filteredContent.length < 10 || filteredContent.includes("review and confirm"))) {
+                              const tName = completedKeeperHub.toolName;
+                              const res = (completedKeeperHub as any).result;
+                              if (tName === 'keeperHubComposeWorkflow') {
+                                if (res?.status === 'error' || res?.success === false) {
+                                  filteredContent = `The KeeperHub workflow could not be executed: ${res?.error || 'Unknown error'}`;
+                                } else if (res?.executionMode === 'autopilot' || res?.isExecuted === true || res?.status === 'completed') {
+                                  filteredContent = 'Your KeeperHub workflow has been executed onchain via Autopilot.';
+                                } else {
+                                  filteredContent = 'Your KeeperHub deterministic workflow is ready for execution on Somnia.';
                                 }
                               }
                             }
