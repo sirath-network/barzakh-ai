@@ -17,6 +17,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "1.1.9",
+    "@mysten-incubation/memwal": "^0.1.7",
+    "@mysten/seal": "^1.1.0",
+    "@mysten/walrus": "^1.0.3",
     "@apidevtools/json-schema-ref-parser": "^11.9.1",
     "@aptos-labs/ts-sdk": "^4.0.0",
     "@codemirror/lang-javascript": "^6.2.2",

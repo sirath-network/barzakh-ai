@@ -89,6 +89,7 @@ const getChainLogo = (chain: string, iconUrl?: string): string => {
     zksync: "https://chain-icons.s3.amazonaws.com/chainlist/324",
     zora: "https://chain-icons.s3.amazonaws.com/zora",
     solana: "https://chain-icons.s3.amazonaws.com/solana.png",
+    sui: "/images/chain-logo/sui.png",
   };
 
   return zerionChainIcons[chain.toLowerCase()] || "https://chain-icons.s3.amazonaws.com/ethereum.png";
@@ -212,6 +213,12 @@ const isSolanaAddress = (address: string): boolean => {
   // Solana addresses are Base58 encoded, typically 32-44 characters
   const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
   return base58Regex.test(address);
+};
+
+// Check if address is a Sui address (0x followed by 64 hex characters)
+const isSuiAddress = (address: string): boolean => {
+  if (!address || !address.startsWith('0x')) return false;
+  return /^0x[a-fA-F0-9]{64}$/.test(address);
 };
 
 // Format large numbers with commas
@@ -566,9 +573,9 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result: initialResult }) => 
     // Eagerly fetch DeFi and NFT data so status counts are immediately visible
     // The detailed lists remain collapsed - only counts show by default
 
-    const isSolana = isSolanaAddress(result.id);
-    if (isSolana) {
-      // Solana DeFi/NFTs not supported by Zerion yet
+    const isNonZerion = isSolanaAddress(result.id) || isSuiAddress(result.id);
+    if (isNonZerion) {
+      // Solana / Sui DeFi/NFTs not supported by Zerion
       setHasFetchedProtocols(true);
       setHasFetchedNfts(true);
     } else {
@@ -608,8 +615,8 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result: initialResult }) => 
   }, [chains.length, result.id]);
 
   const toggleProtocols = () => {
-    // Don't allow expand for Solana (not supported)
-    if (isSolanaAddress(result.id)) return;
+    // Don't allow expand for Solana/Sui (handled separately)
+    if (isSolanaAddress(result.id) || isSuiAddress(result.id)) return;
     // Only fetch if not already fetched/fetching and no data
     if (!showProtocols && !hasFetchedProtocols && protocolPositions.length === 0) {
       fetchProtocolPositions();
@@ -618,8 +625,8 @@ const PortfolioTable: React.FC<PortfolioProps> = ({ result: initialResult }) => 
   };
 
   const toggleNfts = () => {
-    // Don't allow expand for Solana (not supported)
-    if (isSolanaAddress(result.id)) return;
+    // Don't allow expand for Solana/Sui (handled separately)
+    if (isSolanaAddress(result.id) || isSuiAddress(result.id)) return;
     // Only fetch if not already fetched/fetching and no data
     if (!showNfts && !hasFetchedNfts && nftCollections.length === 0) {
       fetchNftCollections();

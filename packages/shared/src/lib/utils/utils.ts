@@ -207,7 +207,7 @@ export type SearchGroupId =
   | "renaiss"
   | "goat"
   | "somnia"
-  | "keeperhub";
+  | "sui";
 
 // Explicit type for search groups to avoid portable type inference issues with LucideIcon
 interface SearchGroupItem {
@@ -385,13 +385,6 @@ export const searchGroups: readonly SearchGroupItem[] = [
       light: "/images/icon/solana/sol-dark.png",
       dark: "/images/icon/solana/sol-light.png",
     },
-  },
-  {
-    id: "keeperhub",
-    name: "KeeperHub",
-    description: "Deterministic workflow automation, simulation, and execution",
-    icon: Network,
-    img: "",
   },
 ];
 

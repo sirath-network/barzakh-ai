@@ -18,6 +18,7 @@ import { ArrowLeft, ChevronLeft, PenSquare, Ghost } from 'lucide-react';
 import { ArtifactToggle } from './artifact-toggle';
 
 import { ChatHeaderMenu } from './chat-header-menu';
+import { MemoryIndicator } from './memory-indicator';
 
 // 1. Update interface props to include new optional props
 // and make chat-specific props optional.
@@ -152,45 +153,59 @@ function PureChatHeader({
 
         {/* === Right Section === */}
         <div className="flex items-center justify-end gap-2 z-20">
-          {/* Incognito Mode Toggle - only show on new chats (before first message) */}
-          {!title && user && messages.length === 0 && (
-            <TooltipAny>
-              <TooltipTriggerAny asChild>
-                <ButtonAny
-                  variant="ghost"
-                  className={`h-9 px-3 rounded-full transition-all duration-300 ${
-                    isIncognito
-                      ? 'relative bg-neutral-200/70 dark:bg-white/10 border border-neutral-300/70 dark:border-white/15 shadow-sm'
-                      : 'hover:bg-neutral-100 dark:hover:bg-neutral-800/60'
-                  }`}
-                  onClick={() => setIsIncognito?.(!isIncognito)}
-                  aria-label="Incognito Mode"
-                >
-                  <span
-                    className={`flex items-center gap-2 transition-all duration-300 ${
+          <div className="flex items-center gap-0.5">
+            {/* Incognito Mode Toggle - only show on new chats (before first message) */}
+            {!title && user && messages.length === 0 && (
+              <TooltipAny>
+                <TooltipTriggerAny asChild>
+                  <ButtonAny
+                    variant="ghost"
+                    size="icon"
+                    className={`h-9 ${
+                      isClient && isSidebarOpen && isDesktop ? 'w-auto px-3' : 'w-9'
+                    } rounded-full transition-all duration-200 flex items-center justify-center ${
                       isIncognito
-                        ? 'text-neutral-900 dark:text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.65)]'
-                        : 'text-neutral-600 dark:text-neutral-400 hover:text-primary'
+                        ? 'relative bg-neutral-200/70 dark:bg-white/10 border border-neutral-300/70 dark:border-white/15 shadow-sm'
+                        : 'hover:bg-neutral-100 dark:hover:bg-neutral-800/60'
                     }`}
+                    onClick={() => setIsIncognito?.(!isIncognito)}
+                    aria-label="Incognito Mode"
                   >
-                    <Ghost
-                      className={`flex-shrink-0 w-4 h-4 md:w-4 md:h-4 ${
-                        isIncognito ? 'animate-pulse' : ''
+                    <span
+                      className={`flex items-center justify-center ${
+                        isClient && isSidebarOpen && isDesktop ? 'gap-2' : ''
+                      } transition-all duration-200 ${
+                        isIncognito
+                          ? 'text-neutral-900 dark:text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.65)]'
+                          : 'text-neutral-600 dark:text-neutral-400 hover:text-primary'
                       }`}
-                    />
-                    {isClient && isSidebarOpen && isDesktop && (
-                      <span className="text-sm font-medium">Private</span>
-                    )}
-                  </span>
-                </ButtonAny>
-              </TooltipTriggerAny>
-              <TooltipContentAny side="bottom" className="font-medium">
-                {isIncognito ? 'Disable Incognito' : 'Incognito Mode'}
-              </TooltipContentAny>
-            </TooltipAny>
-          )}
-          {/* Show artifact toggle if not in settings mode */}
-          {!title && <ArtifactToggle />}
+                    >
+                      <Ghost
+                        className={`flex-shrink-0 w-4 h-4 md:w-4 md:h-4 ${
+                          isIncognito ? 'animate-pulse' : ''
+                        }`}
+                      />
+                      {isClient && isSidebarOpen && isDesktop && (
+                        <span className="text-sm font-medium">Private</span>
+                      )}
+                    </span>
+                  </ButtonAny>
+                </TooltipTriggerAny>
+                <TooltipContentAny side="bottom" className="font-medium">
+                  {isIncognito ? 'Disable Incognito' : 'Incognito Mode'}
+                </TooltipContentAny>
+              </TooltipAny>
+            )}
+            {/* Show artifact toggle if not in settings mode */}
+            {!title && <ArtifactToggle />}
+
+            {/* Walrus Memory Indicator */}
+            {!title && user && (
+              <MemoryIndicator
+                showLabel={Boolean(isClient && isSidebarOpen && isDesktop)}
+              />
+            )}
+          </div>
 
           {user ? (
             // Hide user nav when sidebar is open to reduce clutter

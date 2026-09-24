@@ -60,6 +60,7 @@
         "BIRDEYE_API_KEY",
         "HELIUS_API_KEY",
         "BLOCKVISION_API_KEY",
+        "BLOCKBERRY_API_KEY",
         "ETHERSCAN_API_KEY",
         "BASE_SCAN_API_KEY",
         "BASE_SCAN_API_BASE_URL",

@@ -87,6 +87,9 @@ const toolIcons: Record<string, React.ElementType> = {
   searchEvmTokenMarketData: BarChart3Any,
   searchSolanaTokenMarketData: BarChart3Any,
   getSolanaChainWalletPortfolio: WalletAny,
+  getSuiPortfolio: WalletAny,
+  getSuiTransactionHistory: HistoryAny,
+  getWalrusStorageInfo: FileTextAny,
   getEvmMultiChainWalletPortfolio: WalletAny,
   getTokenBalances: WalletAny,
   getSolanaWalletTransactions: HistoryAny,
@@ -180,10 +183,6 @@ const DreamDexTradeCardAny = DreamDexTradeCard as any;
 const DreamDexPortfolioCardAny = DreamDexPortfolioCard as any;
 const DreamDexAnalysisCardAny = DreamDexAnalysisCard as any;
 
-// KeeperHub Deterministic Workflow Components
-import { KeeperHubWorkflowCard } from './keeperhub/keeperhub-workflow-card';
-const KeeperHubWorkflowCardAny = KeeperHubWorkflowCard as any;
-
 // Helper to deduplicate consecutive repeated sentences in AI output.
 // The AI model sometimes outputs the same sentence twice back-to-back, e.g.:
 // "Your order has been placed on DreamDEX via Autopilot.Your order has been placed on DreamDEX via Autopilot."
@@ -193,48 +192,52 @@ const KeeperHubWorkflowCardAny = KeeperHubWorkflowCard as any;
 const deduplicateConsecutiveSentences = (content: string): string => {
   if (!content) return content;
 
-  // Split only on genuine sentence boundaries:
-  // 1. Non-digit punctuation followed by whitespace and a capital letter/number/bracket
-  // 2. Or two capitalized sentences jammed together without space (e.g. "...Autopilot.Your...")
-  // CRITICAL: NEVER split decimal numbers (e.g. 19.23, 10.00, 0.52) or URLs/domains (e.g. somnia.network)!
-  const parts = content.split(/(?<!\d)(?<=[.!?])\s+(?=[A-Z0-9\-[\]("']|$)|(?<!\d)(?<=[.!?])(?=[A-Z][a-z])/);
-  if (parts.length <= 1) return content;
-
-  const result: string[] = [];
-  for (const part of parts) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
-
-    // Compare normalized versions (lowercase, collapsed whitespace) to detect duplicates
-    const normalized = trimmed.toLowerCase().replace(/\s+/g, ' ');
-    const lastNormalized = result.length > 0
-      ? result[result.length - 1].trim().toLowerCase().replace(/\s+/g, ' ')
-      : '';
-
-    if (normalized === lastNormalized) {
-      // Exact duplicate — skip
-      continue;
+  // Preserve paragraph and list structure by processing line-by-line
+  const lines = content.split('\n');
+  const processedLines = lines.map((line) => {
+    // If line is empty, a markdown list item, quote, or header, preserve as-is
+    if (!line.trim() || /^\s*([0-9]+\.|[-*•#>]|`{3})/.test(line)) {
+      return line;
     }
 
-    // Check for partial-then-full pattern:
-    // If the previous sentence (minus its trailing punctuation) is a suffix of the current sentence
-    // e.g. prev="is your live DreamDEX prediction portfolio on Somnia Shannon."
-    //      curr="Here is your live DreamDEX prediction portfolio on Somnia Shannon."
-    // Then replace the previous partial with the current full sentence.
-    if (result.length > 0) {
-      const prevCore = lastNormalized.replace(/[.!?]+$/, '').trim();
-      const currCore = normalized.replace(/[.!?]+$/, '').trim();
-      if (prevCore.length > 10 && currCore.endsWith(prevCore)) {
-        // Previous was a fragment of current — replace it
-        result[result.length - 1] = trimmed;
+    // Only deduplicate consecutive repeated sentences within the same line
+    const parts = line.split(/(?<!\d)(?<=[.!?])\s+(?=[A-Z0-9\-[\]("']|$)|(?<!\d)(?<=[.!?])(?=[A-Z][a-z])/);
+    if (parts.length <= 1) return line;
+
+    const result: string[] = [];
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+
+      // Compare normalized versions (lowercase, collapsed whitespace) to detect duplicates
+      const normalized = trimmed.toLowerCase().replace(/\s+/g, ' ');
+      const lastNormalized = result.length > 0
+        ? result[result.length - 1].trim().toLowerCase().replace(/\s+/g, ' ')
+        : '';
+
+      if (normalized === lastNormalized) {
+        // Exact duplicate — skip
         continue;
       }
+
+      // Check for partial-then-full pattern:
+      if (result.length > 0) {
+        const prevCore = lastNormalized.replace(/[.!?]+$/, '').trim();
+        const currCore = normalized.replace(/[.!?]+$/, '').trim();
+        if (prevCore.length > 10 && currCore.endsWith(prevCore)) {
+          // Previous was a fragment of current — replace it
+          result[result.length - 1] = trimmed;
+          continue;
+        }
+      }
+
+      result.push(trimmed);
     }
 
-    result.push(trimmed);
-  }
+    return result.join(' ');
+  });
 
-  return result.join(' ').trim();
+  return processedLines.join('\n');
 };
 
 // Helper to remove AI preamble narration when tools are used
@@ -288,6 +291,24 @@ const removeMarkdownTables = (content: string): string => {
   // Followed by any rows |...|
   const tableRegex = /\|.*\|.*\n\|[-: |]+\|.*(\n\|.*\|.*)*/g;
   return content.replace(tableRegex, '').trim();
+};
+
+// Helper to filter out duplicate token lists / holdings when a portfolio card is displayed
+const filterDuplicatePortfolioHoldings = (
+  content: string,
+  hasPortfolioTools: boolean,
+): string => {
+  if (!hasPortfolioTools || !content) return content;
+  // Strip redundant sections like "Holdings:\n* ...", "Assets:\n* ...", "Tokens:\n* ..."
+  let filtered = content.replace(
+    /(?:(?:\*\*Holdings:\*\*|Holdings:|Tokens:|Assets:|Token Holdings:)\s*\n)(?:\s*[*•-]\s+.*\n?)+/gi,
+    '',
+  );
+  // Also strip any bullet points of $0 or dust tokens
+  filtered = filtered.replace(/^\s*[*•-]\s+.*?\(\$0(?:\.00)?\)\s*$/gim, '');
+  // Clean up any double blank lines
+  filtered = filtered.replace(/\n{3,}/g, '\n\n');
+  return filtered.trim();
 };
 
 // Helper to filter out internal system/API explanatory content from tool responses
@@ -449,21 +470,33 @@ const filterDreamDexContent = (
     return 'The order could not be filled on DreamDEX. No collateral was spent.';
   }
 
-  // Strip redundant verbose bullet lists when a trading tool was used, because the card already shows all details
-  filtered = filtered.replace(/\s*Summary:[\s\S]*/gi, '');
-  filtered = filtered.replace(/(?:\n|^)\s*[-*•]?\s*You placed an order for[\s\S]*/gi, '');
-  filtered = filtered.replace(/(?:\n|^)\s*[-*•]?\s*The collateral used was[\s\S]*/gi, '');
+  const hasDreamDexTrade = completedTools?.some(
+    (t) => t.toolName === 'dreamDexPlaceOrder' || t.toolName === 'dreamDexMintTokens',
+  );
 
-  // Strip hallucinated "Developer Resources" sections (from AI training data, not in codebase)
-  filtered = filtered.replace(
-    /\n*#{0,3}\s*Developer\s+Resources?\s*\n[\s\S]*$/i,
-    '',
+  if (hasDreamDexTrade) {
+    // Strip redundant verbose bullet lists only when a DreamDEX trading tool was used, because the card already shows all details
+    filtered = filtered.replace(/(?:\n|^)\s*(?:\*\*)?Order Summary:?(?:\*\*)?[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]?\s*You placed an order for[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]?\s*The collateral used was[\s\S]*/gi, '');
+  }
+
+  const hasDreamDexTool = completedTools?.some((t) =>
+    typeof t.toolName === 'string' && t.toolName.toLowerCase().includes('dreamdex'),
   );
-  // Strip standalone doc/GitHub links the AI hallucinates about DreamDEX
-  filtered = filtered.replace(
-    /\n*(?:[-*]\s*)?(?:DreamDEX\s+)?(?:Bot\s+Kit|Bot\s+Builder|Complete\s+Documentation|Starter\s+Template|SDK)\s*[-–—:]?\s*\[?https?:\/\/[^\s\]]+\]?(?:\([^)]*\))?\s*/gi,
-    '',
-  );
+
+  if (hasDreamDexTool) {
+    // Strip hallucinated "Developer Resources" sections (from AI training data, not in codebase)
+    filtered = filtered.replace(
+      /\n*#{0,3}\s*Developer\s+Resources?\s*\n[\s\S]*$/i,
+      '',
+    );
+    // Strip standalone doc/GitHub links the AI hallucinates about DreamDEX
+    filtered = filtered.replace(
+      /\n*(?:[-*]\s*)?(?:DreamDEX\s+)?(?:Bot\s+Kit|Bot\s+Builder|Complete\s+Documentation|Starter\s+Template|SDK)\s*[-–—:]?\s*\[?https?:\/\/[^\s\]]+\]?(?:\([^)]*\))?\s*/gi,
+      '',
+    );
+  }
 
   return filtered.trim();
 };
@@ -473,6 +506,8 @@ const RENDERABLE_TOOL_NAMES = [
   'searchEvmTokenMarketData',
   'searchSolanaTokenMarketData',
   'getSolanaChainWalletPortfolio',
+  'getSuiPortfolio',
+  'getSuiTransactionHistory',
   'getEvmMultiChainWalletPortfolio',
   'getMantlePortfolio',
   'getMonadPortfolio',
@@ -521,11 +556,6 @@ const RENDERABLE_TOOL_NAMES = [
   'dreamDexClosePosition',
   'getDreamDexPortfolio',
   'getAIPredictionAnalysis',
-  // KeeperHub Deterministic Workflows
-  'keeperHubComposeWorkflow',
-  'keeperHubDryRun',
-  'keeperHubExecute',
-  'keeperHubGetAuditTrail',
 ];
 
 const PurePreviewMessage = ({
@@ -738,13 +768,6 @@ const PurePreviewMessage = ({
     'getAIPredictionAnalysis',
   ];
 
-  const KEEPERHUB_RENDERABLE_TOOL_NAMES = [
-    'keeperHubComposeWorkflow',
-    'keeperHubDryRun',
-    'keeperHubExecute',
-    'keeperHubGetAuditTrail',
-  ];
-
   const hasCompletedDreamDexTool = Boolean(
     completedTools?.some((tool: any) =>
       DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
@@ -759,25 +782,9 @@ const PurePreviewMessage = ({
     ),
   );
 
-  const hasCompletedKeeperHubTool = Boolean(
-    completedTools?.some((tool: any) =>
-      KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
-    ),
-  );
-
-  const hasPendingKeeperHubTool = Boolean(
-    message.toolInvocations?.some(
-      (tool: any) =>
-        (tool.state === 'call' || tool.state === 'partial-call') &&
-        KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
-    ),
-  );
-
   const hasVisibleTools = message.role !== 'user' && Boolean(
     hasCompletedDreamDexTool ||
     hasPendingDreamDexTool ||
-    hasCompletedKeeperHubTool ||
-    hasPendingKeeperHubTool ||
     (allWebSearchTools && allWebSearchTools.length > 0) ||
       (otherCompletedTools &&
         otherCompletedTools.some((tool: any) => {
@@ -834,18 +841,20 @@ const PurePreviewMessage = ({
       >
         <div
           className={cn(
-            'flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 w-full min-w-0 max-w-full',
-            {
-              'w-full': mode === 'edit',
-              'group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:w-fit':
-                mode !== 'edit',
-            },
+            'flex flex-col md:flex-row md:items-start pl-0.5 gap-0 md:gap-4 min-w-0',
+            mode === 'edit'
+              ? 'w-full max-w-full'
+              : message.role === 'user'
+                ? 'ml-auto w-fit max-w-[85%] sm:max-w-[78%] md:max-w-[72%]'
+                : 'w-full max-w-full',
           )}
         >
           <div
             className={cn(
-              'flex flex-col gap-1 min-w-0 max-w-full',
-              message.role === 'user' ? 'w-full' : 'w-full',
+              'flex flex-col gap-1 min-w-0',
+              message.role === 'user'
+                ? 'w-fit max-w-full ml-auto items-end'
+                : 'w-full max-w-full',
             )}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -926,8 +935,7 @@ const PurePreviewMessage = ({
                         if (tool.state === 'result') return true;
                         if (
                           (tool.state === 'call' || tool.state === 'partial-call') &&
-                          (DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName) ||
-                           KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName))
+                          DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName)
                         ) {
                           return true;
                         }
@@ -973,56 +981,6 @@ const PurePreviewMessage = ({
                       ];
                     }
 
-                    // Client-side fallback: If message text announces a KeeperHub workflow but the AI omitted or streamed the tool call,
-                    // synthesize a keeperHubComposeWorkflow tool invocation so the KeeperHub card is ALWAYS rendered!
-                    const announcesKeeperHub = message.role === 'assistant' && /KeeperHub workflow|execute deterministically|composed.*KeeperHub/i.test(messageContentStr);
-                    const hasKeeperHubTool = renderableTools.some((t: any) => KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(t.toolName));
-                    if (announcesKeeperHub && !hasKeeperHubTool) {
-                      const stepMatches = Array.from(messageContentStr.matchAll(/\d+\.\s+([^:?]+)[:?]/g)).map(m => m[1].trim());
-                      const parsedSteps = stepMatches.length > 0
-                        ? stepMatches.map(label => ({
-                            action: label,
-                            type: /approve|place|swap|redeem|order|transfer/i.test(label)
-                              ? 'web3-write'
-                              : /check|confirm|verify|balance/i.test(label)
-                              ? 'web3-read'
-                              : 'condition'
-                          }))
-                        : [
-                            { action: 'Check tUSDC Balance', type: 'web3-read' },
-                            { action: 'Sufficient tUSDC?', type: 'condition' },
-                            { action: 'Approve tUSDC for DreamDEX', type: 'web3-write' },
-                            { action: 'Place UP Order on BTC-UP-5m', type: 'web3-write' },
-                            { action: 'Confirm Position', type: 'web3-read' },
-                          ];
-
-                      renderableTools = [
-                        {
-                          toolName: 'keeperHubComposeWorkflow',
-                          toolCallId: `synthetic-keeperhub-workflow-${message.id}`,
-                          args: {},
-                          state: 'result',
-                          result: {
-                            success: true,
-                            workflow: {
-                              name: 'KeeperHub Onchain Workflow',
-                              description: 'Deterministic onchain execution composed by Barzakh AI.',
-                              nodes: parsedSteps.map((s, i) => ({
-                                id: `node-${i + 1}`,
-                                label: s.action,
-                                type: s.type,
-                                config: {},
-                              })),
-                            },
-                            steps: parsedSteps,
-                            estimatedGas: '~150,000 gas',
-                            estimatedDuration: '~15s',
-                          },
-                        } as any,
-                        ...renderableTools,
-                      ];
-                    }
-
                     if (renderableTools.length === 0) return null;
 
                     return (
@@ -1055,6 +1013,12 @@ const PurePreviewMessage = ({
                             ),
                             getSolanaChainWalletPortfolio: (
                               <PortfolioTableAny result={result} />
+                            ),
+                            getSuiPortfolio: (
+                              <PortfolioTableAny result={result} />
+                            ),
+                            getSuiTransactionHistory: (
+                              <EvmTransactionHistoryAny result={result} />
                             ),
                             getEvmMultiChainWalletPortfolio: (
                               <PortfolioTableAny result={result} />
@@ -1266,25 +1230,6 @@ const PurePreviewMessage = ({
                             getAIPredictionAnalysis: (
                               <DreamDexAnalysisCardAny result={result} onSelectAction={handleDreamDexAction} />
                             ),
-                            // KeeperHub Workflow & Deterministic Execution Cards
-                            keeperHubComposeWorkflow: (
-                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
-                            ),
-                            keeperHubDryRun: (
-                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
-                            ),
-                            keeperHubExecute: (
-                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
-                            ),
-                            keeperHubGetAuditTrail: (
-                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
-                            ),
-                            keeperHubListWorkflows: result?.workflow ? (
-                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
-                            ) : null,
-                            keeperHubGetExecutionHistory: result?.workflow ? (
-                              <KeeperHubWorkflowCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
-                            ) : null,
                           };
 
                           return (
@@ -1300,8 +1245,9 @@ const PurePreviewMessage = ({
                   {/* === MIDDLE SECTION: MAIN MESSAGE CONTENT (MARKDOWN) === */}
                   {mode === 'view' && (
                     <motion.div
-                      className={cn('flex flex-col pr-1.5 w-full', {
-                        'items-end': message.role === 'user',
+                      className={cn('flex flex-col pr-1.5', {
+                        'items-end ml-auto w-fit max-w-full': message.role === 'user',
+                        'w-full': message.role !== 'user',
                       })}
                       initial={isPreloaded ? false : { opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -1312,7 +1258,7 @@ const PurePreviewMessage = ({
                     >
                       {/* USER MESSAGE: Separate attachments and text */}
                       {message.role === 'user' ? (
-                        <div className="flex flex-col gap-2 items-end w-full">
+                        <div className="flex flex-col gap-2 items-end w-fit max-w-full ml-auto">
                           {/* Attachments displayed first as separate cards */}
                           {(message.experimental_attachments ||
                             (Array.isArray(message.content) &&
@@ -1478,7 +1424,7 @@ const PurePreviewMessage = ({
                                 {/* Text bubble */}
                                 {cleanedText && (
                                   <div
-                                    className="group/bubble relative cursor-pointer max-w-full md:max-w-max px-4 py-1.5 rounded-full bg-neutral-100 dark:bg-[#2b2c32] text-zinc-900 dark:text-zinc-100 border border-zinc-200/90 dark:border-white/[0.12] shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)] backdrop-blur-md hover:bg-neutral-200/70 dark:hover:bg-[#32333a] hover:border-zinc-300 dark:hover:border-white/[0.2] transition-all duration-200 text-[13.5px] font-medium tracking-tight select-text inline-flex items-center [&_p]:my-0 [&_p]:leading-normal"
+                                    className="group/bubble relative cursor-pointer w-fit max-w-full px-5 py-3.5 rounded-2xl bg-neutral-100 dark:bg-[#2b2c32] text-zinc-900 dark:text-zinc-100 border border-zinc-200/90 dark:border-white/[0.12] shadow-[0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)] backdrop-blur-md hover:bg-neutral-200/70 dark:hover:bg-[#32333a] hover:border-zinc-300 dark:hover:border-white/[0.2] transition-all duration-200 text-[14px] font-normal leading-relaxed select-text block break-words [overflow-wrap:anywhere] [&_.markdown-body]:text-zinc-900 dark:[&_.markdown-body]:text-zinc-100 [&_.markdown-body_p]:my-1.5 first:[&_.markdown-body_p]:mt-0 last:[&_.markdown-body_p]:mb-0 [&_.markdown-body_ol]:my-2 [&_.markdown-body_ul]:my-2 [&_.markdown-body_ol]:pl-5 [&_.markdown-body_ul]:pl-5 [&_.markdown-body_li]:my-0.5"
                                     onClick={() => {
                                       if (!isReadonly) {
                                         setActionsVisible(!actionsVisible);
@@ -1556,8 +1502,7 @@ const PurePreviewMessage = ({
                             message.toolInvocations?.some(
                               (tool: any) =>
                                 (tool.state === 'call' || tool.state === 'partial-call') &&
-                                (DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName) ||
-                                 KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(tool.toolName)),
+                                DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
                             ),
                           );
                           const hasTools =
@@ -1590,6 +1535,8 @@ const PurePreviewMessage = ({
                                 t.toolName === 'getFlowApiData' ||
                                 t.toolName === 'getSeiApiData' ||
                                 t.toolName === 'getMonadPortfolio' ||
+                                t.toolName === 'getSuiPortfolio' ||
+                                t.toolName === 'getSuiTransactionHistory' ||
                                 t.toolName === 'getGoatPortfolio' ||
                                 t.toolName === 'getMonadDefiPositions' ||
                                 t.toolName === 'getMonadNFTs' ||
@@ -1601,6 +1548,22 @@ const PurePreviewMessage = ({
                             if (hasOnchainTools && filteredContent) {
                               filteredContent =
                                 removeMarkdownTables(filteredContent);
+                              // Filter out redundant holdings lists if portfolio card is shown
+                              const hasPortfolioTools = completedTools?.some(
+                                (t) =>
+                                  t.toolName === 'getSuiPortfolio' ||
+                                  t.toolName === 'getMonadPortfolio' ||
+                                  t.toolName === 'getGoatPortfolio' ||
+                                  t.toolName === 'getMantlePortfolio' ||
+                                  t.toolName === 'getSolanaChainWalletPortfolio' ||
+                                  t.toolName === 'getEvmMultiChainWalletPortfolio',
+                              );
+                              if (hasPortfolioTools) {
+                                filteredContent = filterDuplicatePortfolioHoldings(
+                                  filteredContent,
+                                  true,
+                                );
+                              }
                               // Also filter out system/API explanatory content
                               filteredContent = filterSystemExplanatoryContent(
                                 filteredContent,
@@ -1614,8 +1577,7 @@ const PurePreviewMessage = ({
                                 const res = (t as any)?.result;
                                 return (
                                   (t.toolName === 'dreamDexPlaceOrder' ||
-                                    t.toolName === 'dreamDexMintTokens' ||
-                                    t.toolName === 'keeperHubComposeWorkflow') &&
+                                    t.toolName === 'dreamDexMintTokens') &&
                                   (res?.executionMode === 'autopilot' ||
                                     res?.isExecuted === true ||
                                     res?.status === 'success' ||
@@ -1690,24 +1652,6 @@ const PurePreviewMessage = ({
                               } else if (tName === 'getAIPredictionAnalysis') {
                                 if (!filteredContent || filteredContent.length < 10) {
                                   filteredContent = 'Here is the AI conviction scoring analysis for this prediction market.';
-                                }
-                              }
-                            }
-
-                            // Instant companion text for KeeperHub workflow tools
-                            const completedKeeperHub = completedTools?.find((t) =>
-                              KEEPERHUB_RENDERABLE_TOOL_NAMES.includes(t.toolName),
-                            );
-                            if (completedKeeperHub && (!filteredContent || filteredContent.length < 10 || filteredContent.includes("review and confirm"))) {
-                              const tName = completedKeeperHub.toolName;
-                              const res = (completedKeeperHub as any).result;
-                              if (tName === 'keeperHubComposeWorkflow') {
-                                if (res?.status === 'error' || res?.success === false) {
-                                  filteredContent = `The KeeperHub workflow could not be executed: ${res?.error || 'Unknown error'}`;
-                                } else if (res?.executionMode === 'autopilot' || res?.isExecuted === true || res?.status === 'completed') {
-                                  filteredContent = 'Your KeeperHub workflow has been executed onchain via Autopilot.';
-                                } else {
-                                  filteredContent = 'Your KeeperHub deterministic workflow is ready for execution on Somnia.';
                                 }
                               }
                             }
@@ -2113,6 +2057,9 @@ const PurePreviewMessage = ({
                                         'Solana Token Data',
                                       getSolanaChainWalletPortfolio:
                                         'Solana Portfolio',
+                                      getSuiPortfolio: 'Sui Portfolio',
+                                      getSuiTransactionHistory: 'Sui History',
+                                      getWalrusStorageInfo: 'Walrus Storage',
                                       getEvmMultiChainWalletPortfolio:
                                         'EVM Portfolio',
                                       getTokenBalances: 'Token Balances',

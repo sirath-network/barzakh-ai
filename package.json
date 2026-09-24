@@ -15,7 +15,8 @@
     "start": "turbo run start",
     "start:api": "turbo run start --filter=barzakh-api",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "postinstall": "node scripts/patch-memwal.js"
   },
   "dependencies": {
     "@tavily/core": "^0.7.2",
@@ -88,8 +89,26 @@
       "postcss-selector-parser": ">=6.1.4",
       "baseline-browser-mapping": ">=2.11.22",
       "bigint-buffer": "npm:bigint-buffer-fixed@1.1.6",
-      "tar": ">=7.5.22"
-    }
+      "tar": ">=7.5.22",
+      "keyv": ">=4.0.0 <6.0.0 || >6.0.0",
+      "cacheable": ">=1.0.0 <2.5.1 || >2.5.1",
+      "cacheable-request": ">=7.0.0 <13.0.20 || >13.0.20",
+      "cache-manager": ">=5.0.0 <7.2.10 || >7.2.10",
+      "flat-cache": ">=4.0.0 <6.1.24 || >6.1.24",
+      "file-entry-cache": ">=8.0.0 <11.1.6 || >11.1.6",
+      "@cacheable/net": ">=1.0.0 <2.1.1 || >2.1.1",
+      "@cacheable/node-cache": ">=1.0.0 <3.1.2 || >3.1.2",
+      "@cacheable/memory": ">=1.0.0 <2.2.1 || >2.2.1",
+      "@cacheable/utils": ">=1.0.0 <2.5.1 || >2.5.1"
+    },
+    "onlyBuiltDependencies": [
+      "keccak",
+      "secp256k1",
+      "bufferutil",
+      "utf-8-validate",
+      "bigint-buffer-fixed",
+      "node-gyp"
+    ]
   },
   "resolutions": {
     "wagmi": "2.19.5",
@@ -152,7 +171,17 @@
     "postcss-selector-parser": ">=6.1.4",
     "baseline-browser-mapping": ">=2.11.22",
     "bigint-buffer": "npm:bigint-buffer-fixed@1.1.6",
-    "tar": ">=7.5.22"
+    "tar": ">=7.5.22",
+    "keyv": ">=4.0.0 <6.0.0 || >6.0.0",
+    "cacheable": ">=1.0.0 <2.5.1 || >2.5.1",
+    "cacheable-request": ">=7.0.0 <13.0.20 || >13.0.20",
+    "cache-manager": ">=5.0.0 <7.2.10 || >7.2.10",
+    "flat-cache": ">=4.0.0 <6.1.24 || >6.1.24",
+    "file-entry-cache": ">=8.0.0 <11.1.6 || >11.1.6",
+    "@cacheable/net": ">=1.0.0 <2.1.1 || >2.1.1",
+    "@cacheable/node-cache": ">=1.0.0 <3.1.2 || >3.1.2",
+    "@cacheable/memory": ">=1.0.0 <2.2.1 || >2.2.1",
+    "@cacheable/utils": ">=1.0.0 <2.5.1 || >2.5.1"
   },
   "devDependencies": {
     "solc": "0.8.20",

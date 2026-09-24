@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { genSaltSync, hashSync } from "bcrypt-ts";
 import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { isReservedUsername } from "@/lib/reserved-usernames";
+import { areMemoriesSimilar } from "@barzakh/shared/lib/memory";
 
 import {
   user,
@@ -24,6 +25,8 @@ import {
   x402_transactions,
   guest_session,
   type GuestSession,
+  walrus_memory_settings,
+  type WalrusMemorySettings,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -1174,3 +1177,275 @@ export async function deleteExpiredChats() {
 
 
 
+
+// ─── Walrus Memory Settings & Tombstoning ───────────────────────────────────
+
+export interface CachedMemoryItem {
+  id?: string;
+  jobId?: string;
+  blobId?: string | null;
+  text: string;
+  createdAt: string;
+}
+
+export interface WalrusUserSettings {
+  namespaceVersion: number;
+  deletedBlobIds: string[];
+  deletedTexts: string[];
+  cachedMemories: CachedMemoryItem[];
+}
+
+export async function getWalrusMemorySettings(userId: string): Promise<WalrusUserSettings> {
+  try {
+    const [settings] = await db
+      .select()
+      .from(walrus_memory_settings)
+      .where(eq(walrus_memory_settings.userId, userId));
+
+    if (!settings) {
+      return {
+        namespaceVersion: 1,
+        deletedBlobIds: [],
+        deletedTexts: [],
+        cachedMemories: [],
+      };
+    }
+
+    let deletedBlobIds: string[] = [];
+    let deletedTexts: string[] = [];
+    let cachedMemories: CachedMemoryItem[] = [];
+
+    try {
+      deletedBlobIds = JSON.parse(settings.deletedBlobIds || "[]");
+    } catch {
+      deletedBlobIds = [];
+    }
+    try {
+      deletedTexts = JSON.parse(settings.deletedTexts || "[]");
+    } catch {
+      deletedTexts = [];
+    }
+    try {
+      cachedMemories = JSON.parse(settings.cachedMemories || "[]");
+    } catch {
+      cachedMemories = [];
+    }
+
+    return {
+      namespaceVersion: settings.namespaceVersion,
+      deletedBlobIds: Array.isArray(deletedBlobIds) ? deletedBlobIds : [],
+      deletedTexts: Array.isArray(deletedTexts) ? deletedTexts : [],
+      cachedMemories: Array.isArray(cachedMemories) ? cachedMemories : [],
+    };
+  } catch (error) {
+    console.error("Failed to get walrus memory settings:", error);
+    return {
+      namespaceVersion: 1,
+      deletedBlobIds: [],
+      deletedTexts: [],
+      cachedMemories: [],
+    };
+  }
+}
+
+/**
+ * Add or update newly extracted candidate/analyzed memories in the local hot cache.
+ * Deduplicates against existing cached memories using semantic similarity.
+ */
+export async function addCachedMemories(
+  userId: string,
+  newFacts: Array<{ text: string; jobId?: string; blobId?: string }>
+): Promise<WalrusUserSettings> {
+  if (!newFacts || newFacts.length === 0) {
+    return getWalrusMemorySettings(userId);
+  }
+
+  try {
+    const existing = await getWalrusMemorySettings(userId);
+    const cached = [...existing.cachedMemories];
+
+    for (const fact of newFacts) {
+      if (!fact.text || !fact.text.trim()) continue;
+      const trimmedText = fact.text.trim();
+
+      // Check if this fact is already tombstoned
+      if (
+        existing.deletedTexts.some(
+          (t) =>
+            trimmedText.toLowerCase() === t.toLowerCase() ||
+            trimmedText.toLowerCase().includes(t.toLowerCase()) ||
+            t.toLowerCase().includes(trimmedText.toLowerCase())
+        )
+      ) {
+        continue;
+      }
+      if (fact.blobId && existing.deletedBlobIds.includes(fact.blobId)) {
+        continue;
+      }
+
+      // Check if already in cache using semantic similarity
+      const existingIdx = cached.findIndex((c) =>
+        areMemoriesSimilar(c.text, trimmedText)
+      );
+
+      if (existingIdx >= 0) {
+        // Update existing item with jobId or blobId if available
+        cached[existingIdx] = {
+          ...cached[existingIdx],
+          jobId: fact.jobId || cached[existingIdx].jobId,
+          blobId: fact.blobId || cached[existingIdx].blobId,
+        };
+      } else {
+        // Prepend new memory
+        cached.unshift({
+          text: trimmedText,
+          jobId: fact.jobId,
+          blobId: fact.blobId,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Keep up to 100 most recent items in hot cache
+    const trimmedCached = cached.slice(0, 100);
+
+    const [row] = await db
+      .select()
+      .from(walrus_memory_settings)
+      .where(eq(walrus_memory_settings.userId, userId));
+
+    if (row) {
+      await db
+        .update(walrus_memory_settings)
+        .set({
+          cachedMemories: JSON.stringify(trimmedCached),
+          updatedAt: new Date(),
+        })
+        .where(eq(walrus_memory_settings.userId, userId));
+    } else {
+      await db.insert(walrus_memory_settings).values({
+        userId,
+        namespaceVersion: 1,
+        deletedBlobIds: "[]",
+        deletedTexts: "[]",
+        cachedMemories: JSON.stringify(trimmedCached),
+        updatedAt: new Date(),
+      });
+    }
+
+    return {
+      namespaceVersion: existing.namespaceVersion,
+      deletedBlobIds: existing.deletedBlobIds,
+      deletedTexts: existing.deletedTexts,
+      cachedMemories: trimmedCached,
+    };
+  } catch (error) {
+    console.error("Failed to add cached memories:", error);
+    return getWalrusMemorySettings(userId);
+  }
+}
+
+export async function tombstoneWalrusMemory(
+  userId: string,
+  blobId?: string,
+  text?: string
+): Promise<WalrusUserSettings> {
+  try {
+    const existing = await getWalrusMemorySettings(userId);
+
+    const blobIds = [...existing.deletedBlobIds];
+    const texts = [...existing.deletedTexts];
+
+    if (blobId && !blobIds.includes(blobId)) {
+      blobIds.push(blobId);
+    }
+    if (text && !texts.includes(text.trim())) {
+      texts.push(text.trim());
+    }
+
+    // Filter out from cachedMemories as well
+    const updatedCached = existing.cachedMemories.filter((c) => {
+      if (blobId && c.blobId === blobId) return false;
+      if (text && areMemoriesSimilar(c.text, text.trim())) return false;
+      return true;
+    });
+
+    const [row] = await db
+      .select()
+      .from(walrus_memory_settings)
+      .where(eq(walrus_memory_settings.userId, userId));
+
+    if (row) {
+      await db
+        .update(walrus_memory_settings)
+        .set({
+          deletedBlobIds: JSON.stringify(blobIds),
+          deletedTexts: JSON.stringify(texts),
+          cachedMemories: JSON.stringify(updatedCached),
+          updatedAt: new Date(),
+        })
+        .where(eq(walrus_memory_settings.userId, userId));
+    } else {
+      await db
+        .insert(walrus_memory_settings)
+        .values({
+          userId,
+          namespaceVersion: 1,
+          deletedBlobIds: JSON.stringify(blobIds),
+          deletedTexts: JSON.stringify(texts),
+          cachedMemories: JSON.stringify(updatedCached),
+          updatedAt: new Date(),
+        });
+    }
+
+    return {
+      namespaceVersion: existing.namespaceVersion,
+      deletedBlobIds: blobIds,
+      deletedTexts: texts,
+      cachedMemories: updatedCached,
+    };
+  } catch (error) {
+    console.error("Failed to tombstone walrus memory:", error);
+    throw error;
+  }
+}
+
+export async function clearAllWalrusMemories(userId: string): Promise<{ namespaceVersion: number }> {
+  try {
+    const [existing] = await db
+      .select()
+      .from(walrus_memory_settings)
+      .where(eq(walrus_memory_settings.userId, userId));
+
+    const newVersion = existing ? existing.namespaceVersion + 1 : 2;
+
+    if (existing) {
+      await db
+        .update(walrus_memory_settings)
+        .set({
+          namespaceVersion: newVersion,
+          deletedBlobIds: "[]",
+          deletedTexts: "[]",
+          cachedMemories: "[]",
+          updatedAt: new Date(),
+        })
+        .where(eq(walrus_memory_settings.userId, userId));
+    } else {
+      await db
+        .insert(walrus_memory_settings)
+        .values({
+          userId,
+          namespaceVersion: newVersion,
+          deletedBlobIds: "[]",
+          deletedTexts: "[]",
+          cachedMemories: "[]",
+          updatedAt: new Date(),
+        });
+    }
+
+    return { namespaceVersion: newVersion };
+  } catch (error) {
+    console.error("Failed to clear all walrus memories:", error);
+    throw error;
+  }
+}

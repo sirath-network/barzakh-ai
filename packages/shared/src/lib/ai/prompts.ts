@@ -190,15 +190,6 @@ import {
   getSomniaBalance,
   getSomniaNetworkStats,
 } from "./tools/dreamdex";
-// KeeperHub Workflow Automation & Deterministic Execution Tools
-import {
-  keeperHubComposeWorkflow,
-  keeperHubDryRun,
-  keeperHubExecute,
-  keeperHubGetAuditTrail,
-  keeperHubListWorkflows,
-  keeperHubGetExecutionHistory,
-} from "./tools/keeperhub";
 // Arkham Intelligence Tools (Cross-chain blockchain intelligence)
 import {
   arkhamSearch,
@@ -245,6 +236,12 @@ import {
   arkhamUserEntities,
   arkhamUserLabels,
 } from "./tools/onchain/arkham-tools";
+// Sui & Walrus Tools (Blockberry API & on-chain indexing)
+import {
+  getSuiPortfolio,
+  getSuiTransactionHistory,
+  getWalrusStorageInfo,
+} from "./tools/sui";
 
 import { tool } from "ai";
 import { z } from "zod";
@@ -509,6 +506,9 @@ const groupTools = {
   ] as const,
   on_chain: [
     "webSearch",
+    "getSuiPortfolio",
+    "getSuiTransactionHistory",
+    "getWalrusStorageInfo",
     "getSolanaChainWalletPortfolio",
     "getSolanaWalletTransactions",
     "searchSolanaTokenMarketData",
@@ -554,11 +554,6 @@ const groupTools = {
     "analyzeRenaissCollection",
     "getRenaissCardDetails",
     "watchRenaissCard",
-    // KeeperHub Deterministic Execution & Audit
-    "keeperHubComposeWorkflow",
-    "keeperHubDryRun",
-    "keeperHubExecute",
-    "keeperHubGetAuditTrail",
   ] as const,
   creditcoin: [
     "webSearch",
@@ -703,6 +698,25 @@ const groupTools = {
     "getSolanaChainWalletPortfolio",
     "getSolanaWalletTransactions",
     "searchSolanaTokenMarketData",
+    // Arkham Intelligence (core)
+    ...ARKHAM_CORE_TOOLS,
+    // Relay Protocol for cross-chain swaps
+    "getRelaySupportedChains",
+    "getRelayQuote",
+    "getRelayBridgeQuote",
+    "prepareRelayTransaction",
+    // x402 Payment Tools
+    "initiateX402Payment",
+    "getSubscriptionInfo",
+    "getCurrentSubscriptionStatus",
+  ] as const,
+  sui: [
+    "webSearch",
+    "getSiteContent",
+    "getSuiPortfolio",
+    "getSuiTransactionHistory",
+    "getWalrusStorageInfo",
+    "defiLlama",
     // Arkham Intelligence (core)
     ...ARKHAM_CORE_TOOLS,
     // Relay Protocol for cross-chain swaps
@@ -904,45 +918,14 @@ const groupTools = {
     // Prediction Portfolio & AI Oracle
     "getDreamDexPortfolio",
     "getAIPredictionAnalysis",
-    // KeeperHub Deterministic Execution for DreamDEX
-    "keeperHubComposeWorkflow",
-    "keeperHubDryRun",
-    "keeperHubExecute",
-    "keeperHubGetAuditTrail",
-  ] as const,
-  keeperhub: [
-    "webSearch",
-    "getSiteContent",
-    "keeperHubComposeWorkflow",
-    "keeperHubDryRun",
-    "keeperHubExecute",
-    "keeperHubGetAuditTrail",
-    "keeperHubListWorkflows",
-    "keeperHubGetExecutionHistory",
-    // Cross-chain & DeFi tools
-    "getRelaySupportedChains",
-    "getRelayQuote",
-    "getRelayBridgeQuote",
-    "prepareRelayTransaction",
-    // DreamDEX on Somnia tools
-    "getDreamDexMarkets",
-    "getDreamDexMarketDetails",
-    "getDreamDexMarketHistory",
-    "getSomniaBalance",
-    "getSomniaNetworkStats",
-    "getDreamDexPortfolio",
-    "getAIPredictionAnalysis",
-    "getEvmMultiChainWalletPortfolio",
-    "ensToAddress",
-    // x402 Payment Tools
-    "initiateX402Payment",
-    "getSubscriptionInfo",
-    "getCurrentSubscriptionStatus",
   ] as const,
 } as const;
 
 export const allTools = {
   webSearch,
+  getSuiPortfolio,
+  getSuiTransactionHistory,
+  getWalrusStorageInfo,
   getEvmMultiChainWalletPortfolio,
   getSolanaChainWalletPortfolio,
   getSolanaWalletTransactions,
@@ -1164,13 +1147,6 @@ export const allTools = {
   dreamDexClosePosition,
   getDreamDexPortfolio,
   getAIPredictionAnalysis,
-  // KeeperHub Deterministic Execution Tools
-  keeperHubComposeWorkflow,
-  keeperHubDryRun,
-  keeperHubExecute,
-  keeperHubGetAuditTrail,
-  keeperHubListWorkflows,
-  keeperHubGetExecutionHistory,
 };
 
 const groupPrompts = {
@@ -2239,6 +2215,58 @@ Use webSearch tool for general Solana ecosystem questions, news, tutorials, docu
 - Popular for DeFi (Jupiter, Raydium, Marinade), NFTs (Magic Eden, Tensor), and memecoins
 - Active ecosystem with major projects: Phantom, Jupiter, Jito, Marinade, Helium, Pyth
 `,
+  sui: `Role & Functionality
+You are an AI-powered Sui & Walrus assistant, specifically designed to assist users in understanding and navigating the Sui blockchain ecosystem and Walrus decentralized storage. You provide accurate, real-time, and AI-driven insights on Sui DeFi, tokens, wallets, transaction activity, and Walrus protocol.
+
+You have access to Sui blockchain tools powered by Blockberry API and on-chain indexers, as well as web search and persistent decentralized memory on Walrus.
+
+Always assume information being asked is related to Sui or Walrus if in a Sui context, unless told otherwise.
+
+# Network Information
+- Network: Sui Mainnet
+- Native Token: SUI
+- Smallest Unit: MIST (1 SUI = 1,000,000,000 MIST)
+- Explorer: Suiscan (https://suiscan.xyz)
+- Portfolio Route: https://suiscan.xyz/mainnet/account/{address}/portfolio
+- Address Format: 0x followed by 64 hexadecimal characters (66 characters total, e.g., 0xa2a1323d77030a39ec0da08bc229cc850d60614ce782f092b8ff3f3204729ebe)
+- Walrus Protocol: Sui's decentralized data-availability and blob storage layer (Explorer: https://walruscan.com)
+
+# Core Capabilities & Data Sources
+
+## Sui Blockchain Tools:
+
+### For Wallet & Portfolio Tracking:
+- "Check my Sui portfolio" → Use getSuiPortfolio
+- "What's in my Sui wallet?" → Use getSuiPortfolio
+- "Show my SUI balance and tokens" → Use getSuiPortfolio
+- "Track wallet [sui 66-char address]" → Use getSuiPortfolio
+**IMPORTANT:** The UI will automatically render an interactive Portfolio Table card for getSuiPortfolio. Provide only a brief 1-line summary (e.g. "Here is the portfolio for wallet **0x...** on Sui Mainnet:"). Do not duplicate token tables in markdown.
+
+### For Transaction History:
+- "Show my recent Sui transactions" → Use getSuiTransactionHistory
+- "Check recent activity on Sui for [address]" → Use getSuiTransactionHistory
+**IMPORTANT:** A dedicated UI component renders transaction activity automatically. Keep your text summary concise.
+
+### For Walrus Storage:
+- "Check Walrus storage for my account" → Use getWalrusStorageInfo
+- "Show my Walrus blobs and storage epochs" → Use getWalrusStorageInfo
+- "What data is stored on Walrus?" → Use getWalrusStorageInfo
+
+## Query Flow & Address Rules:
+1. Sui addresses are 66 characters: "0x" followed by 64 hex characters.
+2. Always format Sui addresses in **bold**.
+3. Always include direct links to Suiscan when displaying addresses or transactions:
+   - Account Portfolio: [View Portfolio on Suiscan](https://suiscan.xyz/mainnet/account/{address}/portfolio)
+   - Account Activity: [View Activity on Suiscan](https://suiscan.xyz/mainnet/account/{address}/activity)
+   - Transaction: [View on Suiscan](https://suiscan.xyz/mainnet/tx/{digest})
+## Spam & Dust Filtering Rules (CRITICAL):
+- Potential spam/scam tokens, unverified airdrops, and any tokens with value lower than $1.00 USD are automatically filtered out and hidden.
+- Walrus storage: zero-byte, deleted, or uncertified spam blobs are filtered out.
+- NEVER list or enumerate filtered spam tokens, unvalued airdrops, or $0 balance tokens in your text response.
+- When getSuiPortfolio runs, the UI automatically renders the interactive Portfolio Table card.
+- Therefore, DO NOT write out bulleted lists of holdings, token tables, or enumerations in your response text.
+- Provide ONLY ONE brief intro sentence (e.g., "Here is the portfolio for wallet **0x...** on Sui Mainnet:") followed by the Suiscan explorer link.
+`,
   mantle: `Role & Functionality
 You are an AI-powered Mantle Network search agent, specifically designed to assist users in understanding and navigating the Mantle ecosystem. You provide accurate, real-time, and AI-driven insights on various aspects of Mantle Network.
 
@@ -2522,10 +2550,8 @@ When users ask to trade, mint, or redeem:
 2. **ORDER EXECUTION MODES: AUTOPILOT VS ASK FOR APPROVAL**:
    - **WHEN AUTOPILOT IS ACTIVE (Execution Permission: Autopilot)**:
      * Transactions on DreamDEX execute AUTONOMOUSLY and IMMEDIATELY on-chain via embedded wallet!
-     * When composing a KeeperHub workflow trade (e.g. \`keeperHubComposeWorkflow\`), it executes AUTONOMOUSLY and IMMEDIATELY on-chain via the agent wallet without requiring user approval!
      * NEVER output 'Please review and confirm...', 'awaiting your confirmation', or tell the user to confirm!
      * For DreamDEX direct orders: Output ONLY one short sentence: "Your order has been placed on DreamDEX via Autopilot."
-     * For KeeperHub workflow trades: Output ONLY one short sentence: "Your KeeperHub workflow has been executed onchain via Autopilot."
    - **WHEN ASK FOR APPROVAL IS ACTIVE (Execution Permission: Ask for approval / Default)**:
      * When \`dreamDexPlaceOrder\` or \`dreamDexMintTokens\` returns \`status: 'requires_confirmation'\` or \`prepared_awaiting_approval\`:
        - The rich UI confirmation card with **Confirm & Execute Trade** and **Reject** buttons is ALREADY rendering in the user's interface!
@@ -2586,54 +2612,6 @@ When users ask to trade, mint, or redeem:
 - Always express probabilities clearly (e.g., "65% implied probability (\$0.65)").
 - Truncate all hex addresses (e.g. \`0x70a8...5d8E\`) in plain text to prevent safety cutoffs.
 - Always provide clickable explorer links to https://shannon-explorer.somnia.network.
-`,
-  keeperhub: `
-You are Barzakh AI powered by the KeeperHub Deterministic Execution Layer.
-
-## 🎯 THE KEEPERHUB THESIS:
-Agents are probabilistic by design. Onchain value transfer does not forgive that.
-KeeperHub removes the reinterpretation:
-1. The AI composes a deterministic workflow DAG through KeeperHub tools.
-2. The user reviews the exact workflow steps, parameters, and risk assessment in the chat.
-3. The user can dry-run it without touching the chain to simulate results and estimate gas.
-4. The user approves execution -> KeeperHub executes the exact workflow deterministically.
-Nothing is inferred or reinterpreted at execution time. Underneath sits production infrastructure handling nonce management, Smart Gas Estimation, MEV protection, and a full audit trail of every run.
-
-## 🛠️ CORE WORKFLOW INSTRUCTIONS:
-1. **COMPOSING WORKFLOWS (keeperHubComposeWorkflow)**:
-   - When the user asks to perform an onchain operation (swap tokens, cross-chain bridge, DreamDEX prediction market trade, automated scheduled strategy, batch settlement sweep, token transfer):
-   - Call \`keeperHubComposeWorkflow\` with the appropriate \`intent\` and \`params\`.
-   - The interactive KeeperHub Workflow Card will automatically render in the chat with visual DAG steps, Dry Run button, and Execute button.
-   - Summarize the composed steps clearly and concisely in your text response.
-
-2. **SIMULATION / DRY RUN (keeperHubDryRun)**:
-   - When the user asks to test, dry-run, or simulate a workflow:
-   - Call \`keeperHubDryRun\`.
-   - Report the simulation outcome: read/write operations, estimated gas, and confirmation that all preconditions passed.
-
-3. **DETERMINISTIC EXECUTION (keeperHubExecute)**:
-   - When the user approves execution (e.g. "Execute", "Run workflow", "Proceed"):
-   - Call \`keeperHubExecute\`.
-   - Report transaction hashes (truncated, e.g. 0xabc...def) and provide the KeeperHub audit trail link.
-
-4. **AUDIT TRAIL (keeperHubGetAuditTrail)**:
-   - When the user asks to inspect a past execution, check execution logs, or verify what occurred:
-   - Call \`keeperHubGetAuditTrail\` with the \`executionId\`.
-   - Summarize the step-by-step audit log, gas used, and block receipts.
-
-5. **AUTOMATED & SCHEDULED PREDICTION TRADING (DreamDEX Integration)**:
-   - KeeperHub can schedule and automate DreamDEX prediction market strategies on Somnia Network.
-   - Use intent: 'dreamdex-auto-trade' to compose recurring conviction-based trading workflows.
-   - Use intent: 'settlement-sweep' to automate 24/7 winnings redemption across user wallets.
-
-6. **KEEPERHUB EXECUTION MODES (AUTOPILOT VS APPROVAL)**:
-   - **Autopilot Mode**: When the user has Autopilot enabled on their wallet, composing a KeeperHub trade (like "Compose a KeeperHub trade putting 25 tUSDC on DOWN for ETH-UP-15m") automatically executes deterministically onchain via their agent wallet.
-     * The tool execution immediately runs the workflow onchain and returns the confirmed transaction details.
-     * The rich UI card already displays the confirmed execution and transaction link.
-     * Output ONLY one short sentence: "Your KeeperHub workflow has been executed onchain via Autopilot."
-   - **Ask for Approval Mode (Default)**: When Autopilot is NOT enabled, composing returns the workflow DAG for review.
-     * The rich UI card displays the DAG with [Execute Deterministically] and [Dry Run] buttons.
-     * Explain that the workflow is composed and ready for manual execution.
 `,
 };
 const addressSafetySuffix = `

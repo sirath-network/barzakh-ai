@@ -382,6 +382,27 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         isEvm: false,
     },
 
+    // Sui (non-EVM, 64-char hex)
+    {
+        id: 'sui',
+        intent: 'sui',
+        patterns: [
+            /\bsui\b/i,
+            /\bsui\s+(token|coin|balance|wallet|portfolio|address|account|tx|transaction)\b/i,
+            /\bsuiscan\b/i,
+            /\bwalrus\b/i,
+            /\bwalruscan\b/i,
+            /\b(navi|cetus|scallop|turbos|deepbook|bucket)\s*(protocol|clmm|dex)?\b/i,
+            /\b0x[a-fA-F0-9]{64}\b/, // Sui 64-char hex address
+        ],
+        keywords: [
+            'sui', 'sui network', 'sui blockchain', 'sui wallet', 'suiscan', 'walrus', 'walrus protocol',
+            'walruscan', 'navi protocol', 'cetus', 'cetus clmm', 'scallop', 'deepbook', 'turbos', 'bucket'
+        ],
+        tokens: ['SUI', 'WALRUS', 'CETUS', 'NAVX'],
+        addressFormat: 'sui' as any,
+        isEvm: false,
+    },
     // Aptos (non-EVM, 64-char hex)
     {
         id: 'aptos',
@@ -389,7 +410,7 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         patterns: [
             /\baptos\b/i,
             /\bapt\s+(token|coin|balance|wallet|portfolio)\b/i,
-            /\b0x[a-fA-F0-9]{64}\b/, // Aptos 64-char address
+            /(?<!\bsui[\s\S]*)\b0x[a-fA-F0-9]{64}\b/, // Aptos 64-char address (unless Sui is mentioned)
             /\b(petra|pontem|martian)\s*wallet\b/i,
             /\bmove\s*language\b/i,
         ],
@@ -579,28 +600,6 @@ const CHAIN_REGISTRY: ChainInfo[] = [
         addressFormat: 'evm',
         isEvm: true,
     },
-    // KeeperHub (Workflow Automation & Deterministic Execution)
-    {
-        id: 'keeperhub',
-        intent: 'keeperhub',
-        patterns: [
-            /\bkeeperhub\b/i,
-            /\bkeeper\s*hub\b/i,
-            /\b(compose|create|build)\s*(a\s*)?(workflow|automation|dag)\b/i,
-            /\b(deterministic|dry\s*run|simulation)\s*(execution|workflow)?\b/i,
-            /\b(keeperhub|workflow)\s*(audit|trail|runs?|execution)\b/i,
-            /\b(auto\s*trade|automated\s*trading)\s*(workflow|rule)?\b/i,
-            /\b(settlement\s*sweep|auto\s*redeem)\s*(workflow)?\b/i,
-        ],
-        keywords: [
-            'keeperhub', 'keeper hub', 'workflow', 'workflows', 'compose workflow',
-            'deterministic execution', 'dry run', 'simulate workflow', 'audit trail',
-            'keeperhub run', 'keeperhub audit', 'automated workflow', 'schedule trigger'
-        ],
-        tokens: [],
-        addressFormat: 'evm',
-        isEvm: true,
-    },
 ];
 
 /**
@@ -703,6 +702,30 @@ const INTENT_PATTERNS: IntentPattern[] = [
     // =========================================================================
 
 
+
+    // Sui & Walrus-specific
+    {
+        intent: "sui",
+        patterns: [
+            /\bsui\b/i,
+            /\bsui\s+(token|coin|balance|wallet|portfolio|price|chart|tx|activity)\b/i,
+            /\bsuiscan\b/i,
+            /\bwalrus\b/i,
+            /\bwalruscan\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\bsui\b/i,
+            /\bsui\b.*\b(portfolio|wallet|balance|holdings|track|show)\b/i,
+            /\b(portfolio|wallet|balance|holdings|track|show)\b.*\bwalrus\b/i,
+            /\b(walrus|storage|blob|blobs)\b.*\b(walrus|sui)\b/i,
+            /\b(navi|cetus|scallop|turbos|deepbook|bucket)\s*(protocol|clmm|dex)?\b/i,
+            /\b0x[a-fA-F0-9]{64}\b/, // Sui 64-char hex address
+        ],
+        keywords: [
+            "sui", "sui token", "sui network", "sui blockchain", "sui wallet", "sui portfolio",
+            "on sui", "suiscan", "walrus", "walrus protocol", "walruscan", "walrus storage",
+            "navi protocol", "cetus", "cetus clmm", "scallop", "deepbook", "turbos", "bucket protocol",
+        ],
+        priority: 95,
+    },
 
     // Aptos-specific
     {
@@ -1058,28 +1081,6 @@ const INTENT_PATTERNS: IntentPattern[] = [
         priority: 99,
     },
 
-    // KeeperHub Deterministic Execution & Workflow Automation
-    {
-        intent: "keeperhub",
-        patterns: [
-            /\bkeeperhub\b/i,
-            /\bkeeper\s*hub\b/i,
-            /\b(compose|create|build|generate)\s*(a\s*)?(keeperhub\s*)?(workflow|automation|dag)\b/i,
-            /\b(dry\s*run|simulate)\s*(the\s*)?(workflow|swap|trade|tx|transaction)\b/i,
-            /\b(deterministic|keeperhub)\s*(execution|run|execute)\b/i,
-            /\b(audit\s*trail|execution\s*history|keeperhub\s*logs?)\b/i,
-            /\b(automate|scheduled)\s*(trading|prediction|dreamdex|sweep)\s*(workflow)?\b/i,
-            /\bsettlement\s*sweep\s*(workflow|automation)\b/i,
-        ],
-        keywords: [
-            "keeperhub", "keeper hub", "workflow", "compose workflow", "dry run",
-            "deterministic execution", "audit trail", "execution history",
-            "keeperhub execution", "keeperhub audit", "automate dreamdex",
-            "dreamdex auto trade", "settlement sweep workflow", "workflow dag",
-        ],
-        priority: 98,
-    },
-
     // BNB Chain / Four.meme specific (routes to on_chain)
     {
         intent: "on_chain",
@@ -1400,7 +1401,6 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     - "goat": GOAT Network Bitcoin-secured L2 specific queries (BTC as gas, GNS .goat domain resolution, ERC-8004 agent cards/reputation, WGBTC, BitVM bridge)
     - "renaiss": Renaiss collectible cards platform (Pokemon/One Piece card queries, card marketplace, slab grading, cert number lookups, pricing/valuation/FMV oracle)
     - "somnia": Somnia Network / DreamDEX Event Contract queries (prediction markets, binary predictions, event contracts, Up/Down tokens, implied probability, conviction scoring, mint/redeem/trade prediction tokens, STT token)
-    - "keeperhub": KeeperHub workflow automation, deterministic execution, dry-run simulation, audit trails, and automated prediction trading workflows
     - "multimodal": Image analysis or file reading requests
     - "search": General web search, questions, information lookup
     `;
@@ -1410,7 +1410,7 @@ async function classifyByLLM(message: string, chatContext?: string | null, hasIm
     let contextHint = '';
     if (chatContext) {
         // Define EVM-compatible chains (these accept 0x addresses)
-        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss', 'goat', 'somnia', 'keeperhub'];
+        const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'renaiss', 'goat', 'somnia'];
         const isEvmContext = evmChains.includes(chatContext);
 
         contextHint = `\n
@@ -1471,7 +1471,6 @@ Only use the "${chatContext}" context if the address format is compatible or no 
                     "goat",
                     "renaiss",
                     "somnia",
-                    "keeperhub",
                     "multimodal",
                     "search",
                 ]),
@@ -1555,7 +1554,7 @@ JSON Response:`,
 
                 // If address format conflicts with context, override it
                 // EVM-compatible chains: these accept 0x addresses
-                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat', 'somnia', 'keeperhub'];
+                const evmChains = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat', 'somnia'];
 
                 if (chatContext === 'solana' && hasEvmAddress && !hasSolanaAddress) {
                     console.log("[INTENT] LLM fallback: EVM address detected in solana context, using on_chain");
@@ -1648,7 +1647,7 @@ function isTrivialConversationalMessage(message: string): boolean {
 }
 
 // Groups that support context persistence (chain-specific + imagine + on_chain for EVM)
-const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat', 'somnia', 'keeperhub', 'imagine'];
+const CONTEXT_AWARE_GROUPS: IntentType[] = ['on_chain', 'cronos', 'aptos', 'sei', 'solana', 'zeta', 'creditcoin', 'vana', 'flow', 'monad', 'mantle', 'flare', 'goat', 'somnia', 'imagine'];
 
 /**
  * Classifies user intent from a message to determine appropriate tool routing.
@@ -1699,7 +1698,7 @@ export async function classifyIntent(
         // BUT we have a specific chain context (e.g. "cronos"), prevent early return
         // and allow context logic to handle it, OR override immediately.
 
-        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana', 'goat', 'somnia', 'keeperhub'];
+        const CONTEXT_PRESERVING_CHAINS = ['cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'aptos', 'solana', 'goat', 'somnia'];
 
         if (patternResult.primaryIntent === 'on_chain' &&
             chatContext &&
@@ -1815,7 +1814,7 @@ export async function classifyIntent(
 
         // Define which chains support EVM addresses (0x format)
         // Note: Sei has EVM compatibility, so it accepts BOTH sei1... AND 0x addresses
-        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat', 'somnia', 'keeperhub'];
+        const EVM_COMPATIBLE_CHAINS = ['on_chain', 'cronos', 'mantle', 'flare', 'monad', 'zeta', 'creditcoin', 'vana', 'flow', 'sei', 'goat', 'somnia'];
 
         // Check if the pattern matched a DIFFERENT chain with reasonable confidence
         const patternMatchedDifferentChain = patternResult &&

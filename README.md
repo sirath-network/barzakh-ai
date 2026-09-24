@@ -15,7 +15,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Somnia_Network-DreamDEX_Prediction_Markets-ede8e8?style=for-the-badge" alt="Somnia Network">&nbsp;
-  <img src="https://img.shields.io/badge/KeeperHub-Deterministic_Workflow_Engine-ede8e8?style=for-the-badge" alt="KeeperHub">&nbsp;
   <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8?style=for-the-badge" alt="Relay Protocol">
 </p>
 
@@ -34,7 +33,6 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [KeeperHub Deterministic Workflow Engine](#-keeperhub-deterministic-workflow-engine--production-grade-onchain-orchestration)
 - [Somnia Network & DreamDEX Integration](#-somnia-network--dreamdex-integration--the-oracle-agent-for-prediction-markets)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
@@ -67,7 +65,6 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | Feature | Description |
 |---------|-------------|
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
-| **KeeperHub Workflow Engine** | Deterministic DAG composition, pre-flight dry runs, 24/7 autonomous bot rollovers, and cryptographic audit trails |
 | **DreamDEX Prediction Markets** | Conversational binary prediction trading, AI conviction scoring (0–100), and CLOB limit/market orders on Somnia |
 | **Autonomous Portfolio Settlement** | Automated 24/7 background settlement & redemption sweeps via GitHub Actions and Somnia Shannon RPC |
 | **Autonomous Token Launches** | 4-step end-to-end launch on Four.meme with automated logo resolution and tax config |
@@ -81,168 +78,6 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 | **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
-
----
-
-## ⚡ KeeperHub Deterministic Workflow Engine — Production-Grade Onchain Orchestration
-
-> **Tagline:** *Bridging probabilistic AI intent and deterministic Web3 execution: Pre-flight dry runs, 24/7 autonomous prediction bots, smart nonce sequencing, MEV protection, and cryptographic audit trails.*
-
-```
-   ┌────────────────────────────────────────────────────────────────────────────────┐
-   │                          KEEPERHUB WORKFLOW PIPELINE                           │
-   └───────────────────────────────────────┬────────────────────────────────────────┘
-                                           │
-                        ┌──────────────────┴──────────────────┐
-                        ▼                                     ▼
-        ┌───────────────────────────────┐     ┌────────────────────────────────┐
-        │  1. CONVERSATIONAL INTENT     │     │  2. AI CONVICTION SCORING      │
-        │  Natural language prompt from │     │  Live orderbook analysis,      │
-        │  user or autonomous trigger   │     │  spread, and implied odds      │
-        └───────────────┬───────────────┘     └───────────────┬────────────────┘
-                        │                                     │
-                        └──────────────────┬──────────────────┘
-                                           │
-                                           ▼
-        ┌──────────────────────────────────────────────────────────────────────┐
-        │  3. DETERMINISTIC DAG COMPOSITION (packages/shared/lib/ai/keeperhub) │
-        │  Compiles intent into structured KeeperHub nodes & edges:            │
-        │  • Trigger (Manual / Cron)  • Web3 Read (Balance & Market Status)    │
-        │  • Condition (Thresholds)   • Web3 Write (Approve, Order, Redeem)   │
-        └──────────────────────────────────┬───────────────────────────────────┘
-                                           │
-                                           ▼
-        ┌──────────────────────────────────────────────────────────────────────┐
-        │  4. PRE-FLIGHT SIMULATION (DRY RUN)                                  │
-        │  Simulates DAG off-chain against RPC: checks balances, allowances,    │
-        │  state conditions, and gas before broadcasting to the mempool        │
-        └──────────────────────────────────┬───────────────────────────────────┘
-                                           │
-                        ┌──────────────────┴──────────────────┐
-                        ▼                                     ▼
-        ┌───────────────────────────────┐     ┌────────────────────────────────┐
-        │  5. DETERMINISTIC EXECUTION   │     │  6. PRODUCTION RELIABILITY     │
-        │  Zero LLM reinterpretation at │     │  • Turnkey Agentic Wallets     │
-        │  runtime. Executes exact DAG  │     │  • Nonce Queuing & Smart Gas   │
-        │  nodes in rigid sequence.     │     │  • Private Routing against MEV │
-        └───────────────┬───────────────┘     └───────────────┬────────────────┘
-                        │                                     │
-                        └──────────────────┬──────────────────┘
-                                           │
-                                           ▼
-   ┌────────────────────────────────────────────────────────────────────────────────┐
-   │                        CRYPTOGRAPHIC AUDIT TRAIL PROOF                         │
-   │  • Real-time execution logs with step latencies and gas costs                  │
-   │  • Clickable on-chain transaction hashes on Somnia & EVM Block Explorers       │
-   └────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 🧠 Why KeeperHub Matters for AI Agents
-
-AI agents are probabilistic by design. On-chain value transfer does not forgive that. When an agent moves real funds, hallucinations, out-of-order execution, decimal mismatch, or stuck transaction nonces can lead to catastrophic capital loss.
-
-Barzakh AI solves this fundamental challenge by integrating **KeeperHub as our deterministic execution and reliability engine**:
-
-1. **Intent Composition Once, Zero Reinterpretation at Execution**:
-   - The LLM only interprets natural language once, compiling the user's intent into a rigid, verifiable **Directed Acyclic Graph (DAG)** workflow.
-   - Once compiled, the LLM is completely removed from the execution loop. The exact nodes execute deterministically.
-
-2. **Pre-Flight Simulation (Dry Run)**:
-   - Every trade, swap, and bot strategy can be simulated off-chain against the target RPC before touching real funds.
-   - Verifies that token balances are sufficient, allowances are set, conditions evaluate true, and estimates gas consumption.
-
-3. **Production Infrastructure (7 Years of Battle-Tested Reliability)**:
-   - **Nonce Sequencing**: Queues transactions to prevent stuck nonces during high-frequency volatility or consecutive order submissions.
-   - **Smart Gas Estimation**: Dynamically calculates priority fees to ensure immediate block inclusion.
-   - **MEV Shield**: Routes through private RPCs to prevent front-running and sandwich attacks.
-   - **Exponential Backoff**: Automatically handles transient RPC drops and network congestion.
-
-4. **Turnkey Non-Custodial Agentic Wallets**:
-   - Integrates Turnkey policy-based wallets, allowing users to enable **Autopilot Mode** for automated, zero-click execution under strict programmatic spending limits.
-
-5. **Tamper-Proof Cryptographic Audit Trail**:
-   - Every single trigger, contract read, condition check, and write transaction is recorded with execution timestamps, gas used, and clickable block explorer links.
-
----
-
-### 🛠️ Interactive KeeperHub Workflow Card (`KeeperHubWorkflowCard`)
-
-When a user prompts a trading or automation intent, Barzakh AI renders the rich interactive **`KeeperHubWorkflowCard`** inline within the chat:
-
-- **Visual DAG Graph**: Renders the complete node graph showing data flow from Triggers to Balance Checks, Approvals, Orders, and Receipt Confirmations.
-- **Node Status Pills**: Visual indicators (`Pending`, `Simulated`, `Running`, `Completed`, `Failed`) updating in real-time as execution progresses.
-- **Risk Assessment Breakdown**: Automatically flags multi-contract writes, cross-chain delivery delays, and token approval requirements.
-- **Embedded `[ ✨ AI ]` Conviction Trigger**: One-click action button that runs algorithmic conviction analysis on the target market without leaving the card.
-- **Simulation & Execution Controls**: Direct toggle between **Dry Run** (off-chain simulation) and **Execute** (live on-chain transaction).
-- **Audit Trail Modal**: Embedded modal inspecting raw step-by-step logs and verified block explorer transaction hashes.
-
----
-
-### 🤖 24/7 Autonomous Strategy AutoBots
-
-Beyond one-off trades, KeeperHub powers Barzakh AI's **24/7 background strategy bots**:
-
-- **Recurring Schedule Triggers**: Configures cron-based intervals (e.g. `*/5 * * * *` for 5-minute pools, `*/15 * * * *` for 15-minute pools).
-- **Algorithmic Conviction Filter**: Reads live orderbook depth, spot spread, and implied probability, computing an AI conviction score (0–100). The trade only fires if the score exceeds the user's defined threshold (e.g., conviction > 75%).
-- **Automated Rollovers**: Automatically manages position transitions and rollovers across consecutive prediction windows.
-- **Autonomous Settlement Sweepers**: Periodically scans user addresses across historical prediction nonces and batch-redeems winning contracts back into tUSDC collateral.
-
----
-
-### 📋 Conversational Prompts for KeeperHub Workflows
-
-Users and developers can interact with KeeperHub workflows directly through natural language:
-
-#### 1. Prediction Market Trading
-```text
-Create a KeeperHub workflow to put 10 tUSDC on UP for BTC-UP-5m on Somnia
-```
-*Alternative (ETH Market):*
-```text
-Create a KeeperHub workflow to place 20 tUSDC on DOWN for ETH-UP-15m on DreamDEX
-```
-
-#### 2. 24/7 Autonomous Strategy AutoBot
-```text
-Set up an automated KeeperHub bot to trade BTC-UP-5m every 5 minutes with 10 tUSDC when AI conviction is above 75%
-```
-
-#### 3. 24/7 Automated Settlement Sweep
-```text
-Create a KeeperHub settlement sweep workflow to auto-redeem my DreamDEX winnings every 15 minutes
-```
-
-#### 4. Cross-Chain Swap & Bridge (Relay Protocol)
-```text
-Create a KeeperHub workflow to swap 100 USDC on Base to BNB on BSC
-```
-
-#### 5. Pre-Flight Simulation (Dry Run)
-```text
-Dry run the KeeperHub workflow for BTC-UP-5m
-```
-
-#### 6. Cryptographic Audit Trail Inspection
-```text
-Show me the KeeperHub audit trail for my recent executions
-```
-
----
-
-### 📁 Codebase Architecture
-
-| Path | Purpose |
-| :--- | :--- |
-| **`packages/shared/src/lib/ai/tools/keeperhub/keeperhub-types.ts`** | TypeScript interfaces for workflows, DAG nodes, execution states, and audit trails |
-| **`packages/shared/src/lib/ai/tools/keeperhub/keeperhub-client.ts`** | Dual MCP Server (`/mcp`) & REST API client with automatic failover and exponential retry |
-| **`packages/shared/src/lib/ai/tools/keeperhub/keeperhub-workflow-composer.ts`** | Compiles natural language intents into deterministic KeeperHub DAG workflows |
-| **`packages/shared/src/lib/ai/tools/keeperhub/dreamdex-workflow-templates.ts`** | Pre-configured production workflow templates for trading, bots, and sweeps |
-| **`packages/shared/src/lib/ai/tools/keeperhub/keeperhub-tools.ts`** | AI agent tool definitions (`composeKeeperHubWorkflow`, `executeKeeperHubWorkflow`, `dryRunKeeperHubWorkflow`, `getKeeperHubAuditTrail`) |
-| **`apps/frontend/components/keeperhub/keeperhub-workflow-card.tsx`** | Interactive UI card featuring visual node graphs, risk badges, dry-run controls, and AI triggers |
-| **`apps/frontend/app/api/keeperhub/`** | Server-side endpoints: `/execute`, `/dry-run`, `/audit`, `/bot` |
-| **`apps/frontend/lib/agent/dreamdex-bot-store.ts`** | Local background scheduler running recurring autonomous prediction rollover bots |
 
 ---
 

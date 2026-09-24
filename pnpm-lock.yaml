@@ -66,6 +66,16 @@ overrides:
   baseline-browser-mapping: '>=2.11.22'
   bigint-buffer: npm:bigint-buffer-fixed@1.1.6
   tar: '>=7.5.22'
+  keyv: '>=4.0.0 <6.0.0 || >6.0.0'
+  cacheable: '>=1.0.0 <2.5.1 || >2.5.1'
+  cacheable-request: '>=7.0.0 <13.0.20 || >13.0.20'
+  cache-manager: '>=5.0.0 <7.2.10 || >7.2.10'
+  flat-cache: '>=4.0.0 <6.1.24 || >6.1.24'
+  file-entry-cache: '>=8.0.0 <11.1.6 || >11.1.6'
+  '@cacheable/net': '>=1.0.0 <2.1.1 || >2.1.1'
+  '@cacheable/node-cache': '>=1.0.0 <3.1.2 || >3.1.2'
+  '@cacheable/memory': '>=1.0.0 <2.2.1 || >2.2.1'
+  '@cacheable/utils': '>=1.0.0 <2.5.1 || >2.5.1'
   lodash: 4.18.1
   lodash-es: 4.18.1
   defu: 6.1.7
@@ -847,6 +857,15 @@ importers:
       '@mendable/firecrawl-js':
         specifier: ^1.17.0
         version: 1.29.3
+      '@mysten-incubation/memwal':
+        specifier: ^0.1.7
+        version: 0.1.7(@mysten/seal@1.4.13(@mysten/sui@1.45.2(typescript@5.9.3)))(@mysten/sui@1.45.2(typescript@5.9.3))(@mysten/walrus@1.2.28(@mysten/sui@1.45.2(typescript@5.9.3)))(ai@4.3.19(react@19.2.0)(zod@3.25.76))(zod@3.25.76)
+      '@mysten/seal':
+        specifier: ^1.1.0
+        version: 1.4.13(@mysten/sui@1.45.2(typescript@5.9.3))
+      '@mysten/walrus':
+        specifier: ^1.0.3
+        version: 1.2.28(@mysten/sui@1.45.2(typescript@5.9.3))
       '@radix-ui/react-accordion':
         specifier: ^1.2.0
         version: 1.2.12(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -2574,8 +2593,33 @@ packages:
     resolution: {integrity: sha512-JEW4DEtBzfe8HvUYecLU9e6+XJnKDlUAIve8FvPzF3Kzs6Xo/KuZkZJsDH0wJXl/qEZbeeE7edxDNY3kMs39hQ==}
     engines: {node: '>= 18'}
 
+  '@mysten-incubation/memwal@0.1.7':
+    resolution: {integrity: sha512-bVkk0+Zsjl6A4g6j7gvVhyFjmtHwhXLimgm8CoQGhRoM1Pz1XrR8/R5Uio+vah1JB3s6ICTtt1ycCcOAamyTfg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@mysten/seal': '>=1.1.0'
+      '@mysten/sui': '>=2.5.0'
+      '@mysten/walrus': '>=1.0.3'
+      ai: '>=4.0.0'
+      zod: ^3.23.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@mysten/walrus':
+        optional: true
+      ai:
+        optional: true
+      zod:
+        optional: true
+
   '@mysten/bcs@1.9.2':
     resolution: {integrity: sha512-kBk5xrxV9OWR7i+JhL/plQrgQ2/KJhB2pB5gj+w6GXhbMQwS3DPpOvi/zN0Tj84jwPvHMllpEl0QHj6ywN7/eQ==}
+
+  '@mysten/bcs@2.1.1':
+    resolution: {integrity: sha512-IDYomoQ6+yvOIClBHmNdScttv+h/HbGGHLEdUmGQptR3YdqqLM5vJD28wf2QP/UXCEBkCoG7TOT6pFNw8ExYmA==}
+
+  '@mysten/seal@1.4.13':
+    resolution: {integrity: sha512-VTaSj3lAHkdXYpopDs6Fh7dq/UEk0q8CNh7df3L53QIylll3QmLC0a6zQOUa7Z83GvMhUxTReApeFc+JHkDR1g==}
+    peerDependencies:
+      '@mysten/sui': ^2.31.3
 
   '@mysten/sui@1.45.2':
     resolution: {integrity: sha512-gftf7fNpFSiXyfXpbtP2afVEnhc7p2m/MEYc/SO5pov92dacGKOpQIF7etZsGDI1Wvhv+dpph+ulRNpnYSs7Bg==}
@@ -2584,8 +2628,19 @@ packages:
   '@mysten/utils@0.2.0':
     resolution: {integrity: sha512-CM6kJcJHX365cK6aXfFRLBiuyXc5WSBHQ43t94jqlCAIRw8umgNcTb5EnEA9n31wPAQgLDGgbG/rCUISCTJ66w==}
 
+  '@mysten/utils@0.4.1':
+    resolution: {integrity: sha512-gffLJ84CbqG/CcOPuVlwXIRu37tFn0BtUx7CQtbLwJzWjUE7FU2Gq8BXWjzxImnvufcyLTaNWtCPG6wq22Zhog==}
+
   '@mysten/wallet-standard@0.19.9':
     resolution: {integrity: sha512-jHFt+62os7x7y+4ZVMLck8WSanEO9b8deCD+VApUQkdAHA99TuxbREaujQTjnGQN5DaGEz8wQgeBPqxRY/vKQA==}
+
+  '@mysten/walrus-wasm@0.3.1':
+    resolution: {integrity: sha512-d+6M4xuZnkhOmLCinpe8F21pxpZ9QDZzw/QWXa9R1h0DM2iqfovfhLeT4ZaUj1pbp5mQ5C/3LJtfppjKhvynig==}
+
+  '@mysten/walrus@1.2.28':
+    resolution: {integrity: sha512-M1DAuQzNH+rbSScl7YPmXbFsiJx3nK+s2aNWW4m/ueJ6UlLxfqIRQaQ6IelMNwn3gkulxkSiIt7AVwbY66uB6w==}
+    peerDependencies:
+      '@mysten/sui': ^2.31.3
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
@@ -2700,6 +2755,13 @@ packages:
     resolution: {integrity: sha512-vs1Az2OOTBiP4q0pwjW5aF0xp9n4MxVrmkFBxc6EKZc6ddYx5gaZiAsZoq0uRRXWbi3AT/sBqn05eRPtn1JCPw==}
     engines: {node: '>= 20.19.0'}
 
+  '@noble/curves@2.4.0':
+    resolution: {integrity: sha512-P4/62zrgfH33CneE3Dn4WhJVA22YUU0eR51wKIan4NVRvwsA0YnPTwWGpNbpuacSujmSFLvyzpyuR30+fbq2Ew==}
+    engines: {node: '>= 20.19.0'}
+
+  '@noble/ed25519@2.3.0':
+    resolution: {integrity: sha512-M7dvXL2B92/M7dw9+gzuydL8qn/jiqNHaoR3Q+cb1q1GHV7uwE17WCyFMG+Y+TZb5izcaXk5TdJRrDUxHXL78A==}
+
   '@noble/hashes@1.3.2':
     resolution: {integrity: sha512-MVC8EAQp7MvEcm30KWENFjgR+Mkmf+D189XJTkFIlwohU5hcBbn1ZkKq7KVTi2Hme3PMGF390DaL52beVrIihQ==}
     engines: {node: '>= 16'}
@@ -2730,6 +2792,10 @@ packages:
 
   '@noble/hashes@2.2.0':
     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
+    engines: {node: '>= 20.19.0'}
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
     engines: {node: '>= 20.19.0'}
 
   '@noble/post-quantum@0.5.4':
@@ -3764,6 +3830,9 @@ packages:
 
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
+
+  '@scure/base@2.4.0':
+    resolution: {integrity: sha512-thZ1TuJwFwBblOhgsjDKvvGirBxNp+wSvY/DR6tJBJOTDhdAAcHJ8Vbr2eFnqaxeca4+t0i9KBf+uHYGWwZORg==}
 
   '@scure/bip32@1.4.0':
     resolution: {integrity: sha512-sVUpc0Vq3tXCkDGYVWGIZTRfnvu8LoTDaev7vbwh0omSvVORONr960MQWdKqJDCReIEmTj3PAr73O3aoxz7OPg==}
@@ -6285,6 +6354,9 @@ packages:
   data-view-byte-offset@1.0.1:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
+
+  dataloader@2.2.3:
+    resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
   date-fns@2.30.0:
     resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
@@ -12906,10 +12978,33 @@ snapshots:
 
   '@msgpack/msgpack@3.1.2': {}
 
+  '@mysten-incubation/memwal@0.1.7(@mysten/seal@1.4.13(@mysten/sui@1.45.2(typescript@5.9.3)))(@mysten/sui@1.45.2(typescript@5.9.3))(@mysten/walrus@1.2.28(@mysten/sui@1.45.2(typescript@5.9.3)))(ai@4.3.19(react@19.2.0)(zod@3.25.76))(zod@3.25.76)':
+    dependencies:
+      '@mysten/seal': 1.4.13(@mysten/sui@1.45.2(typescript@5.9.3))
+      '@mysten/sui': 1.45.2(typescript@5.9.3)
+      '@noble/ed25519': 2.3.0
+      '@noble/hashes': 2.2.0
+    optionalDependencies:
+      '@mysten/walrus': 1.2.28(@mysten/sui@1.45.2(typescript@5.9.3))
+      ai: 4.3.19(react@19.2.0)(zod@3.25.76)
+      zod: 3.25.76
+
   '@mysten/bcs@1.9.2':
     dependencies:
       '@mysten/utils': 0.2.0
       '@scure/base': 1.2.6
+
+  '@mysten/bcs@2.1.1':
+    dependencies:
+      '@mysten/utils': 0.4.1
+      '@scure/base': 2.4.0
+
+  '@mysten/seal@1.4.13(@mysten/sui@1.45.2(typescript@5.9.3))':
+    dependencies:
+      '@mysten/bcs': 2.1.1
+      '@mysten/sui': 1.45.2(typescript@5.9.3)
+      '@noble/curves': 2.4.0
+      '@noble/hashes': 2.4.0
 
   '@mysten/sui@1.45.2(typescript@5.9.3)':
     dependencies:
@@ -12937,6 +13032,10 @@ snapshots:
     dependencies:
       '@scure/base': 1.2.6
 
+  '@mysten/utils@0.4.1':
+    dependencies:
+      '@scure/base': 2.4.0
+
   '@mysten/wallet-standard@0.19.9(typescript@5.9.3)':
     dependencies:
       '@mysten/sui': 1.45.2(typescript@5.9.3)
@@ -12945,6 +13044,16 @@ snapshots:
       - '@gql.tada/svelte-support'
       - '@gql.tada/vue-support'
       - typescript
+
+  '@mysten/walrus-wasm@0.3.1': {}
+
+  '@mysten/walrus@1.2.28(@mysten/sui@1.45.2(typescript@5.9.3))':
+    dependencies:
+      '@mysten/bcs': 2.1.1
+      '@mysten/sui': 1.45.2(typescript@5.9.3)
+      '@mysten/utils': 0.4.1
+      '@mysten/walrus-wasm': 0.3.1
+      dataloader: 2.2.3
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
@@ -13040,6 +13149,12 @@ snapshots:
     dependencies:
       '@noble/hashes': 2.0.1
 
+  '@noble/curves@2.4.0':
+    dependencies:
+      '@noble/hashes': 2.4.0
+
+  '@noble/ed25519@2.3.0': {}
+
   '@noble/hashes@1.3.2': {}
 
   '@noble/hashes@1.4.0': {}
@@ -13055,6 +13170,8 @@ snapshots:
   '@noble/hashes@2.0.1': {}
 
   '@noble/hashes@2.2.0': {}
+
+  '@noble/hashes@2.4.0': {}
 
   '@noble/post-quantum@0.5.4':
     dependencies:
@@ -14978,6 +15095,8 @@ snapshots:
   '@scure/base@1.1.9': {}
 
   '@scure/base@1.2.6': {}
+
+  '@scure/base@2.4.0': {}
 
   '@scure/bip32@1.4.0':
     dependencies:
@@ -19268,6 +19387,8 @@ snapshots:
       call-bound: 1.0.4
       es-errors: 1.3.0
       is-data-view: 1.0.2
+
+  dataloader@2.2.3: {}
 
   date-fns@2.30.0:
     dependencies:

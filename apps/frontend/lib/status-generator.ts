@@ -110,6 +110,17 @@ const toolStatusMap: Record<string, (params?: any, userPrompt?: string) => strin
   },
 
   // =========================================================
+  // SUI & WALRUS
+  // =========================================================
+  getSuiPortfolio: (params) => {
+    const address = params?.address || params?.walletAddress;
+    const suffix = address ? `(${address.slice(0, 6)}..${address.slice(-4)})` : "";
+    return `Scanning Sui & Walrus portfolio ${suffix}`;
+  },
+  getSuiTransactionHistory: () => "Fetching Sui transaction activity",
+  getWalrusStorageInfo: () => "Querying Walrus decentralized storage",
+
+  // =========================================================
   // MANTLE
   // =========================================================
   getMantleBalance: () => "Checking Mantle balance",

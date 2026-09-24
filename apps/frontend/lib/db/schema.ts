@@ -278,3 +278,17 @@ export const agent_transaction = pgTable("AgentTransaction", {
 });
 
 export type AgentTransaction = InferSelectModel<typeof agent_transaction>;
+
+// --- Walrus Memory Management ---
+
+export const walrus_memory_settings = pgTable("WalrusMemorySettings", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").notNull().unique().references(() => user.id, { onDelete: "cascade" }),
+  namespaceVersion: integer("namespaceVersion").notNull().default(1),
+  deletedBlobIds: text("deletedBlobIds").notNull().default("[]"), // JSON string array of tombstoned blob IDs
+  deletedTexts: text("deletedTexts").notNull().default("[]"), // JSON string array of tombstoned memory texts
+  cachedMemories: text("cachedMemories").notNull().default("[]"), // JSON string array of fast cached memories
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export type WalrusMemorySettings = InferSelectModel<typeof walrus_memory_settings>;

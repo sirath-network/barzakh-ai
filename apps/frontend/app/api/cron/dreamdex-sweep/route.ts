@@ -4,7 +4,6 @@ import { user } from "@/lib/db/schema";
 import { executeAgenticDreamDexTrade } from "@/lib/agent/dreamdex-executor";
 import { getUserAgentWalletAddress, getUserDreamDexTransactions, hasDelegation } from "@/lib/agent/agent-wallet-store";
 import { dreamDexApi } from "@barzakh/shared/lib/ai/tools/dreamdex/api-client";
-import { getKeeperHubClient } from "@barzakh/shared";
 
 /**
  * GET /api/cron/dreamdex-sweep
@@ -129,15 +128,13 @@ export async function GET(request: Request) {
       console.warn("[DreamDexSweepCron] Error executing due auto bots:", botErr);
     }
 
-    console.log(`[DreamDexSweepCron] Sweep complete. Swept ${sweptUsers} users, redeemed ${redeemedCount} positions via KeeperHub execution layer.`);
+    console.log(`[DreamDexSweepCron] Sweep complete. Swept ${sweptUsers} users, redeemed ${redeemedCount} positions.`);
 
     return NextResponse.json({
       success: true,
-      executionLayer: "keeperhub-deterministic",
       sweptUsers,
       redeemedCount,
       redeemedTxs,
-      auditUrl: redeemedTxs.length > 0 ? `https://app.keeperhub.com/runs/sweep-${Date.now().toString(36)}` : undefined,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
