@@ -105,6 +105,141 @@ export interface CachedMemoryParam {
   createdAt?: string;
 }
 
+export interface UserMemoryPreferences {
+  defaultBetSize?: number;
+  preferredPoolInterval?: string;
+  preferredChains?: string[];
+  defaultWalletAddress?: string;
+  preferredSlippage?: number;
+  userName?: string;
+  riskProfile?: "conservative" | "moderate" | "aggressive";
+  summary: string[];
+}
+
+export function categorizeMemory(text: string): "action" | "preference" | "wallet" | "profile" | "general" {
+  const lower = (text || "").toLowerCase();
+  if (lower.startsWith("[on-chain action]") || /\b(swapped|bridged|placed order|bought|sold|redeemed|minted|tx:)\b/i.test(lower)) {
+    return "action";
+  }
+  if (/\b(0x[a-f0-9]{40}|address|primary wallet|my wallet|solana wallet)\b/i.test(lower)) {
+    return "wallet";
+  }
+  if (/\b(prefer|only trade|strategy|slippage|bet size|collateral|risk|rule|4h pool|1h pool)\b/i.test(lower)) {
+    return "preference";
+  }
+  if (/\b(my name is|call me|live in|timezone|role|job|bio)\b/i.test(lower)) {
+    return "profile";
+  }
+  return "general";
+}
+
+/**
+ * Extract strongly typed preferences (default bet size, preferred pool, wallet, chains)
+ * from recalled memories for autonomous tool execution.
+ */
+export function extractStructuredPreferences(
+  memories: Array<{ text: string }>
+): UserMemoryPreferences {
+  const prefs: UserMemoryPreferences = {
+    summary: [],
+  };
+  if (!memories || memories.length === 0) return prefs;
+
+  const chainSet = new Set<string>();
+
+  for (const m of memories) {
+    const text = m.text;
+    if (!text) continue;
+
+    // 1. Default Bet Size / Stake (e.g. "default bet 25 tUSDC", "bet size 50", "risk 20 dollars")
+    if (!prefs.defaultBetSize) {
+      const betMatch =
+        text.match(/(?:bet(?:ting)?|risk|order|size|collateral|stake|allocation)(?:\s+(?:is|amount|size|per\s+trade))?[:\s]+\$?([0-9]+(?:\.[0-9]+)?)\s*(?:t?usdc|usd|dollars)?/i) ||
+        text.match(/(?:only\s+bet|default\s+(?:to\s+)?bet|usually\s+bet)\s+\$?([0-9]+(?:\.[0-9]+)?)/i);
+      if (betMatch && betMatch[1]) {
+        const val = parseFloat(betMatch[1]);
+        if (!isNaN(val) && val > 0) {
+          prefs.defaultBetSize = val;
+          prefs.summary.push(`Default Bet Size: ${val} tUSDC`);
+        }
+      }
+    }
+
+    // 2. Preferred Pool Interval (e.g. "4h", "1h", "15m", "5m")
+    if (!prefs.preferredPoolInterval) {
+      const poolMatch =
+        text.match(/(?:only|prefer|focus(?:es)?\s+on|trades?)\s*(?:the\s+)?(4h|4-hour|1h|1-hour|15m|15-minute|5m|5-minute|1m|1-minute)\s*(?:prediction\s+)?(?:pools?|markets?|intervals?)/i) ||
+        text.match(/\b(4h|1h|15m|5m|1m)\s*(?:pools?|markets?)\s*(?:only|preference)/i);
+      if (poolMatch && poolMatch[1]) {
+        const norm = poolMatch[1].toLowerCase().replace("-hour", "h").replace("-minute", "m");
+        prefs.preferredPoolInterval = norm;
+        prefs.summary.push(`Preferred Prediction Pool: ${norm}`);
+      }
+    }
+
+    // 3. Default Wallet Address (Sui/Walrus 64-hex or EVM 40-hex)
+    if (!prefs.defaultWalletAddress) {
+      const suiMatch = text.match(/\b(0x[a-fA-F0-9]{64})\b/);
+      const evmMatch = text.match(/\b(0x[a-fA-F0-9]{40})\b/);
+      const addrMatch = suiMatch || evmMatch;
+      if (addrMatch) {
+        prefs.defaultWalletAddress = addrMatch[1];
+        prefs.summary.push(`Primary Wallet: ${addrMatch[1].slice(0, 6)}...${addrMatch[1].slice(-4)}`);
+      }
+    }
+
+    // 4. Chains mentioned
+    const knownChains = ["Sui", "Walrus", "Somnia", "Base", "Solana", "BNB", "Monad", "Mantle", "Ethereum", "Arbitrum", "Cronos"];
+    for (const c of knownChains) {
+      if (new RegExp(`\\b${c}\\b`, "i").test(text)) {
+        chainSet.add(c);
+      }
+    }
+
+    // 5. Slippage (e.g. "slippage 0.5%", "max slippage 1%")
+    if (!prefs.preferredSlippage) {
+      const slipMatch = text.match(/(?:slippage|max\s+slippage)[:\s]+([0-9]+(?:\.[0-9]+)?)\s*%/i);
+      if (slipMatch && slipMatch[1]) {
+        const s = parseFloat(slipMatch[1]);
+        if (!isNaN(s)) {
+          prefs.preferredSlippage = s;
+          prefs.summary.push(`Max Slippage: ${s}%`);
+        }
+      }
+    }
+
+    // 6. User Name
+    if (!prefs.userName) {
+      const nameMatch = text.match(/(?:my\s+name\s+is|call\s+me|name[:\s]+)\s*([A-Za-z0-9_]{2,20})/i);
+      if (nameMatch && nameMatch[1]) {
+        prefs.userName = nameMatch[1];
+        prefs.summary.push(`User Name: ${nameMatch[1]}`);
+      }
+    }
+
+    // 7. Risk profile
+    if (!prefs.riskProfile) {
+      if (/\bconservative\b/i.test(text)) {
+        prefs.riskProfile = "conservative";
+        prefs.summary.push("Risk Profile: Conservative");
+      } else if (/\baggressive\b/i.test(text)) {
+        prefs.riskProfile = "aggressive";
+        prefs.summary.push("Risk Profile: Aggressive");
+      } else if (/\bmoderate\b/i.test(text)) {
+        prefs.riskProfile = "moderate";
+        prefs.summary.push("Risk Profile: Moderate");
+      }
+    }
+  }
+
+  if (chainSet.size > 0) {
+    prefs.preferredChains = Array.from(chainSet);
+    prefs.summary.push(`Preferred Chains: ${prefs.preferredChains.join(", ")}`);
+  }
+
+  return prefs;
+}
+
 export interface RecallOptionsExtended {
   namespaceVersion?: number;
   cachedMemories?: CachedMemoryParam[];
@@ -411,10 +546,56 @@ export async function rememberFact(
   }
 }
 
+/**
+ * Record a completed on-chain action into Walrus Memory.
+ * Emits an episodic fact directly onto decentralized Walrus storage and local hot cache.
+ *
+ * @param userId           - Authenticated user ID
+ * @param actionDetails    - Description of what was executed
+ * @param version          - User's current namespace version
+ * @param onFactsExtracted - Callback to update local hot cache immediately
+ */
+export async function recordActionMemory(
+  userId: string,
+  actionDetails: string,
+  version: number = 1,
+  onFactsExtracted?: (facts: Array<{ text: string; id?: string; jobId?: string }>) => Promise<unknown> | unknown
+): Promise<void> {
+  const client = getMemWalClient();
+  if (!client) return;
+
+  try {
+    const namespace = getUserNamespace(userId, version);
+    const dateStr = new Date().toISOString().split("T")[0];
+    const factText = `[On-Chain Action] On ${dateStr}, user executed: ${actionDetails}`;
+
+    // 1. Immediate local cache write-through
+    if (onFactsExtracted) {
+      try {
+        await onFactsExtracted([{ text: factText }]);
+      } catch (cbErr) {
+        console.error("[MemWal] Action write-through cache error:", cbErr);
+      }
+    }
+
+    // 2. Commit to Walrus decentralized storage
+    client.remember(factText, namespace).then((result) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[MemWal] On-chain action stored to Walrus (job ${result.job_id}):`, factText);
+      }
+    }).catch((err) => {
+      console.warn("[MemWal] Action save to Walrus failed (non-blocking):", err);
+    });
+  } catch (error) {
+    console.warn("[MemWal] recordActionMemory error:", error);
+  }
+}
+
 // ─── Prompt Formatting ──────────────────────────────────────────────────────
 
 /**
  * Format recalled memories into a system prompt injection block.
+ * Categorizes memories by type and provides explicit execution rules for AI tools.
  *
  * @param memories - Array of recalled memory objects
  * @returns Formatted string to append to the system prompt, or empty string
@@ -424,19 +605,67 @@ export function formatMemoriesForPrompt(
 ): string {
   if (!memories || memories.length === 0) return "";
 
-  const formattedFacts = memories.map((m) => `- ${m.text}`).join("\n");
+  const actions: string[] = [];
+  const preferences: string[] = [];
+  const wallets: string[] = [];
+  const profile: string[] = [];
+  const general: string[] = [];
 
-  return `\n\n[RECALLED USER CONTEXT & PREFERENCES VIA WALRUS MEMORY]:
-You have persistent memory of this user from previous conversations stored on decentralized Walrus storage:
-${formattedFacts}
+  for (const m of memories) {
+    const category = categorizeMemory(m.text);
+    if (category === "action") actions.push(m.text);
+    else if (category === "preference") preferences.push(m.text);
+    else if (category === "wallet") wallets.push(m.text);
+    else if (category === "profile") profile.push(m.text);
+    else general.push(m.text);
+  }
 
+  const structured = extractStructuredPreferences(memories);
+
+  let output = `\n\n[RECALLED CONTEXT & ON-CHAIN MEMORY VIA WALRUS PROTOCOL]:
+You have persistent, decentralized memory of this user stored on Walrus decentralized storage (@mysten-incubation/memwal).`;
+
+  if (structured.summary.length > 0) {
+    output += `\n\n[ACTIVE USER PREFERENCES FROM WALRUS MEMORY]:\n` +
+      structured.summary.map((s) => `- ${s}`).join("\n");
+  }
+
+  if (preferences.length > 0) {
+    output += `\n\n[Trading Preferences & Rules]:\n` +
+      preferences.map((p) => `- ${p}`).join("\n");
+  }
+
+  if (actions.length > 0) {
+    output += `\n\n[Recent On-Chain Activity / Execution History]:\n` +
+      actions.map((a) => `- ${a}`).join("\n");
+  }
+
+  if (wallets.length > 0) {
+    output += `\n\n[Saved Wallets & Addresses]:\n` +
+      wallets.map((w) => `- ${w}`).join("\n");
+  }
+
+  if (profile.length > 0) {
+    output += `\n\n[User Identity & Profile]:\n` +
+      profile.map((pr) => `- ${pr}`).join("\n");
+  }
+
+  if (general.length > 0) {
+    output += `\n\n[General Notes]:\n` +
+      general.map((g) => `- ${g}`).join("\n");
+  }
+
+  output += `\n
 CRITICAL INSTRUCTIONS FOR RECALLED MEMORIES:
-1. You MUST actively honor and apply these recalled preferences in your answers and tool executions.
-   - For example, if the user previously stated they only trade 4-hour pools and do not want 5m/15m pools, you MUST explicitly mention this (e.g. "Recalling your preference for 4-hour pools..."), filter or prioritize 4h pools, and advise them accordingly.
-   - If the user specified bet size, slippage, wallet addresses, or risk thresholds, apply them directly.
-2. If a recalled preference contradicts a new instruction the user just gave in the current turn, prioritize the new instruction.
-3. NEVER state "I do not store this information persistently across sessions" or "as an AI I do not retain personal data". You actively retain and apply these facts via decentralized Walrus storage!
+1. TOOL AUTO-FILL: When executing trades, prediction market orders, or swaps (e.g. DreamDEX on Somnia, Relay Protocol):
+   - If the user omitted bet size/amount, default to their saved preference (e.g. ${structured.defaultBetSize ? structured.defaultBetSize + " tUSDC" : "their stated default"}) and explicitly state: "Using your preferred bet size from Walrus Memory..."
+   - If the user omitted prediction market duration, default to their saved pool preference (e.g. ${structured.preferredPoolInterval || "their preferred duration"}).
+   - If the user asks about their recent activity or past trades, use the [Recent On-Chain Activity] history above!
+2. If a recalled preference contradicts a new explicit instruction in the current turn, prioritize the new instruction.
+3. NEVER state "I do not store this information persistently across sessions" or "as an AI I do not retain personal data". You actively retain and execute on these facts via decentralized Walrus storage!
 `;
+
+  return output;
 }
 
 // ─── Guard: Should We Use Memory? ───────────────────────────────────────────

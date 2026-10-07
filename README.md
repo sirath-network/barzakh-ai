@@ -15,7 +15,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Somnia_Network-DreamDEX_Prediction_Markets-ede8e8?style=for-the-badge" alt="Somnia Network">&nbsp;
-  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8?style=for-the-badge" alt="Relay Protocol">
+  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8?style=for-the-badge" alt="Relay Protocol">&nbsp;
+  <img src="https://img.shields.io/badge/Walrus_Memory-Mainnet-ede8e8?style=for-the-badge" alt="Walrus Memory">
 </p>
 
 <p align="center">
@@ -33,6 +34,7 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Walrus Memory — A Chatbot That Remembers](#-walrus-memory--a-chatbot-that-remembers)
 - [Somnia Network & DreamDEX Integration](#-somnia-network--dreamdex-integration--the-oracle-agent-for-prediction-markets)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
@@ -78,6 +80,151 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 | **Enterprise Security** | 2FA (TOTP), wallet signature auth, prompt injection defense, Cloudflare API Shield |
 | **Crypto Payments** | x402 protocol with EIP-3009/EIP-712 USDC payments on Base |
 | **Guest Access** | Anonymous trial with device fingerprinting — 5 free messages/day without sign-up |
+| **Walrus Memory** | Persistent, per-user memory on Walrus Mainnet — remembers wallets, preferences, and executed trades across sessions and devices, and uses them to fill in tool parameters |
+
+---
+
+## 🧠 Walrus Memory — A Chatbot That Remembers
+
+> Most chatbots forget you when the tab closes. Barzakh AI stores what matters about each user in **[Walrus Memory](https://github.com/MystenLabs/MemWal)** (`@mysten-incubation/memwal`) on **Mainnet**. Recalled memory doesn't just go into the prompt: it fills in tool arguments, shows up as badges on execution cards, and gives each user a dashboard where they can browse and delete what's stored.
+
+### Before vs. After
+
+| Scenario | Without memory | With Walrus Memory |
+|---|---|---|
+| **Greeting** (`gm Barzakh`) | `gm! How can I help you today?` | Welcomes the user back and mentions their tracked Sui wallet and ecosystem focus |
+| **Portfolio** (`Show my Sui portfolio`) | Asks for a 66-char Sui address every session | Fills in the remembered address and renders the portfolio card |
+| **Sui history / Walrus storage** | Address required every time | `getSuiTransactionHistory` and `getWalrusStorageInfo` fill the address in from memory |
+| **Trade sizing** | Amount and market interval must be typed every time | The default size and preferred pool interval are pre-filled, with a **🧠 Walrus Memory Auto-Configured** badge on the card |
+| **Past actions** | Gone after refresh | Every confirmed swap, order, or redemption is written to Walrus as an episodic memory, so you can ask *"what did we execute this week?"* |
+
+### How It Works
+
+```mermaid
+flowchart LR
+    U["User message"] --> R["Chat route"]
+    R -->|"recallMemories()"| W["MemWal relayer (Mainnet)"]
+    W --> P["extractStructuredPreferences()"]
+    P --> T["Tool wrappers: auto-fill address, amount, interval"]
+    P --> S["System prompt injection"]
+    T --> C["Execution card + memory badge"]
+    R -->|"saveMemories() (fire-and-forget)"| W
+    C -->|"recordActionMemory() on confirm"| W
+    W --> B["SEAL-encrypted blobs on Walrus"]
+```
+
+#### 1. Isolated, resettable namespaces
+Each authenticated user gets their own namespace. Clearing all memories bumps a version number, which gives the user a fresh namespace immediately:
+
+```ts
+// packages/shared/src/lib/memory/memwal-client.ts
+export function getUserNamespace(userId: string, version: number = 1): string {
+  if (version > 1) return `${NAMESPACE_PREFIX}-${userId}-v${version}`;
+  return `${NAMESPACE_PREFIX}-${userId}`;
+}
+```
+
+Guests never read or write memory.
+
+#### 2. Recall → structured preferences → tool arguments
+Before tools are built, the chat route recalls relevant memories and parses them into typed preferences. Recently written facts held in the local write-through cache are merged in too, so a fact saved on the previous turn is usable right away:
+
+```ts
+// apps/frontend/app/(chat)/api/chat/route.ts
+recalledMemoriesList = await recallMemories(activeUserId, userMessageText, 5, 0.50, { ... });
+recalledPreferences = extractStructuredPreferences([...recalledMemoriesList, ...cachedMemories]);
+```
+
+`extractStructuredPreferences()` pulls out:
+
+| Field | Example source memory |
+|---|---|
+| `defaultWalletAddress` | Sui/Walrus (`0x` + 64 hex) or EVM (`0x` + 40 hex) addresses |
+| `defaultBetSize` | *"my default bet size is 5 tUSDC"* |
+| `preferredPoolInterval` | *"I only trade the 4h pools"* |
+| `preferredSlippage` | *"max slippage 0.5%"* |
+| `preferredChains` | Sui, Walrus, Base, Solana, … |
+| `userName`, `riskProfile` | *"my name is …"*, *"conservative"* |
+
+Tool wrappers use these values only when the user leaves an argument out. Anything the user types explicitly always takes priority:
+
+```ts
+getSuiPortfolio: tool({
+  ...allTools.getSuiPortfolio,
+  execute: async (args, config) => {
+    if (!args.address && recalledPreferences.defaultWalletAddress) {
+      args.address = recalledPreferences.defaultWalletAddress;
+    }
+    return allTools.getSuiPortfolio.execute(args, config);
+  },
+}),
+```
+
+#### 3. Episodic memory of executed actions
+`recordActionMemory()` writes one fact per completed on-chain action. It is wired into autopilot execution and into every manual-confirmation endpoint:
+
+- `apps/frontend/app/(chat)/api/chat/route.ts`: autopilot swaps, orders, and redemptions
+- `apps/frontend/app/api/relay/confirm-swap/route.ts`
+- `apps/frontend/app/api/dreamdex/confirm-trade/route.ts`
+- `apps/frontend/app/api/dreamdex/execute/route.ts`
+
+The fact goes into the local cache first, then to Walrus via `client.remember()`. Neither step blocks the response.
+
+#### 4. Automatic fact extraction from conversation
+After each qualifying message, `saveMemories()` calls the relayer's `analyze()` endpoint, which uses an LLM to split free text into atomic facts and store each one. A local heuristic (`extractFastCandidateFacts()`) also caches obvious facts such as bullet lists, `Key: value` lines, and *"remember that…"*, so they're available before indexing finishes.
+
+#### 5. Personalized greetings
+Short greetings (`gm`, `hello barzakh`, …) use a fast path. For signed-in users, that path still recalls identity and wallet memories and passes them to the model, so the reply is personal instead of generic.
+
+#### 6. Memory Dashboard (`/memory`)
+- Semantic search over everything stored for the user
+- Category pills: `Action` · `Preference` · `Wallet` · `Profile` · `Context`
+- Blob IDs link to Walruscan, with a copy button
+- Delete individual memories, or **Clear All** (resets the namespace)
+
+### Design Principles
+
+- **Never blocks the stream.** All writes are fire-and-forget with caught errors. If the relayer is down, the bot works normally without memory.
+- **Graceful degradation.** If `MEMWAL_PRIVATE_KEY`/`MEMWAL_ACCOUNT_ID` are missing or `MEMWAL_ENABLED=false`, memory is turned off and nothing else changes.
+- **Explicit input wins.** Remembered values only fill in arguments the user left out.
+- **User sovereignty.** Users can see and delete everything stored about them.
+
+### Setup
+
+1. Create a MemWal account and delegate key (see the [MemWal repo](https://github.com/MystenLabs/MemWal)).
+2. Add these to `apps/frontend/.env`:
+   ```env
+   MEMWAL_PRIVATE_KEY=...          # Ed25519 delegate key (hex)
+   MEMWAL_ACCOUNT_ID=0x...         # MemWal account object ID
+   MEMWAL_SERVER_URL=https://relayer.memory.walrus.xyz
+   MEMWAL_ENABLED=true
+   ```
+3. Run `pnpm install`. The `postinstall` hook runs `scripts/patch-memwal.js` (see Known Issues below).
+4. Check connectivity:
+   ```bash
+   npx tsx scripts/walrus-test-blobs.ts                 # relayer health + test recall
+   npx tsx scripts/walrus-test-blobs.ts --seed-blobs    # optional: write 10 sample facts to a test namespace
+   ```
+
+### Known Issues & Friction
+
+| Issue | Workaround in this repo | Suggested fix |
+|---|---|---|
+| The package's `exports` map has no `require`/`default` entry, so some bundler/CJS setups fail to resolve it | `scripts/patch-memwal.js` (runs on `postinstall`) adds `main`, `require`, and `default` | Ship a complete `exports` map |
+| `remember()` is async (SEAL encryption, then Walrus storage, then indexing), so a fact isn't recallable for several seconds | Local write-through cache (`addCachedMemories`) merged into recall | Optional read-your-writes cache in the SDK |
+| No delete/forget API | Client-side tombstones (blob IDs and texts) plus namespace versioning for Clear All | `client.forget({ blobId, namespace })` |
+
+### Key Files
+
+| File | Purpose |
+|---|---|
+| `packages/shared/src/lib/memory/memwal-client.ts` | MemWal client, namespaces, recall/save, preference extraction, action memory, prompt formatting |
+| `apps/frontend/app/(chat)/api/chat/route.ts` | Recall before tools, tool auto-fill, greeting personalization, background save |
+| `apps/frontend/app/(chat)/api/memory/route.ts` | Dashboard API (list / search / delete / clear) |
+| `apps/frontend/app/(chat)/memory/page.tsx` | Memory Dashboard UI |
+| `apps/frontend/lib/db/queries.ts` | `getWalrusMemorySettings`, `addCachedMemories`: write-through cache and tombstones |
+| `apps/frontend/components/dreamdex/dreamdex-trade-card.tsx`, `components/relay-swap-approval.tsx` | 🧠 memory badges |
+| `scripts/walrus-test-blobs.ts` | Relayer health and seed script |
 
 ---
 
@@ -1460,6 +1607,12 @@ R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET_NAME=...
 R2_PUBLIC_URL=https://...               # Public/custom R2 URL used in chat results
+
+# ── Walrus Memory (Optional — persistent per-user memory) ───────────────
+MEMWAL_PRIVATE_KEY=...                   # Ed25519 delegate key (hex)
+MEMWAL_ACCOUNT_ID=0x...                  # MemWal account object ID
+MEMWAL_SERVER_URL=https://relayer.memory.walrus.xyz
+MEMWAL_ENABLED=true
 
 # ── Security ─────────────────────────────────────────────────────────────
 CRON_SECRET=your-cron-secret

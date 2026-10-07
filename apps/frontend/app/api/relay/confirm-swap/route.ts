@@ -117,6 +117,21 @@ export async function POST(request: Request) {
     // Clean up after successful execution
     removePendingConfirmation(confirmationId);
 
+    // ─── Record Episodic On-Chain Memory to Walrus ───
+    try {
+      const { getWalrusMemorySettings, addCachedMemories } = await import("@/lib/db/queries");
+      const { recordActionMemory } = await import("@barzakh/shared/lib/memory");
+      const settings = await getWalrusMemorySettings(pending.userId);
+      recordActionMemory(
+        pending.userId,
+        `Swapped ${args.amount} ${args.fromToken || "tokens"} for ${args.toToken || "tokens"} via Relay Protocol (Tx: ${finalHash})`,
+        settings.namespaceVersion,
+        (facts) => addCachedMemories(pending.userId, facts)
+      ).catch((e) => console.warn("[ConfirmSwap] Walrus action log failed:", e));
+    } catch (memErr) {
+      console.warn("[ConfirmSwap] Failed to record action memory:", memErr);
+    }
+
     return NextResponse.json({
       success: true,
       transactionHash: finalHash,

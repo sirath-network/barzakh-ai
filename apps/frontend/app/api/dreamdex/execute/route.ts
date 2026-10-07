@@ -39,6 +39,24 @@ export async function POST(request: Request) {
 
     console.log("[DreamDexExecuteRoute] Trade successfully executed:", result.transactionHash);
 
+    // ─── Record Episodic On-Chain Memory to Walrus ───
+    try {
+      const { getWalrusMemorySettings, addCachedMemories } = await import("@/lib/db/queries");
+      const { recordActionMemory } = await import("@barzakh/shared/lib/memory");
+      const settings = await getWalrusMemorySettings(session.user.id);
+      const symbol = result.marketSymbol || body.marketSymbol || "ETH";
+      const side = body.side || "UP";
+      const cost = body.amount || body.totalCost || "";
+      recordActionMemory(
+        session.user.id,
+        `Placed DreamDEX prediction order on ${symbol} (${side}) for ${cost} tUSDC (Tx: ${result.transactionHash})`,
+        settings.namespaceVersion,
+        (facts) => addCachedMemories(session.user.id, facts)
+      ).catch((e) => console.warn("[DreamDexExecuteRoute] Walrus action log failed:", e));
+    } catch (memErr) {
+      console.warn("[DreamDexExecuteRoute] Failed to record action memory:", memErr);
+    }
+
     return NextResponse.json({
       success: true,
       txHash: result.transactionHash,

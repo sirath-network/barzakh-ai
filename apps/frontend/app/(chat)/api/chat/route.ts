@@ -47,9 +47,12 @@ import { resolveR2UrlsInMessages } from "@/lib/r2-url-resolver";
 import {
   recallMemories,
   saveMemories,
+  recordActionMemory,
   formatMemoriesForPrompt,
   shouldUseMemory,
   extractFastCandidateFacts,
+  extractStructuredPreferences,
+  type UserMemoryPreferences,
 } from "@barzakh/shared/lib/memory";
 
 // Function to validate and clean messages
@@ -347,7 +350,7 @@ function isFastConversationalMessage(text: string): boolean {
   // Deterministic fast lane for small talk that never needs tools, routing, wallet
   // context, web search, or a heavyweight model. This removes the extra intent LLM
   // call that made simple prompts like "hello!" wait before streaming started.
-  return /^(hi+|hello+|hey+|yo+|sup|gm|gn|good\s+(morning|afternoon|evening|night)|thanks?|thank\s+you|ty|ok(?:ay)?|cool|nice|great|awesome|test)[!.?\s]*$/.test(normalized);
+  return /^(hi+|hello+|hey+|yo+|sup|gm|gn|good\s+(morning|afternoon|evening|night)|thanks?|thank\s+you|ty|ok(?:ay)?|cool|nice|great|awesome|test)(\s+(barzakh|ai|bot|assistant|there|ser|anon|bro|friend))?[!.?\s]*$/.test(normalized);
 }
 
 function isFastRealtimeSearchMessage(text: string): boolean {
@@ -1022,6 +1025,130 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
   // Get safe active tools
   let safeActiveTools = getSafeActiveTools(tools, selectedChatModel);
 
+  // ─── Walrus Memory: Hoisted Recall & Parameter Auto-Configuration ──────────
+  let userMemorySettings: WalrusUserSettings | null = null;
+  let recalledPreferences: UserMemoryPreferences = { summary: [] };
+  let recalledMemoriesList: any[] = [];
+
+  if (!isGuest && activeUserId) {
+    try {
+      userMemorySettings = await getWalrusMemorySettings(activeUserId);
+
+      if (isFastChat) {
+        // Fast greeting mode: personalize the greeting using persistent profile/preference memories!
+        let greetingFacts: string[] = [];
+
+        // 1. Take any cached recent facts
+        if (userMemorySettings.cachedMemories?.length) {
+          greetingFacts.push(...userMemorySettings.cachedMemories.map((m: any) => m.text));
+        }
+
+        // 2. Query MemWal relayer for identity/wallet memories with realistic threshold 0.40
+        try {
+          const fastGreetingMemories = await recallMemories(
+            activeUserId,
+            "user wallet address identity sui preferences trading",
+            5,
+            0.40,
+            {
+              namespaceVersion: userMemorySettings.namespaceVersion,
+              cachedMemories: userMemorySettings.cachedMemories,
+              tombstones: {
+                blobIds: userMemorySettings.deletedBlobIds,
+                texts: userMemorySettings.deletedTexts,
+              },
+            }
+          );
+          if (fastGreetingMemories?.length) {
+            greetingFacts.push(...fastGreetingMemories.map((m: any) => m.text));
+          }
+        } catch (recallErr) {
+          console.warn("[MemWal] Fast greeting recall error:", recallErr);
+        }
+
+        const uniqueFacts = Array.from(new Set(greetingFacts.filter(Boolean)));
+        if (uniqueFacts.length > 0) {
+          const factsPreview = uniqueFacts.slice(0, 4).join("; ");
+          const prefs = extractStructuredPreferences(uniqueFacts.map(t => ({ text: t, relevance: "1.0", index: 0 })));
+          const shortAddr = prefs.defaultWalletAddress
+            ? `${prefs.defaultWalletAddress.slice(0, 6)}...${prefs.defaultWalletAddress.slice(-4)}`
+            : "";
+
+          systemPrompt = `You are Barzakh AI. Fast chat greeting mode: greet the user warmly and personally in 1-2 friendly sentences on a single line. You have persistent Walrus Memory of this user: [${factsPreview}]. Welcome them back personally, acknowledging their identity, their tracked Sui wallet (${shortAddr || "is tracked"}), or their ecosystem focus. Example: gm! Welcome back. Your Sui wallet ${shortAddr || "is tracked"} and ready. Would you like to check your Sui portfolio or inspect your Walrus storage status? Do not use tools.`;
+        }
+      } else if (shouldUseMemory(userMessageText, false, isFastRealtimeSearch)) {
+        // Synchronous candidate fact extraction (<1ms)
+        const fastFacts = extractFastCandidateFacts(userMessageText);
+        if (fastFacts.length > 0) {
+          userMemorySettings = await addCachedMemories(
+            activeUserId,
+            fastFacts.map((text) => ({ text }))
+          );
+        }
+
+        // Use a realistic relevance threshold (0.50) so semantic matches actually succeed
+        recalledMemoriesList = await recallMemories(
+          activeUserId,
+          userMessageText,
+          5,
+          0.50,
+          {
+            namespaceVersion: userMemorySettings.namespaceVersion,
+            cachedMemories: userMemorySettings.cachedMemories,
+            tombstones: {
+              blobIds: userMemorySettings.deletedBlobIds,
+              texts: userMemorySettings.deletedTexts,
+            },
+          }
+        );
+
+        // Always merge any cached memories into recalledPreferences so write-through facts are instant
+        const allMemoryCandidates = [
+          ...recalledMemoriesList,
+          ...(userMemorySettings.cachedMemories || []).map((c: any, i: number) => ({
+            text: c.text,
+            relevance: "1.0",
+            index: i,
+          })),
+        ];
+        recalledPreferences = extractStructuredPreferences(allMemoryCandidates);
+
+        if (recalledMemoriesList.length > 0) {
+          const memoryContext = formatMemoriesForPrompt(recalledMemoriesList);
+          systemPrompt = systemPrompt + memoryContext;
+          if (process.env.NODE_ENV !== "production") {
+            console.log(
+              `[MemWal] Injected ${recalledMemoriesList.length} memories into system prompt for user ${activeUserId}`,
+              recalledPreferences.summary
+            );
+          }
+        } else {
+          systemPrompt =
+            systemPrompt +
+            `\n\n[WALRUS MEMORY STATUS]:
+The user's persistent Walrus decentralized memory currently has no active records matching this turn (either memory was recently cleared or this is a fresh profile).
+CRITICAL INSTRUCTIONS:
+- If the user asks whether you know their preferences, wallets, or trading rules, confirm that their persistent Walrus memory is currently empty/clean, and warmly invite them to share their primary wallet address, preferred chains, and trading rules so you can commit them to Walrus storage.
+- NEVER claim "As an AI, I do not store any personal data" or "I do not store this information persistently across sessions". You actively support decentralized persistence!`;
+        }
+
+        // Fire-and-forget save of user message
+        const currentVersion = userMemorySettings.namespaceVersion;
+        saveMemories(activeUserId, userMessageText, currentVersion, async (analyzedFacts) => {
+          try {
+            await addCachedMemories(activeUserId, analyzedFacts);
+          } catch (cacheErr) {
+            console.error("[MemWal] Failed to write-through analyzed facts to cache:", cacheErr);
+          }
+        }).catch((memErr) => {
+          console.error("[MemWal] Immediate background save failed:", memErr);
+        });
+      }
+    } catch (memError) {
+      console.error("[MemWal] Hoisted recall failed (non-blocking):", memError);
+    }
+  }
+
   // Inject autonomous execution tools contextually if authenticated
   let isAgentEnabledLocally = false;
   if (session?.user?.id && !isFastChat && !isFastRealtimeSearch && effectiveGroup !== "imagine") {
@@ -1127,6 +1254,13 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
           args.evmUserAddress = (isEvmDelegated && evmWallet) ? evmWallet : undefined;
           args.solanaUserAddress = (isSolanaDelegated && solanaWallet) ? solanaWallet : undefined;
 
+          // ─── Walrus Memory Auto-Fill for Relay ───
+          const relayMemoryBadges: string[] = [];
+          if ((!args.amount || args.amount === "") && recalledPreferences.defaultBetSize) {
+            args.amount = `$${recalledPreferences.defaultBetSize}`;
+            relayMemoryBadges.push(`Amount: $${recalledPreferences.defaultBetSize} (Walrus Memory)`);
+          }
+
           // REUSE robust inference logic from prepareRelayTransaction
           let prepareResult: any = null;
           try {
@@ -1135,6 +1269,10 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
             return { status: "error", message: error.message || "Failed to prepare transaction" };
           }
           const rawResult = prepareResult as any;
+
+          if (rawResult && relayMemoryBadges.length > 0) {
+            rawResult.recalledFromMemory = relayMemoryBadges;
+          }
 
           if (typeof prepareResult === "string" || rawResult.status === "error" || rawResult.status === "missing_recipient") {
             return prepareResult;
@@ -1246,6 +1384,15 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
               if (isSameChain && targetChain?.blockExplorers?.default?.url) {
                 explorerUrl = `${targetChain.blockExplorers.default.url}/tx/${finalHash}`;
               }
+
+              // ─── Record Episodic On-Chain Memory to Walrus ───
+              const currentVer = userMemorySettings?.namespaceVersion || 1;
+              recordActionMemory(
+                authenticatedUserId,
+                `Swapped ${args.amount} ${args.fromToken || "tokens"} for ${args.toToken || "tokens"} via Relay Protocol (Tx: ${finalHash})`,
+                currentVer,
+                (facts) => addCachedMemories(authenticatedUserId, facts)
+              ).catch((e) => console.warn("[MemWal] Relay swap action save failed:", e));
             }
 
             return {
@@ -1323,11 +1470,26 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
             args.userAddress = evmWallet;
           }
 
+          // ─── Walrus Memory Auto-Fill for DreamDEX ───
+          const dreamDexMemoryBadges: string[] = [];
+          if (!args.amount && !args.quantity && recalledPreferences.defaultBetSize) {
+            args.amount = recalledPreferences.defaultBetSize;
+            dreamDexMemoryBadges.push(`Bet size: ${recalledPreferences.defaultBetSize} tUSDC`);
+          }
+          if (recalledPreferences.preferredPoolInterval && args.marketSymbol && !args.marketSymbol.includes("-")) {
+            args.marketSymbol = `${args.marketSymbol}-${recalledPreferences.preferredPoolInterval}`;
+            dreamDexMemoryBadges.push(`Pool interval: ${recalledPreferences.preferredPoolInterval}`);
+          }
+
           let prepResult: any = null;
           try {
             prepResult = await allTools.dreamDexPlaceOrder.execute(args, config);
           } catch (error: any) {
             return { success: false, status: "error", error: error.message || "Failed to prepare order" };
+          }
+
+          if (prepResult && dreamDexMemoryBadges.length > 0) {
+            prepResult.recalledFromMemory = dreamDexMemoryBadges;
           }
 
           if (!prepResult || prepResult.success === false || prepResult.status === "insufficient_collateral" || prepResult.status === "insufficient_gas") {
@@ -1353,6 +1515,13 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
             ]);
 
             if (execResult.success) {
+              const currentVer = userMemorySettings?.namespaceVersion || 1;
+              recordActionMemory(
+                authenticatedUserId,
+                `Placed DreamDEX prediction order on ${execResult.marketSymbol || prepResult.marketSymbol || "ETH"} (${prepResult.side}) for ${prepResult.amount || prepResult.totalCost || ""} tUSDC (Tx: ${execResult.transactionHash})`,
+                currentVer,
+                (facts) => addCachedMemories(authenticatedUserId, facts)
+              ).catch((e) => console.warn("[MemWal] DreamDEX action save failed:", e));
               return {
                 ...prepResult,
                 status: "success",
@@ -1591,6 +1760,14 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
             ]);
 
             if (execResult.success) {
+              const currentVer = userMemorySettings?.namespaceVersion || 1;
+              recordActionMemory(
+                authenticatedUserId,
+                `Redeemed winning prediction contracts on DreamDEX Somnia (Tx: ${execResult.transactionHash || ""})`,
+                currentVer,
+                (facts) => addCachedMemories(authenticatedUserId, facts)
+              ).catch((e) => console.warn("[MemWal] Redeem action save failed:", e));
+
               try {
                 const { dreamDexApi } = await import("@barzakh/shared/lib/ai/tools/dreamdex/api-client");
                 dreamDexApi.clearPositionsCache(evmWallet || undefined);
@@ -1822,6 +1999,33 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
         }) as any,
       }),
     } : {}),
+    getSuiPortfolio: tool({
+      ...allTools.getSuiPortfolio,
+      execute: async (args: any, config: any) => {
+        if (!args.address && recalledPreferences.defaultWalletAddress) {
+          args.address = recalledPreferences.defaultWalletAddress;
+        }
+        return await allTools.getSuiPortfolio.execute(args, config);
+      },
+    }),
+    getSuiTransactionHistory: tool({
+      ...allTools.getSuiTransactionHistory,
+      execute: async (args: any, config: any) => {
+        if (!args.address && recalledPreferences.defaultWalletAddress) {
+          args.address = recalledPreferences.defaultWalletAddress;
+        }
+        return await allTools.getSuiTransactionHistory.execute(args, config);
+      },
+    }),
+    getWalrusStorageInfo: tool({
+      ...allTools.getWalrusStorageInfo,
+      execute: async (args: any, config: any) => {
+        if (!args.address && recalledPreferences.defaultWalletAddress) {
+          args.address = recalledPreferences.defaultWalletAddress;
+        }
+        return await allTools.getWalrusStorageInfo.execute(args, config);
+      },
+    }),
     // Override shared package quote tools with viem-based versions (always available)
     quoteFourMemeBuy: quoteFourMemeBuyTool,
     quoteFourMemeSell: quoteFourMemeSellTool,
@@ -1863,71 +2067,6 @@ ${oldMessages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content.s
     });
   }
 
-  // ─── Walrus Memory: Recall & Immediate Hot Extraction ──────────────────────
-  // Retrieve relevant memories from previous sessions and inject into the
-  // system prompt. Skipped for fast lanes (greetings, realtime searches)
-  // and unauthenticated guests to avoid latency and privacy issues.
-  let userMemorySettings: WalrusUserSettings | null = null;
-  if (shouldUseMemory(userMessageText, isFastChat, isFastRealtimeSearch) && !isGuest && activeUserId) {
-    try {
-      userMemorySettings = await getWalrusMemorySettings(activeUserId);
-
-      // Fast synchronous candidate fact extraction (runs in <1ms without network calls)
-      const fastFacts = extractFastCandidateFacts(userMessageText);
-      if (fastFacts.length > 0) {
-        userMemorySettings = await addCachedMemories(
-          activeUserId,
-          fastFacts.map((text) => ({ text }))
-        );
-      }
-
-      const memories = await recallMemories(
-        activeUserId,
-        userMessageText,
-        5,
-        undefined,
-        {
-          namespaceVersion: userMemorySettings.namespaceVersion,
-          cachedMemories: userMemorySettings.cachedMemories,
-          tombstones: {
-            blobIds: userMemorySettings.deletedBlobIds,
-            texts: userMemorySettings.deletedTexts,
-          },
-        }
-      );
-      if (memories.length > 0) {
-        const memoryContext = formatMemoriesForPrompt(memories);
-        systemPrompt = systemPrompt + memoryContext;
-        if (process.env.NODE_ENV !== "production") {
-          console.log(`[MemWal] Injected ${memories.length} memories into system prompt for user ${activeUserId}`);
-        }
-      } else {
-        // No memories recalled yet or memory was cleared
-        systemPrompt = systemPrompt + `\n\n[WALRUS MEMORY STATUS]:
-The user's persistent Walrus decentralized memory currently has no active records matching this turn (either memory was recently cleared or this is a fresh profile).
-CRITICAL INSTRUCTIONS:
-- If the user asks whether you know their preferences, wallets, or trading rules, confirm that their persistent Walrus memory is currently empty/clean, and warmly invite them to share their primary wallet address, preferred chains, and trading rules so you can commit them to Walrus storage.
-- NEVER claim "As an AI, I do not store any personal data" or "I do not store this information persistently across sessions". You actively support decentralized persistence!`;
-      }
-
-      // ─── Walrus Memory: Immediate Asynchronous Background Save ─────────────
-      // Kick off decentralized Walrus storage indexing right now instead of waiting
-      // for the entire stream to finish. When facts are analyzed, immediately write-through to hot cache.
-      const currentVersion = userMemorySettings.namespaceVersion;
-      saveMemories(activeUserId, userMessageText, currentVersion, async (analyzedFacts) => {
-        try {
-          await addCachedMemories(activeUserId, analyzedFacts);
-        } catch (cacheErr) {
-          console.error("[MemWal] Failed to write-through analyzed facts to cache:", cacheErr);
-        }
-      }).catch((memErr) => {
-        console.error("[MemWal] Immediate background save failed:", memErr);
-      });
-    } catch (memError) {
-      // Memory recall failure should never block the chat response
-      console.error("[MemWal] Recall failed (non-blocking):", memError);
-    }
-  }
 
   return createDataStreamResponse({
     execute: (dataStream) => {

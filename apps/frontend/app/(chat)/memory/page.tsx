@@ -12,6 +12,8 @@ import {
   Loader2,
   AlertTriangle,
   ArrowLeft,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -48,6 +50,50 @@ interface MemoryData {
   query: string;
   memoryCount: number;
   memories: Memory[];
+}
+
+function getCategoryInfo(text: string) {
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("executed") ||
+    lower.includes("placed") ||
+    lower.includes("swapped") ||
+    lower.includes("redeemed") ||
+    lower.includes("ordered") ||
+    lower.includes("txhash") ||
+    lower.includes("transaction")
+  ) {
+    return { label: "Action", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+  }
+  if (
+    lower.includes("prefer") ||
+    lower.includes("default") ||
+    lower.includes("always") ||
+    lower.includes("usually") ||
+    lower.includes("bet size") ||
+    lower.includes("pool duration") ||
+    lower.includes("interval")
+  ) {
+    return { label: "Preference", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" };
+  }
+  if (
+    lower.includes("0x") ||
+    lower.includes("address") ||
+    lower.includes("wallet") ||
+    lower.includes("recipient") ||
+    lower.includes("solana")
+  ) {
+    return { label: "Wallet", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
+  }
+  if (
+    lower.includes("name is") ||
+    lower.includes("user is") ||
+    lower.includes("trader") ||
+    lower.includes("risk")
+  ) {
+    return { label: "Profile", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  }
+  return { label: "Context", color: "bg-zinc-800 text-zinc-400 border-zinc-700/60" };
 }
 
 export default function MemoryDashboardPage() {
@@ -345,24 +391,49 @@ export default function MemoryDashboardPage() {
               {data.memories.map((memory) => {
                 const itemKey = memory.blobId || memory.text || String(memory.index);
                 const isItemDeleting = deletingKey === (memory.blobId || memory.text);
+                const category = getCategoryInfo(memory.text);
                 return (
                   <div
                     key={itemKey}
                     className="p-3.5 sm:p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl hover:border-zinc-700 transition-all group"
                   >
                     <div className="flex items-start justify-between gap-3 sm:gap-4">
-                      <div className="flex-1 space-y-1.5 min-w-0">
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${category.color}`}
+                          >
+                            {category.label}
+                          </span>
+                        </div>
                         <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-normal break-words">
                           {memory.text}
                         </p>
                         {memory.blobId ? (
-                          <p
-                            className="text-[10px] sm:text-[11px] text-zinc-500 font-mono truncate"
-                            title="Permanently stored and certified on decentralized Walrus storage"
-                          >
-                            <span className="text-zinc-600">Blob:</span>{" "}
-                            {memory.blobId.slice(0, 10)}...{memory.blobId.slice(-8)}
-                          </p>
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <a
+                              href={`https://walruscan.com/mainnet/blob/${memory.blobId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-cyan-400 hover:text-cyan-300 font-mono transition-colors group/link"
+                              title="Inspect permanent blob certification on Walruscan Mainnet"
+                            >
+                              <span className="text-zinc-500">Blob:</span>{" "}
+                              {memory.blobId.slice(0, 10)}...{memory.blobId.slice(-8)}
+                              <ExternalLink className="w-2.5 h-2.5 opacity-70 group-hover/link:opacity-100" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(memory.blobId!);
+                                toast.success("Blob ID copied to clipboard");
+                              }}
+                              className="text-zinc-500 hover:text-zinc-300 transition-colors p-0.5"
+                              title="Copy full Blob ID"
+                            >
+                              <Copy className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
                         ) : (
                           <p
                             className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 font-mono"
@@ -374,7 +445,7 @@ export default function MemoryDashboardPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                        <span className="px-1.5 sm:px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 text-zinc-300 text-[10px] font-mono rounded">
+                        <span className="px-1.5 sm:px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 text-zinc-300 text-[10px] font-mono rounded" title="Semantic relevance score">
                           {(parseFloat(memory.relevance) * 100).toFixed(0)}%
                         </span>
                         <button

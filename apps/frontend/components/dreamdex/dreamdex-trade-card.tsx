@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Check, AlertCircle, Loader2, ExternalLink, Bot, XCircle, TrendingUp, TrendingDown, Coins, RefreshCw, BarChart3, Wallet, Zap } from "lucide-react";
+import { Check, AlertCircle, Loader2, ExternalLink, Bot, XCircle, TrendingUp, TrendingDown, Coins, RefreshCw, BarChart3, Wallet, Zap, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const SOMNIA_FAUCET_URL = "https://t.me/+XHq0F0JXMyhmMzM0";
@@ -286,6 +286,24 @@ export function DreamDexTradeCard({ result, toolCallId, onSelectAction, toolName
 
         {/* Content Body */}
         <div className="p-4 space-y-3">
+          {/* Walrus Memory Auto-Configured Badge */}
+          {result?.recalledFromMemory && (
+            <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200">
+              <div className="size-5 rounded-md bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0 mt-0.5">
+                <Brain className="size-3 text-cyan-300 animate-pulse" />
+              </div>
+              <div className="space-y-0.5 min-w-0 flex-1">
+                <div className="font-semibold text-cyan-100 flex items-center gap-1.5 flex-wrap">
+                  <span>Walrus Memory Auto-Configured</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">Mainnet</span>
+                </div>
+                <p className="text-[11px] text-cyan-300/80 leading-relaxed">
+                  {result.recalledFromMemory.reasons?.join(" • ") || "Recalled your trading preferences from Walrus"}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Insufficient Warning */}
           {isInsufficient && (
             <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 space-y-2">

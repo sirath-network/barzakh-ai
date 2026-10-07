@@ -57,6 +57,11 @@ const CHAIN_CONFIG: Record<string, { explorer: string; symbol: string; name: str
         symbol: "FLOW",
         name: "Flow",
     },
+    sui: {
+        explorer: "https://suiscan.xyz/mainnet",
+        symbol: "SUI",
+        name: "Sui",
+    },
     // Default fallback
     evm: {
         explorer: "https://etherscan.io",
@@ -93,6 +98,7 @@ interface EvmTransaction {
     gasUsed?: string;
     gasPrice?: string;
     txFee?: string;
+    gasFee?: string;
     // New fields from Zerion
     dappName?: string | null;
     dappIcon?: string | null;
@@ -107,6 +113,7 @@ interface EvmTransaction {
 interface EvmTransactionHistoryResponse {
     address: string;
     network: string;
+    chain?: string;
     chainId?: number;
     page?: number;
     limit?: number;
@@ -399,6 +406,9 @@ const detectChain = (network: string): { explorer: string; symbol: string; name:
     if (networkLower.includes("flow")) {
         return CHAIN_CONFIG.flow;
     }
+    if (networkLower.includes("sui")) {
+        return CHAIN_CONFIG.sui;
+    }
 
     return CHAIN_CONFIG.evm;
 };
@@ -459,7 +469,8 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
     }
 
     const { address, network, transactions, transactionCount, viewAllUrl, explorerUrl } = result;
-    const chainConfig = detectChain(network);
+    const chainConfig = detectChain(network || result.chain || (transactions?.[0]?.chain) || (address?.startsWith("0x") && address.length === 66 ? "sui" : ""));
+    const txCount = transactionCount ?? (transactions?.length || 0);
 
     if (!transactions || transactions.length === 0) {
         return (
@@ -480,7 +491,7 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
                         {chainConfig.name} Transactions
                     </h3>
                     <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
-                        {transactionCount} txns
+                        {txCount} txns
                     </span>
                 </div>
             </div>
@@ -494,7 +505,9 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
 
                         // Parse value for display using smart formatting
                         const tokenFormatted = formatTokenTransfers(tx.tokenTransfer, tx.txType);
-                        let valueDisplay = tokenFormatted.display || tx.value || "0";
+                        let valueDisplay = (tokenFormatted.display && tokenFormatted.display !== "0")
+                            ? tokenFormatted.display
+                            : (tx.value && tx.value !== "0" ? tx.value : (tx.gasFee ? `${tx.gasFee}` : "0"));
 
                         // Clean value of existing signs to avoid ++/-- (but keep → for swaps)
                         const hasArrow = valueDisplay.includes('→');
@@ -525,7 +538,8 @@ const EvmTransactionHistory: React.FC<EvmTransactionHistoryProps> = ({ result })
 
                         // Get explorer URL for transaction
                         const txExplorerUrl = tx.explorerUrl || `${chainConfig.explorer}/tx/${tx.hash}`;
-                        const displayAddress = truncateAddress(tx.direction === "IN" ? tx.from : tx.to);
+                        const targetAddr = tx.direction === "IN" ? (tx.from || tx.to) : (tx.to || tx.from);
+                        const displayAddress = targetAddr ? truncateAddress(targetAddr) : (chainConfig.name || "Mainnet");
                         const addressLabel = tx.direction === "IN" ? "From" : "To";
 
                         return (

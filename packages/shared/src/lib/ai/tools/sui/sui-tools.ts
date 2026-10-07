@@ -590,18 +590,41 @@ export const getSuiTransactionHistory = tool({
               return true;
             });
 
-            const transactions = cleanContent.map((tx: any) => ({
-              hash: tx.digest,
-              timestamp: tx.timestamp,
-              type: Array.isArray(tx.activityType) ? tx.activityType.join(", ") : tx.activityType || "Transaction",
-              status: tx.txStatus || "SUCCESS",
-              gasFee: tx.gasFee,
-              explorerUrl: `https://suiscan.xyz/mainnet/tx/${tx.digest}`,
-            }));
+            const transactions = cleanContent.map((tx: any) => {
+              const isSender = (tx.fromAddress || "").toLowerCase() === address.toLowerCase();
+              const direction = isSender ? "OUT" : "IN";
+              const actType = Array.isArray(tx.activityType) ? tx.activityType.join(", ") : tx.activityType || "Transaction";
+              const symbol = tx.coinSymbol || "SUI";
+              const amountVal = tx.amount ? String(tx.amount) : "";
+              const formattedVal = amountVal ? `${direction === "OUT" ? "-" : "+"}${amountVal} ${symbol}` : "";
+
+              return {
+                hash: tx.digest,
+                timestamp: tx.timestamp ? (typeof tx.timestamp === 'number' ? new Date(tx.timestamp).toISOString() : String(tx.timestamp)) : new Date().toISOString(),
+                direction,
+                txType: actType,
+                status: tx.txStatus || "SUCCESS",
+                from: tx.fromAddress || (isSender ? address : ""),
+                to: tx.toAddress || (!isSender ? address : ""),
+                value: formattedVal || (tx.gasFee ? `${tx.gasFee} SUI` : "0 SUI"),
+                tokenTransfer: amountVal ? {
+                  direction: isSender ? "Sent" : "Received",
+                  amount: amountVal,
+                  symbol,
+                  formatted: formattedVal,
+                } : undefined,
+                gasFee: tx.gasFee ? `${tx.gasFee} SUI` : undefined,
+                explorerUrl: `https://suiscan.xyz/mainnet/tx/${tx.digest}`,
+                chain: "sui",
+              };
+            });
 
             return {
               type: "transactions",
               network: "Sui Mainnet",
+              chain: "sui",
+              address,
+              transactionCount: transactions.length,
               transactions,
               explorerUrl: `https://suiscan.xyz/mainnet/account/${address}/activity`,
             };
@@ -615,7 +638,7 @@ export const getSuiTransactionHistory = tool({
       const rpcData = await callSuiRpc<any>("suix_queryTransactionBlocks", [
         {
           filter: { FromAddress: address },
-          options: { showEffects: true, showInput: true },
+          options: { showEffects: true, showInput: true, showBalanceChanges: true },
         },
         null,
         size,
@@ -631,19 +654,88 @@ export const getSuiTransactionHistory = tool({
             ? (Number(gasUsed.computationCost || 0) + Number(gasUsed.storageCost || 0) - Number(gasUsed.storageRebate || 0)) / 1e9
             : undefined;
 
+          const sender = tx.transaction?.data?.sender || address;
+          const isSender = (sender || "").toLowerCase() === address.toLowerCase();
+          const direction = isSender ? "OUT" : "IN";
+
+          // Extract recipient address if available
+          const inputs = tx.transaction?.data?.transaction?.inputs || [];
+          const addrInput = inputs.find((inp: any) => inp.type === "pure" && inp.valueType === "address");
+          const createdOwner = tx.effects?.created?.find((c: any) => c.owner?.AddressOwner && c.owner?.AddressOwner.toLowerCase() !== address.toLowerCase())?.owner?.AddressOwner;
+          const recipient = addrInput?.value || createdOwner || "";
+
+          // Extract token transfer or coin information
+          let tokenSymbol = "SUI";
+          let tokenAmount: string | null = null;
+          let txType = isSender ? "Send" : "Receive";
+
+          // 1. Check accumulatorEvents (DeFi / USDC balances)
+          const accEvent = tx.effects?.accumulatorEvents?.find((e: any) => typeof e?.ty === "string" && e.ty.includes("::Balance<"));
+          if (accEvent) {
+            const tyMatch = accEvent.ty.match(/::([a-zA-Z0-9_]+)::([a-zA-Z0-9_]+)>/);
+            if (tyMatch && tyMatch[2]) {
+              tokenSymbol = tyMatch[2].toUpperCase();
+            }
+          }
+
+          // 2. Check balanceChanges if present
+          if (Array.isArray(tx.balanceChanges) && tx.balanceChanges.length > 0) {
+            const nonSuiChange = tx.balanceChanges.find((bc: any) => bc.coinType && bc.coinType !== "0x2::sui::SUI");
+            const targetChange = nonSuiChange || tx.balanceChanges[0];
+            if (targetChange) {
+              const ctParts = targetChange.coinType?.split("::");
+              if (ctParts && ctParts.length >= 3) {
+                tokenSymbol = ctParts[2].toUpperCase();
+              }
+              const rawAmt = Math.abs(Number(targetChange.amount || 0));
+              const decimals = tokenSymbol.includes("USDC") || tokenSymbol.includes("USDT") ? 6 : 9;
+              tokenAmount = (rawAmt / Math.pow(10, decimals)).toFixed(2);
+            }
+          }
+
+          // 3. Fallback to inputs amount for SplitCoins/TransferObjects
+          if (!tokenAmount) {
+            const u64Input = inputs.find((inp: any) => inp.type === "pure" && inp.valueType === "u64");
+            if (u64Input && u64Input.value) {
+              const rawVal = Number(u64Input.value);
+              if (!isNaN(rawVal) && rawVal > 0) {
+                const decimals = tokenSymbol.includes("USDC") || tokenSymbol.includes("USDT") ? 6 : 9;
+                tokenAmount = (rawVal / Math.pow(10, decimals)).toFixed(2);
+              }
+            }
+          }
+
+          const formattedValue = tokenAmount
+            ? `${direction === "OUT" ? "-" : "+"}${tokenAmount} ${tokenSymbol}`
+            : (gasFee ? `${gasFee.toFixed(6)} SUI` : "0 SUI");
+
           return {
             hash: tx.digest,
-            timestamp: tx.timestampMs ? Number(tx.timestampMs) : undefined,
-            type: "Transaction Block",
+            timestamp: tx.timestampMs ? new Date(Number(tx.timestampMs)).toISOString() : new Date().toISOString(),
+            direction,
+            txType,
             status,
+            from: sender,
+            to: recipient || (isSender ? "Sui Network" : address),
+            value: formattedValue,
+            tokenTransfer: tokenAmount ? {
+              direction: isSender ? "Sent" : "Received",
+              amount: tokenAmount,
+              symbol: tokenSymbol,
+              formatted: formattedValue,
+            } : undefined,
             gasFee: gasFee ? `${gasFee.toFixed(6)} SUI` : undefined,
             explorerUrl: `https://suiscan.xyz/mainnet/tx/${tx.digest}`,
+            chain: "sui",
           };
         });
 
         return {
           type: "transactions",
           network: "Sui Mainnet",
+          chain: "sui",
+          address,
+          transactionCount: transactions.length,
           transactions,
           explorerUrl: `https://suiscan.xyz/mainnet/account/${address}/activity`,
         };
@@ -652,6 +744,9 @@ export const getSuiTransactionHistory = tool({
       return {
         type: "transactions",
         network: "Sui Mainnet",
+        chain: "sui",
+        address,
+        transactionCount: 0,
         transactions: [],
         explorerUrl: `https://suiscan.xyz/mainnet/account/${address}/activity`,
       };

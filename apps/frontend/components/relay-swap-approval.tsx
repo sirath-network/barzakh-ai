@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAccount, useSwitchChain, useSendTransaction, useSignMessage, useDisconnect } from "wagmi";
 // ConnectButton replaced by DynamicConnectButton defined below
-import { ArrowRightLeft, Check, AlertCircle, AlertTriangle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck, Copy, Bot, XCircle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ArrowRightLeft, Check, AlertCircle, AlertTriangle, Loader2, ExternalLink, Clock, Info, Wallet, ShieldCheck, Copy, Bot, XCircle, ChevronDown, ChevronUp, RefreshCw, Brain } from "lucide-react";
 import { createClient } from "@relayprotocol/relay-sdk";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -223,6 +223,10 @@ interface RelaySwapApprovalProps {
             amount: string;
             isUSD: boolean;
             recipient?: string;
+        };
+        recalledFromMemory?: {
+            reasons?: string[];
+            source?: string;
         };
     };
 }
@@ -1319,6 +1323,24 @@ export function RelaySwapApproval({ result }: RelaySwapApprovalProps) {
 
                 {/* Main Content */}
                 <div className="p-5 pt-2 space-y-4">
+
+                    {/* Walrus Memory Auto-Configured Badge */}
+                    {result?.recalledFromMemory && (
+                        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200">
+                            <div className="size-5 rounded-md bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0 mt-0.5">
+                                <Brain className="size-3 text-cyan-300 animate-pulse" />
+                            </div>
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                                <div className="font-semibold text-cyan-100 flex items-center gap-1.5 flex-wrap">
+                                    <span>Walrus Memory Auto-Configured</span>
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">Mainnet</span>
+                                </div>
+                                <p className="text-[11px] text-cyan-300/80 leading-relaxed">
+                                    {result.recalledFromMemory.reasons?.join(" • ") || "Recalled your swap preferences from Walrus"}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* INPUT CARD */}
                     <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors group">
