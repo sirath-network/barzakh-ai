@@ -198,52 +198,134 @@ flowchart LR
 
 ---
 
-### 🧪 Golden Test Prompts (Try on Live Terminal)
+### 🧪 Golden Test Prompts (Try on Chat Interface)
 
-Test these natural language commands directly on [app.sirath.network](https://app.sirath.network):
+Test these natural language commands directly on [app.sirath.network](https://app.sirath.network) to verify each targeted hackathon track and ecosystem capability:
 
-#### 1. Kuru Spot CLOB Order Book & Swaps
-```
-Show the live order book for MON/AUSD on Kuru
-```
-```
-Market buy 50 MON on Kuru with AUSD
-```
-```
-Place a limit order on Kuru to buy 100 MON at $4.20 with AUSD
-```
+#### 1. Spot Trading Track (Kuru On-Chain CLOB)
+- **L2 Order Book Depth Ladder**:
+  ```
+  Show the live order book for MON/AUSD on Kuru
+  ```
+- **Sub-Second Market Fill**:
+  ```
+  Market buy 50 MON on Kuru with AUSD
+  ```
+- **Post-Only Maker Limit Order**:
+  ```
+  Place a limit order on Kuru to buy 100 MON at $4.20 with AUSD
+  ```
 
-#### 2. Perpl Perpetuals & Risk Analytics
-```
-Open a 5x Long on MON-PERP with 100 AUSD collateral on Perpl
-```
-```
-Stress test my portfolio risk and liquidation scenarios on Perpl
-```
-```
-Show my open positions and margin health on Perpl
-```
+#### 2. Mobile Trading & Universal Settlement (Agora AUSD)
+- **Margin Availability & Balance**:
+  ```
+  What is my Agora AUSD balance and free trading margin on Monad?
+  ```
+- **Institutional Yield & Reserve Proof**:
+  ```
+  Check Agora AUSD backing reserves, T-Bill allocation, and current yield APR
+  ```
+- **Sub-Cent Instant Transfer**:
+  ```
+  Send 50 AUSD to 0x34a1...9bc2 instantly
+  ```
 
-#### 3. Agora AUSD Margin & Payments
-```
-What is my Agora AUSD balance and free trading margin on Monad?
-```
-```
-Send 50 AUSD to 0x34a1...9bc2 instantly
-```
+#### 3. Risk & Analytics Track (Perpl Perpetuals)
+- **Leveraged Long / Short Position**:
+  ```
+  Open a 5x Long on MON-PERP with 100 AUSD collateral on Perpl
+  ```
+- **Interactive Risk Heatmap & Liquidation Stress Test**:
+  ```
+  Stress test my portfolio risk and liquidation scenarios on Perpl
+  ```
+- **Active Positions & Margin Health**:
+  ```
+  Show my open positions and margin health factor on Perpl
+  ```
 
-#### 4. AI GPU Compute Commodity Hedging
-```
-What is the current spot and forward price for NVIDIA H100 compute on Monad?
-```
-```
-Hedge 500 hours of H100 SXM5 compute capacity for 30 days
-```
+#### 4. Autonomous Systems Track (24/7 Delta-Neutral Keeper Bot)
+- **Cash-and-Carry Basis Arbitrage**:
+  ```
+  Check the real-time basis spread between Kuru spot and Perpl perps for MON
+  ```
+- **Autonomous Basis Carry Keeper**:
+  ```
+  Start 24/7 delta-neutral basis arbitrage between Kuru spot and Perpl perps with 500 AUSD
+  ```
+- **Trailing Stop-Loss Guardian**:
+  ```
+  Enable a 2.5% trailing stop-loss keeper on my open MON-PERP position
+  ```
 
-#### 5. Aurora Intents Cross-Chain Inflows
-```
-Bridge 1000 USDC from Arbitrum to AUSD on Monad via Aurora Intents
-```
+#### 5. New Asset Classes Track (Tokenized AI GPU Compute Commodities)
+- **Spot vs. Forward Pricing**:
+  ```
+  What is the current spot and forward price for NVIDIA H100 compute on Monad?
+  ```
+- **Forward Capacity Hedging**:
+  ```
+  Hedge 500 hours of H100 SXM5 compute capacity for 30 days settled in AUSD
+  ```
+- **DePIN Node SLA Verification**:
+  ```
+  Verify SLA uptime and slashing bond for GPU provider node 0x78f2...11d0
+  ```
+
+#### 6. Cross-Chain Inflow Track (Aurora Intents)
+- **Solver-Based Intent Quote**:
+  ```
+  Get an instant Aurora Intent quote to swap 1000 USDC on Arbitrum to AUSD on Monad
+  ```
+- **Single-Command Cross-Chain Deposit**:
+  ```
+  Bridge 1000 USDC from Arbitrum to AUSD on Monad via Aurora Intents
+  ```
+
+#### 7. Embedded Wallets Track (Dynamic Scoped Agent Delegation)
+- **Scoped Delegation Setup**:
+  ```
+  Delegate trading authority to Barzakh agent with a 200 AUSD allowance for 24 hours
+  ```
+- **Autopilot Zero-Popup Execution**:
+  ```
+  Switch agent execution mode to Autopilot with 50 AUSD per-trade cap
+  ```
+
+#### 8. UX & Identity Track (Monad Foundation Mera Passkey PRF — Interactive UI Flow)
+> 👆 **UI Action (Biometric 1-Tap)**: This capability is executed directly via the **web interface**, not chat prompts. Click the **"Sign in with Mera Passkey"** fingerprint button in the header or login modal to authenticate via Face ID, Touch ID, or Windows Hello.
+- **"One Passkey, Many Keys" WebAuthn PRF Under the Hood**:
+  - Deterministically derives the user's Monad EOA address with **zero seed phrases and zero browser extensions**.
+  - Derives an isolated 24-hour trading session key with allowance caps for zero-popup Kuru/Perpl execution.
+  - Generates client-side encryption keys for private trade memory on Walrus Protocol.
+- **Prompt to Verify Active Session (After UI Login)**:
+  ```
+  What is my active Monad wallet address and trading session status?
+  ```
+
+#### 9. Agent Trust & Identity Track (ERC-8004 on Monad / Trust8004)
+- **On-Chain Agent Identity Card**:
+  ```
+  Show Barzakh AI's ERC-8004 on-chain agent card and verification status on Monad
+  ```
+- **Reputation Signals & Execution SLA**:
+  ```
+  Check the ERC-8004 reputation score and execution reliability metrics for agent 143
+  ```
+
+#### 10. Monad Ecosystem Discovery (nad.fun Bonding Curve & Zerion Portfolio)
+- **Bonding Curve Token Discovery**:
+  ```
+  Discover trending tokens on nad.fun bonding curve on Monad
+  ```
+- **Token Market Progress**:
+  ```
+  Show market cap, bonding curve progress, and holders for CHOG on nad.fun
+  ```
+- **Unified Monad Portfolio Tracker**:
+  ```
+  Show my complete portfolio, token balances, and DeFi positions across Monad
+  ```
 
 ---
 
