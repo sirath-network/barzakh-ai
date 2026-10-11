@@ -377,7 +377,7 @@ Test these natural language commands directly on [app.sirath.network](https://ap
   - [The Problem & The Monad Breakthrough](#-the-problem--the-monad-breakthrough)
   - [Monad Hyper-Terminal Architecture](#-comprehensive-architecture-diagrams)
   - [Monad Tech Stack Breakdown](#%EF%B8%8F-monad-hyper-terminal-deep-tech-stack)
-  - [Golden Test Prompts](#-golden-test-prompts-try-on-live-terminal)
+  - [Golden Test Prompts](#-golden-test-prompts-try-on-chat-interface)
   - [Key Modules Implemented](#-key-modules-implemented)
 - [Overview](#overview)
 - [Walrus Memory — A Chatbot That Remembers](#-walrus-memory--a-chatbot-that-remembers)
