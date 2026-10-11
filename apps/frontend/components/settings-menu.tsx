@@ -17,6 +17,7 @@ import {
   BadgeDollarSign,
   Wallet,
   Monitor,
+  Fingerprint,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useView, type SettingsPageType } from "@/context/view-context";
@@ -38,6 +39,7 @@ const ShieldAny = Shield as any;
 const BadgeDollarSignAny = BadgeDollarSign as any;
 const WalletAny = Wallet as any;
 const MonitorAny = Monitor as any;
+const FingerprintAny = Fingerprint as any;
 
 const SettingsMenuItem = ({
   icon,
@@ -160,6 +162,12 @@ export function SettingsMenu({
           onClick={() => handleMenuClick('wallet')}
         >
           Wallet Settings
+        </SettingsMenuItem>
+        <SettingsMenuItem
+          icon={<FingerprintAny size={18} />}
+          onClick={() => handleMenuClick('passkey')}
+        >
+          Passkey Settings
         </SettingsMenuItem>
         <SettingsMenuItem
           icon={<KeyRoundAny size={18} />}

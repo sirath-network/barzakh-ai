@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { login, type LoginActionState } from "@/app/(auth)/actions";
 import { X } from "lucide-react";
 import { useTheme } from "next-themes";
+import { MeraPasskeyButton } from "@/components/mera-passkey-button";
 export default function AuthModal({
   isOpen,
   onClose,
@@ -77,6 +78,15 @@ export default function AuthModal({
             <p className="text-sm text-gray-500 dark:text-zinc-400">
               Use your email and password to sign in
             </p>
+          </div>
+          <MeraPasskeyButton mode="auto" />
+          <div className="relative py-0.5">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-medium">
+              <span className="bg-background px-2 text-muted-foreground">OR WITH EMAIL</span>
+            </div>
           </div>
           <AuthForm action={handleSubmit} defaultEmail={email}>
             <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>

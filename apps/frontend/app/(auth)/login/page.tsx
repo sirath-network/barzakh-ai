@@ -16,6 +16,7 @@ import { LogoGoogle } from '@/components/icons';
 import { WalletLoginButton } from '@/components/wallet-login-button';
 import { WalletSelectorModal } from '@/components/wallet-selector-modal';
 import { ActionResultOverlay } from '@/components/action-result-overlay';
+import { MeraPasskeyButton } from '@/components/mera-passkey-button';
 import { Button } from '@/components/ui/button';
 import { login, type LoginActionState } from '../actions';
 import {
@@ -263,6 +264,19 @@ export default function Page() {
 
             {/* Card content */}
             <div className="p-5 px-5 sm:px-6 space-y-4">
+              {/* Mera Passkey Biometric Login / Auto-Onboarding */}
+              <MeraPasskeyButton mode="auto" />
+
+              {/* Divider */}
+              <div className="relative py-0.5">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-zinc-800" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-medium">
+                  <span className="bg-zinc-900 px-2 text-zinc-500">OR WITH EMAIL</span>
+                </div>
+              </div>
+
               {/* Login form */}
               <form onSubmit={handleSubmit}>
                 <AuthForm

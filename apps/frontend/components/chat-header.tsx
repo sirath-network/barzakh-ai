@@ -19,6 +19,7 @@ import { ArtifactToggle } from './artifact-toggle';
 
 import { ChatHeaderMenu } from './chat-header-menu';
 import { MemoryIndicator } from './memory-indicator';
+import { MeraPasskeyButton } from '@/components/mera-passkey-button';
 
 // 1. Update interface props to include new optional props
 // and make chat-specific props optional.
@@ -219,12 +220,16 @@ function PureChatHeader({
               <SidebarUserNav user={user} compact={true} />
             </div>
           ) : (
-            <ButtonAny
-              className="px-3 py-1 text-sm h-auto"
-              onClick={() => router.push('/login')}
-            >
-              Login
-            </ButtonAny>
+            <div className="flex items-center gap-1.5">
+              <MeraPasskeyButton variant="header" mode="auto" />
+              <ButtonAny
+                variant="ghost"
+                className="px-2.5 py-1 text-xs h-7 text-muted-foreground hover:text-foreground hover:bg-neutral-100 dark:hover:bg-zinc-800"
+                onClick={() => router.push('/login')}
+              >
+                Sign In
+              </ButtonAny>
+            </div>
           )}
         </div>
       </header>

@@ -152,16 +152,16 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
 
     // Use div for block elements to avoid <p> nesting issues
     if (hasBlockElements) {
-      return <div className="break-long-words my-1.5 first:mt-0 last:mb-0 leading-relaxed whitespace-pre-wrap">{children}</div>;
+      return <div className="break-long-words my-1 first:mt-0 last:mb-0 leading-relaxed whitespace-pre-wrap">{children}</div>;
     }
 
-    return <p className="break-long-words my-1.5 first:mt-0 last:mb-0 leading-relaxed whitespace-pre-wrap">{children}</p>;
+    return <p className="break-long-words my-1 first:mt-0 last:mb-0 leading-relaxed whitespace-pre-wrap">{children}</p>;
   },
 
   ol: ({ node, children, ...props }) => {
     return (
       <ol
-        className="break-long-words list-decimal list-outside ml-4"
+        className="break-long-words list-decimal list-outside ml-3.5 my-1"
         {...props}
       >
         {children}
@@ -169,7 +169,7 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
     );
   },
   li: ({ node, children, ...props }) => {
-    // Filter out image elements from list items
+    // Filter out image elements and trim empty whitespace/newlines that break bullet alignment
     const filteredChildren = React.Children.toArray(children).filter((child: any) => {
       // Check if the child is an img element
       if (child?.type === 'img' || (child?.props && child.props.src)) {
@@ -178,20 +178,22 @@ const createComponents = (allWebFiles: WebFile[]): Partial<Components> => ({
       // Check if the child contains image URLs in text
       if (typeof child === 'string') {
         const imageUrlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?[^\s]*)?)/gi;
-        return !imageUrlRegex.test(child);
+        if (imageUrlRegex.test(child)) return false;
+        // Skip standalone whitespace or empty newlines at list boundaries
+        return child.trim().length > 0;
       }
       return true; // Keep other elements
     });
 
     return (
-      <li className="break-long-words py-0.5 whitespace-pre-wrap leading-relaxed" {...props}>
+      <li className="break-long-words py-0.5 leading-relaxed" {...props}>
         {filteredChildren}
       </li>
     );
   },
   ul: ({ node, children, ...props }) => {
     return (
-      <ul className="break-long-words list-disc list-outside ml-4" {...props}>
+      <ul className="break-long-words list-disc list-outside ml-3.5 my-1" {...props}>
         {children}
       </ul>
     );

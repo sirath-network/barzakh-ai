@@ -147,16 +147,23 @@
   text-align: left;
 }
 
-/* Better spacing for lists */
+/* Better spacing for lists - compact and clean for chat */
 .markdown-body ul,
 .markdown-body ol {
-  margin: 1rem 0;
-  padding-left: 1.75rem;
+  margin: 0.35rem 0;
+  padding-left: 1.25rem;
 }
 
 .markdown-body li {
-  margin: 0.5rem 0;
-  padding-left: 0.25rem;
+  margin: 0.125rem 0;
+  padding-left: 0.15rem;
+}
+
+/* Nested lists must be compact with no stacked vertical margins */
+.markdown-body li > ul,
+.markdown-body li > ol {
+  margin: 0.15rem 0 !important;
+  padding-left: 1.25rem;
 }
 
 /* Custom bullet for ul */
@@ -172,17 +179,26 @@
   margin-right: 0.5rem;
 }
 
-/* Typography margins */
+/* Typography margins - tight and modern for chat messages */
 .markdown-body p {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
 }
 
-/* Fix massive 100px gaps in loose lists where p/div tags are nested in li */
+.markdown-body p:first-child {
+  margin-top: 0;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Fix massive gaps in loose lists where p/div tags are nested in li */
 .markdown-body li p,
 .markdown-body li div {
-  margin-top: 0.25rem !important;
-  margin-bottom: 0.25rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  display: inline;
 }
 
 .markdown-body li > p:first-child,
@@ -196,8 +212,8 @@
 }
 
 .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
-  margin-top: 1.75rem;
-  margin-bottom: 1rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.4rem;
   color: hsl(var(--foreground));
   font-weight: 600;
   letter-spacing: -0.02em;

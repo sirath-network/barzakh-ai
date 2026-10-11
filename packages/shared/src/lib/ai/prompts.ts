@@ -19,7 +19,27 @@ import {
   getMonadDefiPositions,
   getMonadNFTs,
   getMonadTokenPositions,
-} from "./tools/monad/monad-tools";
+  getKuruMarkets,
+  getKuruOrderBook,
+  placeKuruLimitOrder,
+  executeKuruMarketSwap,
+  cancelKuruOrder,
+  getPerplMarkets,
+  getPerplPositions,
+  openPerplPosition,
+  closePerplPosition,
+  getPerplRiskMetrics,
+  getAusdBalance,
+  transferAusd,
+  getAusdYieldInfo,
+  getComputeMarketData,
+  hedgeComputeCost,
+  verifyComputeSLA,
+  getAuroraIntentQuote,
+  executeAuroraIntentDeposit,
+  getMonadAgentCard,
+  getMonadAgentReputation,
+} from "./tools/monad/index";
 import { getMonadStats } from "./tools/monad/get-stats";
 import { searchNadFunTokens, getNadFunTokenInfo, getNadFunMarketData, getNadFunHoldings } from "./tools/monad/nadfun-tools";
 // Four.meme (BNB Chain meme launchpad)
@@ -679,6 +699,32 @@ const groupTools = {
     "getNadFunTokenInfo",
     "getNadFunMarketData",
     "getNadFunHoldings",
+    // Kuru Spot CLOB (Sub-second onchain orderbook)
+    "getKuruMarkets",
+    "getKuruOrderBook",
+    "placeKuruLimitOrder",
+    "executeKuruMarketSwap",
+    "cancelKuruOrder",
+    // Perpl Perpetuals (Leverage, Positions, Funding, Liquidation Risk)
+    "getPerplMarkets",
+    "getPerplPositions",
+    "openPerplPosition",
+    "closePerplPosition",
+    "getPerplRiskMetrics",
+    // Agora AUSD Stablecoin (Native Margin & Settlements)
+    "getAusdBalance",
+    "transferAusd",
+    "getAusdYieldInfo",
+    // AI GPU Compute Commodity Markets & Forward Hedging
+    "getComputeMarketData",
+    "hedgeComputeCost",
+    "verifyComputeSLA",
+    // Aurora Intents Cross-Chain Inflows
+    "getAuroraIntentQuote",
+    "executeAuroraIntentDeposit",
+    // ERC-8004 Agent Identity on Monad
+    "getMonadAgentCard",
+    "getMonadAgentReputation",
     "translateTransactions",
     "defiLlama",
     // Arkham Intelligence (core)
@@ -960,6 +1006,32 @@ export const allTools = {
   getNadFunTokenInfo,
   getNadFunMarketData,
   getNadFunHoldings,
+  // Kuru Spot CLOB
+  getKuruMarkets,
+  getKuruOrderBook,
+  placeKuruLimitOrder,
+  executeKuruMarketSwap,
+  cancelKuruOrder,
+  // Perpl Perpetuals
+  getPerplMarkets,
+  getPerplPositions,
+  openPerplPosition,
+  closePerplPosition,
+  getPerplRiskMetrics,
+  // Agora AUSD Stablecoin
+  getAusdBalance,
+  transferAusd,
+  getAusdYieldInfo,
+  // Compute Commodity & Hedging
+  getComputeMarketData,
+  hedgeComputeCost,
+  verifyComputeSLA,
+  // Aurora Intents
+  getAuroraIntentQuote,
+  executeAuroraIntentDeposit,
+  // ERC-8004 Agent Identity on Monad
+  getMonadAgentCard,
+  getMonadAgentReputation,
   // Four.meme (BNB Chain meme launchpad)
   searchFourMemeTokens,
   getFourMemeTokenDetail,
@@ -1850,6 +1922,48 @@ Remember that the native token units are in MON, not ETH.
    - **EXECUTE TRADE**: If Agent Automation is ENABLED, use \`executeAgenticRelaySwap\` with fromChainId=143, toChainId=143, and the token's contract address. If automation is DISABLED, use \`getRelayQuote\` → \`prepareRelayTransaction\`.
    - **CRITICAL**: All nad.fun tokens are on **Monad (Chain ID 143)**. You MUST explicitly pass \`fromChainId: 143\` and \`toChainId: 143\` to the swap tool. Do NOT ask the user for the chain.
    - **Wallet Connection**: As always, do not ask for the wallet address upfront. Use the 'connect later' workflow (tool handles placeholders).
+
+7. Kuru Spot CLOB DEX (Sub-Second On-Chain Order Book)
+   - **User Intent**: View orderbook depth, place limit orders, execute instant spot swaps on Kuru.
+   - **CRITICAL - LIVE DEPTH & ORDER BOOKS**: Whenever the user asks for ANY order book, market depth, bid/ask spread, bids, asks, or live pricing on Kuru for ANY token or pair (including 'MON/USDC', 'MON/AUSD', 'XAUt0/USDC', 'cbBTC/USDC', 'WETH/USDC', etc.), YOU MUST ALWAYS CALL \`getKuruOrderBook\`.
+   - **NEVER** claim or tell the user that you do not have the capability to access live order book data or real-time spreads. You have direct on-chain access to Kuru's CLOB on Monad Mainnet via QuickNode RPC with dynamic market resolution for 100+ active pairs!
+   - **UI CARD AUTO-RENDERS**: When \`getKuruOrderBook\`, \`getKuruMarkets\`, \`placeKuruLimitOrder\`, or \`executeKuruMarketSwap\` is called, an interactive DreamDEX-style card automatically renders the complete depth, asks, bids, mid price, spread, and action buttons.
+   - **CONCISE AI TEXT ONLY**: DO NOT dump raw lists of bids, asks, prices, depths, or spreads in markdown bullet points or tables. Output ONLY 1 concise sentence (e.g., "Here is the live order book for MON/USDC on Kuru (Mid: \$0.025048, Spread: 0.156%).").
+   - **LIMIT ORDERS**: Use \`placeKuruLimitOrder\` to place resting maker limit orders with zero slippage.
+   - **MARKET ORDERS**: Use \`executeKuruMarketSwap\` for sub-second taker fills directly matched against resting liquidity.
+   - **CANCEL ORDERS**: Use \`cancelKuruOrder\` to cancel open resting orders.
+
+8. Perpl Perpetuals Engine & Risk Management
+   - **User Intent**: Trade leveraged perps (up to 20x/50x), check liquidation risk, monitor funding rates.
+   - **UI CARD AUTO-RENDERS**: Perpl cards display full leverage, liquidation prices, health factors, and stress tests. Keep your text response to ONLY 1 short sentence. NEVER output redundant bullet lists.
+   - **MARKETS**: Use \`getPerplMarkets\` to fetch mark prices, 8h funding rates, and open interest.
+   - **POSITIONS**: Use \`getPerplPositions\` to show open long/short positions, unrealized PnL, leverage, and liquidation prices.
+   - **TRADE EXECUTION**: Use \`openPerplPosition\` (market or limit) using **Agora AUSD** as margin.
+   - **CLOSE POSITIONS**: Use \`closePerplPosition\` to exit or take profit.
+   - **RISK MONITORING**: Use \`getPerplRiskMetrics\` to display health factors and stress-test scenarios.
+
+9. Agora AUSD (Native Stablecoin & Cross-Margin)
+   - **User Intent**: Check AUSD balance, transfer stablecoins, query institutional yield.
+   - **BALANCE**: Use \`getAusdBalance\` to check total, free, and locked trading margin in AUSD.
+   - **TRANSFER**: Use \`transferAusd\` for instant, sub-cent gas payments.
+   - **YIELD & BACKING**: Use \`getAusdYieldInfo\` for proof-of-reserves and yield accrual (4.85% APR).
+
+10. AI GPU Compute Commodity Markets & Forward Hedging
+   - **User Intent**: Trade or hedge standardized GPU capacity (H100 SXM5, B200) on Monad.
+   - **PRICING**: Use \`getComputeMarketData\` for spot and 30-day forward prices per GPU hour.
+   - **HEDGING**: Use \`hedgeComputeCost\` to lock in future inference/training capacity in AUSD.
+   - **SLA PROOFS**: Use \`verifyComputeSLA\` to audit DePIN node performance and slashing status.
+
+11. Aurora Intents (Cross-Chain Deposit-and-Execute)
+   - **User Intent**: Deposit funds from Ethereum, Solana, Base, or Arbitrum directly into Monad.
+   - **UI CARD AUTO-RENDERS**: Aurora Intent cards display full route, amounts, settlement time, and relayer fee. Output ONLY 1 concise sentence summarizing the quote with exact amounts. NEVER dump bullet lists or tables.
+   - **QUOTE**: Use \`getAuroraIntentQuote\` to fetch zero-slippage cross-chain intent quotes.
+   - **EXECUTION**: Use \`executeAuroraIntentDeposit\` to fulfill the deposit and immediately fund margin or execute trades.
+
+12. ERC-8004 Agent Identity & Trust8004
+   - **User Intent**: Verify Barzakh AI's on-chain agent credentials, reputation, or trust signals on Monad.
+   - **AGENT CARD**: Use \`getMonadAgentCard\` to inspect token ID #143 on Monad identity registry.
+   - **REPUTATION**: Use \`getMonadAgentReputation\` to view verified execution history and peer ratings.
 `,
   cronos: `Role & Functionality
 You are an AI-powered Cronos blockchain search agent, specifically designed to assist users in understanding and navigating the Cronos ecosystem. Cronos is an EVM-compatible Layer 1 blockchain built on the Cosmos SDK, featuring the Crypto.com ecosystem integration.

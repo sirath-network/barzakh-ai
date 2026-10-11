@@ -660,7 +660,7 @@ export async function POST(request: Request) {
       creditcoin: [/\bcreditcoin\b/i, /\bctc\s+token/i],
       vana: [/\bvana\b/i],
       flow: [/\bflow\s+(blockchain|network|chain)/i],
-      monad: [/\bmonad\b/i],
+      monad: [/\b(monad|kuru|perpl|agora|ausd|nadfun|nad\.fun|xaut0|cbbtc)\b/i],
       mantle: [/\bmantle\b/i, /\bmnt\s+(token|balance)/i],
       flare: [/\bflare\b/i, /\bflr\s+(token|coin|balance|price)/i, /\bftso\b/i, /\bfasset[s]?\b/i, /\bfxrp\b/i, /\bcoston2?\b/i, /\bsongbird\b/i],
       goat: [/\bgoat\b/i, /\.goat\b/i, /\bgns\b/i, /\berc[- ]?8004\b/i, /\bwgbtc\b/i, /\bbitvm2?\b/i],
@@ -1217,6 +1217,37 @@ CRITICAL INSTRUCTIONS:
     );
   }
 
+  const hasMonadContext = /monad|kuru|perpl|agora|ausd/i.test(recentMessagesText);
+  const isMonadPrompt =
+    /kuru|perpl|agora|ausd|monad|monadscan|nad\.fun|nadfun|h100|b200|aurora\s*intent|xaut0|cbbtc|wmon/i.test(
+      userMessageText || ""
+    ) || (hasMonadContext && /order\s*book|depth|spread|buy|sell|limit|swap|perp|position|hedge|margin/i.test(userMessageText || ""));
+
+  if (isMonadPrompt || effectiveGroup === "monad") {
+    safeActiveTools.push(
+      "getKuruMarkets",
+      "getKuruOrderBook",
+      "placeKuruLimitOrder",
+      "executeKuruMarketSwap",
+      "cancelKuruOrder",
+      "getPerplMarkets",
+      "getPerplPositions",
+      "openPerplPosition",
+      "closePerplPosition",
+      "getPerplRiskMetrics",
+      "getAusdBalance",
+      "transferAusd",
+      "getAusdYieldInfo",
+      "getComputeMarketData",
+      "hedgeComputeCost",
+      "verifyComputeSLA",
+      "getAuroraIntentQuote",
+      "executeAuroraIntentDeposit",
+      "getMonadAgentCard",
+      "getMonadAgentReputation"
+    );
+  }
+
   safeActiveTools = uniqueToolNames(safeActiveTools);
 
   const authenticatedUserId = session?.user?.id || activeUserId;
@@ -1458,6 +1489,28 @@ CRITICAL INSTRUCTIONS:
       getAgentWalletInfo: createGetAgentWalletInfoTool(authenticatedUserId),
       getAgentTokenBalance: createGetAgentTokenBalanceTool(authenticatedUserId),
       executeAutonomousSubscription: createAutonomousSubscriptionTool(authenticatedUserId),
+      // Monad Autonomous Execution Tools (Kuru CLOB & Perpl Perpetuals)
+      placeKuruLimitOrder: tool({
+        ...allTools.placeKuruLimitOrder,
+        execute: async (args: any) => {
+          const { executeAgenticKuruLimitOrder } = await import("@/lib/agent/monad-agent-executor");
+          return (await executeAgenticKuruLimitOrder(authenticatedUserId, args)) as any;
+        },
+      } as any),
+      executeKuruMarketSwap: tool({
+        ...allTools.executeKuruMarketSwap,
+        execute: async (args: any) => {
+          const { executeAgenticKuruMarketSwap } = await import("@/lib/agent/monad-agent-executor");
+          return (await executeAgenticKuruMarketSwap(authenticatedUserId, args)) as any;
+        },
+      } as any),
+      openPerplPosition: tool({
+        ...allTools.openPerplPosition,
+        execute: async (args: any) => {
+          const { executeAgenticPerplPosition } = await import("@/lib/agent/monad-agent-executor");
+          return (await executeAgenticPerplPosition(authenticatedUserId, args)) as any;
+        },
+      } as any),
       // Somnia / DreamDEX Event Contracts Autonomous Execution Tools
       dreamDexPlaceOrder: tool({
         ...allTools.dreamDexPlaceOrder,

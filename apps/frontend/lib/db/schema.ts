@@ -279,6 +279,33 @@ export const agent_transaction = pgTable("AgentTransaction", {
 
 export type AgentTransaction = InferSelectModel<typeof agent_transaction>;
 
+// --- Mera Passkey & WebAuthn PRF Credentials ---
+
+export const passkey_credential = pgTable(
+  "PasskeyCredential",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialId: text("credentialId").notNull().unique(),
+    publicKey: text("publicKey").notNull(),
+    counter: integer("counter").notNull().default(0),
+    transports: text("transports").default("[]"),
+    deviceName: text("deviceName").notNull().default("Mera Passkey"),
+    walletAddress: varchar("walletAddress", { length: 128 }),
+    prfSupported: boolean("prfSupported").notNull().default(false),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    lastUsedAt: timestamp("lastUsedAt"),
+  },
+  (table) => ({
+    userIdIdx: index("idx_passkey_user_id").on(table.userId),
+    credentialIdIdx: index("idx_passkey_credential_id").on(table.credentialId),
+  })
+);
+
+export type PasskeyCredential = InferSelectModel<typeof passkey_credential>;
+
 // --- Walrus Memory Management ---
 
 export const walrus_memory_settings = pgTable("WalrusMemorySettings", {

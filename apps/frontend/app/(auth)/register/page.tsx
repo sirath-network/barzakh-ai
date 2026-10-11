@@ -22,6 +22,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { LogoGoogle } from '@/components/icons';
 import { WalletLoginButton } from '@/components/wallet-login-button';
 import { WalletSelectorModal } from '@/components/wallet-selector-modal';
+import { MeraPasskeyButton } from '@/components/mera-passkey-button';
 import { signIn, getSession } from 'next-auth/react';
 
 import { PredictiveArcBackground } from '@/components/laser-background';
@@ -295,6 +296,23 @@ export default function Page() {
                       </div>
                     )}
                   </div>
+
+                  {!showOTPField && (
+                    <>
+                      {/* Mera Passkey Instant Registration / Smart Auth */}
+                      <MeraPasskeyButton mode="auto" email={email} />
+
+                      {/* Divider */}
+                      <div className="relative py-0.5">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-zinc-800" />
+                        </div>
+                        <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-medium">
+                          <span className="bg-zinc-900 px-2 text-zinc-500">OR REGISTER WITH EMAIL</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Register form */}
                   <form action={handleFormAction}>

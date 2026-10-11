@@ -44,6 +44,7 @@ const BillingSettingsPage = dynamic(() => import("@/components/settings/billing/
 const ArchivedPage = dynamic(() => import("@/components/settings/archived/archived-page").then(mod => mod.ArchivedPage), { loading: () => <LoadingSettings /> });
 const TwoFactorSettingsPage = dynamic(() => import("@/components/settings/2fa/two-factor-page"), { loading: () => <LoadingSettings /> });
 const PlanDetailPage = dynamic(() => import("@/components/settings/plans/plan-detail-page"), { loading: () => <LoadingSettings /> });
+const PasskeySettingsPage = dynamic(() => import("@/components/settings/passkey/passkey-settings").then(mod => mod.PasskeySettings), { loading: () => <LoadingSettings /> });
 
 const settingsViews = (user: User | undefined): Record<string, React.ReactNode> => ({
   account: <AccountSettingsPage />,
@@ -54,6 +55,7 @@ const settingsViews = (user: User | undefined): Record<string, React.ReactNode> 
   archived: <ArchivedPage user={user} />,
   "2fa": <TwoFactorSettingsPage />,
   plans: <PlanDetailPage />,
+  passkey: <PasskeySettingsPage />,
 });
 
 export function Chat({

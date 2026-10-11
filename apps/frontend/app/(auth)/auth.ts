@@ -152,6 +152,45 @@ export const authOptions: NextAuthConfig = {
         }
       }
     }),
+    Credentials({
+      id: "credentials-passkey",
+      name: "Mera Passkey",
+      credentials: {
+        credentialId: { label: "Credential ID", type: "text" },
+        sessionToken: { label: "Session Token", type: "text" },
+      },
+      async authorize(credentials: any) {
+        try {
+          const { credentialId, sessionToken } = credentials;
+          if (!credentialId || !sessionToken) return null;
+
+          if (!process.env.AUTH_SECRET) {
+            throw new Error("AUTH_SECRET is required");
+          }
+          const secret = new TextEncoder().encode(process.env.AUTH_SECRET);
+          const { jwtVerify } = await import("jose");
+          const { payload } = await jwtVerify(sessionToken, secret);
+
+          if (payload.type !== "passkey" || payload.credentialId !== credentialId) {
+            console.error("Passkey session token payload mismatch");
+            return null;
+          }
+
+          const { getUserById, updatePasskeyUsage } = await import("@/lib/db/queries");
+          const users = await getUserById(payload.userId as string);
+          if (users.length === 0) {
+            console.error("User not found for passkey credential");
+            return null;
+          }
+
+          await updatePasskeyUsage(credentialId);
+          return users[0] as any;
+        } catch (error) {
+          console.error("Passkey authorization error:", error);
+          return null;
+        }
+      },
+    }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,

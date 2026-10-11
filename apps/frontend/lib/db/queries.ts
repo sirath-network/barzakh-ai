@@ -27,6 +27,8 @@ import {
   type GuestSession,
   walrus_memory_settings,
   type WalrusMemorySettings,
+  passkey_credential,
+  type PasskeyCredential,
 } from "./schema";
 
 // Optionally, if not using email/pass login, you can
@@ -168,6 +170,132 @@ export async function createUserWithWallet(
       walletAddress,
       errorMessage: error instanceof Error ? error.message : 'Unknown error'
     });
+    throw error;
+  }
+}
+
+// --- Mera Passkey Database Queries ---
+
+export async function getPasskeyByCredentialId(credentialId: string): Promise<Array<PasskeyCredential>> {
+  try {
+    return await db.select().from(passkey_credential).where(eq(passkey_credential.credentialId, credentialId)).limit(1);
+  } catch (error) {
+    console.error("Failed to get passkey by credentialId:", error);
+    throw error;
+  }
+}
+
+export async function getPasskeysByUserId(userId: string): Promise<Array<PasskeyCredential>> {
+  try {
+    return await db
+      .select()
+      .from(passkey_credential)
+      .where(eq(passkey_credential.userId, userId))
+      .orderBy(desc(passkey_credential.createdAt));
+  } catch (error) {
+    console.error("Failed to get passkeys by userId:", error);
+    throw error;
+  }
+}
+
+export async function createPasskeyCredential(data: {
+  userId: string;
+  credentialId: string;
+  publicKey: string;
+  counter?: number;
+  transports?: string;
+  deviceName?: string;
+  walletAddress?: string;
+  prfSupported?: boolean;
+}): Promise<PasskeyCredential> {
+  try {
+    const [result] = await db
+      .insert(passkey_credential)
+      .values({
+        userId: data.userId,
+        credentialId: data.credentialId,
+        publicKey: data.publicKey,
+        counter: data.counter ?? 0,
+        transports: data.transports ?? "[]",
+        deviceName: data.deviceName || "Mera Passkey",
+        walletAddress: data.walletAddress,
+        prfSupported: data.prfSupported ?? false,
+      })
+      .returning();
+    return result;
+  } catch (error) {
+    console.error("Failed to insert passkey credential:", error);
+    throw error;
+  }
+}
+
+export async function updatePasskeyUsage(credentialId: string, counter?: number) {
+  try {
+    const updateValues: any = { lastUsedAt: new Date() };
+    if (typeof counter === "number") {
+      updateValues.counter = counter;
+    }
+    return await db
+      .update(passkey_credential)
+      .set(updateValues)
+      .where(eq(passkey_credential.credentialId, credentialId));
+  } catch (error) {
+    console.error("Failed to update passkey usage:", error);
+  }
+}
+
+export async function deletePasskeyCredential(id: string, userId: string) {
+  try {
+    return await db
+      .delete(passkey_credential)
+      .where(and(eq(passkey_credential.id, id), eq(passkey_credential.userId, userId)))
+      .returning();
+  } catch (error) {
+    console.error("Failed to delete passkey credential:", error);
+    throw error;
+  }
+}
+
+export async function createUserWithPasskey(data: {
+  id: string;
+  credentialId: string;
+  publicKey: string;
+  walletAddress?: string | null;
+  email?: string | null;
+  name: string;
+  username: string;
+  deviceName?: string;
+  transports?: string;
+  prfSupported?: boolean;
+}): Promise<{ user: User; passkey: PasskeyCredential }> {
+  try {
+    const userData: any = {
+      id: data.id,
+      email: data.email || null,
+      walletAddress: data.walletAddress || null,
+      name: data.name,
+      username: data.username,
+    };
+
+    const [newUser] = await db.insert(user).values(userData).returning();
+
+    const [newPasskey] = await db
+      .insert(passkey_credential)
+      .values({
+        userId: data.id,
+        credentialId: data.credentialId,
+        publicKey: data.publicKey,
+        deviceName: data.deviceName || "Passkey",
+        walletAddress: data.walletAddress || null,
+        prfSupported: data.prfSupported ?? false,
+        transports: data.transports ?? "[]",
+        counter: 0,
+      })
+      .returning();
+
+    return { user: newUser, passkey: newPasskey };
+  } catch (error) {
+    console.error("Failed to create user with passkey:", error);
     throw error;
   }
 }

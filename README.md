@@ -1,38 +1,302 @@
 # Barzakh AI
 
 <p align="center">
-  <img width="100%" alt="Barzakh AI Banner" src="https://github.com/user-attachments/assets/bdb03347-8615-4be3-8920-aca4a7fc54b5" />
+  <img width="100%" alt="Barzakh Hyper-Terminal Banner" src="https://github.com/user-attachments/assets/bdb03347-8615-4be3-8920-aca4a7fc54b5" />
 </p>
 
 <p align="center">
-  <strong>🧠 AI-Powered Onchain Agent — Execute Trades, Bridges, Intelligence & DeFi via Natural Language</strong>
+  <strong>🏆 Official Submission for the Monad Metropolis Hackathon (October 2026)</strong><br />
+  <em>The First Autonomous Sub-Second Execution & Risk Copilot on Monad — Powered by 400ms On-Chain CLOBs, Universal AUSD Margin, and Zero-Popup Mera Passkeys.</em>
 </p>
 
 <p align="center">
-  <a href="https://app.sirath.network"><img src="https://img.shields.io/badge/🚀_Live_-app.sirath.network-ede8e8?style=for-the-badge" alt="Live"></a>&nbsp;
-  <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read_Now-ede8e8?style=for-the-badge" alt="Whitepaper"></a>
+  <a href="https://app.sirath.network"><img src="https://img.shields.io/badge/🚀_Live_App-app.sirath.network-ede8e8?style=for-the-badge" alt="Live App"></a>&nbsp;
+  <a href="#-monad-metropolis-hackathon-showcase"><img src="https://img.shields.io/badge/⚡_Monad_Showcase-Explore-ede8e8?style=for-the-badge" alt="Monad Showcase"></a>&nbsp;
+  <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read-ede8e8?style=for-the-badge" alt="Whitepaper"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Somnia_Network-DreamDEX_Prediction_Markets-ede8e8?style=for-the-badge" alt="Somnia Network">&nbsp;
-  <img src="https://img.shields.io/badge/Relay_Protocol-Cross--Chain-ede8e8?style=for-the-badge" alt="Relay Protocol">&nbsp;
-  <img src="https://img.shields.io/badge/Walrus_Memory-Mainnet-ede8e8?style=for-the-badge" alt="Walrus Memory">
+  <img src="https://img.shields.io/badge/Monad_Mainnet-Chain_ID_143-ede8e8?style=for-the-badge" alt="Monad Mainnet">&nbsp;
+  <img src="https://img.shields.io/badge/Kuru_Spot-CLOB_DEX-ede8e8?style=for-the-badge" alt="Kuru CLOB">&nbsp;
+  <img src="https://img.shields.io/badge/Perpl-Perpetuals_Engine-ede8e8?style=for-the-badge" alt="Perpl Perps">&nbsp;
+  <img src="https://img.shields.io/badge/Agora_AUSD-Universal_Margin-ede8e8?style=for-the-badge" alt="Agora AUSD">&nbsp;
+  <img src="https://img.shields.io/badge/Mera-Passkey_PRF-ede8e8?style=for-the-badge" alt="Mera Passkey">&nbsp;
+  <img src="https://img.shields.io/badge/Dynamic-Agent_Wallets-ede8e8?style=for-the-badge" alt="Dynamic">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/TypeScript-5.6-ede8e8?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Next.js-16.2-ede8e8?logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/TypeScript-5.6-ede8e8?logo=typescript&logoColor=black" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Next.js-16.2-ede8e8?logo=next.js&logoColor=black" alt="Next.js">
   <img src="https://img.shields.io/badge/React-19.2-ede8e8?logo=react&logoColor=black" alt="React">
-  <img src="https://img.shields.io/badge/Node.js-18+-ede8e8?logo=node.js&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/Turborepo-2.8-ede8e8?logo=turborepo&logoColor=white" alt="Turborepo">
-  <img src="https://img.shields.io/badge/Vercel-Deployed-ede8e8?logo=vercel" alt="Vercel">
+  <img src="https://img.shields.io/badge/Node.js-18+-ede8e8?logo=node.js&logoColor=black" alt="Node.js">
+  <img src="https://img.shields.io/badge/Turborepo-2.8-ede8e8?logo=turborepo&logoColor=black" alt="Turborepo">
+  <img src="https://img.shields.io/badge/Vercel-Deployed-ede8e8?logo=vercel&logoColor=black" alt="Vercel">
   <img src="https://img.shields.io/badge/License-MIT-ede8e8" alt="MIT License">
 </p>
 
 ---
 
+## ⚡ Monad Metropolis Hackathon Showcase
+
+> **"Monad is the Home of High-Frequency Finance. But why is human DeFi still trapped in the slow 2020 AMM era? Barzakh Hyper-Terminal is the world's first conversational execution and risk copilot, built natively for Monad's 400ms parallel on-chain CLOBs and universal AUSD margin."**
+
+### 🏆 Targeted Tracks & Ecosystem Focus
+
+| Track / Focus | Ecosystem Partner | Key Capability Delivered | Implementation & Architecture Proof |
+|---|---|---|---|
+| **PRIMARY TRACK** | **Onchain Finance & Trading** | High-Frequency Conversational Terminal | Sub-second conversational CLOB terminal with zero pending states, spot-perps basis hedging, and compute index trading. |
+| **Mobile Trading Category** | **Agora** | Universal Margin & Yield Settlement | Authenticating via Mera passkeys, holding **Agora AUSD** universal margin balance, executing leveraged trades through **Perpl**. |
+| **Spot Trading Category** | **Kuru** | Consumer CLOB Interface & Depth | Conversational spot trading routing orders through Kuru's on-chain CLOB with live Level-2 depth ladders. |
+| **New Asset Classes** | **Kuru** | Tokenized Compute Commodity Markets | Standardized AI GPU Compute (`H100-SXM5`/`AUSD`, `B200-BLACKWELL`/`AUSD`) spot market pairs with on-chain orderbook depth. |
+| **Autonomous Systems** | **Perpl** | 24/7 Delta-Neutral Trading Bot | Autonomous delta-neutral basis carry and trailing stop-loss keeper running 24/7 in `apps/signal-agent`. |
+| **Risk & Analytics** | **Perpl** | Interactive Stress-Testing & Heatmaps | Real-time portfolio risk monitoring, margin health factor, and liquidation stress-testing interactive cards. |
+| **Embedded Wallets** | **Dynamic** | Scoped Agent Delegation | Dynamic Embedded Agent Wallets with session key signing for zero-popup autonomous execution. |
+| **Cross-Chain Inflow** | **Aurora Intents** | Instant Cross-Chain Collateral | Deposit from Ethereum, Solana, or Base and settle as AUSD on Monad in a single natural language command. |
+| **UX & Identity** | **Monad Foundation** | Biometric Native Account Layer | Mera WebAuthn passkey is the entire account layer (no seed phrases, no browser extension required). |
+| **Key Derivation** | **Monad Foundation** | Mera: "One Passkey, Many Keys" | Uses WebAuthn PRF extension to derive scoped trading session keys and Walrus memory encryption keys. |
+
+---
+
+### 💡 The Problem & The Monad Breakthrough
+
+- **The Problem**: Traditional blockchains operate with 2-to-12 second block times. In DeFi, this forced users into passive AMMs (automated market makers) characterized by high slippage, toxic MEV sandwich attacks, and frustrating "Transaction Pending..." spinners. Central Limit Order Books (CLOBs) and automated high-frequency strategies were mathematically impossible onchain without centralized offchain matching.
+- **The Monad Breakthrough**: With **10,000 TPS, 400ms blocks, 800ms finality, and parallel execution**, Monad eliminates the latency bottleneck:
+  1. **Sub-Second Conversational Trading**: Natural language commands turn into executed and finalized trades across Kuru (Spot CLOB) and Perpl (Perps CLOB) in `< 800ms`.
+  2. **Execution-Aware UI**: No loading spinners. The UI directly streams orderbook fills tick-by-tick.
+  3. **Mera Passkey PRF Architecture**: Biometric 1-tap onboarding derives scoped session keys, allowing automated trailing stops and algorithmic basis harvesting without popup fatigue.
+  4. **Decentralized AI GPU Compute Hedging**: AI builders and funds can hedge real-time compute capacity (NVIDIA H100 SXM5, B200) via standardized contracts settled in **Agora AUSD**.
+
+---
+
+### 📐 Comprehensive Architecture Diagrams
+
+#### 1. System Topology & Component Layout
+
+```mermaid
+flowchart TB
+    User(["👤 Trader / User (Mobile or Web)"])
+    
+    subgraph AuthLayer["🔐 Account & Security Layer"]
+        Mera["Mera Passkey (WebAuthn / P256)"]
+        PRF["WebAuthn PRF: Scoped Session Sub-Keys"]
+        Dyn["Dynamic Embedded Wallet SDK"]
+    end
+    
+    subgraph FrontLayer["💻 apps/frontend (Next.js 16 + React 19)"]
+        ChatUI["Conversational Terminal & Command Bar"]
+        KuruCard["⚡ Kuru Spot CLOB Card (Live Depth, Sub-Second Fills)"]
+        PerplCard["📊 Perpl Risk & Liquidation Heatmap Card"]
+        ComputeCard["🖥️ AI GPU Compute Hedging Card"]
+        AuroraCard["🌉 Aurora Intents Cross-Chain Card"]
+    end
+    
+    subgraph AgentBrain["🧠 Agent Orchestration (packages/shared)"]
+        Intent["Smart Intent Classifier & Multi-Model Router"]
+        Walrus["🧠 Walrus Memory Client (Persistent Trade State)"]
+        x402["💳 x402 HTTP Micropayment Engine"]
+        ERC8004["📜 ERC-8004 Registry (Indexed on Trust8004)"]
+    end
+    
+    subgraph ExecutionMonad["⚡ Monad High-Speed Execution (Chain ID: 143)"]
+        AgoraAUSD["💵 Agora AUSD (Primary Settlement & Universal Margin)"]
+        KuruCLOB["📈 Kuru Spot CLOB DEX"]
+        PerplPerps["📉 Perpl Perpetuals Engine"]
+        ComputeMarket["🖥️ Synthetic Compute Spot Market (H100/AUSD)"]
+    end
+
+    subgraph AutonomousWorker["🤖 apps/signal-agent (24/7 Automation)"]
+        HFTWorker["Basis Spread & Trailing Stop Keeper"]
+    end
+
+    User --> Mera
+    Mera --> PRF --> Dyn
+    User --> FrontLayer
+    FrontLayer --> AgentBrain
+    AgentBrain --> KuruCLOB
+    AgentBrain --> PerplPerps
+    AgentBrain --> ComputeMarket
+    AgentBrain --> AgoraAUSD
+    AutonomousWorker --> PerplPerps
+    AutonomousWorker --> KuruCLOB
+```
+
+#### 2. Sub-Second Conversational Order Lifecycle (Sequence Diagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Trader as 👤 Trader
+    participant UI as 💻 Next.js 16 UI
+    participant Agent as 🧠 AI Intent Engine
+    participant PRF as 🔐 Mera PRF Key
+    participant RPC as ⚡ QuickNode Monad RPC
+    participant Kuru as 📈 Kuru Spot CLOB (Monad)
+    participant Perpl as 📉 Perpl Clearinghouse
+
+    Trader->>UI: "Market buy 50 MON with AUSD on Kuru"
+    UI->>Agent: Stream prompt to AI router
+    Agent->>RPC: getL2Book() - Fetch live Level-2 depth
+    RPC-->>Agent: Bids/Asks depth & optimal execution price
+    Agent->>PRF: Request signed taker calldata via scoped session key
+    PRF-->>Agent: EIP-712 / EIP-191 authorized signature
+    Agent->>Kuru: Broadcast placeAndExecuteMarketBuy()
+    Note over Kuru,RPC: Monad 400ms Parallel Execution & Finality (<800ms)
+    Kuru-->>UI: Event Fill Notification (Block confirmed)
+    UI-->>Trader: Render <KuruTradeCard /> with live execution receipt
+```
+
+#### 3. Autonomous Delta-Neutral Arbitrage & Risk Keeper (Flowchart)
+
+```mermaid
+flowchart LR
+    subgraph CronLoop["⏰ 24/7 Autonomous Keeper (apps/signal-agent)"]
+        Poll["Tick Loop (400ms cadence)"]
+        FetchKuru["Fetch Kuru Spot Price (P_spot)"]
+        FetchPerpl["Fetch Perpl Mark Price (P_perp)"]
+        CalcSpread["Calculate Basis Spread: (P_perp - P_spot)"]
+    end
+
+    subgraph DecisionMatrix["🎯 Decision & Execution Engine"]
+        EvalCondition{"Spread > 0.45% & Funding > 18% APR?"}
+        HedgeAction["Execute Delta-Neutral Cash-and-Carry"]
+        BuySpot["Long Spot on Kuru (AUSD)"]
+        ShortPerp["Short Perp on Perpl (AUSD Margin)"]
+        HoldYield["Harvest 8h Funding Rate Yield"]
+    end
+
+    Poll --> FetchKuru
+    Poll --> FetchPerpl
+    FetchKuru --> CalcSpread
+    FetchPerpl --> CalcSpread
+    CalcSpread --> EvalCondition
+    EvalCondition -- Yes --> HedgeAction
+    HedgeAction --> BuySpot
+    HedgeAction --> ShortPerp
+    BuySpot --> HoldYield
+    ShortPerp --> HoldYield
+    EvalCondition -- No --> Poll
+```
+
+---
+
+### 🛠️ Monad Hyper-Terminal Deep Tech Stack
+
+| Layer | Component | Technical Role | Integration Depth |
+|---|---|---|---|
+| **Base Network** | **Monad Mainnet (Chain ID 143)** | High-throughput parallel EVM L1 | 400ms block times, 800ms finality, 10,000 TPS, dedicated QuickNode RPC |
+| **Settlement Asset** | **Agora AUSD** | Universal collateral & margin | ERC-20 (`0x00000000efe302beaa2b3e6e1b18d08d69a9012a`), institutional T-bill backing, yield proofs |
+| **Spot CLOB** | **Kuru Protocol** | Central Limit Order Book DEX | Level-2 depth decoding, resting limit orders (`addBuyOrder`/`addSellOrder`), market taker swaps |
+| **Perpetuals Engine** | **Perpl** | On-chain perpetuals exchange | Live context (`/pub/context`), cross-margin positions, health factor monitoring, liquidation stress testing |
+| **AI Compute Markets** | **Synthetic Compute Pairs** | DePIN GPU capacity hedging | Standardized `H100-SXM5/AUSD` and `B200-BLACKWELL/AUSD` contracts with SLA performance bonds |
+| **Account Abstraction** | **Mera Passkeys** | Biometric WebAuthn layer | RFC-compliant WebAuthn PRF extension deriving scoped session sub-keys and zero-popup trading |
+| **Agent Wallets** | **Dynamic SDK** | Non-custodial embedded wallet | Embedded MPC wallet delegation, session key transaction signing, automatic key rotation |
+| **Cross-Chain Bridge** | **Aurora Intents** | Solver-based liquidity bridge | Single-command cross-chain deposits from Ethereum, Base, and Solana directly into Monad AUSD |
+| **Autonomous Keeper** | **`apps/signal-agent`** | 24/7 Quantitative HFT engine | Port 3005 microservice calculating real-time basis spreads and funding carry arbitrage |
+| **Agent Identity** | **ERC-8004** | On-chain agent trust & registry | Trustless agent card indexed on Trust8004 registry for verifiable autonomous execution |
+| **Decentralized Memory**| **Walrus Protocol** | Persistent agent trade memory | `@mysten-incubation/memwal` storing user preferences, favorite pools, and historical trades |
+| **Frontend Runtime** | **Next.js 16.2 & React 19** | Sub-second streaming interface | Turbopack, React Server Components, TailwindCSS, Framer Motion interactive execution cards |
+
+---
+
+### 🧪 Golden Test Prompts (Try on Live Terminal)
+
+Test these natural language commands directly on [app.sirath.network](https://app.sirath.network):
+
+#### 1. Kuru Spot CLOB Order Book & Swaps
+```
+Show the live order book for MON/AUSD on Kuru
+```
+```
+Market buy 50 MON on Kuru with AUSD
+```
+```
+Place a limit order on Kuru to buy 100 MON at $4.20 with AUSD
+```
+
+#### 2. Perpl Perpetuals & Risk Analytics
+```
+Open a 5x Long on MON-PERP with 100 AUSD collateral on Perpl
+```
+```
+Stress test my portfolio risk and liquidation scenarios on Perpl
+```
+```
+Show my open positions and margin health on Perpl
+```
+
+#### 3. Agora AUSD Margin & Payments
+```
+What is my Agora AUSD balance and free trading margin on Monad?
+```
+```
+Send 50 AUSD to 0x34a1...9bc2 instantly
+```
+
+#### 4. AI GPU Compute Commodity Hedging
+```
+What is the current spot and forward price for NVIDIA H100 compute on Monad?
+```
+```
+Hedge 500 hours of H100 SXM5 compute capacity for 30 days
+```
+
+#### 5. Aurora Intents Cross-Chain Inflows
+```
+Bridge 1000 USDC from Arbitrum to AUSD on Monad via Aurora Intents
+```
+
+---
+
+### 🚀 Key Modules Implemented
+
+#### 1. Kuru Spot CLOB Tools (`packages/shared/src/lib/ai/tools/monad/kuru-tools.ts`)
+- `getKuruMarkets`: Active trading pairs, spreads, tick sizes, and 400ms sub-second metrics.
+- `getKuruOrderBook`: Real-time bids, asks, depth ladder, and spread calculations via direct RPC `getL2Book()`.
+- `placeKuruLimitOrder`: Submits resting maker limit orders with post-only flags.
+- `executeKuruMarketSwap`: Sub-second taker fills directly matched and executed onchain.
+- `cancelKuruOrder`: Instant onchain cancellation of resting orders with zero residual pending state.
+
+#### 2. Perpl Perpetuals & Risk Engine (`packages/shared/src/lib/ai/tools/monad/perpl-tools.ts`)
+- `getPerplMarkets`: Mark price, index price, 8h funding rates, and open interest metrics.
+- `getPerplPositions`: Active leverage positions, unrealized PnL, margin utilization, and entry prices.
+- `openPerplPosition`: Opens Long/Short positions up to 20x/50x leverage backed by Agora AUSD collateral.
+- `closePerplPosition`: Full or partial position closure with instant AUSD margin return.
+- `getPerplRiskMetrics`: Health factor calculation and multi-scenario liquidation stress testing.
+
+#### 3. Agora AUSD Margin & Settlement (`packages/shared/src/lib/ai/tools/monad/agora-ausd-tools.ts`)
+- `getAusdBalance`: Real-time margin availability and institutional yield status.
+- `transferAusd`: Instant sub-cent cross-border payments on native Monad rails.
+- `getAusdYieldInfo`: Reserve proofs, US T-Bill backing, and ~4.85% APR institutional yield metrics.
+
+#### 4. AI Compute Commodity Markets (`packages/shared/src/lib/ai/tools/monad/compute-hedging-tools.ts`)
+- `getComputeMarketData`: Spot and 30-day forward pricing for NVIDIA H100 SXM5 and B200 units.
+- `hedgeComputeCost`: Forward capacity hedging escrowed in AUSD with SLA underwriting.
+- `verifyComputeSLA`: DePIN GPU node audit and slashing bond verification.
+
+#### 5. Aurora Intents Cross-Chain Inflows (`packages/shared/src/lib/ai/tools/monad/aurora-intents-tools.ts`)
+- `getAuroraIntentQuote`: Zero-slippage cross-chain quote (ETH/SOL/Base ➔ Monad AUSD).
+- `executeAuroraIntentDeposit`: Solver-fulfilled deposit-and-trade execution directly into Monad margin.
+
+#### 6. Mera Passkey PRF Architecture (`apps/frontend/lib/agent/mera-passkey.ts`)
+- WebAuthn PRF extension derives isolated session keys with allowance caps and expiration.
+- Eliminates popup fatigue while maintaining non-custodial cryptographic security.
+
+#### 7. Autonomous HFT Signal Agent (`apps/signal-agent/src/app/api/monad-hft/route.ts`)
+- Calculates real-time basis spreads ($P_{\text{Perpl}} - P_{\text{Kuru}}$).
+- Identifies cash-and-carry delta-neutral funding rate yields.
+- Monitors trailing stop triggers 24/7 on port 3005.
+
+---
+
 ## 📋 Table of Contents
 
+- [Monad Metropolis Hackathon Showcase](#-monad-metropolis-hackathon-showcase)
+  - [Targeted Tracks & Ecosystem Focus](#-targeted-tracks--ecosystem-focus)
+  - [The Problem & The Monad Breakthrough](#-the-problem--the-monad-breakthrough)
+  - [Monad Hyper-Terminal Architecture](#-comprehensive-architecture-diagrams)
+  - [Monad Tech Stack Breakdown](#%EF%B8%8F-monad-hyper-terminal-deep-tech-stack)
+  - [Golden Test Prompts](#-golden-test-prompts-try-on-live-terminal)
+  - [Key Modules Implemented](#-key-modules-implemented)
 - [Overview](#overview)
 - [Walrus Memory — A Chatbot That Remembers](#-walrus-memory--a-chatbot-that-remembers)
 - [Somnia Network & DreamDEX Integration](#-somnia-network--dreamdex-integration--the-oracle-agent-for-prediction-markets)
@@ -40,12 +304,12 @@
 - [Tech Stack](#tech-stack)
 - [AI Models & Orchestration](#ai-models--orchestration)
 - [Blockchain Tools](#blockchain-tools)
+  - [Monad Ecosystem (Deep Integration)](#monad-ecosystem-deep-integration)
   - [Somnia Network & DreamDEX Event Contracts](#somnia-network--dreamdex-event-contracts)
   - [Arkham Intelligence](#%EF%B8%8F-arkham-intelligence--blockchain-investigation--whale-tracking)
   - [Mantle Network](#%EF%B8%8F-mantle-network--l2-blockchain-tools)
   - [Creditcoin](#-creditcoin--blockchain-data-tools)
   - [BNB Chain](#-bnb-chain-integration)
-  - [Monad Ecosystem](#monad-ecosystem-deep-integration)
   - [Shelby Protocol](#-shelby-protocol--decentralized-storage--nft-minting)
   - [Renaiss Protocol](#-renaiss-protocol--collectibles-marketplace--zero-knowledge-gacha)
 - [x402 Crypto Payment Protocol](#x402-crypto-payment-protocol)
@@ -897,6 +1161,27 @@ Barzakh AI provides **10 dedicated Monad tools** for comprehensive interaction w
 | `getMonadTokenPositions` | All token balances with USD values |
 | `getMonadStats` | Blockchain statistics via MonadScan |
 | `searchNadFunTokens` | Search nad.fun tokens by name/symbol/address |
+| `getKuruOrderBook` | Real-time Spot CLOB bids/asks depth & spread |
+| `placeKuruLimitOrder` | On-chain resting maker limit order |
+| `executeKuruMarketSwap` | Sub-second market taker swap execution |
+| `getPerplPositions` | Leveraged perp positions, margin & liquidation prices |
+| `openPerplPosition` | Long/Short with up to 50x leverage in Agora AUSD |
+| `getPerplRiskMetrics` | Portfolio health factor & liquidation stress-testing |
+| `getAusdBalance` | Agora AUSD native stablecoin balance & yield |
+| `getComputeMarketData` | Standardized AI GPU compute commodity pricing |
+| `hedgeComputeCost` | Forward capacity hedging (H100/B200) in AUSD |
+| `getAuroraIntentQuote` | Any-chain deposit route into Monad AUSD |
+| `getMonadAgentCard` | ERC-8004 Trustless Agent Card on Trust8004 |
+
+#### ⚡ Barzakh Hyper-Terminal: Monad Metropolis High-Frequency Suite
+
+Built natively for **Monad's 400ms blocks and 800ms finality**, Barzakh AI delivers the world's first conversational Sub-Second CLOB Terminal:
+- **Kuru Spot CLOB:** Real-time on-chain orderbook with zero-pending latency
+- **Perpl Perpetuals Engine:** Leveraged cross-margin backed by **Agora AUSD**
+- **AI GPU Compute Hedging:** Forward capacity hedging for NVIDIA H100 SXM5 / B200 units
+- **Mera Passkey PRF Derivation:** "One Passkey, Many Keys" - derives scoped trading session keys for popup-free algorithmic execution
+- **Aurora Intents:** Cross-chain liquidity inflows directly into Monad margin
+- **Full Architecture & Showcase:** See [⚡ Monad Metropolis Hackathon Showcase](#-monad-metropolis-hackathon-showcase)
 
 #### nad.fun Token Launchpad Integration
 

@@ -178,10 +178,21 @@ import { DreamDexTradeCard } from './dreamdex/dreamdex-trade-card';
 import { DreamDexPortfolioCard } from './dreamdex/dreamdex-portfolio-card';
 import { DreamDexAnalysisCard } from './dreamdex/dreamdex-analysis-card';
 
+// Monad High-Speed DeFi Components
+import { KuruTradeCard } from './monad/kuru-trade-card';
+import { PerplRiskCard } from './monad/perpl-risk-card';
+import { ComputeHedgeCard } from './monad/compute-hedge-card';
+import { AuroraIntentCard } from './monad/aurora-intent-card';
+
 const DreamDexMarketsCardAny = DreamDexMarketsCard as any;
 const DreamDexTradeCardAny = DreamDexTradeCard as any;
 const DreamDexPortfolioCardAny = DreamDexPortfolioCard as any;
 const DreamDexAnalysisCardAny = DreamDexAnalysisCard as any;
+
+const KuruTradeCardAny = KuruTradeCard as any;
+const PerplRiskCardAny = PerplRiskCard as any;
+const ComputeHedgeCardAny = ComputeHedgeCard as any;
+const AuroraIntentCardAny = AuroraIntentCard as any;
 
 // Helper to deduplicate consecutive repeated sentences in AI output.
 // The AI model sometimes outputs the same sentence twice back-to-back, e.g.:
@@ -501,6 +512,98 @@ const filterDreamDexContent = (
   return filtered.trim();
 };
 
+const MONAD_RENDERABLE_TOOL_NAMES = [
+  'getKuruMarkets',
+  'getKuruOrderBook',
+  'placeKuruLimitOrder',
+  'executeKuruMarketSwap',
+  'cancelKuruOrder',
+  'getPerplMarkets',
+  'getPerplPositions',
+  'openPerplPosition',
+  'closePerplPosition',
+  'getPerplRiskMetrics',
+  'getComputeMarketData',
+  'hedgeComputeCost',
+  'verifyComputeSLA',
+  'getAuroraIntentQuote',
+  'executeAuroraIntentDeposit',
+];
+
+// Helper to clean up Monad/Kuru/Perpl AI responses when interactive UI cards are displayed
+const filterMonadContent = (
+  content: string,
+  completedTools: any[] | undefined,
+): string => {
+  if (!content) return content;
+  let filtered = content;
+
+  // 1. If getKuruOrderBook is completed, strip raw bids/asks lists, tables, and redundant bullet recaps
+  const hasKuruBook = completedTools?.some((t) => t.toolName === 'getKuruOrderBook');
+  if (hasKuruBook) {
+    const bookTool = completedTools?.find((t) => t.toolName === 'getKuruOrderBook');
+    const res = (bookTool as any)?.result;
+    const pair = res?.pair || 'MON/USDC';
+    const mid = res?.midPrice ? ` (Mid: $${res.midPrice})` : '';
+
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]?\s*(?:\*\*)?(?:Bids|Asks|Price|Spread|Mid Market|Mid Price|Summary|Source):?[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:shows the following|details below|order book details):?\s*$/gi, '').trim();
+    if (!filtered || filtered.length < 15) {
+      filtered = `Here is the live order book for ${pair} on Kuru CLOB${mid}.`;
+    }
+  }
+
+  // 2. If getKuruMarkets is completed, strip redundant market listings
+  const hasKuruMarkets = completedTools?.some((t) => t.toolName === 'getKuruMarkets');
+  if (hasKuruMarkets) {
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]?\s*(?:\*\*)?[A-Z0-9]+(?:\/[A-Z0-9]+)?\s*[-–—:]\s*\$?[\d,.]+[\s\S]*/gi, '');
+    if (!filtered || filtered.length < 15) {
+      filtered = 'Here are the active spot trading pairs on Kuru CLOB.';
+    }
+  }
+
+  // 3. If placeKuruLimitOrder / executeKuruMarketSwap is completed, strip verbose bullet lists
+  const hasKuruTrade = completedTools?.some(
+    (t) => t.toolName === 'placeKuruLimitOrder' || t.toolName === 'executeKuruMarketSwap',
+  );
+  if (hasKuruTrade) {
+    filtered = filtered.replace(/(?:\n|^)\s*(?:\*\*)?(?:Order Details|Execution Details|Order Summary|Transaction Details):?(?:\*\*)?[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]\s*(?:\*\*)?(?:Pair|Side|Price|Amount|Execution Price|Total Settled|Fee|Slippage|Order Type):?[\s\S]*/gi, '');
+  }
+
+  // 4. If openPerplPosition is completed, strip verbose order parameter dumps
+  const hasPerplTrade = completedTools?.some((t) => t.toolName === 'openPerplPosition');
+  if (hasPerplTrade) {
+    filtered = filtered.replace(/(?:\n|^)\s*(?:\*\*)?(?:Position Details|Order Details):?(?:\*\*)?[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]\s*(?:\*\*)?(?:Market|Side|Collateral|Leverage|Entry Price|Est\. Liquidation):?[\s\S]*/gi, '');
+  }
+
+  // 5. If getAuroraIntentQuote is completed, strip verbose bullet lists and ensure clean companion text
+  const hasAuroraQuote = completedTools?.some((t) => t.toolName === 'getAuroraIntentQuote');
+  if (hasAuroraQuote) {
+    const quoteTool = completedTools?.find((t) => t.toolName === 'getAuroraIntentQuote');
+    const res = (quoteTool as any)?.result;
+    filtered = filtered.replace(/(?:\n|^)\s*(?:\*\*)?(?:Quote Details|Intent Details|Breakdown|Summary|Order Details):?(?:\*\*)?[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]\s*(?:\*\*)?(?:Source|Estimated Receive|Route|Solver|Relayer Fee|Settlement Time):?[\s\S]*/gi, '');
+    if (!filtered || filtered.length < 15) {
+      if (res?.sourceAmount && res?.estimatedReceive) {
+        filtered = `Here is your Aurora Intent quote to bridge ${res.sourceAmount} for ~${res.estimatedReceive} into Monad with zero slippage.`;
+      } else {
+        filtered = 'Here is your Aurora Intent cross-chain deposit quote for Monad.';
+      }
+    }
+  }
+
+  // 6. If executeAuroraIntentDeposit is completed, strip bullet lists
+  const hasAuroraExec = completedTools?.some((t) => t.toolName === 'executeAuroraIntentDeposit');
+  if (hasAuroraExec) {
+    filtered = filtered.replace(/(?:\n|^)\s*(?:\*\*)?(?:Execution Details|Transaction Details|Intent Details):?(?:\*\*)?[\s\S]*/gi, '');
+    filtered = filtered.replace(/(?:\n|^)\s*[-*•]\s*(?:\*\*)?(?:Intent ID|Protocol|Post-Action|Settlement|Recipient|Status):?[\s\S]*/gi, '');
+  }
+
+  return filtered.trim();
+};
+
 // List of tools that have dedicated UI components in messages
 const RENDERABLE_TOOL_NAMES = [
   'searchEvmTokenMarketData',
@@ -556,6 +659,22 @@ const RENDERABLE_TOOL_NAMES = [
   'dreamDexClosePosition',
   'getDreamDexPortfolio',
   'getAIPredictionAnalysis',
+  // Monad High-Speed DeFi & CLOB Tools
+  'getKuruMarkets',
+  'getKuruOrderBook',
+  'placeKuruLimitOrder',
+  'executeKuruMarketSwap',
+  'cancelKuruOrder',
+  'getPerplMarkets',
+  'getPerplPositions',
+  'openPerplPosition',
+  'closePerplPosition',
+  'getPerplRiskMetrics',
+  'getComputeMarketData',
+  'hedgeComputeCost',
+  'verifyComputeSLA',
+  'getAuroraIntentQuote',
+  'executeAuroraIntentDeposit',
 ];
 
 const PurePreviewMessage = ({
@@ -782,9 +901,25 @@ const PurePreviewMessage = ({
     ),
   );
 
+  const hasCompletedMonadTool = Boolean(
+    completedTools?.some((tool: any) =>
+      MONAD_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+    ),
+  );
+
+  const hasPendingMonadTool = Boolean(
+    message.toolInvocations?.some(
+      (tool: any) =>
+        (tool.state === 'call' || tool.state === 'partial-call') &&
+        MONAD_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+    ),
+  );
+
   const hasVisibleTools = message.role !== 'user' && Boolean(
     hasCompletedDreamDexTool ||
     hasPendingDreamDexTool ||
+    hasCompletedMonadTool ||
+    hasPendingMonadTool ||
     (allWebSearchTools && allWebSearchTools.length > 0) ||
       (otherCompletedTools &&
         otherCompletedTools.some((tool: any) => {
@@ -935,7 +1070,8 @@ const PurePreviewMessage = ({
                         if (tool.state === 'result') return true;
                         if (
                           (tool.state === 'call' || tool.state === 'partial-call') &&
-                          DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName)
+                          (DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName) ||
+                            MONAD_RENDERABLE_TOOL_NAMES.includes(tool.toolName))
                         ) {
                           return true;
                         }
@@ -1230,6 +1366,55 @@ const PurePreviewMessage = ({
                             getAIPredictionAnalysis: (
                               <DreamDexAnalysisCardAny result={result} onSelectAction={handleDreamDexAction} />
                             ),
+                            // Monad Kuru Spot CLOB
+                            getKuruMarkets: (
+                              <KuruTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getKuruOrderBook: (
+                              <KuruTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            placeKuruLimitOrder: (
+                              <KuruTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            executeKuruMarketSwap: (
+                              <KuruTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            cancelKuruOrder: (
+                              <KuruTradeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            // Monad Perpl Perpetuals
+                            getPerplMarkets: (
+                              <PerplRiskCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getPerplPositions: (
+                              <PerplRiskCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            openPerplPosition: (
+                              <PerplRiskCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            closePerplPosition: (
+                              <PerplRiskCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            getPerplRiskMetrics: (
+                              <PerplRiskCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            // Compute Commodity & Hedging
+                            getComputeMarketData: (
+                              <ComputeHedgeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            hedgeComputeCost: (
+                              <ComputeHedgeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            verifyComputeSLA: (
+                              <ComputeHedgeCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            // Aurora Intents
+                            getAuroraIntentQuote: (
+                              <AuroraIntentCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
+                            executeAuroraIntentDeposit: (
+                              <AuroraIntentCardAny result={result} toolCallId={toolCallId} onSelectAction={handleDreamDexAction} />
+                            ),
                           };
 
                           return (
@@ -1497,12 +1682,13 @@ const PurePreviewMessage = ({
                             return null;
                           }
 
-                          // Check if assistant used any tools or has DreamDEX tools rendering
+                          // Check if assistant used any tools or has DreamDEX/Monad tools rendering
                           const hasPendingDreamDex = Boolean(
                             message.toolInvocations?.some(
                               (tool: any) =>
                                 (tool.state === 'call' || tool.state === 'partial-call') &&
-                                DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName),
+                                (DREAMDEX_RENDERABLE_TOOL_NAMES.includes(tool.toolName) ||
+                                  MONAD_RENDERABLE_TOOL_NAMES.includes(tool.toolName)),
                             ),
                           );
                           const hasTools =
@@ -1516,7 +1702,7 @@ const PurePreviewMessage = ({
                                 ? filterPreambleContent(smoothContent, true)
                                 : smoothContent;
 
-                            // Special handling: Remove markdown tables if Transaction History tool was used
+                            // Special handling: Remove markdown tables if Transaction History or DEX/CLOB tool was used
                             // logic: if simplified content has table, and we have transaction tool, user wants just the UI
                             const hasOnchainTools = completedTools?.some(
                               (t) =>
@@ -1543,7 +1729,19 @@ const PurePreviewMessage = ({
                                 t.toolName === 'getMonadTokenPositions' ||
                                 t.toolName === 'getDreamDexPortfolio' ||
                                 t.toolName === 'getDreamDexMarkets' ||
-                                t.toolName === 'getAIPredictionAnalysis',
+                                t.toolName === 'getAIPredictionAnalysis' ||
+                                t.toolName === 'getKuruMarkets' ||
+                                t.toolName === 'getKuruOrderBook' ||
+                                t.toolName === 'placeKuruLimitOrder' ||
+                                t.toolName === 'executeKuruMarketSwap' ||
+                                t.toolName === 'getPerplMarkets' ||
+                                t.toolName === 'getPerplPositions' ||
+                                t.toolName === 'openPerplPosition' ||
+                                t.toolName === 'getPerplRiskMetrics' ||
+                                t.toolName === 'getAuroraIntentQuote' ||
+                                t.toolName === 'executeAuroraIntentDeposit' ||
+                                t.toolName === 'getComputeMarketData' ||
+                                t.toolName === 'hedgeComputeCost',
                             );
                             if (hasOnchainTools && filteredContent) {
                               filteredContent =
@@ -1656,6 +1854,59 @@ const PurePreviewMessage = ({
                               }
                             }
 
+                            // Instant companion text for Monad CLOB & DeFi tools
+                            const completedMonad = completedTools?.find((t) =>
+                              MONAD_RENDERABLE_TOOL_NAMES.includes(t.toolName),
+                            );
+
+                            if (completedMonad) {
+                              const tName = completedMonad.toolName;
+                              const res = (completedMonad as any).result;
+
+                              if (tName === 'getKuruOrderBook') {
+                                const pair = res?.pair || 'MON/USDC';
+                                const mid = res?.midPrice ? ` (Mid: $${res.midPrice}, Spread: ${res?.spreadPercent || '0.12%'})` : '';
+                                if (!filteredContent || filteredContent.length < 20 || /bids|asks|price:|size:/i.test(filteredContent)) {
+                                  filteredContent = `Here is the live order book for ${pair} on Kuru CLOB${mid}.`;
+                                }
+                              } else if (tName === 'getKuruMarkets') {
+                                if (!filteredContent || filteredContent.length < 20 || /spread:|trade ➔/i.test(filteredContent)) {
+                                  filteredContent = 'Here are the active spot trading pairs on Kuru CLOB.';
+                                }
+                              } else if (tName === 'placeKuruLimitOrder') {
+                                if (!filteredContent || filteredContent.length < 20 || /details of the simulated/i.test(filteredContent)) {
+                                  filteredContent = `Limit order placed on Kuru CLOB for ${res?.details?.amount || '1,000'} ${res?.details?.baseToken || 'MON'} at $${res?.details?.limitPrice || '0.0240'}.`;
+                                }
+                              } else if (tName === 'executeKuruMarketSwap') {
+                                if (!filteredContent || filteredContent.length < 20 || /details of the simulated/i.test(filteredContent)) {
+                                  filteredContent = `Market order executed on Kuru CLOB for ${res?.fill?.pair || 'MON/USDC'}.`;
+                                }
+                              } else if (tName === 'getPerplMarkets') {
+                                if (!filteredContent || filteredContent.length < 20) {
+                                  filteredContent = 'Here are the live perpetual markets on Perpl.';
+                                }
+                              } else if (tName === 'getPerplPositions') {
+                                if (!filteredContent || filteredContent.length < 20) {
+                                  filteredContent = 'Here are your active perpetual positions and margin health on Perpl.';
+                                }
+                              } else if (tName === 'openPerplPosition') {
+                                if (!filteredContent || filteredContent.length < 20 || /details of the simulated/i.test(filteredContent)) {
+                                  filteredContent = `Opened ${res?.details?.leverage || '5x'} ${res?.details?.side || 'LONG'} position on ${res?.details?.market || 'MON-PERP'} with ${res?.details?.collateralAllocated || '500 AUSD'} margin on Perpl.`;
+                                }
+                              } else if (tName === 'getPerplRiskMetrics') {
+                                if (!filteredContent || filteredContent.length < 20) {
+                                  filteredContent = 'Here are your perpetual portfolio risk metrics and stress test scenarios on Perpl.';
+                                }
+                              } else if (tName === 'getAuroraIntentQuote' || tName === 'executeAuroraIntentDeposit') {
+                                if (!filteredContent || filteredContent.length < 20) {
+                                  filteredContent = 'Here is your cross-chain deposit route via Aurora Intents to fund Monad margin.';
+                                }
+                              } else if (tName === 'getComputeMarketData' || tName === 'hedgeComputeCost') {
+                                if (!filteredContent || filteredContent.length < 20) {
+                                  filteredContent = 'Here is the AI GPU compute commodity pricing and forward hedging analysis on Monad.';
+                                }
+                              }
+                            }
 
                             // Deduplicate consecutive repeated sentences
                             // (AI sometimes outputs the same sentence twice back-to-back)
@@ -1668,6 +1919,11 @@ const PurePreviewMessage = ({
                               filteredContent = filterDreamDexContent(filteredContent, completedTools);
                             }
 
+                            // Clean up Monad/Kuru/Perpl-specific issues (strip raw order book bullet dumps)
+                            if (filteredContent) {
+                              filteredContent = filterMonadContent(filteredContent, completedTools);
+                            }
+
                             // Don't render empty content (or just whitespace) after filtering
                             // Return null BEFORE rendering the styled container to prevent empty rounded boxes
                             if (
@@ -1678,7 +1934,7 @@ const PurePreviewMessage = ({
                             }
 
                             return (
-                              <div className="text-foreground max-w-full">
+                              <div className="text-foreground max-w-full [&_.markdown-body_p]:my-1 first:[&_.markdown-body_p]:mt-0 last:[&_.markdown-body_p]:mb-0 [&_.markdown-body_ol]:my-1 [&_.markdown-body_ul]:my-1 [&_.markdown-body_ol]:pl-4 [&_.markdown-body_ul]:pl-4 [&_.markdown-body_li]:my-0.5">
                                 <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                   <div className="flex-1 min-w-0 max-w-full">
                                     {typeof message.content === 'string' ? (
@@ -1765,9 +2021,40 @@ const PurePreviewMessage = ({
                                               if (filteredText) {
                                                 filteredText = deduplicateConsecutiveSentences(filteredText);
                                               }
+                                              if (completedMonad) {
+                                                const tName = completedMonad.toolName;
+                                                const res = (completedMonad as any).result;
+                                                if (tName === 'getKuruOrderBook') {
+                                                  const pair = res?.pair || 'MON/USDC';
+                                                  const mid = res?.midPrice ? ` (Mid: $${res.midPrice}, Spread: ${res?.spreadPercent || '0.12%'})` : '';
+                                                  if (!filteredText || filteredText.length < 20 || /bids|asks|price:|size:/i.test(filteredText)) {
+                                                    filteredText = `Here is the live order book for ${pair} on Kuru CLOB${mid}.`;
+                                                  }
+                                                } else if (tName === 'getKuruMarkets') {
+                                                  if (!filteredText || filteredText.length < 20 || /spread:|trade ➔/i.test(filteredText)) {
+                                                    filteredText = 'Here are the active spot trading pairs on Kuru CLOB.';
+                                                  }
+                                                } else if (tName === 'placeKuruLimitOrder') {
+                                                  if (!filteredText || filteredText.length < 20 || /details of the simulated/i.test(filteredText)) {
+                                                    filteredText = `Limit order placed on Kuru CLOB for ${res?.details?.amount || '1,000'} ${res?.details?.baseToken || 'MON'} at $${res?.details?.limitPrice || '0.0240'}.`;
+                                                  }
+                                                } else if (tName === 'executeKuruMarketSwap') {
+                                                  if (!filteredText || filteredText.length < 20 || /details of the simulated/i.test(filteredText)) {
+                                                    filteredText = `Market order executed on Kuru CLOB for ${res?.fill?.pair || 'MON/USDC'}.`;
+                                                  }
+                                                } else if (tName === 'openPerplPosition') {
+                                                  if (!filteredText || filteredText.length < 20 || /details of the simulated/i.test(filteredText)) {
+                                                    filteredText = `Opened ${res?.details?.leverage || '5x'} ${res?.details?.side || 'LONG'} position on ${res?.details?.market || 'MON-PERP'} with ${res?.details?.collateralAllocated || '500 AUSD'} margin on Perpl.`;
+                                                  }
+                                                }
+                                              }
                                               // Clean up DreamDEX-specific issues
                                               if (filteredText) {
                                                 filteredText = filterDreamDexContent(filteredText, completedTools);
+                                              }
+                                              // Clean up Monad-specific issues
+                                              if (filteredText) {
+                                                filteredText = filterMonadContent(filteredText, completedTools);
                                               }
                                               if (
                                                 !filteredText ||
@@ -1827,10 +2114,11 @@ const PurePreviewMessage = ({
                           if (typeof fallbackContent === 'string') {
                             fallbackContent = deduplicateConsecutiveSentences(fallbackContent);
                             fallbackContent = filterDreamDexContent(fallbackContent, completedTools);
+                            fallbackContent = filterMonadContent(fallbackContent, completedTools);
                           }
 
                           return (
-                            <div className="text-foreground max-w-full">
+                            <div className="text-foreground max-w-full [&_.markdown-body_p]:my-1 first:[&_.markdown-body_p]:mt-0 last:[&_.markdown-body_p]:mb-0 [&_.markdown-body_ol]:my-1 [&_.markdown-body_ul]:my-1 [&_.markdown-body_ol]:pl-4 [&_.markdown-body_ul]:pl-4 [&_.markdown-body_li]:my-0.5">
                               <div className="flex items-start justify-between gap-2 min-w-0 max-w-full">
                                 <div className="flex-1 min-w-0 max-w-full">
                                   {typeof message.content === 'string' ? (
