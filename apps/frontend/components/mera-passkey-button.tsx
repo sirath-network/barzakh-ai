@@ -1,27 +1,34 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import { Fingerprint, Loader2, ArrowRight, ShieldCheck, Mail } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import {
+  Fingerprint,
+  Loader2,
+  ArrowRight,
+  ShieldCheck,
+  Mail,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import {
   createMeraPasskey,
   authenticateWithMeraPasskey,
   isWebAuthnSupported,
   isPasskeyCancellation,
-} from "@/lib/agent/mera-passkey";
+  formatPasskeyErrorMessage,
+} from '@/lib/agent/mera-passkey';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 interface MeraPasskeyButtonProps {
-  mode?: "auto" | "login" | "register";
-  variant?: "default" | "header" | "compact";
+  mode?: 'auto' | 'login' | 'register';
+  variant?: 'default' | 'header' | 'compact';
   email?: string;
   disabled?: boolean;
   onLoadingChange?: (loading: boolean) => void;
@@ -29,50 +36,60 @@ interface MeraPasskeyButtonProps {
 }
 
 export function MeraPasskeyButton({
-  mode = "auto",
-  variant = "default",
+  mode = 'auto',
+  variant = 'default',
   email,
   disabled = false,
   onLoadingChange,
-  className = "",
+  className = '',
 }: MeraPasskeyButtonProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [modalEmail, setModalEmail] = useState("");
+  const [modalEmail, setModalEmail] = useState('');
   const [activeChallenge, setActiveChallenge] = useState<string | null>(null);
 
   // Helper to fetch challenge
-  const fetchChallenge = async (): Promise<{ challenge: string; user?: any }> => {
-    const challengeRes = await fetch("/api/auth/passkey/challenge");
+  const fetchChallenge = async (): Promise<{
+    challenge: string;
+    user?: any;
+  }> => {
+    const challengeRes = await fetch('/api/auth/passkey/challenge');
     if (!challengeRes.ok) {
-      throw new Error("Failed to initialize passkey challenge.");
+      throw new Error('Failed to initialize passkey challenge.');
     }
     return await challengeRes.json();
   };
 
   // Helper to perform passkey registration
-  const performRegistration = async (targetEmail: string, challengeStr: string) => {
-    toast.info("Touch your biometric sensor or security key...", { duration: 3000 });
+  const performRegistration = async (
+    targetEmail: string,
+    challengeStr: string,
+  ) => {
+    toast.info('Touch your biometric sensor or security key...', {
+      duration: 3000,
+    });
 
     const regResult = await createMeraPasskey({
       challenge: challengeStr,
       email: targetEmail,
-      name: targetEmail.split("@")[0],
+      name: targetEmail.split('@')[0],
     });
 
-    const saveRes = await fetch("/api/auth/passkey/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const saveRes = await fetch('/api/auth/passkey/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(regResult),
     });
 
     const saveJson = await saveRes.json();
     if (!saveRes.ok) {
-      throw new Error(saveJson.error || "Failed to create account with passkey.");
+      throw new Error(
+        saveJson.error || 'Failed to create account with passkey.',
+      );
     }
 
-    const signInRes = await signIn("credentials-passkey", {
+    const signInRes = await signIn('credentials-passkey', {
       credentialId: saveJson.credentialId,
       sessionToken: saveJson.sessionToken,
       redirect: false,
@@ -82,29 +99,35 @@ export function MeraPasskeyButton({
       throw new Error(signInRes.error);
     }
 
-    toast.success(`Welcome ${saveJson.user.name || targetEmail}! Account ready.`);
+    toast.success(
+      `Welcome ${saveJson.user.name || targetEmail}! Account ready.`,
+    );
     setIsRegisterModalOpen(false);
-    router.push("/");
+    router.push('/');
     router.refresh();
   };
 
   // Helper to perform passkey login
   const performLogin = async (challengeStr: string): Promise<boolean> => {
-    toast.info("Touch your biometric sensor or security key to sign in...", { duration: 3000 });
-    const authResult = await authenticateWithMeraPasskey({ challenge: challengeStr });
+    toast.info('Touch your biometric sensor or security key to sign in...', {
+      duration: 3000,
+    });
+    const authResult = await authenticateWithMeraPasskey({
+      challenge: challengeStr,
+    });
 
-    const verifyRes = await fetch("/api/auth/passkey/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const verifyRes = await fetch('/api/auth/passkey/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(authResult),
     });
 
     const verifyJson = await verifyRes.json();
     if (!verifyRes.ok) {
-      throw new Error(verifyJson.error || "Passkey authentication failed.");
+      throw new Error(verifyJson.error || 'Passkey authentication failed.');
     }
 
-    const signInRes = await signIn("credentials-passkey", {
+    const signInRes = await signIn('credentials-passkey', {
       credentialId: verifyJson.credentialId,
       sessionToken: verifyJson.sessionToken,
       redirect: false,
@@ -114,15 +137,15 @@ export function MeraPasskeyButton({
       throw new Error(signInRes.error);
     }
 
-    toast.success(`Welcome back, ${verifyJson.user.name || "User"}!`);
-    router.push("/");
+    toast.success(`Welcome back, ${verifyJson.user.name || 'User'}!`);
+    router.push('/');
     router.refresh();
     return true;
   };
 
   const handlePasskeyAuth = async () => {
     if (!isWebAuthnSupported()) {
-      toast.error("Passkeys are not supported on this browser or device.");
+      toast.error('Passkeys are not supported on this browser or device.');
       return;
     }
 
@@ -134,15 +157,17 @@ export function MeraPasskeyButton({
       setActiveChallenge(challenge);
 
       // Check if email is already available from props or from an input on the page
-      let currentEmail = email?.trim() || user?.email || "";
-      if (!currentEmail && typeof document !== "undefined") {
-        const emailInput = document.querySelector('input[type="email"], input[name="email"]') as HTMLInputElement | null;
+      let currentEmail = email?.trim() || user?.email || '';
+      if (!currentEmail && typeof document !== 'undefined') {
+        const emailInput = document.querySelector(
+          'input[type="email"], input[name="email"]',
+        ) as HTMLInputElement | null;
         if (emailInput?.value?.trim()) {
           currentEmail = emailInput.value.trim();
         }
       }
 
-      if (mode === "register") {
+      if (mode === 'register') {
         if (!currentEmail) {
           setIsRegisterModalOpen(true);
           return;
@@ -151,7 +176,7 @@ export function MeraPasskeyButton({
         return;
       }
 
-      if (mode === "login") {
+      if (mode === 'login') {
         await performLogin(challenge);
         return;
       }
@@ -160,18 +185,21 @@ export function MeraPasskeyButton({
       try {
         await performLogin(challenge);
       } catch (authErr: any) {
-        console.debug("[Smart Passkey] Login attempt yielded:", authErr?.message || authErr);
+        console.debug(
+          '[Smart Passkey] Login attempt yielded:',
+          authErr?.message || authErr,
+        );
 
         // If user actively cancelled biometric dialog, cleanly exit without error or opening modal
         if (isPasskeyCancellation(authErr)) {
-          toast.info("Passkey prompt was cancelled.");
+          toast.info('Passkey prompt was cancelled.');
           return;
         }
 
         // If no credential was found on device or login was not possible:
         // Transition seamlessly to registration without navigating to /register!
         if (currentEmail) {
-          toast.info("Setting up your new passkey...", { duration: 3000 });
+          toast.info('Setting up your new passkey...', { duration: 3000 });
           await performRegistration(currentEmail, challenge);
         } else {
           // Open quick registration modal in place
@@ -180,10 +208,10 @@ export function MeraPasskeyButton({
       }
     } catch (err: any) {
       if (isPasskeyCancellation(err)) {
-        toast.info("Passkey prompt was cancelled.");
+        toast.info('Passkey prompt was cancelled.');
       } else {
-        console.error("[Passkey Error]:", err);
-        toast.error(err.message || "Failed to authenticate with passkey.");
+        console.error('[Passkey Error]:', err);
+        toast.error(formatPasskeyErrorMessage(err));
       }
     } finally {
       setIsLoading(false);
@@ -193,8 +221,8 @@ export function MeraPasskeyButton({
 
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!modalEmail.trim() || !modalEmail.includes("@")) {
-      toast.error("Please enter a valid email address.");
+    if (!modalEmail.trim() || !modalEmail.includes('@')) {
+      toast.error('Please enter a valid email address.');
       return;
     }
 
@@ -211,10 +239,10 @@ export function MeraPasskeyButton({
       await performRegistration(modalEmail.trim(), challengeToUse);
     } catch (err: any) {
       if (isPasskeyCancellation(err)) {
-        toast.info("Passkey registration cancelled.");
+        toast.info('Passkey registration cancelled.');
       } else {
-        console.error("[Passkey Modal Registration Error]:", err);
-        toast.error(err.message || "Failed to register passkey.");
+        console.error('[Passkey Modal Registration Error]:', err);
+        toast.error(formatPasskeyErrorMessage(err));
       }
     } finally {
       setIsLoading(false);
@@ -223,7 +251,7 @@ export function MeraPasskeyButton({
   };
 
   // Render variant styles
-  if (variant === "header") {
+  if (variant === 'header') {
     return (
       <>
         <button
@@ -254,13 +282,13 @@ export function MeraPasskeyButton({
 
   const getButtonText = () => {
     if (isLoading) {
-      if (mode === "register") return "Creating Account...";
-      if (mode === "login") return "Signing in...";
-      return "Authenticating...";
+      if (mode === 'register') return 'Creating Account...';
+      if (mode === 'login') return 'Signing in...';
+      return 'Authenticating...';
     }
-    if (mode === "register") return "Sign Up with Passkey";
-    if (mode === "login") return "Sign In with Passkey";
-    return "Continue with Passkey";
+    if (mode === 'register') return 'Sign Up with Passkey';
+    if (mode === 'login') return 'Sign In with Passkey';
+    return 'Continue with Passkey';
   };
 
   return (
@@ -279,7 +307,9 @@ export function MeraPasskeyButton({
         ) : (
           <>
             <Fingerprint className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
-            <span className="tracking-tight font-medium">{getButtonText()}</span>
+            <span className="tracking-tight font-medium">
+              {getButtonText()}
+            </span>
           </>
         )}
       </button>
@@ -325,7 +355,8 @@ function PasskeyOnboardingDialog({
             Passkey Instant Access
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground max-w-xs mx-auto">
-            No passkey found on this device yet. Enter your email to register and log in instantly with Touch ID, Face ID, or Windows Hello.
+            No passkey found on this device yet. Enter your email to register
+            and log in instantly with Touch ID, Face ID, or Windows Hello.
           </DialogDescription>
         </DialogHeader>
 

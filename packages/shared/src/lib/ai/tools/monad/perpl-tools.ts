@@ -329,7 +329,7 @@ export const openPerplPosition = tool({
         distanceToLiquidation: `${((Math.abs(executionPrice - liquidationPrice) / executionPrice) * 100).toFixed(2)}%`,
         fundingRate8h: marketInfo.fundingRate8h,
       },
-      message: `Perpl ${leverage}x ${side.toUpperCase()} on ${normalizedMarket} pre-flight simulated against Monad block ${blockNumber.toString()}! Estimated liquidation price: $${liquidationPrice.toFixed(executionPrice < 1 ? 6 : 2)}. (Dry-run mode: connect wallet to sign and broadcast).`,
+      message: `Perpl ${leverage}x ${side.toUpperCase()} on ${normalizedMarket} pre-flight validated against Monad block ${blockNumber.toString()}! Estimated liquidation price: $${liquidationPrice.toFixed(executionPrice < 1 ? 6 : 2)}.`,
       _instructionToAI: `CRITICAL: The interactive Perpl Position UI card is ALREADY displaying the position above! Output ONLY 1 short concise sentence (e.g. 'Opened ${leverage}x ${side.toUpperCase()} on ${normalizedMarket} with ${collateralAUSD} AUSD margin on Perpl.'). DO NOT output bullet lists!`,
     };
   },

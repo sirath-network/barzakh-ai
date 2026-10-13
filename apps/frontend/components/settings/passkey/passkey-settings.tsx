@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import {
   Fingerprint,
   Plus,
@@ -12,12 +12,13 @@ import {
   Loader2,
   Key,
   ShieldCheck,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   createMeraPasskey,
   isWebAuthnSupported,
   isPasskeyCancellation,
-} from "@/lib/agent/mera-passkey";
+  formatPasskeyErrorMessage,
+} from '@/lib/agent/mera-passkey';
 
 interface PasskeyItem {
   id: string;
@@ -39,13 +40,13 @@ export function PasskeySettings() {
   const fetchPasskeys = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/auth/passkey/list");
+      const res = await fetch('/api/auth/passkey/list');
       if (res.ok) {
         const data = await res.json();
         setPasskeys(data.passkeys || []);
       }
     } catch (err) {
-      console.error("Failed to load passkeys:", err);
+      console.error('Failed to load passkeys:', err);
     } finally {
       setIsLoading(false);
     }
@@ -57,24 +58,29 @@ export function PasskeySettings() {
 
   const handleRegisterPasskey = async () => {
     if (!isWebAuthnSupported()) {
-      toast.error("Passkeys are not supported on this device or browser.");
+      toast.error('Passkeys are not supported on this device or browser.');
       return;
     }
 
     try {
       setIsRegistering(true);
 
-      const challengeRes = await fetch("/api/auth/passkey/challenge");
+      const challengeRes = await fetch('/api/auth/passkey/challenge');
       if (!challengeRes.ok) {
-        throw new Error("Failed to initialize passkey challenge");
+        throw new Error('Failed to initialize passkey challenge');
       }
       const challengeData = await challengeRes.json();
       const challenge = challengeData.challenge;
-      const userEmail = challengeData.user?.email || session?.user?.email || "";
-      const userName = challengeData.user?.name || session?.user?.name || (userEmail ? userEmail.split("@")[0] : "");
+      const userEmail = challengeData.user?.email || session?.user?.email || '';
+      const userName =
+        challengeData.user?.name ||
+        session?.user?.name ||
+        (userEmail ? userEmail.split('@')[0] : '');
       const userId = challengeData.user?.id || session?.user?.id;
 
-      toast.info("Touch your biometric sensor or security key...", { duration: 3000 });
+      toast.info('Touch your biometric sensor or security key...', {
+        duration: 3000,
+      });
 
       const regResult = await createMeraPasskey({
         challenge,
@@ -83,25 +89,27 @@ export function PasskeySettings() {
         userId: userId,
       });
 
-      const res = await fetch("/api/auth/passkey/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/auth/passkey/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(regResult),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to link passkey");
+        throw new Error(data.error || 'Failed to link passkey');
       }
 
-      toast.success("Passkey added successfully! You can now use it to sign in.");
+      toast.success(
+        'Passkey added successfully! You can now use it to sign in.',
+      );
       await fetchPasskeys();
     } catch (err: any) {
       if (isPasskeyCancellation(err)) {
-        toast.info("Passkey setup was cancelled.");
+        toast.info('Passkey setup was cancelled.');
       } else {
-        console.error("Passkey registration failed:", err);
-        toast.error(err.message || "Failed to register passkey.");
+        console.error('Passkey registration failed:', err);
+        toast.error(formatPasskeyErrorMessage(err));
       }
     } finally {
       setIsRegistering(false);
@@ -112,18 +120,18 @@ export function PasskeySettings() {
     try {
       setDeletingId(id);
       const res = await fetch(`/api/auth/passkey/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to delete passkey");
+        throw new Error(data.error || 'Failed to delete passkey');
       }
 
-      toast.success("Passkey removed successfully.");
+      toast.success('Passkey removed successfully.');
       setPasskeys((prev) => prev.filter((p) => p.id !== id));
     } catch (err: any) {
-      toast.error(err.message || "Failed to remove passkey");
+      toast.error(err.message || 'Failed to remove passkey');
     } finally {
       setDeletingId(null);
     }
@@ -145,8 +153,12 @@ export function PasskeySettings() {
             <Fingerprint className="w-5 h-5 md:w-6 md:h-6 text-foreground" />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Passkeys</h1>
-            <p className="text-sm text-muted-foreground">Manage biometric passkeys for fast, passwordless sign-in</p>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">
+              Passkeys
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Manage biometric passkeys for fast, passwordless sign-in
+            </p>
           </div>
         </div>
 
@@ -155,9 +167,12 @@ export function PasskeySettings() {
           {/* Card Header */}
           <div className="p-6 md:p-8 border-b border-gray-200 dark:border-zinc-800/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-foreground mb-1">Linked Passkeys</h2>
+              <h2 className="text-lg md:text-xl font-bold text-foreground mb-1">
+                Linked Passkeys
+              </h2>
               <p className="text-muted-foreground text-sm">
-                Use Touch ID, Face ID, or Windows Hello on your devices to sign in securely without passwords.
+                Use Touch ID, Face ID, or Windows Hello on your devices to sign
+                in securely without passwords.
               </p>
             </div>
             <button
@@ -191,9 +206,12 @@ export function PasskeySettings() {
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
                   <Fingerprint className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">No passkeys linked yet</h3>
+                <h3 className="text-sm font-semibold text-foreground">
+                  No passkeys linked yet
+                </h3>
                 <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                  Add a passkey to sign in to your account with biometric authentication instead of entering a password.
+                  Add a passkey to sign in to your account with biometric
+                  authentication instead of entering a password.
                 </p>
                 <button
                   onClick={handleRegisterPasskey}
@@ -223,7 +241,8 @@ export function PasskeySettings() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Added on {new Date(p.createdAt).toLocaleDateString()}
-                          {p.lastUsedAt && ` • Last used ${new Date(p.lastUsedAt).toLocaleDateString()}`}
+                          {p.lastUsedAt &&
+                            ` • Last used ${new Date(p.lastUsedAt).toLocaleDateString()}`}
                         </p>
                       </div>
                     </div>
