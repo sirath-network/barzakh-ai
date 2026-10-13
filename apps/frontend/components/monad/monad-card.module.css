@@ -1,0 +1,132 @@
+.container {
+  container-type: inline-size;
+  overflow-wrap: anywhere;
+}
+
+/* Keep the banner in normal flow so wrapped content can increase its height. */
+.header {
+  padding-top: 2.5rem;
+}
+
+.headerContent {
+  flex-direction: column;
+}
+
+.metric {
+  min-width: 0;
+  padding-left: 2.875rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+}
+
+.row > *,
+.details > *,
+.positionDetails > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.markets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.positionDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.positionDetails > :first-child {
+  grid-column: 1 / -1;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.actions > button {
+  flex: 1 1 8rem;
+  min-width: 0;
+  min-height: 2.75rem;
+  height: auto;
+  padding-block: 0.625rem;
+  white-space: normal;
+}
+
+.scenario {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.transfer > :last-child {
+  text-align: left;
+}
+
+.transfer > :nth-child(2) {
+  transform: rotate(90deg);
+}
+
+@container (min-width: 400px) {
+  .markets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .headerContent {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .metric {
+    flex: 0 1 38%;
+    padding-left: 0;
+    text-align: right;
+  }
+
+  .positionDetails {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .positionDetails > :first-child {
+    grid-column: auto;
+  }
+
+  .scenario {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .transfer {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .transfer > :last-child {
+    text-align: right;
+  }
+
+  .transfer > :nth-child(2) {
+    transform: none;
+  }
+}

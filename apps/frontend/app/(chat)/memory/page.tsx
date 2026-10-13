@@ -229,8 +229,8 @@ export default function MemoryDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+    <div className="min-h-svh w-full min-w-0 bg-zinc-950 text-zinc-100 [overflow-wrap:anywhere]">
+      <div className="w-full min-w-0 max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Back Link */}
         <Link
           href="/"
@@ -242,11 +242,11 @@ export default function MemoryDashboardPage() {
 
         {/* Header with Title and Clear All */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-2">
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="p-2 sm:p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl shrink-0">
               <Brain className="w-6 h-6 sm:w-7 sm:h-7 text-zinc-200" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-100">
                 Walrus Memory Dashboard
               </h1>
@@ -261,13 +261,13 @@ export default function MemoryDashboardPage() {
               <AlertDialogTrigger asChild>
                 <button
                   type="button"
-                  className="self-start sm:self-auto flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-all cursor-pointer"
+                  className="self-start sm:self-auto shrink-0 min-h-11 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-all cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Clear All Memories
                 </button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-zinc-900 border border-zinc-800 text-zinc-100 max-w-md w-[calc(100vw-2rem)] sm:w-full">
+              <AlertDialogContent className="bg-zinc-900 border border-zinc-800 text-zinc-100 max-w-md w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto sm:w-full">
                 <AlertDialogHeader>
                   <AlertDialogTitle className="flex items-center gap-2 text-red-400 text-base sm:text-lg">
                     <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
@@ -322,10 +322,10 @@ export default function MemoryDashboardPage() {
                 <span className="text-zinc-500 font-mono text-[11px]">v{data.health.version}</span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-medium max-w-full">
+            <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-medium max-w-full">
               <Database className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
               <span className="text-zinc-500 shrink-0">Namespace:</span>
-              <span className="font-mono text-zinc-300 max-w-[150px] sm:max-w-[260px] md:max-w-xs truncate" title={data.namespace}>
+              <span className="min-w-0 font-mono text-zinc-300" title={data.namespace}>
                 {data.namespace}
               </span>
             </div>
@@ -338,11 +338,12 @@ export default function MemoryDashboardPage() {
         )}
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="mt-6 sm:mt-8 flex gap-2">
-          <div className="relative flex-1">
+        <form onSubmit={handleSearch} className="mt-6 sm:mt-8 flex flex-col min-[400px]:flex-row gap-2">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 sm:left-3.5 top-1/2 -translate-y-1/2 w-3.5 sm:w-4 h-3.5 sm:h-4 text-zinc-500" />
             <input
               type="text"
+              aria-label="Search memories"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your memories semantically..."
@@ -352,7 +353,7 @@ export default function MemoryDashboardPage() {
           <button
             type="submit"
             disabled={loading}
-            className="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold disabled:opacity-50 rounded-xl text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 cursor-pointer shadow-sm shrink-0"
+            className="min-h-11 px-3.5 sm:px-5 py-2.5 sm:py-3 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold disabled:opacity-50 rounded-xl text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer shadow-sm shrink-0"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loading ? "animate-spin" : ""}`}
@@ -379,7 +380,7 @@ export default function MemoryDashboardPage() {
         {/* Memories Grid */}
         {data && data.memories.length > 0 && (
           <div className="mt-6 sm:mt-8 space-y-3">
-            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <h2 className="text-xs sm:text-sm font-semibold text-zinc-300 uppercase tracking-wider">
                 Recalled Memories ({data.memories.length})
               </h2>
@@ -387,7 +388,7 @@ export default function MemoryDashboardPage() {
                 Click trash icon to delete specific memory
               </span>
             </div>
-            <div className="grid gap-2 sm:gap-2.5">
+            <div className="grid min-w-0 grid-cols-1 gap-2 sm:gap-2.5">
               {data.memories.map((memory) => {
                 const itemKey = memory.blobId || memory.text || String(memory.index);
                 const isItemDeleting = deletingKey === (memory.blobId || memory.text);
@@ -395,9 +396,9 @@ export default function MemoryDashboardPage() {
                 return (
                   <div
                     key={itemKey}
-                    className="p-3.5 sm:p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl hover:border-zinc-700 transition-all group"
+                    className="min-w-0 p-3.5 sm:p-4 bg-zinc-900/60 border border-zinc-800/80 rounded-xl hover:border-zinc-700 transition-all group"
                   >
-                    <div className="flex items-start justify-between gap-3 sm:gap-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-3 sm:gap-4">
                       <div className="flex-1 space-y-2 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
@@ -406,16 +407,16 @@ export default function MemoryDashboardPage() {
                             {category.label}
                           </span>
                         </div>
-                        <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-normal break-words">
+                        <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-normal [overflow-wrap:anywhere]">
                           {memory.text}
                         </p>
                         {memory.blobId ? (
-                          <div className="flex items-center gap-2 pt-0.5">
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
                             <a
                               href={`https://walruscan.com/mainnet/blob/${memory.blobId}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] text-cyan-400 hover:text-cyan-300 font-mono transition-colors group/link"
+                              className="min-w-0 max-w-full inline-flex flex-wrap items-center gap-1 text-[10px] sm:text-[11px] text-cyan-400 hover:text-cyan-300 font-mono transition-colors group/link"
                               title="Inspect permanent blob certification on Walruscan Mainnet"
                             >
                               <span className="text-zinc-500">Blob:</span>{" "}
@@ -428,7 +429,7 @@ export default function MemoryDashboardPage() {
                                 navigator.clipboard.writeText(memory.blobId!);
                                 toast.success("Blob ID copied to clipboard");
                               }}
-                              className="text-zinc-500 hover:text-zinc-300 transition-colors p-0.5"
+                              className="min-h-11 min-w-11 inline-flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors p-0.5"
                               title="Copy full Blob ID"
                             >
                               <Copy className="w-2.5 h-2.5" />
@@ -444,7 +445,7 @@ export default function MemoryDashboardPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                      <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
                         <span className="px-1.5 sm:px-2 py-0.5 bg-zinc-800 border border-zinc-700/60 text-zinc-300 text-[10px] font-mono rounded" title="Semantic relevance score">
                           {(parseFloat(memory.relevance) * 100).toFixed(0)}%
                         </span>
@@ -453,7 +454,7 @@ export default function MemoryDashboardPage() {
                           onClick={() => handleDeleteMemory(memory)}
                           disabled={isItemDeleting}
                           title="Delete this memory"
-                          className="p-1 sm:p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-70 group-hover:opacity-100 disabled:opacity-30 cursor-pointer"
+                          className="min-h-11 min-w-11 inline-flex items-center justify-center p-1 sm:p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-70 group-hover:opacity-100 disabled:opacity-30 cursor-pointer"
                         >
                           {isItemDeleting ? (
                             <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-red-400" />
