@@ -77,14 +77,14 @@ export const getAusdBalance = tool({
       ausdBalFormatted = Number(formatUnits(rawAusdBal, decimals)).toFixed(2);
       blockNumber = block;
     } catch (err: any) {
-      console.warn("[Agora AUSD] OnChain read failed, using verified fallback:", err?.message || err);
-      ausdBalFormatted = "1,250.00";
-      nativeMonBal = "25.40";
+      console.warn("[Agora AUSD] OnChain read failed or address uninitialized:", err?.message || err);
+      ausdBalFormatted = "0.00";
+      nativeMonBal = "0.0000";
     }
 
-    const ausdNum = parseFloat(ausdBalFormatted.replace(/,/g, ""));
-    const freeMargin = (ausdNum > 0 ? ausdNum * 0.77 : 960.0).toFixed(2);
-    const lockedMargin = (ausdNum > 0 ? ausdNum * 0.23 : 290.0).toFixed(2);
+    const ausdNum = parseFloat(ausdBalFormatted.replace(/,/g, "")) || 0;
+    const freeMargin = (ausdNum > 0 ? ausdNum * 0.77 : 0).toFixed(2);
+    const lockedMargin = (ausdNum > 0 ? ausdNum * 0.23 : 0).toFixed(2);
 
     return {
       status: "success",
@@ -93,12 +93,12 @@ export const getAusdBalance = tool({
       chain: "Monad Mainnet",
       chainId: MONAD_CHAIN_ID,
       walletAddress: userAddr,
-      blockNumber: blockNumber.toString(),
+      blockNumber: blockNumber > 0n ? blockNumber.toString() : "latest",
       nativeMonBalance: `${nativeMonBal} MON`,
       balance: `${ausdBalFormatted} AUSD`,
       freeMargin: `${freeMargin} AUSD`,
       lockedInTrading: `${lockedMargin} AUSD`,
-      yieldAccrualApr: "4.85%",
+      yieldProgramRef: "Agora Institutional T-Bill Reserve Program",
       isNativeMonadStable: true,
       settlementTimeMs: 400,
     };

@@ -13,6 +13,8 @@ interface PerplRiskCardProps {
 
 export function PerplRiskCard({ result, onSelectAction }: PerplRiskCardProps) {
   const isPositionsList = Array.isArray(result?.positions);
+  const isModeledScenario = !!result?.isModeledScenario;
+  const isSimulation = !!result?.isSimulation;
   const isOpened = result?.status === "position_opened";
   const isClosed = result?.status === "closed";
   const isRiskMetrics = !!result?.stressTestScenarios;
@@ -21,14 +23,15 @@ export function PerplRiskCard({ result, onSelectAction }: PerplRiskCardProps) {
   const txHash = result?.txHash || null;
   const explorerUrl = result?.explorerUrl || (txHash ? `https://monadscan.com/tx/${txHash}` : null);
   const healthLabel = result?.overallHealthFactor || result?.healthFactor || "2.45 (Safe)";
+  const badgeText = isModeledScenario ? "Scenario Modeling" : isSimulation ? "Pre-Flight Preview" : "Agora AUSD Margin";
 
   return (
     <MonadCard
       title="Perpl Perpetuals"
-      badge="Agora AUSD Margin"
+      badge={badgeText}
       subtitle="via Perpl Engine (Monad)"
       metric={`Health: ${healthLabel}`}
-      metricLabel="Sub-Second Risk"
+      metricLabel={isModeledScenario ? "Modeled Health" : "Sub-Second Risk"}
       icon={isOpened || isClosed ? <Check className="size-5 text-emerald-400" /> : isRiskMetrics ? <ShieldAlert className="size-5 text-amber-400" /> : <Activity className="size-5 text-emerald-400" />}
     >
       {/* Markets Mode */}
@@ -63,7 +66,7 @@ export function PerplRiskCard({ result, onSelectAction }: PerplRiskCardProps) {
       {isPositionsList && (
         <div className="p-3 sm:p-4 space-y-3">
           <div className={`${styles.row} text-xs text-zinc-400 font-medium`}>
-            <span>Active Positions ({result.positions.length})</span>
+            <span>{isModeledScenario ? "Modeled Scenario Positions" : "Active Positions"} ({result.positions.length})</span>
             <span className="text-emerald-400 font-mono">Unrealized PnL: {result.totalUnrealizedPnLAUSD || "+$35.00"} AUSD</span>
           </div>
 

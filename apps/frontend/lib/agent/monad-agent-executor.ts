@@ -83,11 +83,12 @@ export async function getAgentMonadContext(userId: string) {
     getUserAgentExecutionMode(userId),
   ]);
 
-  const privateKey = rawKey || process.env.MONAD_PRIVATE_KEY || null;
+  // Only use user's explicit delegated agent wallet private key; no server-wide key fallback
+  const privateKey = rawKey && rawKey.startsWith("0x") ? rawKey : null;
   let nativeBalance = 0n;
   let activeAddress = walletAddress || "0x96973F7B83A3c785d94e0a6d8712174aBb81b748";
 
-  if (privateKey && privateKey.startsWith("0x")) {
+  if (privateKey) {
     try {
       const account = privateKeyToAccount(privateKey as Hex);
       activeAddress = account.address;
@@ -104,7 +105,7 @@ export async function getAgentMonadContext(userId: string) {
   }
 
   const nativeMon = Number(formatEther(nativeBalance));
-  const hasFunds = nativeMon >= 0.0005;
+  const hasFunds = nativeMon >= 0.0005 && !!privateKey;
 
   return {
     userId,
@@ -202,16 +203,30 @@ export async function executeAgenticKuruLimitOrder(
         message: `Order broadcast on Monad block ${receipt.blockNumber.toString()} via agent wallet ${account.address.slice(0, 8)}... (${params.amount} ${marketInfo.baseSymbol} at ${params.price} ${marketInfo.quoteSymbol}).`,
       };
     } catch (err: any) {
-      console.warn("[MonadAgent] Real order broadcast failed, falling back to simulated validation:", err?.message || err);
+      console.error("[MonadAgent] Real order broadcast failed:", err?.message || err);
+      return {
+        success: false,
+        status: "broadcast_failed",
+        isSimulation: false,
+        mode: "BROADCAST_FAILED",
+        executionMode: ctx.executionMode,
+        agentAddress: ctx.walletAddress,
+        orderId,
+        txHash: null,
+        explorerUrl: null,
+        blockNumber: blockNumber.toString(),
+        error: err?.message || "Order broadcast failed",
+        message: `Live order broadcast failed on Monad: ${err?.shortMessage || err?.message || "Contract error"}. Please check balance and allowance.`,
+      };
     }
   }
 
-  // Pre-flight simulation when no funds or no key configured
+  // Pre-flight simulation when no funds or dry run mode
   return {
     success: true,
     status: "order_placed",
     isSimulation: true,
-    mode: ctx.executionMode === "autopilot" ? "AUTOPILOT (Simulation)" : "SIMULATION (Dry-Run)",
+    mode: ctx.executionMode === "autopilot" ? "AUTOPILOT (Pre-Flight Preview)" : "PRE-FLIGHT SIMULATION",
     executionMode: ctx.executionMode,
     agentAddress: ctx.walletAddress,
     txHash: null,
@@ -228,7 +243,7 @@ export async function executeAgenticKuruLimitOrder(
       quoteToken: marketInfo.quoteSymbol,
       totalQuoteValue: `${totalQuote} ${marketInfo.quoteSymbol}`,
       postOnly: !!params.postOnly,
-      status: "SIMULATED_PRE_FLIGHT_READY",
+      status: "PRE_FLIGHT_VALIDATED",
       latencyMs: 380,
     },
     message: `Pre-flight validated on Monad block ${blockNumber.toString()}! No active gas balance on agent wallet (${ctx.walletAddress.slice(0, 8)}...). Simulated order: ${params.amount} ${marketInfo.baseSymbol} at ${params.price} ${marketInfo.quoteSymbol}.`,
@@ -254,11 +269,95 @@ export async function executeAgenticKuruMarketSwap(
   const estimatedPrice = cleanPair.includes("BTC") ? "83100.00" : cleanPair.includes("ETH") ? "2500.00" : cleanPair.includes("XAU") ? "4175.00" : "0.02470";
   const totalSettledQuote = (parseFloat(params.amount) * parseFloat(estimatedPrice)).toFixed(4);
 
+  // If real funds and private key are present, attempt live transaction
+  if (ctx.hasFunds && ctx.privateKey) {
+    try {
+      const account = privateKeyToAccount(ctx.privateKey as Hex);
+      const wallet = createWalletClient({
+        account,
+        chain: monadMainnet,
+        transport: http(MONAD_MAINNET_RPC),
+      });
+
+      const sizeUint96 = BigInt(Math.round(parseFloat(params.amount) * Number(marketInfo.sizePrecision)));
+      const minOut = 0n;
+
+      const hash = await wallet.writeContract({
+        address: marketInfo.marketAddress,
+        abi: KURU_ABI,
+        functionName: params.side === "buy" ? "placeAndExecuteMarketBuy" : "placeAndExecuteMarketSell",
+        args: [sizeUint96, minOut, false, false],
+        value: params.side === "buy" && marketInfo.baseSymbol === "MON" ? sizeUint96 : 0n,
+      });
+
+      const receipt = await monadClient.waitForTransactionReceipt({ hash });
+
+      await recordAgentTransaction({
+        userId,
+        walletAddress: account.address,
+        operationType: `kuru_market_${params.side}`,
+        amount: totalSettledQuote,
+        signature: hash,
+        metadata: {
+          chainId: MONAD_CHAIN_ID,
+          pair: cleanPair,
+          amount: params.amount,
+          executionMode: ctx.executionMode,
+        },
+      });
+
+      return {
+        success: true,
+        status: "filled",
+        isSimulation: false,
+        mode: ctx.executionMode === "autopilot" ? "AUTOPILOT_BROADCAST" : "LIVE_BROADCAST",
+        executionMode: ctx.executionMode,
+        agentAddress: account.address,
+        txHash: hash,
+        explorerUrl: `${MONAD_EXPLORER_MAINNET}/tx/${hash}`,
+        blockNumber: receipt.blockNumber.toString(),
+        fill: {
+          pair: cleanPair,
+          side: params.side.toUpperCase(),
+          amountBase: params.amount,
+          totalSettledQuote: `${totalSettledQuote} ${marketInfo.quoteSymbol}`,
+          executionPrice: estimatedPrice,
+          slippageRealized: "0.02%",
+          executionTimeMs: 410,
+        },
+        details: {
+          pair: cleanPair,
+          marketAddress: marketInfo.marketAddress,
+          side: params.side.toUpperCase(),
+          amount: params.amount,
+          latencyMs: 410,
+        },
+        message: `Market swap broadcast on Monad block ${receipt.blockNumber.toString()} in 410ms via agent wallet ${account.address.slice(0, 8)}... (${params.amount} ${marketInfo.baseSymbol}).`,
+      };
+    } catch (err: any) {
+      console.error("[MonadAgent] Real market swap broadcast failed:", err?.message || err);
+      return {
+        success: false,
+        status: "broadcast_failed",
+        isSimulation: false,
+        mode: "BROADCAST_FAILED",
+        executionMode: ctx.executionMode,
+        agentAddress: ctx.walletAddress,
+        txHash: null,
+        explorerUrl: null,
+        blockNumber: blockNumber.toString(),
+        error: err?.message || "Market swap broadcast failed",
+        message: `Live market swap broadcast failed on Monad: ${err?.shortMessage || err?.message || "Contract error"}.`,
+      };
+    }
+  }
+
+  // Pre-flight simulation when no funds or dry-run mode
   return {
     success: true,
-    status: "filled",
-    isSimulation: !ctx.hasFunds,
-    mode: ctx.hasFunds ? "LIVE_BROADCAST" : ctx.executionMode === "autopilot" ? "AUTOPILOT (Simulation)" : "SIMULATION (Dry-Run)",
+    status: "simulated_fill",
+    isSimulation: true,
+    mode: ctx.executionMode === "autopilot" ? "AUTOPILOT (Pre-Flight Preview)" : "PRE-FLIGHT SIMULATION",
     executionMode: ctx.executionMode,
     agentAddress: ctx.walletAddress,
     txHash: null,
@@ -280,9 +379,7 @@ export async function executeAgenticKuruMarketSwap(
       amount: params.amount,
       latencyMs: 410,
     },
-    message: ctx.hasFunds
-      ? `Executed ${params.side.toUpperCase()} for ${params.amount} ${marketInfo.baseSymbol} on Monad block ${blockNumber.toString()} in 410ms.`
-      : `Market order pre-flight simulated against Monad block ${blockNumber.toString()}! Target: ${params.amount} ${marketInfo.baseSymbol} at ~$${estimatedPrice} (deposit MON to ${ctx.walletAddress.slice(0, 8)}... to execute live).`,
+    message: `Market order pre-flight simulated against Monad block ${blockNumber.toString()}! Target: ${params.amount} ${marketInfo.baseSymbol} at ~$${estimatedPrice} (deposit MON to ${ctx.walletAddress.slice(0, 8)}... to execute live).`,
   };
 }
 

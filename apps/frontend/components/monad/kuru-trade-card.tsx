@@ -13,9 +13,11 @@ interface KuruTradeCardProps {
 
 export function KuruTradeCard({ result, onSelectAction }: KuruTradeCardProps) {
   const isOrderBook = !!result?.bids && !!result?.asks;
-  const isFilled = result?.status === "filled";
+  const isFilled = result?.status === "filled" || result?.status === "simulated_fill";
   const isPlaced = result?.status === "order_placed";
-  const isDone = isFilled || isPlaced;
+  const isFailed = result?.status === "broadcast_failed" || result?.success === false;
+  const isDone = (isFilled || isPlaced) && !isFailed;
+  const isSimulation = !!result?.isSimulation;
   const isMarketsList = Array.isArray(result?.markets);
 
   const pair = result?.pair || result?.fill?.pair || result?.details?.pair || "MON/USDC";
@@ -24,14 +26,15 @@ export function KuruTradeCard({ result, onSelectAction }: KuruTradeCardProps) {
   const explorerUrl = result?.explorerUrl || (txHash ? `https://monadscan.com/tx/${txHash}` : null);
 
   const displayPrice = result?.midPrice || result?.details?.limitPrice || result?.fill?.executionPrice || "0.00";
+  const badgeText = isSimulation ? "Pre-Flight Preview" : txHash ? "Live On-Chain" : "400ms Sub-Second";
 
   return (
     <MonadCard
       title={`${pair} CLOB`}
-      badge="400ms Sub-Second"
+      badge={badgeText}
       subtitle="via Kuru CLOB (Monad)"
       metric={`$${displayPrice}`}
-      metricLabel="Zero Pending"
+      metricLabel={isSimulation ? "Simulated Price" : "Execution Price"}
       icon={isDone ? <Check className="size-5 text-emerald-400" /> : <Zap className="size-5 text-emerald-400" />}
     >
       {/* Markets List Mode */}
@@ -132,6 +135,21 @@ export function KuruTradeCard({ result, onSelectAction }: KuruTradeCardProps) {
         </div>
       )}
 
+      {/* Broadcast Failure Mode */}
+      {isFailed && (
+        <div className="p-3 sm:p-4 space-y-3">
+          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
+            <Zap className="w-5 h-5 text-rose-400 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-white">Broadcast Failed</div>
+              <p className="text-xs text-rose-300/90 mt-0.5 leading-relaxed">
+                {result.message || result.error || "Transaction broadcast failed on Monad."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Execution Confirmation Mode (Placed or Filled) */}
       {isDone && (
         <div className="p-3 sm:p-4 space-y-3">
@@ -139,7 +157,9 @@ export function KuruTradeCard({ result, onSelectAction }: KuruTradeCardProps) {
             <Check className="w-5 h-5 text-emerald-400 shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-white">
-                {isFilled ? "Order Executed & Filled Instantly!" : "Limit Order Active in CLOB"}
+                {isSimulation
+                  ? (isFilled ? "Pre-Flight Market Swap Preview" : "Pre-Flight Limit Order Validated")
+                  : (isFilled ? "Order Broadcast & Filled On-Chain!" : "Limit Order Active in On-Chain CLOB")}
               </div>
               <p className="text-xs text-emerald-300/90 mt-0.5 leading-relaxed">
                 {result.message}

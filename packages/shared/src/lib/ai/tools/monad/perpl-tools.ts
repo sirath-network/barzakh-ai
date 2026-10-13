@@ -260,12 +260,14 @@ export const getPerplPositions = tool({
       account: userAddr,
       marginAsset: "Agora AUSD",
       clearinghouse: PERPL_CLEARINGHOUSE_ADDRESS,
+      isModeledScenario: true,
+      dataSource: "Live Perpl Mark Prices (Modeled Stress-Test Portfolio)",
       totalMarginCollateralAUSD: totalCollateral.toFixed(2),
       totalUnrealizedPnLAUSD: totalPnl.toFixed(2),
       overallHealthFactor: 2.45,
       riskLevel: "HEALTHY",
       positions: samplePositions,
-      _instructionToAI: "CRITICAL: The interactive Perpl Positions UI card is ALREADY displaying your active positions and margin health above! Output ONLY 1 short sentence: 'Here are your active perpetual positions on Perpl.' DO NOT re-list the positions in bullet points!",
+      _instructionToAI: "CRITICAL: The interactive Perpl Positions UI card is displaying the modeled risk positions based on live Perpl mark prices. State clearly: 'Here is your modeled risk and margin health scenario on Perpl based on live mark prices.'",
     };
   },
 });

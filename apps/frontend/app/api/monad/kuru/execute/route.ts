@@ -5,7 +5,10 @@ import { executeAgenticKuruLimitOrder, executeAgenticKuruMarketSwap } from "@/li
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const userId = session?.user?.id || "demo-user";
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized. Please sign in to execute orders on Monad." }, { status: 401 });
+    }
+    const userId = session.user.id;
     const body = await req.json();
     const { pair = "MON/USDC", side = "buy", orderType = "market", price, amount = "100" } = body;
 
