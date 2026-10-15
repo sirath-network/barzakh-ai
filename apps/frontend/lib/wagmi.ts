@@ -1,3 +1,4 @@
+import { arcMainnet, arcTestnet } from '@barzakh/shared/lib/arc/config';
 import { http, createConfig, createStorage, cookieStorage } from 'wagmi';
 import { defineChain } from 'viem';
 import {
@@ -98,6 +99,8 @@ export const somnia = defineChain({
 });
 
 export const supportedChains = [
+  arcMainnet,
+  arcTestnet,
   mainnet,
   optimism,
   arbitrum,

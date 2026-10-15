@@ -21,6 +21,8 @@ export const CHAIN_NATIVE_CURRENCY: Record<number, string> = {
   1101: "ETH",
   1135: "ETH",
   5000: "MNT",
+  5042: "USDC",
+  5042002: "USDC",
   8453: "ETH",
   42161: "ETH",
   42170: "ETH",

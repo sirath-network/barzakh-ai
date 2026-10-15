@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       const imageBuffer = Buffer.from(await signedResponse.arrayBuffer());
       const contentType = signedResponse.headers.get('Content-Type') || 'image/png';
 
-      return new NextResponse(imageBuffer, {
+      return new NextResponse(new Uint8Array(imageBuffer), {
         headers: {
           'Content-Type': contentType,
           'Content-Length': imageBuffer.length.toString(),

@@ -1,0 +1,14 @@
+{
+  "chainId": 5042002,
+  "transactionHash": "0x28f35e42277a3790b91f3e883c063d3d1e5a032079ee94bca5ffceea676b5192",
+  "merchant": "0xf23480B0AFa902bb7646de92b2B538a6A769FdDA",
+  "deployer": "0xf23480B0AFa902bb7646de92b2B538a6A769FdDA",
+  "codeHash": "0xac62b06da493f503722387091c2c2c10a595b23cf17133da7a76725b9bcc2767",
+  "compiler": "0.8.20+commit.a1b79de6.Emscripten.clang",
+  "address": "0xb4e4807abf64ae60eee36267be653bf6f2b6f8ea",
+  "blockNumber": "67222220",
+  "gasUsdc": "0.006639925",
+  "explorerUrl": "https://explorer.testnet.arc.io/address/0xb4e4807abf64ae60eee36267be653bf6f2b6f8ea",
+  "verifiedBytecode": true,
+  "sourceVerified": true
+}

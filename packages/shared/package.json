@@ -6,6 +6,7 @@
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",
+    "./lib/arc/*": "./src/lib/arc/*.ts",
     "./lib/*": "./src/lib/*",
     "./src/lib/*": "./src/lib/*",
     "./types/*": "./src/types/*"

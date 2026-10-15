@@ -5,11 +5,6 @@
 </p>
 
 <p align="center">
-  <strong>🏆 Official Submission for the Monad Metropolis Hackathon (October 2026)</strong><br />
-  <em>The First Autonomous Sub-Second Execution & Risk Copilot on Monad — Powered by 400ms On-Chain CLOBs, Universal AUSD Margin, and Zero-Popup Mera Passkeys.</em>
-</p>
-
-<p align="center">
   <a href="https://app.sirath.network"><img src="https://img.shields.io/badge/🚀_Live_App-app.sirath.network-ede8e8?style=for-the-badge" alt="Live App"></a>&nbsp;
   <a href="#-monad-metropolis-hackathon-showcase"><img src="https://img.shields.io/badge/⚡_Monad_Showcase-Explore-ede8e8?style=for-the-badge" alt="Monad Showcase"></a>&nbsp;
   <a href="./docs/WHITEPAPER.md"><img src="https://img.shields.io/badge/📄_Whitepaper-Read-ede8e8?style=for-the-badge" alt="Whitepaper"></a>
@@ -33,6 +28,113 @@
   <img src="https://img.shields.io/badge/Vercel-Deployed-ede8e8?logo=vercel&logoColor=black" alt="Vercel">
   <img src="https://img.shields.io/badge/License-MIT-ede8e8" alt="MIT License">
 </p>
+
+---
+
+## 🌐 Arc Network: Proof of Intelligence Showcase
+
+> **AI market intelligence should have skin-in-the-game and cryptographic provenance. Barzakh AI introduces the Proof of Intelligence protocol on Arc Mainnet — combining sub-cent native USDC micropayments (0.002 USDC) with immutable, public on-chain verification receipts.**
+
+> **Arc Mainnet / Proof of Intelligence:** Live on Arc Mainnet (Chain ID: 5042). Paid AI briefings settled in native USDC (0.002 USDC), request-bound smart contracts, and verifiable cryptographic receipts. Open [/arc](https://app.sirath.network/arc) and read [ARC-MAINNET.md](docs/ARC-MAINNET.md).
+
+### 🏆 Targeted Track & Arc Ecosystem Alignment
+
+| Track / Focus | Target Architecture | Delivered Capability on Arc | Live Proof & Explorer Link |
+| :--- | :--- | :--- | :--- |
+| **PRIMARY TRACK** | **Arc Mainnet Applications & Agentic Finance** | Pay-Per-Query Native USDC Intelligence Desk | 0.002 USDC micropayment unlocks multi-perspective market intelligence (bull, bear, risk audit) with zero subscription lock-in. | [`app.sirath.network/arc`](https://app.sirath.network/arc) |
+| **Smart Contract Settlement** | **`BarzakhIntelligencePayments.sol`** | Trustless Micro-Settlement & Event Logging | Reentrancy-guarded smart contract deployed on Arc Mainnet recording invoice commitments and forwarding native USDC to merchant. | [`0xb4E4807A...F8EA` on Arc Explorer](https://explorer.arc.io/address/0xb4E4807ABf64AE60EeE36267Be653bF6F2B6F8EA) |
+| **Auditability & Provenance** | **Cryptographic Proof of Intelligence** | Immutable Public Receipts & 1080×1350 Share Cards | Every briefing binds prompt hash, settlement block, and model digest into a public receipt with downloadable high-res social cards. | [Arc Public Receipts](https://app.sirath.network/arc/receipts) |
+| **Frictionless Web3 UX** | **Dynamic SDK & Viem** | Universal Embedded & Injected Wallet Auth | 1-click onboarding with MetaMask, Rabby, Phantom, or email/social passkeys, native Arc network switching, and exact gas estimation. | [`components/arc/arc-intelligence.tsx`](apps/frontend/components/arc/arc-intelligence.tsx) |
+
+---
+
+### 💡 The Problem & The Arc Breakthrough
+
+- **The Problem**: Web2 AI research platforms charge $20 to $200/month subscriptions for market intelligence that users might only need occasionally. Worse, AI insights are ephemeral: they vanish after generation without cryptographic proof of when the thesis was generated, what market conditions existed, or which identity funded it.
+- **The Arc Breakthrough**: Arc provides deterministic execution with **native USDC as both the currency and the gas asset**. This unlocks fundamental economic primitives that were previously impossible:
+  1. **True Pay-Per-Query Economics (0.002 USDC)**: No subscription barrier, credit card fees, or ERC-20 approval overhead. Users and autonomous AI agents pay exactly 0.002 native USDC (18 decimals) per query.
+  2. **Zero Escrow / Non-Custodial Direct Settlement**: Payments stream directly through `BarzakhIntelligencePayments.sol` to the merchant with no intermediary custody risk.
+  3. **Cryptographic Proof of Origin**: Invoices bind a 10-minute HMAC token, request hash, and settlement block. A public receipt allows any third party to independently audit the transaction on [explorer.arc.io](https://explorer.arc.io).
+  4. **Multi-Perspective Synthesis**: Consumes real-time market data across crypto, equities, and real-world assets (RWAs) to deliver 3-angle analysis: Bull Thesis, Bear Risk Audit, and Key Market Catalysts.
+
+---
+
+### 📐 Arc Intelligence Settlement Lifecycle (Sequence Diagram)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 👤 Trader / Agent
+    participant UI as 💻 Next.js 16 Arc Desk
+    participant Dynamic as 🔐 Dynamic SDK Wallet
+    participant API as ⚡ Verification Server
+    participant Arc as 🌐 Arc Mainnet
+    participant Contract as 📜 BarzakhPayments Contract
+
+    User->>UI: Select asset and enter research prompt
+    UI->>API: Request payment invoice
+    API-->>UI: Return HTTP 402 with signed invoice (0.002 USDC)
+    UI->>Dynamic: Prompt native USDC payment on Arc Mainnet
+    Dynamic->>Contract: Broadcast pay(commitment, expiresAt)
+    Contract->>Contract: Validate fee, deadline, and replay protection
+    Contract-->>Arc: Emit InvoicePaid and forward fee to merchant
+    Arc-->>UI: Transaction confirmed with txHash
+    UI->>API: Submit payment proof (txHash and invoiceToken)
+    API->>Arc: Verify tx receipt, merchant address, and bytecode
+    API->>API: Synthesize live multi-perspective market data
+    API-->>UI: Deliver market briefing and cryptographic receipt
+    UI-->>User: Display report, verification link, and share card
+```
+
+---
+
+### 📦 Verified Arc Deployments & Explorer Links
+
+| Network | Chain ID | Contract Address | Explorer Link | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Arc Mainnet** | **`5042`** | `0xb4E4807ABf64AE60EeE36267Be653bF6F2B6F8EA` | [explorer.arc.io/address/0xb4E4...F8EA](https://explorer.arc.io/address/0xb4E4807ABf64AE60EeE36267Be653bF6F2B6F8EA) | **Active & Live** |
+| **Arc Mainnet Deployment Tx** | `5042` | `0xf893f0971a37ad3bf6f62a4704724babc0c63fb1720fcb593d57cf6eedfa03b5` | [View Deployment Tx on Arc Explorer](https://explorer.arc.io/tx/0xf893f0971a37ad3bf6f62a4704724babc0c63fb1720fcb593d57cf6eedfa03b5) | **Confirmed** |
+| **Arc Merchant Vault** | `5042` | `0xf23480B0AFa902bb7646de92b2B538a6A769FdDA` | [View Merchant on Arc Explorer](https://explorer.arc.io/address/0xf23480B0AFa902bb7646de92b2B538a6A769FdDA) | **Verified** |
+| **Arc Testnet (Fallback)** | `5042002` | `0xb4e4807abf64ae60eee36267be653bf6f2b6f8ea` | [explorer.testnet.arc.io/address/0xb4e4...](https://explorer.testnet.arc.io/address/0xb4e4807abf64ae60eee36267be653bf6f2b6f8ea) | **Fallback** |
+
+---
+
+### 📋 Copy-Paste Prompts for Judges & Testers
+
+> **Test Live Now:** Open [app.sirath.network/arc](https://app.sirath.network/arc), connect an EVM wallet to Arc Mainnet with a few cents of native USDC, and try these prompts:
+
+#### 1. Arc Network Competitive Moat & Infrastructure
+```text
+Evaluate Arc Network's competitive moat against traditional EVM L2s regarding native USDC gas efficiency and agentic micro-settlements.
+```
+*Expected Result:* Issues a 0.002 USDC invoice on Arc Mainnet, confirms settlement via `BarzakhIntelligencePayments`, outputs full bull/bear/risk briefing, and renders an immutable cryptographic receipt.
+
+#### 2. Macro Liquidity & Institutional Capital Flow
+```text
+Analyze the risk-reward profile and liquidity depth of BTC and ETH under current macroeconomic tightening and institutional ETF flows.
+```
+
+#### 3. Real-World Asset (RWA) Tokenization & Treasury Yields
+```text
+Break down tokenized treasury (RWA) protocols and stablecoin yield sustainability across current interest rate cycles.
+```
+
+---
+
+### 🧪 Developer Verification & Testing
+
+Every aspect of the Arc integration is verified by end-to-end automated test suites:
+
+```sh
+# 1. Run 42 automated Arc protocol tests (HMAC signing, replay protection, pricing, receipt verification)
+pnpm arc:test
+
+# 2. Check live Arc Mainnet RPC connectivity, contract bytecode, and merchant verification
+pnpm arc:check
+
+# 3. Verify receipt database table schema in Postgres
+pnpm arc:migrate
+```
 
 ---
 
@@ -372,6 +474,13 @@ Test these natural language commands directly on [app.sirath.network](https://ap
 
 ## 📋 Table of Contents
 
+- [Arc Network: Proof of Intelligence Showcase](#-arc-network-proof-of-intelligence-showcase)
+  - [Targeted Track & Arc Ecosystem Alignment](#-targeted-track--arc-ecosystem-alignment)
+  - [The Problem & The Arc Breakthrough](#-the-problem--the-arc-breakthrough)
+  - [Arc Intelligence Settlement Lifecycle](#-arc-intelligence-settlement-lifecycle-sequence-diagram)
+  - [Verified Arc Deployments & Explorer Links](#-verified-arc-deployments--explorer-links)
+  - [Copy-Paste Prompts for Judges & Testers](#-copy-paste-prompts-for-judges--testers)
+  - [Developer Verification & Testing](#-developer-verification--testing)
 - [Monad Metropolis Hackathon Showcase](#-monad-metropolis-hackathon-showcase)
   - [Targeted Tracks & Ecosystem Focus](#-targeted-tracks--ecosystem-focus)
   - [The Problem & The Monad Breakthrough](#-the-problem--the-monad-breakthrough)
@@ -386,6 +495,7 @@ Test these natural language commands directly on [app.sirath.network](https://ap
 - [Tech Stack](#tech-stack)
 - [AI Models & Orchestration](#ai-models--orchestration)
 - [Blockchain Tools](#blockchain-tools)
+  - [Arc Network (Proof of Intelligence & Native USDC)](#-arc-network--proof-of-intelligence--native-usdc)
   - [Monad Ecosystem (Deep Integration)](#monad-ecosystem-deep-integration)
   - [Somnia Network & DreamDEX Event Contracts](#somnia-network--dreamdex-event-contracts)
   - [Arkham Intelligence](#%EF%B8%8F-arkham-intelligence--blockchain-investigation--whale-tracking)
@@ -412,6 +522,7 @@ Barzakh AI is a full-stack **AI-powered onchain agent** that combines real-time 
 
 | Feature | Description |
 |---------|-------------|
+| **Arc Proof of Intelligence** | Pay-per-query AI market research settled in native USDC (0.002 USDC) on Arc Mainnet (5042) with cryptographic receipts and 1080×1350 share cards |
 | **AI Onchain Agent** | Natural language → real onchain transactions (swaps, bridges, trades) |
 | **DreamDEX Prediction Markets** | Conversational binary prediction trading, AI conviction scoring (0–100), and CLOB limit/market orders on Somnia |
 | **Autonomous Portfolio Settlement** | Automated 24/7 background settlement & redemption sweeps via GitHub Actions and Somnia Shannon RPC |
@@ -982,6 +1093,7 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 
 | Chain | Tools | Key Capabilities |
 |-------|-------|------------------|
+| **Arc Network (Mainnet)** | 5 | Native USDC micropayments (0.002 USDC), `BarzakhIntelligencePayments` contract, cryptographic receipts, market briefing generation, public on-chain verification |
 | **Somnia & DreamDEX** | 13 | Binary prediction markets (UP/DOWN), CLOB order book trading, AI conviction scoring (0–100), automated early exit/close position, 1:1 winnings redemption, native portfolio tracker, and 24/7 background settlement sweep on Somnia Shannon |
 | **Arkham Intelligence** | 43 | Whale tracking, entity investigation, fund flow analysis, portfolio, transfers, DEX swaps, token data, market metrics, address labels — across 20+ chains (Ethereum, Bitcoin, Solana, BSC, Tron, TON, Dogecoin, etc.) |
 | **Cronos EVM** | 12 | Balance, tokens, transactions, gas, market data, VVS swaps, pool info, internal tx, logs |
@@ -998,6 +1110,22 @@ Barzakh AI uses deferred background workers for non-blocking tasks, located in `
 | **Creditcoin** | 2 | Blockchain data via Blockscout API, network statistics |
 | **Renaiss Protocol** | 8 | Search collectible cards (listed & unlisted), card price history & Fair Market Value (FMV), PSA/CGC/BGS cert lookup, volume trends, target alert watchlists, zero-knowledge gacha packs & draws |
 | **Utility** | 8 | Web search, news, X/Twitter, DeFi Llama, image generation |
+
+---
+
+### Arc Network — Proof of Intelligence & Native USDC
+
+Barzakh AI integrates **Arc Mainnet (Chain ID: 5042)** and **Arc Testnet (Chain ID: 5042002)** for native-USDC pay-per-query market research and verifiable cryptographic audit trails:
+
+#### 🛠️ Arc Network AI & Payment Suite
+
+| Tool / Module | Category | Description |
+| :--- | :--- | :--- |
+| `BarzakhIntelligencePayments` | 📜 Smart Contract | Deployed at `0xb4E4807ABf64AE60EeE36267Be653bF6F2B6F8EA`. Handles 0.002 native USDC micro-settlements, prevents invoice reuse, forwards fees, and emits `InvoicePaid`. |
+| `POST /api/arc/analyze` | 💳 Payment & Inference | 2-step HTTP 402 protocol: issues HMAC-signed invoice, then verifies on-chain transaction receipt before triggering multi-perspective market analysis. |
+| `GET /api/arc/status` | ⛓️ Node & Contract Health | Real-time status check verifying Arc Mainnet RPC connectivity, block height, contract bytecode integrity, and payment readiness. |
+| `POST /api/arc/prompt` | 🧠 AI Prompt Architect | Context-aware LLM research question generator that dynamically crafts deep market inquiries based on user asset selection. |
+| `GET /arc/receipts/[hash]` | 🔍 Public Receipt Verifier | Standalone public verification interface linking prompt hash, execution timestamp, block height, and downloadable 1080×1350 social share cards. |
 
 ---
 

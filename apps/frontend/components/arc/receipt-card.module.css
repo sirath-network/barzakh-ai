@@ -1,0 +1,146 @@
+.card {
+	margin: 22px 0;
+}
+.preview {
+	display: block;
+	position: relative;
+	width: 100%;
+	border: 0;
+	background: #111510;
+	border-radius: 12px;
+	overflow: hidden;
+	cursor: zoom-in;
+	box-shadow: 0 8px 24px #11151020;
+	transition: transform .18s ease;
+}
+.preview:hover {
+	transform: translateY(-3px);
+}
+.preview img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+.preview > span {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 12px;
+	background: #283223;
+	color: #eff3e7;
+	font: 12px Arial, sans-serif;
+}
+.actions {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 8px;
+	margin-top: 14px;
+}
+.actions button {
+	min-width: 0;
+	white-space: normal;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 10px 8px;
+	border: 1px solid #a6b099;
+	border-radius: 6px;
+	background: #e9eadf;
+	color: #283223;
+	font: 12px Arial, sans-serif;
+	cursor: pointer;
+}
+.actions button:first-child {
+	background: #283223;
+	color: #eff3e7;
+	border-color: #283223;
+}
+.actions button:disabled {
+	opacity: 0.5;
+	cursor: wait;
+}
+.actions button:hover:not(:disabled) {
+	filter: brightness(0.94);
+}
+.preview:focus-visible,
+.actions button:focus-visible,
+.link:focus-visible {
+	outline: 3px solid #ff714b;
+	outline-offset: 3px;
+}
+.dialog {
+	width: min(680px, calc(100vw - 24px));
+	max-width: 680px;
+	max-height: 92dvh;
+	overflow-y: auto;
+	background: #f0f1e7;
+	color: #283223;
+	border-color: #b2baa6;
+}
+.dialog > p {
+	color: #58634e;
+}
+.fullImage {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 10px;
+}
+.message {
+	font: 12px / 1.5 Arial, sans-serif;
+	color: #46553a;
+	margin-top: 10px;
+}
+.linkLabel {
+	display: grid;
+	gap: 7px;
+	font: 11px Arial, sans-serif;
+	color: #58634e;
+}
+.linkLabel input {
+	width: 100%;
+	min-width: 0;
+	background: #fff;
+	border: 1px solid #b2baa6;
+	padding: 10px;
+	border-radius: 4px;
+	color: #283223;
+	font: 11px monospace;
+}
+.link {
+	font: 12px Arial, sans-serif;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+@media (max-width: 640px) {
+	.dialog {
+		padding: 16px;
+		max-height: calc(100dvh - 24px);
+		overscroll-behavior: contain;
+	}
+	.linkLabel input {
+		font-size: 16px;
+		min-height: 44px;
+	}
+	.dialog > button:last-child {
+		width: 44px;
+		height: 44px;
+		top: 4px;
+		right: 4px;
+		display: grid;
+		place-items: center;
+	}
+	.link {
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.preview {
+		transition: none;
+	}
+}

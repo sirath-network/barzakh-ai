@@ -631,9 +631,9 @@ export function AgentAutomationSection() {
               {status.recentTransactions.map((tx) => {
                 const chainId = tx.metadata?.chainId;
 
-                // Determine token symbol if missing (like Arc testnet payments)
+                // Determine token symbol if missing (like Arc USDC payments)
                 let tokenSymbol = tx.metadata?.inputToken || "";
-                if (!tokenSymbol && chainId === 5042002) {
+                if (!tokenSymbol && (chainId === 5042 || chainId === 5042002)) {
                   tokenSymbol = "USDC";
                 }
 

@@ -1,3 +1,17 @@
+import {
+  ARC_CHAIN_ID,
+  ARC_MAINNET_CHAIN_ID,
+  ARC_RPC_URL,
+  ARC_TESTNET_CHAIN_ID,
+  arcChain,
+  arcMainnet,
+  arcTestnet,
+  getArcChain,
+  getArcChainId,
+  getArcRpcUrl,
+} from '@barzakh/shared/lib/arc/config';
+import { analysisRequestSchema, invoiceTransaction, validateInvoiceForPayment, type ArcInvoice } from '@barzakh/shared/lib/arc/protocol';
+import { handleAnalysisRequest, createArcClient, validatePaymentContract, paymentContractAddress } from '@barzakh/shared/lib/arc/server';
 /**
  * Agent Payment Executor — User-Owned Wallet Edition
  * 
@@ -30,10 +44,11 @@ import {
 } from "./dynamic-agent-wallet";
 import {
   getDelegationCredentials,
+  getUserAgentExecutionMode,
   recordAgentTransaction,
 } from "./agent-wallet-store";
-import { createPublicClient, http, fallback, parseUnits, parseGwei } from "viem";
-import type { TransactionSerializable } from "viem";
+import { createPublicClient, http, fallback, parseUnits, parseGwei, keccak256 } from "viem";
+import type { Chain, TransactionSerializable } from "viem";
 import { getNativeCurrencyForChain } from "./swap-error-parser";
 
 // ─── RPC Configuration ──────────────────────────────────────────────────────
@@ -58,8 +73,8 @@ function getRpcTransport(chainId: number) {
   if (chainId === 8453) return http(BASE_RPC, { timeout: 10000, retryCount: 1 });
   if (chainId === 42161) return http(ARBITRUM_RPC, { timeout: 10000, retryCount: 1 });
   if (chainId === 137) return http(POLYGON_RPC, { timeout: 10000, retryCount: 1 });
-  if (chainId === 10) return http(OPTIMISM_RPC, { timeout: 10000, retryCount: 1 });
-  if (chainId === 5042002) return http("https://rpc.testnet.arc.network", { timeout: 10000, retryCount: 1 });
+  if (chainId === ARC_MAINNET_CHAIN_ID) return http(process.env.ARC_MAINNET_RPC_URL || "https://rpc.mainnet.arc.io", { timeout: 10000, retryCount: 1 });
+  if (chainId === ARC_TESTNET_CHAIN_ID) return http(process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network", { timeout: 10000, retryCount: 1 });
   return http(undefined, { timeout: 10000, retryCount: 1 });
 }
 
@@ -590,17 +605,13 @@ export async function executeOnChainTransaction(
 ): Promise<PaymentExecutionResult> {
   const credentials = await getUserCredentials(params.userId, params.chainId);
   let currentNonce: number | null = null;
-  const maxAttempts = 3;
+  const isArcChain = params.chainId === ARC_MAINNET_CHAIN_ID || params.chainId === ARC_TESTNET_CHAIN_ID;
+  const maxAttempts = isArcChain ? 1 : 3;
+  let broadcastHash: string | undefined;
 
-  let targetChain = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
-  if (!targetChain && params.chainId === 5042002) {
-    targetChain = {
-      id: 5042002,
-      name: 'Arc Testnet',
-      nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-      rpcUrls: { default: { http: ['https://rpc.testnet.arc.network'] } }
-    } as any;
-  }
+  let targetChain: Chain | undefined = params.chainId === 56 ? allChains.bsc : Object.values(allChains).find(c => c.id === params.chainId);
+  if (params.chainId === ARC_MAINNET_CHAIN_ID) targetChain = arcMainnet;
+  if (params.chainId === ARC_TESTNET_CHAIN_ID) targetChain = arcTestnet;
 
   if (!targetChain) {
     throw new Error(`Chain ID ${params.chainId} is not supported locally.`);
@@ -657,6 +668,9 @@ export async function executeOnChainTransaction(
           preparedReq.gas = (preparedReq.gas * 120n) / 100n;
         }
       }
+      if (isArcChain && preparedReq.type === 'eip1559' && preparedReq.maxFeePerGas < parseGwei('20')) {
+        preparedReq.maxFeePerGas = parseGwei('20');
+      }
       console.log(`[AgentPayment] Gas estimated: ${preparedReq.gas}, type: ${preparedReq.type}`);
 
       const baseTx = {
@@ -692,10 +706,13 @@ export async function executeOnChainTransaction(
       );
       console.log(`[AgentPayment] Transaction signed. Broadcasting...`);
 
+      // Keep the deterministic hash even when the RPC times out after accepting the raw transaction.
+      if (isArcChain) broadcastHash = keccak256(signedTx as `0x${string}`);
       // 3. Broadcast
       const txHash = await publicClient.sendRawTransaction({
         serializedTransaction: signedTx as `0x${string}`
       });
+      broadcastHash = txHash;
       console.log(`[AgentPayment] Broadcasted! Hash: ${txHash}, waiting for confirmation...`);
 
       if (params.waitForReceipt === false) {
@@ -782,7 +799,8 @@ export async function executeOnChainTransaction(
 
       return {
         success: false,
-        error: error.message || "Failed to execute on-chain transaction",
+        transactionHash: broadcastHash,
+        error: broadcastHash ? `Payment broadcast as ${broadcastHash}; retry receipt verification, do not pay again.` : error.message || "Failed to execute on-chain transaction",
         operationType: "on_chain_tx",
       };
     }
@@ -795,113 +813,87 @@ export async function executeOnChainTransaction(
   };
 }
 
-// ─── Arc Nanopayments & Swarm Intelligence (Hackathon) ─────────────────────────
+// ─── Arc: paid intelligence with request-bound receipts ────────────────────────
 
-export interface ArcNanopaymentParams {
-  userId: string;
-  amount: number;
-  destinationWallet: string;
-}
-
-/**
- * Autonomously pays a micro-invoice on the Arc blockchain using USDC.
- * This satisfies the "Agent-to-Agent Payment Loop" using Circle Nanopayments.
- */
-export async function executeArcNanopayment(
-  params: ArcNanopaymentParams
-): Promise<PaymentExecutionResult> {
-  try {
-    const ARC_CHAIN_ID = 5042002; // Arc Testnet Chain ID
-
-    console.log(`[AgentPayment] Executing ${params.amount} USDC Nanopayment on Arc to ${params.destinationWallet}...`);
-
-    // On Arc, USDC is the native gas token, so a transfer is just a native value transfer.
-    // parseUnits uses 18 decimals since native tokens use 18 decimals.
-    const txValue = parseUnits(params.amount.toString(), 18);
-
-    return await executeOnChainTransaction({
-      userId: params.userId,
-      description: `Nanopayment to Signal Agent`,
-      estimatedValueUsd: params.amount.toString(),
-      chainId: ARC_CHAIN_ID,
-      transaction: {
-        to: params.destinationWallet as `0x${string}`,
-        value: txValue,
-        data: "0x",
-      },
-      waitForReceipt: true,
-    });
-  } catch (error: any) {
-    console.error("[AgentPayment] Arc Nanopayment failed:", error);
-    return {
-      success: false,
-      error: error.message || "Failed to execute Arc Nanopayment",
-      operationType: "on_chain_tx",
-    };
+export async function executeArcNanopayment(params: { userId: string; invoice: ArcInvoice }): Promise<PaymentExecutionResult> {
+  const activeChain = getArcChain();
+  const activeChainId = getArcChainId();
+  if (await getUserAgentExecutionMode(params.userId) !== 'autopilot') {
+    throw new Error(`Approve the 0.002 USDC ${activeChain.name} payment in /arc, or explicitly enable Autopilot in wallet settings.`);
   }
+  const client = createPublicClient({ chain: activeChain, transport: getRpcTransport(activeChainId) });
+  if (await client.getChainId() !== activeChainId) throw new Error(`RPC is not ${activeChain.name}`);
+  const credentials = await getUserCredentials(params.userId, activeChainId);
+  if (params.invoice.payer.toLowerCase() !== credentials.walletAddress.toLowerCase()) throw new Error('Invoice payer does not match the agent wallet');
+  return executeOnChainTransaction({
+    userId: params.userId,
+    description: `Arc Proof of Intelligence · invoice ${params.invoice.id}`,
+    estimatedValueUsd: params.invoice.amount,
+    chainId: activeChainId,
+    transaction: invoiceTransaction(params.invoice),
+    waitForReceipt: true,
+  });
 }
 
-/**
- * The core Swarm Consumer logic.
- * 1. Pings the Signal Agent
- * 2. Catches the 402 Payment Required
- * 3. Pays the invoice on Arc
- * 4. Retries the request with the transaction receipt
- */
+/** Uses the in-app service by default; legacy testnet SIGNAL_AGENT_URL is intentionally ignored. */
 export async function querySignalAgent(
   userId: string,
-  imageUrl: string,
+  _imageUrl: string,
   tokenName: string,
-  marketData?: any
+  _marketData?: unknown,
+  resume?: { receipt: string; invoiceToken: string },
+  prompt?: string,
 ): Promise<any> {
-  // Use the signal agent's URL. In a real environment, this would be an env var pointing to the Vercel deployment.
-  const signalAgentUrl = process.env.SIGNAL_AGENT_URL || "http://localhost:3005/api/sentiment";
-
-  console.log(`[Swarm] Querying Signal Agent for ${tokenName}...`);
-
-  // 1. Initial Request
-  let response = await fetch(signalAgentUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl, token_name: tokenName, market_data: marketData })
-  });
-
-  // 2. Handle x402 Payment Required
-  if (response.status === 402) {
-    const errorData = await response.json();
-    const invoice = errorData.x402_invoice;
-
-    console.log(`[Swarm] 402 Payment Required. Agent requested ${invoice.amount} ${invoice.currency} on ${invoice.chain}.`);
-
-    // 3. Execute Nanopayment on Arc
-    const paymentResult = await executeArcNanopayment({
-      userId,
-      amount: invoice.amount,
-      destinationWallet: invoice.destination_wallet
-    });
-
-    if (!paymentResult.success || !paymentResult.transactionHash) {
-      throw new Error(`Failed to pay Signal Agent invoice: ${paymentResult.error}`);
-    }
-
-    console.log(`[Swarm] Payment successful! TxHash: ${paymentResult.transactionHash}. Retrying request...`);
-
-    // 4. Retry with Receipt Header
-    response = await fetch(signalAgentUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-402-receipt": paymentResult.transactionHash // Provide the Arc txHash as proof
-      },
-      body: JSON.stringify({ image_url: imageUrl, token_name: tokenName, market_data: marketData })
-    });
+  const activeChainId = getArcChainId();
+  const activeChain = getArcChain();
+  const isAutopilot = (await getUserAgentExecutionMode(userId).catch(() => null)) === 'autopilot';
+  if (!isAutopilot && !resume) {
+    const params = new URLSearchParams({ token: tokenName });
+    if (prompt?.trim()) params.set('prompt', prompt.trim());
+    return {
+      status: 'approval_required',
+      message: `Review and approve the 0.002 USDC plus network fee payment on ${activeChain.name}.`,
+      approvalUrl: `/arc?${params.toString()}`,
+    };
   }
 
-  if (!response.ok) {
-    throw new Error(`Signal Agent failed: ${response.statusText}`);
+  const credentials = await getUserCredentials(userId, activeChainId);
+  const rawReq: { token_name: string; payer: string; prompt?: string } = {
+    token_name: tokenName,
+    payer: credentials.walletAddress,
+  };
+  if (prompt?.trim()) rawReq.prompt = prompt.trim();
+  const request = analysisRequestSchema.parse(rawReq);
+  const externalUrl = process.env.ARC_SIGNAL_AGENT_URL;
+  if (externalUrl && new URL(externalUrl).protocol !== 'https:') throw new Error('ARC_SIGNAL_AGENT_URL must use HTTPS');
+  const callAgent = (headers: Record<string, string> = {}) => {
+    const options = { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(request) };
+    return externalUrl
+      ? fetch(externalUrl, { ...options, redirect: 'error', signal: AbortSignal.timeout(85_000) })
+      : handleAnalysisRequest(new Request('http://localhost/api/arc/analyze', options));
+  };
+  let receipt = resume?.receipt;
+  let invoiceToken = resume?.invoiceToken;
+  if (!receipt) {
+    const quote = await callAgent();
+    const data = await quote.json();
+    if (quote.status !== 402 || !data.invoice_token) throw new Error(data.error || 'Signal Agent did not return a signed invoice');
+    const contract = paymentContractAddress();
+    const recipient = await validatePaymentContract(createArcClient(), contract);
+    const invoice = validateInvoiceForPayment(data.x402_invoice, request, recipient, undefined, contract);
+    invoiceToken = data.invoice_token;
+    const payment = await executeArcNanopayment({ userId, invoice });
+    if (!payment.transactionHash) throw new Error(payment.error || 'Payment failed');
+    receipt = payment.transactionHash;
+    // A broadcast with unknown finality must never cause a second payment.
+    if (!payment.success) return { status: 'payment_pending', message: payment.error, receipt_id: receipt, invoice_token: invoiceToken, token_name: request.token_name };
   }
-
-  const data = await response.json();
-  console.log(`[Swarm] Received Intelligence:`, data);
-  return data;
+  try {
+    const response = await callAgent({ 'x-402-receipt': receipt, 'x-arc-invoice': invoiceToken! });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Analysis is not ready');
+    return data;
+  } catch (error) {
+    return { status: 'paid_pending', message: error instanceof Error ? error.message : 'Retry the same receipt; do not pay again.', receipt_id: receipt, invoice_token: invoiceToken, token_name: request.token_name };
+  }
 }

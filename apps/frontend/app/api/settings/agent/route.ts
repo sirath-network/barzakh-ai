@@ -1,3 +1,11 @@
+import {
+  ARC_CHAIN_ID,
+  ARC_EXPLORER_URL,
+  ARC_MAINNET_CHAIN_ID,
+  ARC_TESTNET_CHAIN_ID,
+  ARC_MAINNET_EXPLORER_URL,
+  ARC_TESTNET_EXPLORER_URL,
+} from '@barzakh/shared/lib/arc/config';
 /**
  * Agent Automation Settings API (Multi-Chain)
  * 
@@ -75,8 +83,11 @@ export async function GET() {
         if (isSolana) {
           explorerBase = "https://solscan.io/tx";
           chainName = "Solana";
-        } else if (chainId === 5042002) {
-          explorerBase = "https://testnet.arcscan.app/tx"; // Arc Testnet
+        } else if (chainId === ARC_MAINNET_CHAIN_ID) {
+          explorerBase = `${ARC_MAINNET_EXPLORER_URL}/tx`;
+          chainName = "Arc Mainnet";
+        } else if (chainId === ARC_TESTNET_CHAIN_ID) {
+          explorerBase = `${ARC_TESTNET_EXPLORER_URL}/tx`;
           chainName = "Arc Testnet";
         } else if (chainId) {
           const matchedChain = Object.values(allChains).find((c: any) => c.id === chainId) as any;

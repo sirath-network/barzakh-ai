@@ -154,6 +154,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <span className="text-sm font-medium">New chat</span>
                     </ButtonAny>
 
+                    <Link href="/arc" onClick={() => setOpenMobile(false)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 hover:text-foreground hover:bg-muted/50 dark:text-neutral-400 transition-colors">
+                      <BotAny className="h-4 w-4" />
+                      <span>Arc Intelligence</span>
+                    </Link>
+
                     {/* Search chats button - only for logged-in users */}
                     {user && (
                       <>
